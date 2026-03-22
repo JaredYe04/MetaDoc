@@ -19,6 +19,7 @@ import { reactive, ref, type Ref } from 'vue'
 import { getLlmTemperature } from '../settings.js'
 import { getPromptByKey } from '../prompts'
 import { recognizeIntent, type IntentRecognitionResult } from './intent-processor'
+import { sessionHasPendingTodoItems } from '../agent-tools/todolist-tool'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -29,6 +30,9 @@ function getLogger() {
   }
   return loggerInstance
 }
+
+/** 无 tool_calls 时因 Todo 未完成而自动续跑的最大连续次数（避免 maxIterations 极大时死循环） */
+const MAX_TODO_AUTO_CONTINUE_STREAK = 2
 
 /**
  * 引擎执行选项
@@ -422,6 +426,13 @@ export abstract class BaseEngineExecutor {
         '## Concurrent and Subagent capability\nYou **can and should** issue multiple <tool_call> in one response when the user asks to run multiple subagents or tasks in parallel. The system will **run them concurrently**; do not claim you cannot create or run multiple subagents. If the tool list includes Subagents (e.g. subagent-doc-writer), call them directly as needed.'
       if (concurrentNote || concurrentNoteFallback) {
         prompt += '\n\n' + (concurrentNote || concurrentNoteFallback)
+      }
+    }
+    const hasEditTool = tools.some((t) => t.id === 'edit')
+    if (hasEditTool) {
+      const editDiffNote = getPromptByKey('agent.toolCallSpec.documentEditDiffNote')?.trim()
+      if (editDiffNote) {
+        prompt += '\n\n' + editDiffNote
       }
     }
     prompt += '\n\n## Notes When Calling Tools\n'
@@ -1166,6 +1177,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
     // 最大迭代次数（使用基类方法，考虑maxToolCalls配置）
     const { maxIterations, isUnlimited } = this.getMaxIterations()
     let iterations = 0
+    /** 连续「无 tool_calls + 注入待办续写」次数；任一轮出现 tool_calls 则清零 */
+    let todoAutoContinueStreak = 0
 
     while (iterations < maxIterations) {
       iterations++
@@ -1392,6 +1405,47 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           break
         }
 
+        // 模型常在本轮只输出「接下来要做…」却不带 tool_calls；若 Todo 仍有未完成项，自动续跑一轮。
+        // 注意：maxToolCalls 无上限时 maxIterations 极大，若 API 持续返回空或从不发 tool_calls，必须限次否则死循环。
+        const trimmedReply = responseContent.trim()
+        if (!trimmedReply) {
+          getLogger().warn(
+            '[AutoGPT] 本轮助手内容为空且无 tool_calls，不进行待办续跑（避免与空响应死循环）'
+          )
+        } else if (todoAutoContinueStreak >= MAX_TODO_AUTO_CONTINUE_STREAK) {
+          getLogger().warn(
+            `[AutoGPT] 待办自动续跑已连续 ${MAX_TODO_AUTO_CONTINUE_STREAK} 次仍无 tool_calls，停止以免死循环`
+          )
+        } else if (
+          !this.options.singleStep &&
+          sessionHasPendingTodoItems(this.session as AgentSession)
+        ) {
+          todoAutoContinueStreak++
+          getLogger().info(
+            `[AutoGPT] 无 tool_calls 但 Todo 仍有 pending/in_progress，注入续写指令后继续（${todoAutoContinueStreak}/${MAX_TODO_AUTO_CONTINUE_STREAK}）`
+          )
+          contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig, {
+            activeReferenceIds: this.options.activeReferenceIds,
+            extraReferences: this.options.extraReferences
+          })
+          if (contextMessages.length > 0 && contextMessages[0].role === 'system') {
+            contextMessages[0].content += toolPrompt
+          } else {
+            contextMessages.unshift({
+              role: 'system',
+              content: toolPrompt
+            })
+          }
+          const continueTodo =
+            getPromptByKey('agent.autogpt.continuePendingTodoPrompt')?.trim() ||
+            '[System] Your last message had no tool calls, but the todo list still has pending tasks. Continue in this turn by calling the required tools (e.g. edit, chart-generation, subagent). Do not stop at narration only.'
+          contextMessages.push({
+            role: 'user',
+            content: continueTodo
+          })
+          continue
+        }
+
         // 没有工具调用，也没有完成标记，结束执行
         getLogger().info('[AutoGPT] 没有工具调用且没有完成标记，结束执行')
         this.options.onProgress?.({
@@ -1400,6 +1454,9 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         })
         break
       }
+
+      // 本轮模型发出了 tool_calls：清零待办续跑连击
+      todoAutoContinueStreak = 0
 
       // 如果有工具调用，确保tool_calls已经被正确添加到assistantMessage
       // 注意：tool_calls可能已经在onToolCallsDetected回调中添加了，这里只需要验证

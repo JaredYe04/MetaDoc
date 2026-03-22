@@ -3414,7 +3414,10 @@
     "thinking": "Denke gerade nach...",
     "toolCall": "Tool aufrufen",
     "toolResult": "Werkzeug-Ergebnis",
-    "error": "Fehler",
+    "error": {
+      "generic": "Fehler",
+      "executionFailed": "Agent-Ausführung fehlgeschlagen: {message}"
+    },
     "retry": "Wiederholen",
     "saveFailed": "Speichern fehlgeschlagen",
     "callParams": "Aufrufparameter",

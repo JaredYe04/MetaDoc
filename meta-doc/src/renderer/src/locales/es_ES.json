@@ -449,7 +449,10 @@
         "unixTimestamp": "Marca de tiempo Unix"
       }
     },
-    "error": "Se ha producido un error",
+    "error": {
+      "generic": "Se ha producido un error",
+      "executionFailed": "Error al ejecutar el agente: {message}"
+    },
     "manage": {
       "status": "Estado",
       "title": "Gestionar",

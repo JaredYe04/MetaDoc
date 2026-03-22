@@ -62,11 +62,15 @@ export async function streamChatWithTools(
     async consumeStream(
       onDelta: (delta: string) => void
     ): Promise<{ usage: UsageStats | null; fullText?: string }> {
+      let receivedTextDelta = false
       try {
         for await (const part of result.fullStream) {
           if (part.type === 'text-delta') {
             const chunk = (part as { text?: string; delta?: string }).text ?? (part as { delta?: string }).delta ?? ''
-            if (chunk) onDelta(chunk)
+            if (chunk) {
+              receivedTextDelta = true
+              onDelta(chunk)
+            }
           }
           if (part.type === 'tool-input-available' && onToolCall) {
             if (!reportedToolCallIds.has(part.toolCallId)) {
@@ -153,7 +157,15 @@ export async function streamChatWithTools(
         }
       } catch (err) {
         if (NoOutputGeneratedError.isInstance(err)) {
-          return null
+          // 完全无文本且无已收集的 tool call 时，多为欠费/鉴权/被拒等被 SDK 归一成「无输出」
+          if (!receivedTextDelta && collectedToolCalls.length === 0) {
+            const wrap = new Error(
+              'LLM 未返回任何内容（常见于 API 密钥无效、账户余额或配额不足、或请求被服务端拒绝）。请检查提供商控制台与网络。'
+            )
+            wrap.cause = err
+            throw wrap
+          }
+          return { usage: null, fullText: undefined }
         }
         throw err
       }

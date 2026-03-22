@@ -449,7 +449,10 @@
         "unixTimestamp": "Unix-временная метка"
       }
     },
-    "error": "Произошла ошибка",
+    "error": {
+      "generic": "Произошла ошибка",
+      "executionFailed": "Ошибка выполнения агента: {message}"
+    },
     "manage": {
       "status": "Статус",
       "title": "Управление",

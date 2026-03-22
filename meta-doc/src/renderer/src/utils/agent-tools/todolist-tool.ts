@@ -98,6 +98,16 @@ function getTodoListFromSession(session: AgentSession | undefined): TodoList | n
 }
 
 /**
+ * 是否仍有未完成待办（pending / in_progress）。
+ * 供 AutoGPT 等在「模型本轮未发出 tool_calls」时决定是否自动续跑一轮，避免只输出「接下来我要…」就 idle。
+ */
+export function sessionHasPendingTodoItems(session: AgentSession | undefined | null): boolean {
+  const list = getTodoListFromSession(session || undefined)
+  if (!list?.items?.length) return false
+  return list.items.some((i) => i.status === 'pending' || i.status === 'in_progress')
+}
+
+/**
  * 保存todolist到session
  * 使用tabId-sessionId作为key，确保同一个tab下的同一个session共享todolist
  */

@@ -170,6 +170,7 @@
     "node-latex-compiler": "^1.0.5",
     "node-pdf-to-markdown": "^1.2.5",
     "node-plantuml-2": "^1.1.8",
+    "node-pty": "^1.0.0",
     "office-to-pdf": "^4.0.0",
     "openai": "^4.94.0",
     "pdf-lib": "^1.17.1",
@@ -202,7 +203,6 @@
     "word-extractor": "^1.0.4",
     "xlsx": "^0.18.5",
     "xmldom": "^0.6.0",
-    "node-pty": "^1.0.0",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"
   },

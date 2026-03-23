@@ -3087,6 +3087,19 @@ watch(
   color: var(--editor-text-color, inherit) !important;
 }
 
+/*
+ * Tailwind preflight（shadcn.css）对全局 ol/ul 使用 list-style: none。
+ * Vditor 仅为 .vditor-reset ul 写了 list-style-type: disc，未覆盖 ol，
+ * 导致分屏预览、IR/WYSIWYG 中有序列表数字不显示（并非 Vditor 解析问题）。
+ */
+.editor :deep(.vditor-reset ol),
+.editor :deep(.vditor-ir ol),
+.editor :deep(.vditor-wysiwyg ol),
+.editor :deep(.vditor-preview ol) {
+  list-style-type: decimal;
+  list-style-position: outside;
+}
+
 /* 右边的元信息样式 */
 .meta-info {
   color: var(--el-text-color-primary, black);

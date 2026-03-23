@@ -681,6 +681,15 @@ const mapHtmlToWordStyles = (html: string): string => {
 }
 
 /**
+ * 块级公式在导出 DOCX 时的占位符外层 HTML。
+ * html-to-docx 会把嵌在 <li> 里的 <p> 整段丢掉（占位符进不了 document.xml），
+ * 因此不能用 <p>；用 display:block 的 span 在列表内外均可保留占位符文本。
+ */
+const wrapBlockMathPlaceholderForDocx = (placeholderText: string): string => {
+  return `<span class="Normal" style="display:block;text-align:center;margin:12pt 0;">${placeholderText}</span>`
+}
+
+/**
  * 移除Markdown格式符号，提取纯文本
  * 用于目录标题的清理，去除加粗、斜体等Markdown符号
  */
@@ -1192,8 +1201,11 @@ const convertFormulaToMathML = async (htmlContent: string, markdown: string): Pr
   return result
 }
 
+/** 公式占位符（startPos 为在 Markdown 中的起始偏移，用于与 HTML 公式按文档顺序对齐） */
+type FormulaPlaceholderData = { latex: string; display: boolean; startPos?: number }
+
 // 公式占位符存储（用于在document.xml处理阶段替换）
-const formulaPlaceholders = new Map<number, { latex: string; display: boolean }>()
+const formulaPlaceholders = new Map<number, FormulaPlaceholderData>()
 let formulaPlaceholderIndex = 0
 
 /**
@@ -1250,9 +1262,9 @@ const extractFormulasFromMarkdown = (
   markdown: string
 ): {
   processedMarkdown: string
-  placeholders: Map<number, { latex: string; display: boolean }>
+  placeholders: Map<number, FormulaPlaceholderData>
 } => {
-  const placeholders = new Map<number, { latex: string; display: boolean }>()
+  const placeholders = new Map<number, FormulaPlaceholderData>()
   let index = 0
   let processedMarkdown = markdown
 
@@ -1372,7 +1384,8 @@ const extractFormulasFromMarkdown = (
     const placeholderIndex = index++
     placeholders.set(placeholderIndex, {
       latex: escapedLatex,
-      display: formulaMatch.display
+      display: formulaMatch.display,
+      startPos: formulaMatch.startPos
     })
 
     // 创建文本占位符（使用特殊格式，避免与普通文本冲突和被 Markdown 渲染器处理）
@@ -1408,7 +1421,7 @@ const extractFormulasFromMarkdown = (
  */
 const replaceFormulasInHtml = (
   htmlContent: string,
-  placeholders: Map<number, { latex: string; display: boolean }>
+  placeholders: Map<number, FormulaPlaceholderData>
 ): string => {
   let processedHtml = htmlContent
   let index = placeholders.size
@@ -1474,7 +1487,7 @@ const convertLatexToPlaceholder = (latex: string, displayMode: boolean): string 
   const placeholder = `<span>${placeholderText}</span>`
 
   if (displayMode) {
-    return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${placeholder}</p>`
+    return wrapBlockMathPlaceholderForDocx(placeholder)
   } else {
     return placeholder
   }
@@ -1483,7 +1496,7 @@ const convertLatexToPlaceholder = (latex: string, displayMode: boolean): string 
 /**
  * 获取所有公式占位符数据（用于document.xml处理）
  */
-export const getFormulaPlaceholders = (): Map<number, { latex: string; display: boolean }> => {
+export const getFormulaPlaceholders = (): Map<number, FormulaPlaceholderData> => {
   return new Map(formulaPlaceholders)
 }
 
@@ -1859,7 +1872,7 @@ const convertMarkdownToDocxBuffer = async (
   // 只有当 processFormula 不为 false 时，才在 Markdown 阶段提取公式并替换为文本占位符
   // 这样可以避免在 HTML 转换过程中 LaTeX 代码被破坏
   let processedMarkdown = markdown
-  let markdownPlaceholders = new Map<number, { latex: string; display: boolean }>()
+  let markdownPlaceholders = new Map<number, FormulaPlaceholderData>()
   if (options?.processFormula !== false) {
     const result = extractFormulasFromMarkdown(markdown)
     processedMarkdown = result.processedMarkdown
@@ -1881,199 +1894,128 @@ const convertMarkdownToDocxBuffer = async (
   tempImageUrls = networkResult.tempImageUrls
 
   if (options?.processFormula !== false) {
-    // 只匹配 .language-math 元素（不匹配图片，因为图片不是公式）
+    // 在「已处理网络图片」的 HTML 上扫描，避免 img 替换导致下标与 processedHtml 不一致
+    // 列表项内的块级 $$ 在 Vditor 中常为 span.language-math，不能再用 div/span 区分块级/行内；
+    // 按「HTML 中出现顺序」与「Markdown 中公式出现顺序（startPos）」一一对应，display 以 Markdown 为准。
     const formulaLanguageRegex =
       /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi
 
-    // 也匹配 MathML 元素（如果 HTML 中包含原生 MathML）
-    const mathmlRegex = /<math[^>]*>[\s\S]*?<\/math>/gi
-
-    // 收集所有公式元素（只包含 language-math 和 MathML，不包含图片）
-    const htmlFormulaMatches: Array<{
+    type HtmlFormulaMatch = {
       match: string
       index: number
-      type: 'language-math'
-      isBlockLevel: boolean
-      latexContent?: string
-    }> = []
+      latexContent: string
+      /** HTML 标签是否为 div（仅用于「HTML 多出来的公式」新建占位符时的默认 display） */
+      isHtmlBlockTag: boolean
+    }
 
-    let match
-    while ((match = formulaLanguageRegex.exec(htmlContent)) !== null) {
-      const tagName = match[1].toLowerCase()
-      const isBlockLevel = tagName === 'div'
-      const latexContent = match[2].trim() // 提取 LaTeX 内容
+    const htmlFormulaMatches: HtmlFormulaMatch[] = []
+    let match: RegExpExecArray | null
+    formulaLanguageRegex.lastIndex = 0
+    while ((match = formulaLanguageRegex.exec(processedHtml)) !== null) {
+      const latexContent = match[2].trim()
+      if (!latexContent) continue
       htmlFormulaMatches.push({
         match: match[0],
         index: match.index,
-        type: 'language-math',
-        isBlockLevel,
-        latexContent
+        latexContent,
+        isHtmlBlockTag: match[1].toLowerCase() === 'div'
       })
     }
 
-    // 匹配 MathML 元素
-    while ((match = mathmlRegex.exec(htmlContent)) !== null) {
-      // 判断是否为块级（通过检查 display 属性或周围的标签）
-      const beforeMatch = htmlContent.substring(Math.max(0, match.index - 100), match.index)
-      const afterMatch = htmlContent.substring(
-        match.index + match[0].length,
-        Math.min(htmlContent.length, match.index + match[0].length + 100)
-      )
-      const isBlockLevel =
-        match[0].includes('display="block"') ||
-        match[0].includes('display="block"') ||
-        beforeMatch.includes('<p') ||
-        beforeMatch.includes('<div') ||
-        afterMatch.includes('</p>') ||
-        afterMatch.includes('</div>')
-      htmlFormulaMatches.push({
-        match: match[0],
-        index: match.index,
-        type: 'language-math', // 使用相同的类型
-        isBlockLevel
-        // MathML 元素没有直接的 LaTeX 内容
-      })
-    }
-
-    // 按位置从后往前排序，避免替换时索引偏移
-    htmlFormulaMatches.sort((a, b) => b.index - a.index)
-
-    const blockCount = htmlFormulaMatches.filter((m) => m.isBlockLevel).length
-    const inlineCount = htmlFormulaMatches.filter((m) => !m.isBlockLevel).length
-    const markdownBlockCount = Array.from(markdownPlaceholders.values()).filter(
-      (v) => v.display
-    ).length
-    const markdownInlineCount = Array.from(markdownPlaceholders.values()).filter(
-      (v) => !v.display
-    ).length
+    const markdownBlockCount = Array.from(markdownPlaceholders.values()).filter((v) => v.display).length
+    const markdownInlineCount = Array.from(markdownPlaceholders.values()).filter((v) => !v.display).length
 
     logger.info(
-      `在 HTML 中找到 ${htmlFormulaMatches.length} 个公式元素（块级：${blockCount}，行内：${inlineCount}），Markdown 中有 ${markdownPlaceholders.size} 个公式（块级：${markdownBlockCount}，行内：${markdownInlineCount}）`
+      `在 HTML 中找到 ${htmlFormulaMatches.length} 个可替换的 .language-math 元素，Markdown 中有 ${markdownPlaceholders.size} 个公式（块级：${markdownBlockCount}，行内：${markdownInlineCount}）`
     )
 
-    // 将 HTML 中的公式元素替换为占位符
-    // 按块级和行内分别匹配
-    const blockPlaceholderIndices = Array.from(markdownPlaceholders.entries())
-      .filter(([_, data]) => data.display)
-      .map(([index]) => index)
-      .sort((a, b) => a - b)
-    const inlinePlaceholderIndices = Array.from(markdownPlaceholders.entries())
-      .filter(([_, data]) => !data.display)
-      .map(([index]) => index)
-      .sort((a, b) => a - b)
+    const orderedPlaceholderIndices = Array.from(markdownPlaceholders.entries())
+      .sort((a, b) => {
+        const sa = a[1].startPos
+        const sb = b[1].startPos
+        if (sa != null && sb != null) return sa - sb
+        if (sa != null) return -1
+        if (sb != null) return 1
+        return a[0] - b[0]
+      })
+      .map(([k]) => k)
 
-    let blockIndex = 0
-    let inlineIndex = 0
-    let replacedCount = 0
-    const unmatchedHtmlFormulas: number[] = []
+    const assignableAsc = [...htmlFormulaMatches].sort((a, b) => a.index - b.index)
+    const placeholderForHtmlIndex = new Map<number, number>()
+
+    assignableAsc.forEach((m, i) => {
+      if (i < orderedPlaceholderIndices.length) {
+        placeholderForHtmlIndex.set(m.index, orderedPlaceholderIndices[i])
+      }
+    })
+
     const unmatchedPlaceholders: number[] = []
 
-    // 改进匹配策略：对于无法匹配的 HTML 公式，尝试跳过（可能是重复渲染）
-    // 但需要确保所有 Markdown 公式都能被匹配
-    for (let i = 0; i < htmlFormulaMatches.length; i++) {
-      const htmlMatch = htmlFormulaMatches[i]
-      let placeholderIndex: number | null = null
+    for (let i = orderedPlaceholderIndices.length; i < assignableAsc.length; i++) {
+      const m = assignableAsc[i]
+      const newIndex =
+        markdownPlaceholders.size === 0
+          ? 0
+          : Math.max(...markdownPlaceholders.keys()) + 1
+      markdownPlaceholders.set(newIndex, {
+        latex: m.latexContent,
+        display: m.isHtmlBlockTag
+      })
+      placeholderForHtmlIndex.set(m.index, newIndex)
+      logger.info(
+        `从 HTML 中提取公式并添加到占位符 ${newIndex}（${m.isHtmlBlockTag ? '块级' : '行内'}）: ${m.latexContent.substring(0, 100)}`
+      )
+    }
 
-      if (htmlMatch.isBlockLevel && blockIndex < blockPlaceholderIndices.length) {
-        placeholderIndex = blockPlaceholderIndices[blockIndex]
-        blockIndex++
-      } else if (!htmlMatch.isBlockLevel && inlineIndex < inlinePlaceholderIndices.length) {
-        placeholderIndex = inlinePlaceholderIndices[inlineIndex]
-        inlineIndex++
+    if (assignableAsc.length < orderedPlaceholderIndices.length) {
+      const remaining = orderedPlaceholderIndices.slice(assignableAsc.length)
+      unmatchedPlaceholders.push(...remaining)
+      logger.warn(
+        `有 ${remaining.length} 个 Markdown 公式在 HTML 中未找到 .language-math 元素: ${remaining.slice(0, 10).join(', ')}`
+      )
+      for (const idx of remaining.slice(0, 5)) {
+        const placeholderData = markdownPlaceholders.get(idx)
+        if (placeholderData) {
+          logger.warn(`未匹配的占位符 ${idx} 的 LaTeX: ${placeholderData.latex}`)
+        }
+      }
+    }
+
+    let replacedCount = 0
+    const assignableDesc = [...assignableAsc].sort((a, b) => b.index - a.index)
+    for (const m of assignableDesc) {
+      const placeholderIndex = placeholderForHtmlIndex.get(m.index)
+      if (placeholderIndex === undefined) continue
+      const phData = markdownPlaceholders.get(placeholderIndex)
+      if (!phData) continue
+
+      const display = phData.display
+      const placeholderText = display
+        ? `[MATH_PLACEHOLDER_${placeholderIndex}]`
+        : `[MATH_PLACEHOLDER_${placeholderIndex}_INLINE]`
+
+      if (display) {
+        processedHtml =
+          processedHtml.substring(0, m.index) +
+          wrapBlockMathPlaceholderForDocx(placeholderText) +
+          processedHtml.substring(m.index + m.match.length)
       } else {
-        // 无法匹配的公式元素：HTML 中有但 Markdown 中没有
-        // 说明 Markdown 侧解析有问题，以 HTML 为准
-        // 从 HTML 中提取 LaTeX 内容，添加到占位符 Map 中
-        if (htmlMatch.latexContent) {
-          // 生成新的占位符索引
-          const newIndex = markdownPlaceholders.size
-          markdownPlaceholders.set(newIndex, {
-            latex: htmlMatch.latexContent,
-            display: htmlMatch.isBlockLevel
-          })
-          placeholderIndex = newIndex
-
-          // 更新占位符索引列表
-          if (htmlMatch.isBlockLevel) {
-            blockPlaceholderIndices.push(newIndex)
-            blockIndex++
-          } else {
-            inlinePlaceholderIndices.push(newIndex)
-            inlineIndex++
-          }
-
-          logger.info(
-            `从 HTML 中提取公式并添加到占位符 ${newIndex}（${htmlMatch.isBlockLevel ? '块级' : '行内'}）: ${htmlMatch.latexContent.substring(0, 100)}`
-          )
-        } else {
-          // 没有 LaTeX 内容（可能是 MathML），无法处理
-          unmatchedHtmlFormulas.push(i)
-          logger.warn(
-            `无法匹配 HTML 中的公式元素 ${i}（${htmlMatch.isBlockLevel ? '块级' : '行内'}），且无法提取 LaTeX 内容。HTML 元素预览: ${htmlMatch.match.substring(0, 100)}`
-          )
-        }
+        processedHtml =
+          processedHtml.substring(0, m.index) +
+          `<span>${placeholderText}</span>` +
+          processedHtml.substring(m.index + m.match.length)
       }
-
-      if (placeholderIndex !== null) {
-        // 创建占位符文本
-        const placeholderText = htmlMatch.isBlockLevel
-          ? `[MATH_PLACEHOLDER_${placeholderIndex}]`
-          : `[MATH_PLACEHOLDER_${placeholderIndex}_INLINE]`
-
-        // 替换公式元素为占位符
-        if (htmlMatch.isBlockLevel) {
-          // 块级公式：替换为段落中的占位符
-          processedHtml =
-            processedHtml.substring(0, htmlMatch.index) +
-            `<p class="Normal" style="text-align: center; margin: 12pt 0;"><span>${placeholderText}</span></p>` +
-            processedHtml.substring(htmlMatch.index + htmlMatch.match.length)
-        } else {
-          // 行内公式：替换为 span 中的占位符
-          processedHtml =
-            processedHtml.substring(0, htmlMatch.index) +
-            `<span>${placeholderText}</span>` +
-            processedHtml.substring(htmlMatch.index + htmlMatch.match.length)
-        }
-
-        replacedCount++
-      }
+      replacedCount++
     }
 
-    // 检查未匹配的占位符
-    if (blockIndex < blockPlaceholderIndices.length) {
-      const remaining = blockPlaceholderIndices.slice(blockIndex)
-      unmatchedPlaceholders.push(...remaining)
-      logger.warn(
-        `有 ${remaining.length} 个块级占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`
-      )
-      // 输出未匹配占位符的详细信息，便于调试
-      for (const idx of remaining.slice(0, 5)) {
-        const placeholderData = markdownPlaceholders.get(idx)
-        if (placeholderData) {
-          logger.warn(`未匹配的块级占位符 ${idx} 的 LaTeX: ${placeholderData.latex}`)
-        }
-      }
-    }
-    if (inlineIndex < inlinePlaceholderIndices.length) {
-      const remaining = inlinePlaceholderIndices.slice(inlineIndex)
-      unmatchedPlaceholders.push(...remaining)
-      logger.warn(
-        `有 ${remaining.length} 个行内占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`
-      )
-      // 输出未匹配占位符的详细信息，便于调试
-      for (const idx of remaining.slice(0, 5)) {
-        const placeholderData = markdownPlaceholders.get(idx)
-        if (placeholderData) {
-          logger.warn(`未匹配的行内占位符 ${idx} 的 LaTeX: ${placeholderData.latex}`)
-        }
-      }
-    }
-
+    const extraHtmlCount = Math.max(0, assignableAsc.length - orderedPlaceholderIndices.length)
     logger.info(
-      `在 HTML 中替换了 ${replacedCount} 个公式元素为占位符（块级：${blockIndex}，行内：${inlineIndex}），未匹配：HTML 公式 ${unmatchedHtmlFormulas.length} 个，占位符 ${unmatchedPlaceholders.length} 个`
+      `在 HTML 中替换了 ${replacedCount} 个公式元素为占位符；HTML 较 Markdown 多 ${extraHtmlCount} 个公式（已追加占位符）；Markdown 较 HTML 多 ${unmatchedPlaceholders.length} 个未替换`
     )
 
-    // 验证占位符是否在 HTML 中（用于调试）
+    formulaPlaceholders.clear()
+    markdownPlaceholders.forEach((v, k) => formulaPlaceholders.set(k, v))
+
     const placeholderCountInHtml = (
       processedHtml.match(/\[MATH_PLACEHOLDER_\d+(?:_INLINE)?\]/g) || []
     ).length

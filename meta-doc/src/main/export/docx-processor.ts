@@ -1602,6 +1602,51 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     return modified
   }
 
+  /** 从文本节点向上查找最近的 w:r */
+  private findAncestorWRun(textNode: Text): Element | null {
+    let cur: Node | null = textNode
+    while (cur && cur.nodeType !== 9) {
+      if (cur.nodeType === 1) {
+        const el = cur as Element
+        const ln = el.localName || el.tagName.split(':').pop() || ''
+        if (ln === 'r') return el
+      }
+      cur = cur.parentNode
+    }
+    return null
+  }
+
+  /**
+   * 块级占位符所在 w:p 内除占位符外是否还有可见文本（或其它 w:r）。
+   * 用于区分「独占一段的公式」与「列表项内：前文 + 占位符」。
+   */
+  private blockParagraphSharesContentWithPlaceholder(wp: Element, placeholderRun: Element): boolean {
+    for (let i = 0; i < wp.childNodes.length; i++) {
+      const n = wp.childNodes[i]
+      if (n.nodeType !== 1) continue
+      const el = n as Element
+      const ln = el.localName || el.tagName.split(':').pop() || ''
+      if (ln !== 'r') continue
+      if (el === placeholderRun) {
+        const rest = (el.textContent || '')
+          .replace(/\[MATH_PLACEHOLDER_\d+\]/g, '')
+          .replace(/\u00a0/g, ' ')
+          .trim()
+        if (rest.length > 0) return true
+      } else {
+        const t = (el.textContent || '').replace(/\u00a0/g, ' ').trim()
+        if (t.length > 0) return true
+      }
+    }
+    return false
+  }
+
+  /** 从 wrapOMMLAsWordprocessingML 生成的块级片段中提取 m:oMathPara（含 xmlns） */
+  private extractOMathParaXmlFromBlockWrapped(wrappedContent: string): string | null {
+    const m = wrappedContent.match(/<m:oMathPara\b[\s\S]*?<\/m:oMathPara>/i)
+    return m ? m[0] : null
+  }
+
   /**
    * 查找并替换占位符
    */
@@ -1745,16 +1790,32 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       }
 
       const rootElement = newContentDoc.documentElement
-      if (!rootElement || !rootElement.firstChild) {
+      if (!rootElement) {
         return null
       }
-
-      return xmlDoc.importNode(rootElement.firstChild, true)
+      for (let c = rootElement.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType === 1) {
+          return xmlDoc.importNode(c, true)
+        }
+      }
+      return null
     }
 
     // 替换占位符
     let replacementCount = 0
     const verbose = shouldLogVerbose()
+
+    const bumpReplacementProgress = () => {
+      replacementCount++
+      if (progressCallback) {
+        const replacementProgress = 50 + Math.floor((replacementCount / totalFormulas) * 50)
+        progressCallback(
+          replacementProgress,
+          100,
+          `正在替换公式 (${replacementCount}/${totalFormulas})`
+        )
+      }
+    }
 
     for (const { textNode, index, isBlockLevel, parentElement } of placeholderLocations) {
       if (verbose) {
@@ -1789,9 +1850,46 @@ export class OMMLInsertionProcessor implements DocxProcessor {
           if (fallbackNode) {
             const grandParent = parentElement.parentNode
             if (grandParent) {
-              grandParent.replaceChild(fallbackNode, parentElement)
-              modified = true
-              replacementCount++
+              const wpLocal =
+                (parentElement as Element).localName ||
+                (parentElement as Element).tagName.split(':').pop() ||
+                ''
+              const placeholderRunFb = this.findAncestorWRun(textNode)
+              if (
+                isBlockLevel &&
+                wpLocal === 'p' &&
+                placeholderRunFb &&
+                this.blockParagraphSharesContentWithPlaceholder(
+                  parentElement as Element,
+                  placeholderRunFb
+                )
+              ) {
+                const wp = parentElement as Element
+                let innerRun: Element | null = null
+                for (let c = fallbackNode.firstChild; c; c = c.nextSibling) {
+                  if (c.nodeType !== 1) continue
+                  const el = c as Element
+                  const ln = el.localName || el.tagName.split(':').pop() || ''
+                  if (ln === 'r') {
+                    innerRun = el
+                    break
+                  }
+                }
+                if (innerRun) {
+                  wp.insertBefore(xmlDoc.importNode(innerRun, true), placeholderRunFb)
+                  placeholderRunFb.remove()
+                  modified = true
+                  bumpReplacementProgress()
+                } else {
+                  logger.warn(
+                    `占位符 ${index}：后备方案无法插入列表段落（未找到 w:r），已跳过以免丢失前文`
+                  )
+                }
+              } else {
+                grandParent.replaceChild(fallbackNode, parentElement)
+                modified = true
+                bumpReplacementProgress()
+              }
             }
           }
         }
@@ -1806,34 +1904,96 @@ export class OMMLInsertionProcessor implements DocxProcessor {
 
       try {
         const grandParent = parentElement.parentNode
-        if (grandParent) {
-          grandParent.replaceChild(newNode, parentElement)
-          modified = true
-          replacementCount++
+        if (!grandParent) {
+          continue
+        }
 
-          if (progressCallback) {
-            const replacementProgress = 50 + Math.floor((replacementCount / totalFormulas) * 50)
-            progressCallback(
-              replacementProgress,
-              100,
-              `正在替换公式 (${replacementCount}/${totalFormulas})`
+        const wpLocal =
+          (parentElement as Element).localName ||
+          (parentElement as Element).tagName.split(':').pop() ||
+          ''
+
+        if (isBlockLevel && wpLocal === 'p') {
+          const placeholderRun = this.findAncestorWRun(textNode)
+          const wp = parentElement as Element
+          if (
+            placeholderRun &&
+            this.blockParagraphSharesContentWithPlaceholder(wp, placeholderRun)
+          ) {
+            const oMathXml = this.extractOMathParaXmlFromBlockWrapped(wrappedContent)
+            if (oMathXml) {
+              const oMathNode = parseNewContent(oMathXml)
+              if (oMathNode) {
+                wp.insertBefore(oMathNode, placeholderRun)
+                placeholderRun.remove()
+                modified = true
+                bumpReplacementProgress()
+                continue
+              }
+            }
+            logger.warn(
+              `占位符 ${index}：段落内含有其它文本但未能插入 oMathPara，已跳过整段替换以免丢失前文`
             )
+            continue
           }
         }
+
+        grandParent.replaceChild(newNode, parentElement)
+        modified = true
+        bumpReplacementProgress()
       } catch (replaceError) {
         logger.error(`替换占位符 ${index} 的节点时发生错误:`, replaceError)
       }
     }
 
-    // 序列化 XML
+    // 序列化后按「本次导出注册的占位符索引」精确删除字面量。
+    // Word/html-to-docx 常把同一串拆进多个 w:t 或保留第二个 run，仅靠 DOM 替换/遍历会漏删；
+    // 占位符格式由本管道独占，按索引删除是确定性的，不依赖启发式。
+    const serializer = new XMLSerializer()
+    let serialized = serializer.serializeToString(xmlDoc)
+    const cleaned = this.stripKnownFormulaPlaceholdersFromDocumentXml(serialized, formulaPlaceholders)
+    context.documentXml = cleaned
+    if (cleaned !== serialized) {
+      modified = true
+      logger.info('已从 document.xml 移除残留的公式占位符字面量（按索引精确匹配）')
+    }
+
     if (modified) {
-      const serializer = new XMLSerializer()
-      updatedXml = serializer.serializeToString(xmlDoc)
-      context.documentXml = updatedXml
       logger.info(`已处理 ${replacementCount} 个公式占位符`)
     }
 
     return modified
+  }
+
+  /**
+   * 删除序列化 XML 中仍出现的导出占位符字面量（仅匹配 formulaPlaceholders 中的索引）
+   */
+  private stripKnownFormulaPlaceholdersFromDocumentXml(
+    xml: string,
+    formulaPlaceholders: Map<number, { latex: string; display: boolean }>
+  ): string {
+    const indices = Array.from(formulaPlaceholders.keys()).sort((a, b) => b - a)
+    let s = xml
+    for (const idx of indices) {
+      const variants = [
+        `[MATH_PLACEHOLDER_${idx}_INLINE]`,
+        `[MATH_PLACEHOLDER_${idx}]`,
+        `&#91;MATH_PLACEHOLDER_${idx}_INLINE&#93;`,
+        `&#91;MATH_PLACEHOLDER_${idx}&#93;`,
+        `&#x5B;MATH_PLACEHOLDER_${idx}_INLINE&#x5D;`,
+        `&#x5b;MATH_PLACEHOLDER_${idx}_INLINE&#x5d;`,
+        `&#x5B;MATH_PLACEHOLDER_${idx}&#x5D;`,
+        `&#x5b;MATH_PLACEHOLDER_${idx}&#x5d;`
+      ]
+      for (const v of variants) {
+        if (!s.includes(v)) continue
+        s = s.split(v).join('')
+      }
+      // 方括号可能被拆进相邻 w:t，序列化后不再连续；核心串仍连续。(?!\d) 避免误删 71 里的 7。
+      const coreRe = new RegExp(`MATH_PLACEHOLDER_${idx}(_INLINE)?(?!\\d)`, 'g')
+      s = s.replace(coreRe, '')
+    }
+    return s
   }
 
   /**

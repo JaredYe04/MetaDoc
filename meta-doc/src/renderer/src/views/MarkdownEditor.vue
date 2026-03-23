@@ -678,12 +678,15 @@ const insertText = (text: string) => {
   textEditorAdapter.value?.insertText(text)
 }
 
-// 使用 document.execCommand 来触发复制粘贴剪切操作（Vditor 会自动处理）
+// 使用 document.execCommand 触发复制/剪切/粘贴（需焦点在当前模式的真实可编辑区）
 const executeEditorCommand = (command: string) => {
-  const editorRoot = getEditorRoot()
-  if (!editorRoot || !vditor.value) return
+  if (!vditor.value) return
+  // 与 Vditor 内部一致：按当前模式聚焦 ir/sv/wysiwyg，避免只 focus 外层容器导致 execCommand 失败（尤其剪切）
+  vditor.value.focus()
 
-  // 获取可编辑元素（Vditor的内容区域）
+  const editorRoot = getEditorRoot()
+  if (!editorRoot) return
+
   const editableElement =
     editorRoot.querySelector('.vditor-content') ||
     editorRoot.querySelector('.vditor-ir') ||
@@ -691,12 +694,25 @@ const executeEditorCommand = (command: string) => {
     editorRoot.querySelector('.vditor-sv') ||
     editorRoot
 
-  if (!editableElement) return // 确保元素获得焦点
-  ;(editableElement as HTMLElement).focus()
-
   // 使用 document.execCommand，Vditor 会自动处理这些命令
   // 对于 Vditor，execCommand 会触发其内部的粘贴处理逻辑（包括图片）
   try {
+    if (command === 'cut') {
+      // execCommand('cut') 会触发 Vditor 的 cut 监听：copy() 里 preventDefault 阻止默认剪切，
+      // 末尾再 execCommand('delete')；在 Electron 下与整段 execCommand('cut') 叠加时常出现「只进剪贴板、不删选区」。
+      // 与 Vditor 意图一致：先走 copy 事件（与 Ctrl+C 相同，写入 IR/MD 等），再单独 delete。
+      const copyOk = document.execCommand('copy')
+      if (!copyOk) return
+      if (!document.execCommand('delete')) {
+        const sel = window.getSelection()
+        if (sel?.rangeCount) {
+          const r = sel.getRangeAt(0)
+          if (!r.collapsed) r.deleteContents()
+        }
+      }
+      return
+    }
+
     const success = document.execCommand(command)
     if (!success && command === 'paste') {
       // 如果 execCommand 失败，尝试使用 Vditor 的 API
@@ -720,18 +736,13 @@ const handleEditorCommand = (payload: { command?: string; tabId?: string }) => {
     return
   }
   if (payload.command === 'undo' || payload.command === 'redo') {
-    const editorRoot = getEditorRoot()
-    if (!editorRoot || !vditor.value) return
-    const editableElement =
-      editorRoot.querySelector('.vditor-content') ||
-      editorRoot.querySelector('.vditor-ir') ||
-      editorRoot.querySelector('.vditor-wysiwyg') ||
-      editorRoot.querySelector('.vditor-sv') ||
-      editorRoot
-    if (editableElement) {
-      ;(editableElement as HTMLElement).focus()
-      document.execCommand(payload.command)
-    }
+    const inst = vditor.value
+    const iv = inst?.vditor
+    if (!inst || !iv?.undo) return
+    // 全局快捷键先 preventDefault 拦掉了按键，浏览器 undo 不会作用在 Vditor 的 diff 栈上，须走 vditor.undo
+    inst.focus()
+    if (payload.command === 'undo') iv.undo.undo(iv)
+    else iv.undo.redo(iv)
   }
 }
 

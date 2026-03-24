@@ -137,3 +137,13 @@
     color: hsl(var(--foreground));
   }
 }
+
+/*
+ * Tailwind preflight 对全局 ol/ul 使用 list-style: none。
+ * Vditor 的样式只为 .vditor-reset ul 写了 list-style-type: disc，未覆盖 ol，
+ * 导致 Vditor.preview / 主页 Markdown 预览等处的有序列表不显示数字。
+ */
+.vditor-reset ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+}

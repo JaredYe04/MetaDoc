@@ -246,5 +246,5 @@ R: Excluir um conjunto de ferramentas não afeta os AgentConfigs já criados, ma
 ## Documentação Relacionada
 
 - [[agent.introduction|Visão Geral do Framework Agent]]
-- [[agent.config|Gerenciamento de Configuração do Agent]]
+- [[agent.introduction|Gerenciamento de Configuração do Agent]]
 - [[agent.session|Gerenciamento de Sessão do Agent]]

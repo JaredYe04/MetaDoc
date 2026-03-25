@@ -133,6 +133,7 @@
       <slot></slot>
     </div>
   </div>
+  <AgentWorkspaceManageDialogs />
 </template>
 
 <script setup lang="ts">
@@ -144,6 +145,7 @@ import WorkspaceExplorer from './WorkspaceExplorer.vue'
 import WorkspaceGrepPanel from './WorkspaceGrepPanel.vue'
 import MetaInfoPanel from './MetaInfoPanel.vue'
 import AgentViewCompact from './agent/AgentViewCompact.vue'
+import AgentWorkspaceManageDialogs from './agent/AgentWorkspaceManageDialogs.vue'
 import eventBus from '../utils/event-bus'
 import messageBridge from '../bridge/message-bridge'
 import { getSetting, setSetting } from '../utils/settings'

@@ -1,7 +1,9 @@
 /**
- * 元数据序列化工具
- * 使用 msgpack 序列化 + zstd 压缩，替代 JSON + Base64 的方式
- * 向后兼容：zstd+msgpack（新格式）、msgpack（旧格式）、JSON+Base64（最旧格式）
+ * 元数据序列化工具（文档 Sidecar / 嵌入注释等）
+ * 写入：msgpack；较大时用 zstd 压缩并加 0x01 前缀，较小时 0x00 + 原始 msgpack。
+ * 读取：兼容 0x01/0x00 标记、无标记 zstd、纯 msgpack、旧 JSON+Base64。
+ *
+ * 注意：Agent 工作区会话 .msess 不使用本文件的写入路径，见 agent-workspace-persistence（仅 msgpack）。
  */
 
 import { encode, decode } from '@msgpack/msgpack'
@@ -31,43 +33,28 @@ async function ensureZstdInitialized(): Promise<void> {
 }
 
 /**
- * 将对象序列化为 Base64 字符串（使用 msgpack + zstd 压缩）
- * zstd 要求最小长度 >100 字节，如果数据太小则只使用 msgpack（不压缩）
+ * 将对象序列化为 Base64 字符串（msgpack；足够大时 zstd 压缩，与 Sidecar 一致）
  * @param obj 要序列化的对象
  * @returns Base64 编码的字符串
  */
 export async function serializeMetadataToBase64(obj: any): Promise<string> {
   try {
-    // 1. 使用 msgpack 编码
     const packed = encode(obj)
-
-    // 2. 检查数据长度，zstd 要求最小长度 >100 字节
-    // 如果数据太小，直接使用 msgpack（不压缩），并添加标记前缀
     const MIN_ZSTD_LENGTH = 100
     if (packed.length < MIN_ZSTD_LENGTH) {
-      // 数据太小，不使用 zstd 压缩
-      // 添加一个标记字节（0x00）表示这是未压缩的 msgpack
       const result = new Uint8Array(packed.length + 1)
-      result[0] = 0x00 // 标记：未压缩
+      result[0] = 0x00
       result.set(packed, 1)
       const binaryString = Array.from(result, (byte) => String.fromCharCode(byte)).join('')
-      const base64 = btoa(binaryString)
-      return base64
+      return btoa(binaryString)
     }
-
-    // 3. 数据足够大，使用 zstd 压缩
     await ensureZstdInitialized()
     const compressed = ZstdSimple.compress(packed)
-
-    // 4. 添加标记字节（0x01）表示这是 zstd 压缩的
     const result = new Uint8Array(compressed.length + 1)
-    result[0] = 0x01 // 标记：zstd 压缩
+    result[0] = 0x01
     result.set(compressed, 1)
-
-    // 5. 将 Uint8Array 转换为 Base64 字符串
     const binaryString = Array.from(result, (byte) => String.fromCharCode(byte)).join('')
-    const base64 = btoa(binaryString)
-    return base64
+    return btoa(binaryString)
   } catch (error) {
     throw new Error(`序列化元数据失败: ${error instanceof Error ? error.message : String(error)}`)
   }
@@ -76,9 +63,9 @@ export async function serializeMetadataToBase64(obj: any): Promise<string> {
 /**
  * 将 Base64 字符串反序列化为对象
  * 向后兼容多种格式：
- * 1. 带标记的格式（新格式）：
- *    - 0x01: zstd 压缩 + msgpack
- *    - 0x00: 未压缩的 msgpack（数据太小，无法压缩）
+ * 1. 带标记的格式：
+ *    - 0x01: zstd + msgpack（Sidecar 等大体积写入）
+ *    - 0x00: 未压缩 msgpack（小体积 Sidecar，或 Agent .msess 专用写入）
  * 2. zstd 压缩 + msgpack（旧格式，没有标记）
  * 3. msgpack（旧格式，没有 zstd）
  * 4. JSON + Base64（最旧格式）

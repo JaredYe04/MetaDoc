@@ -56,15 +56,16 @@
               <DropdownMenuContent
                 @mouseenter="handleDropdownMouseEnter"
                 @mouseleave="handleDropdownMouseLeave"
+                @close-auto-focus="preventDropdownCloseAutoFocus"
               >
-                <DropdownMenuItem @click="handleActionCommand('regenerate')">
+                <DropdownMenuItem @select="handleActionCommand('regenerate')">
                   {{ t('agent.message.regenerate') }}
                 </DropdownMenuItem>
-                <DropdownMenuItem @click="handleActionCommand('duplicate')">
+                <DropdownMenuItem @select="handleActionCommand('duplicate')">
                   {{ t('agent.message.duplicateSession') }}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem @click="handleActionCommand('delete')">
+                <DropdownMenuItem @select="handleActionCommand('delete')">
                   {{ t('agent.message.delete') }}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -1011,9 +1012,17 @@ const handleEdit = () => {
   emit('edit', props.message)
 }
 
-// 点击用户消息气泡内容区时等同于点编辑按钮（点击链接不触发）
+/** 阻止菜单关闭时把焦点移回触发器，避免随后一次“穿透”点击落到气泡上误开编辑框 */
+const preventDropdownCloseAutoFocus = (e: Event) => {
+  e.preventDefault()
+}
+
+// 点击用户消息气泡内容区时等同于点编辑按钮（点击链接、操作区、按钮不触发）
 const handleUserMessageBodyClick = (e: MouseEvent) => {
-  if ((e.target as HTMLElement).closest('a')) return
+  const el = e.target as HTMLElement
+  if (el.closest('a')) return
+  if (el.closest('.agent-message__actions')) return
+  if (el.closest('button')) return
   handleEdit()
 }
 
@@ -1552,6 +1561,8 @@ onBeforeUnmount(() => {
 .tool-message-content :deep(.pb-4) {
   padding: 6px 12px 8px 12px;
   overflow-x: auto;
+  overflow-y: visible;
+  min-height: 0;
   background-color: transparent;
 }
 

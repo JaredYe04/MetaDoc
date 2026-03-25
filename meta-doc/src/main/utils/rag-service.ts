@@ -1059,6 +1059,15 @@ class RAGServiceImpl implements RAGService {
   }
 
   /**
+   * Agent 能力层（Skills / MCP 注册表等）共用同一套 embedding 管线。
+   */
+  async embedForAgentCapabilities(text: string): Promise<{ vector: number[]; model: string }> {
+    await this.initVectorDatabase()
+    const r = await this.embedText(text)
+    return { vector: [...r.vector], model: r.model }
+  }
+
+  /**
    * 生成文本嵌入向量（带缓存）
    */
   private async embedTextCached(text: string): Promise<readonly number[]> {

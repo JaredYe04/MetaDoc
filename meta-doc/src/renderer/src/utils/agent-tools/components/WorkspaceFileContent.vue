@@ -1,5 +1,5 @@
 <template>
-  <el-scrollbar v-if="displayType !== 'code'" class="file-content-scroll max-h-[400px]">
+  <el-scrollbar v-if="displayType !== 'code'" class="file-content-scroll" max-height="400px">
     <!-- SVG: 渲染为图片 -->
     <div v-if="displayType === 'svg'" class="file-content-rendered">
       <img

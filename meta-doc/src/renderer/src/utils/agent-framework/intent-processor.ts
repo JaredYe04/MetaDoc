@@ -14,7 +14,12 @@ import { AIContextManager } from './ai-context-manager'
 import { LlmAdapter } from './llm-adapter'
 import { createRendererLogger } from '../logger'
 import { getPromptByKey } from '../prompts'
-import { getLlmTemperature } from '../settings.js'
+import {
+  RAGRetriever,
+  CapabilityRouter,
+  messageTouchesSkills,
+  messageTouchesRules
+} from './capability-intelligence'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -117,6 +122,23 @@ function getAvailableToolBriefs(
 }
 
 /**
+ * IntentProcessor：与 RAGRetriever、CapabilityRouter 协同的意图阶段入口（检索合并见 capability-intelligence.ts）
+ */
+export class IntentProcessor {
+  /** 执行完整意图识别（内置工具 top-K + skills/MCP/knowledge 摘要注入到意图提示词） */
+  static run(
+    session: AgentSession,
+    agentConfig: AgentConfig,
+    userMessage: string,
+    outputRef?: Ref<string>,
+    engine?: AgentEngine,
+    options?: SchemaTaskOptions
+  ): Promise<IntentRecognitionResult> {
+    return recognizeIntent(session, agentConfig, userMessage, outputRef, engine, options)
+  }
+}
+
+/**
  * 识别用户意图并确定需要使用的工具
  *
  * @param session - Agent会话
@@ -149,15 +171,30 @@ export async function recognizeIntent(
     return { toolIds: [] }
   }
 
-  // 构建工具列表文本（用于提示词）
-  const toolListText = availableToolBriefs
-    .map((tool) => `- **${tool.id}**: ${tool.brief}`)
-    .join('\n')
-
-  const intentPrompt = getPromptByKey('agent.intentRecognition.prompt', {
-    toolListText,
-    userMessage
+  const retrieval = await RAGRetriever.retrieveMerged(userMessage, {
+    topKSkills: 5,
+    topKMcp: 5,
+    topKnowledge: 3
   })
+  const narrowedBriefs = CapabilityRouter.narrowBuiltinToolBriefs(availableToolBriefs, userMessage)
+  const supplement = CapabilityRouter.buildIntentContextSupplement(retrieval)
+
+  // 构建工具列表文本（用于提示词）：内置工具 top-K + RAG 摘要（技能全文仅 load_skill 后加载）
+  const toolListText = narrowedBriefs.map((tool) => `- **${tool.id}**: ${tool.brief}`).join('\n')
+
+  let intentPrompt =
+    getPromptByKey('agent.intentRecognition.prompt', {
+      toolListText,
+      userMessage
+    }) + supplement
+
+  if (messageTouchesSkills(userMessage)) {
+    intentPrompt += `\n\n[Workspace skills] Prefer **create_workspace_skill** (writes SKILL.md + indexes) or **sync_workspace_skills** after changes. Use **search_skill** / **load_skill** to query. Do not answer only with **edit** + **workspace** when the user explicitly wants MetaDoc skills under \`.metadoc/skills/\`.`
+  }
+
+  if (messageTouchesRules(userMessage)) {
+    intentPrompt += `\n\n[Dynamic rules] Prefer **create_dynamic_rule** (SQLite + system prompt) or **update_dynamic_rule** with \`ruleId\`. Do **not** create a workspace file to stand in for MetaDoc dynamic rules.`
+  }
 
   // 创建输出ref（如果没有提供）
   const intentOutputRef = outputRef || ref('')

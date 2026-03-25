@@ -246,5 +246,5 @@ R: Eliminar un conjunto no afecta a los AgentConfig ya creados, pero los AgentCo
 ## Documentación Relacionada
 
 - [[agent.introduction|Visión General del Marco de Agent]]
-- [[agent.config|Gestión de Configuración de Agent]]
+- [[agent.introduction|Gestión de Configuración de Agent]]
 - [[agent.session|Gestión de Sesiones de Agent]]

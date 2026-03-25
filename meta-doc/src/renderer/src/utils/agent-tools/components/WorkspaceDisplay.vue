@@ -1,5 +1,10 @@
 <template>
-  <el-scrollbar ref="rootScrollbarRef" class="workspace-display-scrollbar">
+  <!-- max-height 必须用 prop：EP 把高度写在 .el-scrollbar__wrap 上，只写外层 class 会导致 wrap 随内容撑满、根区域无法纵向滚动 -->
+  <el-scrollbar
+    ref="rootScrollbarRef"
+    class="workspace-display-scrollbar"
+    max-height="min(70vh, 640px)"
+  >
     <div class="workspace-display" :style="containerStyle">
       <div
         v-if="
@@ -48,7 +53,11 @@
         <div v-if="displayData.treeTruncationMessage" class="truncation-notice" :style="truncationNoticeStyle">
           {{ displayData.treeTruncationMessage }}
         </div>
-        <el-scrollbar ref="treeScrollbarRef" class="workspace-tree-scrollbar max-h-[500px]">
+        <el-scrollbar
+          ref="treeScrollbarRef"
+          class="workspace-tree-scrollbar"
+          max-height="500px"
+        >
           <div class="tree-content">
             <div
               v-for="(entry, index) in displayData.tree"
@@ -94,7 +103,7 @@
           </div>
         </div>
 
-        <el-scrollbar class="workspace-files-scrollbar max-h-[400px]">
+        <el-scrollbar class="workspace-files-scrollbar" max-height="400px">
           <div class="files-content">
             <div
               v-for="(op, index) in displayData.operations"
@@ -171,7 +180,7 @@
           <div v-if="listing.message" class="truncation-notice" :style="truncationNoticeStyle">
             {{ listing.message }}
           </div>
-          <el-scrollbar class="workspace-tree-scrollbar max-h-[300px]">
+          <el-scrollbar class="workspace-dir-scrollbar" max-height="300px">
             <div class="tree-content">
               <div
                 v-for="(entry, idx) in listing.tree"
@@ -191,7 +200,12 @@
         </div>
 
         <!-- 文件内容 -->
-        <el-scrollbar v-if="displayData.result.files?.length" ref="filesScrollbarRef" class="workspace-files-scrollbar max-h-[600px]">
+        <el-scrollbar
+          v-if="displayData.result.files?.length"
+          ref="filesScrollbarRef"
+          class="workspace-files-scrollbar"
+          max-height="560px"
+        >
           <div ref="filesContentRef" class="files-content">
             <div
               v-for="(file, index) in displayData.result.files"
@@ -626,11 +640,16 @@ const contentTextStyle = computed(() => ({
 <style scoped>
 .workspace-display-scrollbar {
   width: 100%;
-  max-height: 80vh;
+  max-height: min(70vh, 640px);
+  min-height: 0;
+  display: block;
 }
 
+/* 与 max-height prop 一致，防止仅外层受限而 wrap 仍被内容撑开 */
 .workspace-display-scrollbar :deep(.el-scrollbar__wrap) {
-  overflow-x: auto;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  max-height: min(70vh, 640px);
 }
 
 .workspace-display {
@@ -666,6 +685,17 @@ const contentTextStyle = computed(() => ({
 .workspace-tree-scrollbar :deep(.el-scrollbar__view),
 .workspace-files-scrollbar :deep(.el-scrollbar__view) {
   display: block;
+}
+
+.workspace-dir-scrollbar {
+  width: 100%;
+  display: block;
+}
+
+.workspace-dir-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 300px;
 }
 
 /* 单个文件内容块内的 pre 滚动 */

@@ -176,7 +176,7 @@ flowchart TD
 
 ### 在Agent配置中選擇引擎
 
-1. 進入 [[agent.config|Agent配置管理]]
+1. 進入 [[agent.introduction|Agent框架概述]]
 2. 建立或編輯一個Agent配置
 3. 在"引擎"選項中選擇想要的引擎類型
 4. 儲存配置
@@ -318,6 +318,6 @@ A: 會。不同引擎的思考方式和執行策略不同：
 ## 相關文件
 
 - [[agent.introduction|Agent框架概述]]
-- [[agent.config|Agent配置管理]]
+- [[agent.introduction|Agent框架概述]]
 - [[agent.session|Agent會話管理]]
 - [[agent.tools|工具集管理]]

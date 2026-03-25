@@ -246,5 +246,5 @@ A: Deleting a tool collection does not affect already created AgentConfigs, but 
 ## Related Documentation
 
 - [[agent.introduction|Agent Framework Overview]]
-- [[agent.config|Agent Configuration Management]]
+- [[agent.capabilities|Rules, Skills & MCP Management]]
 - [[agent.session|Agent Session Management]]

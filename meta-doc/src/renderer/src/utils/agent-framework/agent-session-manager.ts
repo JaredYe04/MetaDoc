@@ -537,7 +537,7 @@ class AgentSessionManager {
   }
 
   /**
-   * 紧凑化会话用于持久化（.metadoc/agent/sessions.json）
+   * 紧凑化会话用于持久化（.metadoc/agent/sessions/<id>.msess 与索引 JSON）
    * 与导出逻辑一致，但可选对「外部工具」（如 MCP）保留完整 outputs，便于恢复
    */
   compactSessionForPersistence(

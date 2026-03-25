@@ -186,7 +186,7 @@ export interface AgentConfig {
 - **LLM參數覆蓋**：可以覆蓋全域LLM配置
 - **持久化**：儲存於 `localStorage`，鍵為 `'agent-configs'`
 
-詳見[[agent.config|Agent配置管理]]。
+應用內與 Agent 相關的管理已集中在 **Agent 視圖** 選單。請優先閱讀 [[agent.tools|工具集管理]] 與 [[agent.capabilities|規則、技能與 MCP 管理]]。（原「Agent 配置管理」手冊入口已自索引移除，檔案仍保留供參考。）
 
 ### 工具集（ToolCollection）
 
@@ -202,7 +202,7 @@ export interface AgentConfig {
 
 引用素材是Agent會話中引用的文件和檔案，Agent可以感知這些內容並基於它們進行推理和操作。支援檔案、URL、知識庫等多種類型的引用。
 
-詳見[[agent.references|引用素材管理]]。
+引用素材在會話中使用與管理，詳見 [[agent.session|Agent會話管理]]。（「引用素材管理」獨立入口已自索引移除。）
 
 ### Agent引擎（AgentEngine）
 
@@ -210,7 +210,7 @@ export interface AgentConfig {
 
 Agent引擎定義了Agent的執行策略和行為方式，包括AutoGPT、ReAct、PlanExecute等多種範式。不同的引擎適用於不同的任務場景。
 
-詳見[[agent.engine|Agent引擎管理]]。
+執行範式由會話與設定自動選用；日常請搭配 [[agent.session|Agent會話管理]]。（「Agent 引擎管理」獨立入口已自索引移除。）
 
 ## 系統架構
 
@@ -303,11 +303,9 @@ Agent框架適用於以下場景：
 要開始使用Agent框架，建議按以下順序學習：
 
 1. [[agent.introduction|Agent框架概述]]（本文檔）
-2. [[agent.config|Agent配置管理]]：了解如何配置Agent
-3. [[agent.tools|工具集管理]]：學習如何管理工具集
+2. [[agent.tools|工具集管理]]：學習如何管理工具集
+3. [[agent.capabilities|規則、技能與 MCP 管理]]：規則、工作區技能與 MCP
 4. [[agent.session|Agent會話管理]]：建立和管理會話
-5. [[agent.references|引用素材管理]]：管理引用素材
-6. [[agent.engine|Agent引擎管理]]：選擇和配置引擎
 
 ## 常見問題
 
@@ -331,10 +329,8 @@ A: 當AgentConfig關聯多個工具集時，可用的工具是所有工具集的
 ## 相關文件
 
 - [[agent.session|Agent會話管理]]
-- [[agent.config|Agent配置管理]]
 - [[agent.tools|工具集管理]]
-- [[agent.references|引用素材管理]]
-- [[agent.engine|Agent引擎管理]]
+- [[agent.capabilities|規則、技能與 MCP 管理]]
 - [[ai.llm-config|LLM配置]]
 
 <QuickStartPanel mode="demo" />

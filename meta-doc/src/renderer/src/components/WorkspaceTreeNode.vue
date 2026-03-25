@@ -9,7 +9,8 @@
         'is-focused': isFocused,
         'is-workspace-root': node.isWorkspaceRoot,
         'is-directory': node.type === 'directory' || node.type === 'workspaceRoot',
-        'is-drag-target': isDragTarget
+        'is-drag-target': isDragTarget,
+        'is-explorer-deemphasized': isExplorerDeemphasized
       }"
       :style="{
         paddingLeft: `${depth * 12 + 8}px`,
@@ -32,13 +33,13 @@
       @dragend="handleDragEnd"
     >
       <ChevronRight
-        v-if="(node.type === 'directory' || node.type === 'workspaceRoot') &amp;&amp; !isExpanded"
+        v-if="(node.type === 'directory' || node.type === 'workspaceRoot') && !isExpanded"
         class="workspace-tree-node-icon"
         :class="{ 'is-workspace-root': node.isWorkspaceRoot }"
         @click.stop="handleIconClick"
       />
       <ChevronDown
-        v-else-if="(node.type === 'directory' || node.type === 'workspaceRoot') &amp;&amp; isExpanded"
+        v-else-if="(node.type === 'directory' || node.type === 'workspaceRoot') && isExpanded"
         class="workspace-tree-node-icon"
         :class="{ 'is-workspace-root': node.isWorkspaceRoot }"
         @click.stop="handleIconClick"
@@ -47,6 +48,7 @@
         v-else-if="node.type === 'file'"
         :src="getFileIcon(node.name)"
         class="workspace-tree-node-file-icon"
+        :class="{ 'is-explorer-deemphasized-icon': isExplorerDeemphasized }"
         alt=""
       />
       <span
@@ -201,6 +203,11 @@ const isExpanded = computed(() => {
     props.expandedPaths.has(props.node.path)
   )
 })
+
+/** 点号开头的文件夹/文件（含 .metadoc）：与 VS Code 资源管理器一致略降对比度 */
+const isExplorerDeemphasized = computed(
+  () => !props.node.isWorkspaceRoot && props.node.name.startsWith('.')
+)
 
 // 内联创建：当前节点是否为创建目标父节点
 const isCreatingParent = computed(
@@ -601,6 +608,21 @@ const handleDragEnd = (event: DragEvent) => {
   background-color: v-bind('dragTargetColor');
   outline: 1px dashed #999;
   outline-offset: -1px;
+}
+
+/* 隐藏项 / .metadoc：次要前景色（对齐 VS Code list.deemphasizedForeground 观感） */
+.workspace-tree-node-item.is-explorer-deemphasized {
+  color: v-bind('themeState.currentTheme.SideTextColor2');
+  opacity: 0.92;
+}
+
+.workspace-tree-node-item.is-explorer-deemphasized .workspace-tree-node-icon {
+  color: v-bind('themeState.currentTheme.SideTextColor2');
+  opacity: 0.9;
+}
+
+.workspace-tree-node-file-icon.is-explorer-deemphasized-icon {
+  opacity: 0.85;
 }
 
 .workspace-tree-node-children.is-drag-target-area {

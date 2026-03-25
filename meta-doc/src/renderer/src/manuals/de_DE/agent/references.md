@@ -246,6 +246,6 @@ A: Referenzen selbst sind nur Verknüpfungen und belegen keinen zusätzlichen Sp
 ## Verwandte Dokumentation
 
 - [[agent.session|Agent-Sitzungsverwaltung]]
-- [[agent.config|Agent-Konfigurationsverwaltung]]
+- [[agent.introduction|Agent-Konfigurationsverwaltung]]
 - [[knowledge-base.usage|Wissensdatenbanknutzung]]
 - [[agent.introduction|Agent-Framework-Übersicht]]

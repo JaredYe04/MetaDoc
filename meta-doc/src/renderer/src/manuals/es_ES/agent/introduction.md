@@ -186,7 +186,7 @@ export interface AgentConfig {
 - **Sobrescritura de Parámetros LLM**: Puede sobrescribir la configuración global de LLM.
 - **Persistencia**: Almacenada en `localStorage`, clave `'agent-configs'`.
 
-Ver detalles en [[agent.config|Gestión de Configuración del Agente]].
+La gestión relacionada con el Agente está en el menú de la **vista Agente**. Empiece por [[agent.tools|Gestión de Conjuntos de Herramientas]] y [[agent.capabilities|Reglas, habilidades y gestión MCP]]. (La entrada de índice de «Configuración del Agente» se eliminó; el artículo sigue como referencia.)
 
 ### Conjunto de Herramientas (ToolCollection)
 
@@ -202,7 +202,7 @@ Ver detalles en [[agent.tools|Gestión de Conjuntos de Herramientas]].
 
 El material de referencia son documentos y archivos a los que se hace referencia en una sesión del Agente. El Agente puede percibir este contenido y razonar y operar basándose en él. Admite varios tipos de referencias como archivos, URL, bases de conocimiento, etc.
 
-Ver detalles en [[agent.references|Gestión de Material de Referencia]].
+Las referencias se usan y gestionan en sesiones; vea [[agent.session|Gestión de Sesiones del Agente]]. (La entrada independiente de «Material de referencia» se quitó del índice.)
 
 ### Motor del Agente (AgentEngine)
 
@@ -210,7 +210,7 @@ Ver detalles en [[agent.references|Gestión de Material de Referencia]].
 
 El motor del Agente define la estrategia de ejecución y el modo de comportamiento del Agente, incluyendo múltiples paradigmas como AutoGPT, ReAct, PlanExecute, etc. Diferentes motores son adecuados para diferentes escenarios de tareas.
 
-Ver detalles en [[agent.engine|Gestión del Motor del Agente]].
+Los paradigmas de ejecución se eligen según el contexto de la sesión; vea [[agent.session|Gestión de Sesiones del Agente]]. (La entrada «Motor del Agente» se quitó del índice.)
 
 ## Arquitectura del Sistema
 
@@ -303,11 +303,9 @@ El Marco de Agente es adecuado para los siguientes escenarios:
 Para comenzar a usar el Marco de Agente, se recomienda aprender en el siguiente orden:
 
 1. [[agent.introduction|Resumen del Marco de Agente]] (este documento)
-2. [[agent.config|Gestión de Configuración del Agente]]: Aprender a configurar el Agente.
-3. [[agent.tools|Gestión de Conjuntos de Herramientas]]: Aprender a gestionar conjuntos de herramientas.
+2. [[agent.tools|Gestión de Conjuntos de Herramientas]]: Aprender a gestionar conjuntos de herramientas.
+3. [[agent.capabilities|Reglas, habilidades y gestión MCP]]: Reglas, skills del espacio de trabajo y MCP.
 4. [[agent.session|Gestión de Sesiones del Agente]]: Crear y gestionar sesiones.
-5. [[agent.references|Gestión de Material de Referencia]]: Gestionar material de referencia.
-6. [[agent.engine|Gestión del Motor del Agente]]: Seleccionar y configurar el motor.
 
 ## Preguntas Frecuentes
 
@@ -331,10 +329,8 @@ R: Cuando un AgentConfig está asociado a múltiples conjuntos de herramientas, 
 ## Documentación Relacionada
 
 - [[agent.session|Gestión de Sesiones del Agente]]
-- [[agent.config|Gestión de Configuración del Agente]]
 - [[agent.tools|Gestión de Conjuntos de Herramientas]]
-- [[agent.references|Gestión de Material de Referencia]]
-- [[agent.engine|Gestión del Motor del Agente]]
+- [[agent.capabilities|Reglas, habilidades y gestión MCP]]
 - [[ai.llm-config|Configuración LLM]]
 
 <QuickStartPanel mode="demo" />

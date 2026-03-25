@@ -547,6 +547,14 @@ export class AIContextManager {
       prompt += baseSystemPrompt + '\n\n'
     }
 
+    const sessionRecord = session as unknown as { __agentRulesPromptBlock?: string }
+    const rulesBlock = sessionRecord.__agentRulesPromptBlock
+    if (rulesBlock && String(rulesBlock).trim()) {
+      prompt += '=== MetaDoc rules (system + approved dynamic) ===\n\n'
+      prompt += String(rulesBlock).trim()
+      prompt += '\n\n'
+    }
+
     // 若当前语言有「仅在实际成功后再标记 todolist 完成」的独立文案，则追加（en/ja/ko/de/fr 等短 prompt 语言）
     const todolistRule = getPromptByKey('agent.todolist.onlyMarkCompleteWhenSucceeded')
     if (todolistRule && todolistRule.trim()) {

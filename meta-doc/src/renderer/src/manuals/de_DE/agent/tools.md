@@ -246,5 +246,5 @@ A: Das Löschen eines Toolsets hat keinen Einfluss auf bereits erstellte AgentCo
 ## Verwandte Dokumentation
 
 - [[agent.introduction|Agent-Framework-Übersicht]]
-- [[agent.config|Agent-Konfigurationsverwaltung]]
+- [[agent.introduction|Agent-Konfigurationsverwaltung]]
 - [[agent.session|Agent-Sitzungsverwaltung]]

@@ -28,15 +28,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserManual } from '../../stores/userManual'
 import { Check } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import tinycolor from 'tinycolor2'
+import { themeState } from '../../utils/themes.js'
 
 const { locale } = useI18n()
 const { learningPath, articleProgress, currentArticleId, setCurrentArticle, getArticleById } =
   useUserManual()
+
+/** 序号徽章：背景为主色时，文字需与主色对比（避免亮主题 primary=#000 与 textColor 同为黑） */
+const itemNumberTextColor = computed(() => {
+  const bg = themeState.currentTheme.primaryColor || '#409EFF'
+  return tinycolor(bg).isLight() ? 'rgba(0,0,0,0.88)' : '#ffffff'
+})
 
 const articleTitles = ref<Map<string, string>>(new Map())
 
@@ -140,7 +148,7 @@ function openItem(articleId: string) {
   align-items: center;
   justify-content: center;
   background-color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
-  color: v-bind('themeState.currentTheme.textColor');
+  color: v-bind('itemNumberTextColor');
   border-radius: 50%;
   font-size: 12px;
   font-weight: 600;
@@ -148,6 +156,7 @@ function openItem(articleId: string) {
 
 .path-item.is-completed .item-number {
   background-color: #67c23a;
+  color: #ffffff;
 }
 
 .item-content {
@@ -174,8 +183,3 @@ function openItem(articleId: string) {
   flex-shrink: 0;
 }
 </style>
-
-<script lang="ts">
-import { themeState } from '../../utils/themes'
-export { themeState }
-</script>

@@ -117,6 +117,7 @@ import {
   getVectorsByFileId,
   searchSimilarVectors
 } from './database/knowledge-db'
+import { bindAgentCapabilitiesHandlers } from './utils/agent-capabilities-handlers'
 import ocrService from './utils/ocr-service'
 import { performSpellCheck, type SpellCheckParams } from './utils/spell-check-service'
 import { addWordToDictionary, addWordsToDictionary } from './utils/spell-check-dictionary'
@@ -461,6 +462,7 @@ export function mainCalls(): void {
   bindExportHandlers()
   bindTerminalHandlers()
   bindDatabaseTestHandlers()
+  bindAgentCapabilitiesHandlers()
   bindDatabaseHandlers()
   bindMathHandlers()
   bindSpellCheckHandlers()
@@ -800,6 +802,30 @@ function bindFileHandlers(): void {
         return buffer
       } catch (error) {
         logger.error('读取二进制文件失败:', error)
+        throw error
+      }
+    }
+  )
+
+  /**
+   * 直接删除单个文件（不经过回收站）。供 Agent 会话分文件持久化等内部场景清理孤儿 blob。
+   */
+  ipcBridge.registerHandle(
+    'unlink-file-if-exists',
+    async (_event: IpcMainInvokeEvent, filePath: string): Promise<void> => {
+      try {
+        const p = path.normalize(filePath)
+        if (!fs.existsSync(p)) {
+          return
+        }
+        const st = fs.statSync(p)
+        if (!st.isFile()) {
+          logger.warn('[unlink-file-if-exists] 跳过非文件路径', p)
+          return
+        }
+        fs.unlinkSync(p)
+      } catch (error) {
+        logger.error('[unlink-file-if-exists] 失败', error)
         throw error
       }
     }

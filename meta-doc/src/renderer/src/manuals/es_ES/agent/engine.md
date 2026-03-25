@@ -176,7 +176,7 @@ flowchart TD
 
 ### Seleccionar motor en la configuración del Agente
 
-1. Acceda a [[agent.config|Gestión de Configuración de Agentes]].
+1. Acceda a [[agent.introduction|Gestión de Configuración de Agentes]].
 2. Cree o edite una configuración de agente.
 3. En la opción "Motor", seleccione el tipo de motor deseado.
 4. Guarde la configuración.
@@ -318,6 +318,6 @@ R: Sí. Diferentes motores tienen diferentes formas de pensar y estrategias de e
 ## Documentación Relacionada
 
 - [[agent.introduction|Descripción General del Marco de Agentes]]
-- [[agent.config|Gestión de Configuración de Agentes]]
+- [[agent.introduction|Gestión de Configuración de Agentes]]
 - [[agent.session|Gestión de Sesiones de Agentes]]
 - [[agent.tools|Gestión de Conjuntos de Herramientas]]

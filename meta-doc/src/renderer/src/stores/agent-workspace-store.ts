@@ -1,6 +1,8 @@
 /**
  * Agent 工作区 Store
- * 工作区级 Agent 会话的单一数据源，持久化到 .metadoc/agent/sessions.json
+ * 工作区级 Agent 会话的单一数据源，持久化到 .metadoc/agent/：
+ * - v2：sessions-index.json（索引）+ sessions/<id>.msess（与 Sidecar 相同的二进制序列化）
+ * - 首次启动若仅有旧版 sessions.json，则自动迁移并备份原文件
  */
 
 import { defineStore } from 'pinia'
@@ -10,17 +12,26 @@ import messageBridge from '../bridge/message-bridge'
 import { createRendererLogger } from '../utils/logger'
 import { agentSessionManager } from '../utils/agent-framework/agent-session-manager'
 import { agentConfigManager } from '../utils/agent-framework/agent-config-manager'
+import {
+  REL_SESSION_INDEX,
+  joinUnderWorkspaceRoot,
+  loadIndexV2,
+  loadLegacySessionsJson,
+  deserializeSessionBlob,
+  writeSessionV2Layout,
+  renameLegacySessionsJsonBackup,
+  pruneOrphanSessionBlobs,
+  sessionBlobRelativePath,
+  type AgentSessionIndexFileV2
+} from '../utils/agent-workspace-persistence'
 
 const logger = createRendererLogger('AgentWorkspaceStore')
 
-const METADOC_AGENT_SESSIONS_FILE = '.metadoc/agent/sessions.json'
-
+/** 与旧版 sessions.json 顶层结构一致（导入/文档用类型） */
 export interface AgentWorkspacePersisted {
   activeSessionId: string | null
   sessions: AgentSession[]
-  /** Compact 视图：当前打开的 tab 会话 ID 列表，按顺序；不持久化则恢复时视为全部打开 */
   openTabIds?: string[]
-  /** 各会话的提示词输入框内容（会话级隔离） */
   composerInputBySessionId?: Record<string, string>
 }
 
@@ -94,6 +105,35 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     } as AgentSession
   }
 
+  function applyIdleAndMergeGenerating(normalized: AgentSession[]): void {
+    normalized.forEach((s) => {
+      s.status = 'idle'
+    })
+    const genId = generatingSessionId.value
+    if (isGenerating.value && genId && sessions.value.length > 0) {
+      const generatingSession = sessions.value.find((s) => s.id === genId)
+      if (generatingSession) {
+        const idx = normalized.findIndex((s) => s.id === genId)
+        if (idx >= 0) {
+          normalized[idx] = generatingSession
+        }
+      }
+    } else if (isGenerating.value && sessions.value.length > 0) {
+      const currentId = activeSessionId.value
+      const currentSession = currentId ? sessions.value.find((s) => s.id === currentId) : null
+      if (currentSession) {
+        const idx = normalized.findIndex((s) => s.id === currentSession.id)
+        if (idx >= 0) {
+          normalized[idx] = {
+            ...normalized[idx],
+            messages: currentSession.messages,
+            status: currentSession.status
+          }
+        }
+      }
+    }
+  }
+
   /** 获取当前 Agent 工作区根（并确保 .metadoc/agent 存在） */
   async function refreshWorkspaceRoot(): Promise<string> {
     const folders = getWorkspaceFolders()
@@ -106,12 +146,59 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     return root
   }
 
-  /** 持久化文件路径（主进程 fs 接受 / 或 \\） */
+  /** v2 索引文件路径（主进程 fs 接受 / 或 \\） */
   function getSessionsFilePath(): string {
     const root = workspaceRoot.value
     if (!root) return ''
-    const normalized = root.replace(/\\/g, '/').replace(/\/$/, '')
-    return `${normalized}/${METADOC_AGENT_SESSIONS_FILE}`
+    return joinUnderWorkspaceRoot(root, REL_SESSION_INDEX)
+  }
+
+  async function loadSessionsFromIndexV2(root: string): Promise<{
+    sessions: AgentSession[]
+    activeSessionId: string | null
+    openTabIds: string[]
+    composerInputBySessionId: Record<string, string>
+  } | null> {
+    const index = await loadIndexV2(root)
+    if (!index) return null
+
+    const loaded = await Promise.all(
+      index.entries.map(async (entry) => {
+        const rel = sessionBlobRelativePath(entry.id)
+        const full = joinUnderWorkspaceRoot(root, rel)
+        const raw = await deserializeSessionBlob(full)
+        const normalized = normalizeSession(raw)
+        if (!normalized) {
+          logger.warn('跳过缺失或损坏的会话文件', { id: entry.id, path: full })
+        }
+        return normalized
+      })
+    )
+    const results = loaded.filter((s): s is AgentSession => s !== null)
+
+    const sessionIds = new Set(results.map((s) => s.id))
+    const active =
+      typeof index.activeSessionId === 'string' && sessionIds.has(index.activeSessionId)
+        ? index.activeSessionId
+        : (results[0]?.id ?? null)
+
+    const savedOpen = Array.isArray(index.openTabIds) ? index.openTabIds : []
+    let tabs = savedOpen.filter((id) => sessionIds.has(id))
+    if (tabs.length === 0 && results.length > 0) {
+      tabs = [active ?? results[0]!.id]
+    }
+
+    const savedComposer =
+      index.composerInputBySessionId && typeof index.composerInputBySessionId === 'object'
+        ? index.composerInputBySessionId
+        : {}
+
+    return {
+      sessions: results,
+      activeSessionId: active,
+      openTabIds: tabs,
+      composerInputBySessionId: savedComposer
+    }
   }
 
   /** 从 .metadoc 加载会话 */
@@ -124,78 +211,85 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       return
     }
 
-    const filePath = getSessionsFilePath()
-    if (!filePath) return
-
     try {
-      const content = await messageBridge.invoke('read-file-content', filePath)
-      if (!content || typeof content !== 'string') {
-        sessions.value = []
-        activeSessionId.value = null
-        ensureDefaultSession()
+      const fromV2 = await loadSessionsFromIndexV2(root)
+      if (fromV2) {
+        const normalized = fromV2.sessions
+        applyIdleAndMergeGenerating(normalized)
+        sessions.value = normalized.length > 0 ? normalized : []
+        activeSessionId.value =
+          fromV2.activeSessionId && normalized.some((s) => s.id === fromV2.activeSessionId)
+            ? fromV2.activeSessionId
+            : (normalized[0]?.id ?? null)
+
+        const sessionIds = new Set(normalized.map((s) => s.id))
+        openTabIds.value = fromV2.openTabIds.filter((id) => sessionIds.has(id))
+        if (openTabIds.value.length === 0 && normalized.length > 0) {
+          const fb = activeSessionId.value ?? normalized[0].id
+          openTabIds.value = [fb]
+        }
+
+        composerInputBySessionId.value = fromV2.composerInputBySessionId
+        composerInput.value =
+          (activeSessionId.value && fromV2.composerInputBySessionId[activeSessionId.value]) ?? ''
+
+        if (sessions.value.length === 0) {
+          ensureDefaultSession()
+          composerInput.value =
+            (activeSessionId.value && composerInputBySessionId.value[activeSessionId.value]) ?? ''
+        }
         return
       }
 
-      const data = JSON.parse(content) as AgentWorkspacePersisted
-      const list = Array.isArray(data.sessions) ? data.sessions : []
-      const normalized = list.map(normalizeSession).filter((s): s is AgentSession => s !== null)
-      // 从磁盘加载的会话一律视为空闲，避免残留 thinking 导致“正在分析用户意图”一直显示
-      normalized.forEach((s) => {
-        s.status = 'idle'
-      })
-      // 若正在生成中，保留“正在执行”的会话的同一对象引用，避免替换后执行中的任务写错对象导致中断或不同步
-      const genId = generatingSessionId.value
-      if (isGenerating.value && genId && sessions.value.length > 0) {
-        const generatingSession = sessions.value.find((s) => s.id === genId)
-        if (generatingSession) {
-          const idx = normalized.findIndex((s) => s.id === genId)
-          if (idx >= 0) {
-            // 使用内存中的同一引用，不创建新对象，保证执行中的引擎/队列仍写入 store 中的会话
-            normalized[idx] = generatingSession
-          }
+      const legacy = await loadLegacySessionsJson(root)
+      if (legacy) {
+        const list = Array.isArray(legacy.sessions) ? legacy.sessions : []
+        const normalized = list.map(normalizeSession).filter((s): s is AgentSession => s !== null)
+        normalized.forEach((s) => {
+          s.status = 'idle'
+        })
+        applyIdleAndMergeGenerating(normalized)
+        sessions.value = normalized.length > 0 ? normalized : []
+        activeSessionId.value =
+          typeof legacy.activeSessionId === 'string' &&
+          normalized.some((s) => s.id === legacy.activeSessionId)
+            ? legacy.activeSessionId
+            : (normalized[0]?.id ?? null)
+
+        const sessionIds = new Set(normalized.map((s) => s.id))
+        const savedOpen = Array.isArray(legacy.openTabIds) ? legacy.openTabIds : []
+        openTabIds.value = savedOpen.filter((id) => sessionIds.has(id))
+        if (openTabIds.value.length === 0 && normalized.length > 0) {
+          openTabIds.value = [activeSessionId.value ?? normalized[0].id]
         }
-      } else if (isGenerating.value && sessions.value.length > 0) {
-        // 兼容：未设置 generatingSessionId 时按当前激活会话保留消息与 status
-        const currentId = activeSessionId.value
-        const currentSession = currentId ? sessions.value.find((s) => s.id === currentId) : null
-        if (currentSession) {
-          const idx = normalized.findIndex((s) => s.id === currentSession.id)
-          if (idx >= 0) {
-            normalized[idx] = {
-              ...normalized[idx],
-              messages: currentSession.messages,
-              status: currentSession.status
-            }
-          }
-        }
-      }
-      sessions.value = normalized.length > 0 ? normalized : []
-      activeSessionId.value =
-        typeof data.activeSessionId === 'string' &&
-        normalized.some((s) => s.id === data.activeSessionId)
-          ? data.activeSessionId
-          : (normalized[0]?.id ?? null)
 
-      const sessionIds = new Set(normalized.map((s) => s.id))
-      const savedOpen = Array.isArray(data.openTabIds) ? data.openTabIds : []
-      openTabIds.value = savedOpen.filter((id) => sessionIds.has(id))
-      if (openTabIds.value.length === 0 && normalized.length > 0) {
-        const fallback = activeSessionId.value ?? normalized[0].id
-        openTabIds.value = [fallback]
-      }
-
-      const savedComposer =
-        data.composerInputBySessionId && typeof data.composerInputBySessionId === 'object'
-          ? data.composerInputBySessionId
-          : {}
-      composerInputBySessionId.value = savedComposer
-      composerInput.value = (activeSessionId.value && savedComposer[activeSessionId.value]) ?? ''
-
-      if (sessions.value.length === 0) {
-        ensureDefaultSession()
+        const savedComposer =
+          legacy.composerInputBySessionId && typeof legacy.composerInputBySessionId === 'object'
+            ? legacy.composerInputBySessionId
+            : {}
+        composerInputBySessionId.value = savedComposer
         composerInput.value =
-          (activeSessionId.value && composerInputBySessionId.value[activeSessionId.value]) ?? ''
+          (activeSessionId.value && savedComposer[activeSessionId.value]) ?? ''
+
+        try {
+          await persistV2FromCurrentState(root)
+          await renameLegacySessionsJsonBackup(root)
+        } catch (migErr) {
+          logger.error('迁移旧版 sessions.json 到 v2 失败', migErr)
+        }
+
+        if (sessions.value.length === 0) {
+          ensureDefaultSession()
+          composerInput.value =
+            (activeSessionId.value && composerInputBySessionId.value[activeSessionId.value]) ?? ''
+        }
+        return
       }
+
+      sessions.value = []
+      activeSessionId.value = null
+      openTabIds.value = []
+      ensureDefaultSession()
     } catch (e) {
       logger.warn('加载 Agent 会话失败', e)
       sessions.value = []
@@ -203,6 +297,28 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       openTabIds.value = []
       ensureDefaultSession()
     }
+  }
+
+  async function persistV2FromCurrentState(root: string): Promise<void> {
+    const index: AgentSessionIndexFileV2 = {
+      formatVersion: 2,
+      activeSessionId: activeSessionId.value,
+      openTabIds: openTabIds.value,
+      composerInputBySessionId: composerInputBySessionId.value,
+      entries: sessions.value.map((s) => ({
+        id: s.id,
+        title: s.title,
+        updatedAt: s.updatedAt
+      }))
+    }
+    const blobs = sessions.value.map((s) => ({
+      sessionId: s.id,
+      compact: agentSessionManager.compactSessionForPersistence(s as any, {
+        keepFullOutputForExternalTools: true
+      }) as unknown
+    }))
+    await writeSessionV2Layout(root, index, blobs)
+    await pruneOrphanSessionBlobs(root, new Set(sessions.value.map((s) => s.id)))
   }
 
   /** 若无会话则创建默认会话 */
@@ -246,32 +362,16 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     window.addEventListener('pagehide', flushSave)
   }
 
-  /** 写入 .metadoc（保存前先把当前会话的 composer 输入同步进 map，避免丢失；会话以紧凑形式持久化以控制文件体积） */
+  /** 写入 .metadoc v2（索引 + 每会话二进制） */
   async function saveToMetadoc(): Promise<void> {
     const root = workspaceRoot.value
     if (!root) return
-    const filePath = getSessionsFilePath()
-    if (!filePath) return
     const aid = activeSessionId.value
     if (aid) {
       composerInputBySessionId.value[aid] = composerInput.value
     }
     try {
-      const compactSessions = sessions.value.map((s) =>
-        agentSessionManager.compactSessionForPersistence(s, {
-          keepFullOutputForExternalTools: true
-        })
-      )
-      const payload: AgentWorkspacePersisted = {
-        activeSessionId: activeSessionId.value,
-        sessions: compactSessions,
-        openTabIds: openTabIds.value,
-        composerInputBySessionId: composerInputBySessionId.value
-      }
-      await messageBridge.invoke('write-file-content', {
-        filePath,
-        content: JSON.stringify(payload, null, 2)
-      })
+      await persistV2FromCurrentState(root)
     } catch (e) {
       logger.error('保存 Agent 会话失败', e)
     }

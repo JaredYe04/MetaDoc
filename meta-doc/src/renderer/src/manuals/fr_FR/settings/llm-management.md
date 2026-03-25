@@ -102,7 +102,7 @@ Pour les détails des paramètres de configuration selon les types de LLM, consu
 - [[settings.llm|Configuration LLM]]
 - [[settings.llm-types|Configuration des types LLM]]
 - [[ai.chat|Fonctionnalité de conversation IA]]
-- [[agent.config|Gestion de la configuration Agent]]
+- [[agent.introduction|Gestion de la configuration Agent]]
 
 <QuickStartPanel mode="demo" />
 

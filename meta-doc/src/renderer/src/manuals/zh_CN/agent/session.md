@@ -372,6 +372,6 @@ A: Agent可以感知引用素材的内容，并基于它们进行推理和操作
 ## 相关文档
 
 - [[agent.introduction|Agent框架概述]]
-- [[agent.config|Agent配置管理]]
+- [[agent.capabilities|规则、技能与 MCP 管理]]
 - [[agent.references|引用素材管理]]
 - [[agent.engine|Agent引擎管理]]

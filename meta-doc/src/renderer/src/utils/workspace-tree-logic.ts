@@ -26,6 +26,12 @@ export function normalizePathForCompare(p: string): string {
   return (p || '').replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '')
 }
 
+/** 是否在 `.metadoc/` 之下（工作区元数据目录，资源管理器展示其内全部文件） */
+export function isPathUnderMetadoc(filePath: string): boolean {
+  const n = normalizePathForCompare(filePath)
+  return n.includes('/.metadoc/') || n.endsWith('/.metadoc')
+}
+
 /** 是否为「路径/目录不存在」类错误（含 IPC 序列化后的普通对象） */
 export function isPathNotExistError(err: unknown): boolean {
   const code = (err as { code?: string })?.code
@@ -103,8 +109,6 @@ export function applyFsEvent(
   const normFilePath = normalizePathForCompare(filePath)
   const name = basename(filePath)
 
-  if (name === '.metadoc') return true
-
   const parent = nodeMap.get(normalizePathForCompare(parentPath))
   if (!parent || (parent.type !== 'directory' && parent.type !== 'workspaceRoot')) {
     return false
@@ -114,7 +118,9 @@ export function applyFsEvent(
 
   if (eventType === 'add') {
     const ext = extname(filePath)
-    if (!options.isSupportedFormat(ext)) return true
+    const isDotfile = name.startsWith('.')
+    const underMeta = isPathUnderMetadoc(filePath)
+    if (!options.isSupportedFormat(ext) && !isDotfile && !underMeta) return true
     if (nodeMap.has(normFilePath)) return true
     const newNode: FileNode = { name, path: filePath, type: 'file' }
     registerNode(nodeMap, newNode, parent)
@@ -171,7 +177,6 @@ export function addNodeToTree(
 ): boolean {
   const normFilePath = normalizePathForCompare(filePath)
   const name = basename(filePath)
-  if (name === '.metadoc') return true
 
   const parent = nodeMap.get(normalizePathForCompare(parentPath))
   if (!parent || (parent.type !== 'directory' && parent.type !== 'workspaceRoot')) {

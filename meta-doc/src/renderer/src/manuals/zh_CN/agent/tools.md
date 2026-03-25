@@ -246,5 +246,5 @@ A: 删除工具集不会影响已创建的AgentConfig，但关联该工具集的
 ## 相关文档
 
 - [[agent.introduction|Agent框架概述]]
-- [[agent.config|Agent配置管理]]
+- [[agent.capabilities|规则、技能与 MCP 管理]]
 - [[agent.session|Agent会话管理]]

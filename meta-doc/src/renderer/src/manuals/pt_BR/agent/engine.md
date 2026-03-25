@@ -176,7 +176,7 @@ flowchart TD
 
 ### Escolhendo o mecanismo na configuração do Agente
 
-1. Acesse [[agent.config|Gerenciamento de Configuração do Agente]]
+1. Acesse [[agent.introduction|Gerenciamento de Configuração do Agente]]
 2. Crie ou edite uma configuração de Agente
 3. Na opção "Mecanismo", selecione o tipo de mecanismo desejado
 4. Salve a configuração
@@ -318,6 +318,6 @@ R: Sim. Diferentes mecanismos têm modos de pensamento e estratégias de execuç
 ## Documentação Relacionada
 
 - [[agent.introduction|Visão Geral da Estrutura do Agente]]
-- [[agent.config|Gerenciamento de Configuração do Agente]]
+- [[agent.introduction|Gerenciamento de Configuração do Agente]]
 - [[agent.session|Gerenciamento de Sessão do Agente]]
 - [[agent.tools|Gerenciamento de Conjunto de Ferramentas]]

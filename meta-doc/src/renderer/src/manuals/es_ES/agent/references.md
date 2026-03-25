@@ -246,6 +246,6 @@ R: Las referencias en sí son solo enlaces y no ocupan espacio adicional. Sin em
 ## Documentación Relacionada
 
 - [[agent.session|Gestión de Sesiones del Agente]]
-- [[agent.config|Gestión de Configuración del Agente]]
+- [[agent.introduction|Gestión de Configuración del Agente]]
 - [[knowledge-base.usage|Uso de la Base de Conocimiento]]
 - [[agent.introduction|Visión General del Marco del Agente]]

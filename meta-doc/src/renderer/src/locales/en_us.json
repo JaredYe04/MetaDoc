@@ -2460,6 +2460,30 @@
       "chart-generation": {
         "name": "Chart Generation",
         "description": "Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats"
+      },
+      "search_skill": {
+        "name": "Search Skill",
+        "description": "Vector search over indexed workspace skills (.metadoc/skills); returns summaries only"
+      },
+      "load_skill": {
+        "name": "Load Skill",
+        "description": "Load full SKILL.md for an active skill by skillId (lazy load)"
+      },
+      "sync_workspace_skills": {
+        "name": "Sync Workspace Skills",
+        "description": "Scan .metadoc/skills in workspace roots and update SQLite + embeddings"
+      },
+      "create_workspace_skill": {
+        "name": "Create Workspace Skill",
+        "description": "Write .metadoc/skills/<folder>/SKILL.md and index + embed immediately"
+      },
+      "create_dynamic_rule": {
+        "name": "Create Dynamic Rule",
+        "description": "Insert a dynamic Agent rule into the app database for system-prompt injection; do not use workspace files for rules"
+      },
+      "update_dynamic_rule": {
+        "name": "Update Dynamic Rule",
+        "description": "Update title, body, or priority of an existing dynamic rule by ruleId"
       }
     },
     "sessions": {
@@ -3213,6 +3237,7 @@
       "import": "Import",
       "validate": "Validate",
       "actions": "Actions",
+      "settingsMenu": "Agent settings",
       "exportSuccess": "Export successful",
       "importSuccess": "Import successful",
       "toolCollection": {
@@ -3320,6 +3345,83 @@
         "validationWarnings": "Engine validation warnings",
         "validationFailed": "Engine validation failed",
         "confirmDelete": "Are you sure you want to delete the engine \"{name}\"?"
+      },
+      "capabilities": {
+        "menuTitle": "Rules / Skills / MCP",
+        "menuRules": "Manage rules",
+        "menuSkills": "Manage skills",
+        "menuMcp": "Manage MCP tools",
+        "titleRules": "Agent rules",
+        "titleSkills": "Agent skills",
+        "titleMcp": "MCP tools",
+        "title": "Rules, Skills & MCP Tools",
+        "tabRules": "Rules",
+        "tabSkills": "Skills",
+        "tabMcp": "MCP Tools",
+        "refresh": "Refresh",
+        "refreshSkillsList": "Refresh list (sync disk first)",
+        "skillsDbOnly": "Load DB only",
+        "addRule": "New rule",
+        "ruleContent": "Rule body",
+        "colScope": "Scope",
+        "colTitle": "Title",
+        "colPriority": "Priority",
+        "colEnabled": "Enabled",
+        "colApproval": "Approval",
+        "colName": "Name",
+        "colFolder": "Folder",
+        "colStatus": "Status",
+        "colServer": "Server",
+        "colTool": "Tool",
+        "colPermission": "Permission",
+        "colDescription": "Description",
+        "approve": "Approve",
+        "reject": "Reject",
+        "syncSkills": "Sync skills from workspaces",
+        "activate": "Activate",
+        "mcpHint": "Entries are registered via the MCP adapter (syncMcpToolsToRegistry). The list may be empty when no MCP client has synced.",
+        "confirmDeleteRule": "Delete rule \"{title}\"?",
+        "loadFailed": "Load failed",
+        "saveOk": "Saved",
+        "saveFailed": "Operation failed",
+        "syncDone": "Scanned {scanned} skill folders, updated {upserted} embeddings",
+        "noWorkspace": "Add a workspace folder first to scan .metadoc/skills",
+        "mcpConnections": "MCP connections",
+        "mcpActiveUrl": "Active connection",
+        "mcpAddConnection": "Add connection",
+        "mcpEditConnection": "Edit MCP connection",
+        "mcpLabel": "Label",
+        "mcpBaseUrl": "Base URL",
+        "mcpSetActive": "Set active",
+        "mcpDeleteConnection": "Delete",
+        "mcpSaveConnection": "Save",
+        "mcpRefreshTools": "Refresh tool list",
+        "skillsRefreshHint": "Refresh syncs .metadoc/skills from disk, then loads skill rows from the database.",
+        "priorityHint": "Range 0–100; higher numbers mean higher priority (applied earlier in the system prompt). Default for new rules is 90.",
+        "aiSessionTitleSkill": "New skill (AI)",
+        "aiSessionTitleRule": "New rule (AI)",
+        "newSkill": "New skill",
+        "editSkill": "Edit skill",
+        "editRule": "Edit rule",
+        "skillWorkspace": "Workspace root",
+        "skillFolder": "Skill folder name",
+        "skillFolderPlaceholder": "e.g. my-skill",
+        "skillEntry": "Entry file",
+        "skillDescription": "Description (frontmatter)",
+        "skillTags": "Tags",
+        "skillTagsHint": "Comma-separated, e.g. a, b",
+        "skillDraft": "Draft",
+        "applyMetadataToDoc": "Apply form to document (update frontmatter)",
+        "syncFormFromEditor": "Sync form from editor",
+        "syncMetaMenu": "Sync metadata",
+        "syncMetaFromForm": "Apply form fields to document (frontmatter)",
+        "syncMetaFromBody": "Parse document and update form fields",
+        "openSkillFolder": "Reveal in file explorer",
+        "openFolderFailed": "Could not open in explorer",
+        "skillReadFailed": "Could not read SKILL.md",
+        "skillSavedReindexed": "Saved; index and embeddings updated",
+        "confirmDeleteSkill": "Delete skill \"{name}\"? This removes the entire skill folder (including SKILL.md).",
+        "aiAssistCreate": "Create with AI assist"
       }
     },
     "message": {

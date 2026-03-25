@@ -246,6 +246,6 @@ A: References themselves are just links and do not occupy extra space. However, 
 ## Related Documentation
 
 - [[agent.session|Agent Session Management]]
-- [[agent.config|Agent Configuration Management]]
+- [[agent.introduction|Agent Framework Overview]]
 - [[knowledge-base.usage|Knowledge Base Usage]]
 - [[agent.introduction|Agent Framework Overview]]

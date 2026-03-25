@@ -121,6 +121,7 @@ import LaTeXEditor from '../views/LaTeXEditor.vue'
 import OutlineAiToolbar from '../components/outline/OutlineAiToolbar.vue'
 import AgentConfigManager from '../components/agent/manage/AgentConfigManager.vue'
 import AgentEngineManager from '../components/agent/manage/AgentEngineManager.vue'
+import AgentCapabilitiesManager from '../components/agent/manage/AgentCapabilitiesManager.vue'
 import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue'
 
 registerDemoComponent('UserFeedbackView', UserFeedbackView)
@@ -130,4 +131,5 @@ registerDemoComponent('LaTeXEditor', LaTeXEditor)
 registerDemoComponent('OutlineAiToolbar', OutlineAiToolbar)
 registerDemoComponent('AgentConfigManager', AgentConfigManager)
 registerDemoComponent('AgentEngineManager', AgentEngineManager)
+registerDemoComponent('AgentCapabilitiesManager', AgentCapabilitiesManager)
 registerDemoComponent('ReferenceDisplay', ReferenceDisplay)

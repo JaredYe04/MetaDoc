@@ -246,6 +246,6 @@ R: A referência em si é apenas um link, não ocupa espaço adicional. Porém, 
 ## Documentação Relacionada
 
 - [[agent.session|Gerenciamento de Sessões do Agent]]
-- [[agent.config|Gerenciamento de Configuração do Agent]]
+- [[agent.introduction|Gerenciamento de Configuração do Agent]]
 - [[knowledge-base.usage|Uso da Base de Conhecimento]]
 - [[agent.introduction|Visão Geral da Estrutura do Agent]]

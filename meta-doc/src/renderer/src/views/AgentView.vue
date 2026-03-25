@@ -47,40 +47,18 @@
           <div class="sidebar-footer-content">
             <DropdownMenu :modal="false">
               <DropdownMenuTrigger as-child>
-                <Button size="small" type="info" class="[&_svg]:size-4">
-                  <Setting class="h-4 w-4" />
+                <Button size="small" type="info" class="gap-1.5 [&_svg]:size-4">
+                  <Setting class="h-4 w-4 shrink-0" />
+                  <span class="truncate max-w-[8rem] sm:max-w-none">{{
+                    t('agent.manage.settingsMenu')
+                  }}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem @select="handleManageCommand('tool-collection')">
-                  {{ t('agent.manage.toolCollection.title') }}
-                </DropdownMenuItem>
-                <DropdownMenuItem @select="handleManageCommand('agent-config')">
-                  {{ t('agent.manage.agentConfig.title') }}
-                </DropdownMenuItem>
-                <DropdownMenuItem @select="handleManageCommand('agent-engine')">
-                  {{ t('agent.manage.agentEngine.title') }}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @select="handleManageCommand('import-session')">
-                  {{ t('agent.sessions.import') }}
-                </DropdownMenuItem>
+                <AgentManageMenuItems @command="handleManageCommand($event)" />
               </DropdownMenuContent>
             </DropdownMenu>
-            <Select
-              v-model="selectedEngineId"
-              :disabled="isGenerating"
-              @update:model-value="handleEngineChange"
-            >
-              <SelectTrigger class="h-8 text-sm flex-1 min-w-0">
-                <SelectValue :placeholder="t('agent.sessions.selectEngine')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="engine in availableEngines" :key="engine.id" :value="engine.id">
-                  {{ getEngineLabel(engine) }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <!-- 引擎固定为 AutoGPT，不向用户展示切换控件 -->
           </div>
         </template>
         <div class="agent-content">
@@ -373,29 +351,6 @@
       </SessionList>
     </div>
 
-    <!-- 管理界面对话框 -->
-    <Dialog v-model:open="showManageDialog">
-      <DialogContent class="sm:max-w-[90%]" :style="dialogStyle">
-        <DialogHeader>
-          <DialogTitle>
-            {{
-              manageDialogType === 'tool-collection'
-                ? t('agent.manage.toolCollection.title')
-                : manageDialogType === 'agent-engine'
-                  ? t('agent.manage.agentEngine.title')
-                  : t('agent.manage.agentConfig.title')
-            }}
-          </DialogTitle>
-        </DialogHeader>
-        <ToolCollectionManager v-if="manageDialogType === 'tool-collection'" />
-        <AgentConfigManager v-else-if="manageDialogType === 'agent-config'" />
-        <AgentEngineManager v-else-if="manageDialogType === 'agent-engine'" />
-        <DialogFooter>
-          <Button variant="ghost" @click="showManageDialog = false">{{ t('common.close') }}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
     <!-- 引用素材管理对话框 -->
     <Dialog v-model:open="showReferenceDialog" v-if="referenceSession">
       <DialogContent
@@ -479,13 +434,6 @@ import { Badge } from '@renderer/components/ui/badge'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem
-} from '@renderer/components/ui/select'
-import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -508,6 +456,7 @@ import type {
 import { cloneDeep } from 'lodash'
 import { useWorkspace, detectDocumentFormat } from '../stores/workspace'
 import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
+import { useAgentManageUiStore } from '../stores/agent-manage-ui-store'
 import {
   agentConfigManager,
   agentSessionManager,
@@ -535,16 +484,13 @@ import {
 import { sanitizeMessages } from '../utils/llm-api.js'
 import { getLlmTemperature } from '../utils/settings.js'
 import { LlmAdapter } from '../utils/agent-framework/llm-adapter'
-import ToolCollectionManager from '../components/agent/manage/ToolCollectionManager.vue'
-import AgentConfigManager from '../components/agent/manage/AgentConfigManager.vue'
-import AgentEngineManager from '../components/agent/manage/AgentEngineManager.vue'
+import AgentManageMenuItems from '../components/agent/AgentManageMenuItems.vue'
 import ReferenceManager from '../components/agent/ReferenceManager.vue'
 import CardGrid from '../components/common/CardGrid.vue'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
 import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
-import eventBus from '../utils/event-bus'
 import type { Reference } from '../types/agent-framework'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import {
@@ -571,6 +517,9 @@ const { t } = useI18n()
 const workspace = useWorkspace()
 const { activeDocument, activeTabId, removeTab, moveTab, activateTab } = workspace
 const agentStore = useAgentWorkspaceStore()
+const agentManageUi = useAgentManageUiStore()
+/** Agent 全页已就绪（init 完成）后再消费「能力管理 → AI 草稿」，避免抢在 load 之前建会话 */
+const agentViewReady = ref(false)
 // 与紧凑面板共享的 UI 状态（输入框、生成状态、引擎选择、任务句柄）
 const {
   composerInput,
@@ -616,11 +565,6 @@ const sessionMenuStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
   borderColor: subtleBorderColor.value
-}))
-
-const dialogStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background,
-  color: themeState.currentTheme.textColor
 }))
 
 const agentViewStyle = computed(() => ({
@@ -765,8 +709,6 @@ const shouldBootstrapDemoSessions = false // 不再使用示例会话
 const demoAppliedDocs = new Set<string>()
 const openSessionMenuId = ref<string | null>(null)
 // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
-const showManageDialog = ref(false)
-const manageDialogType = ref<'tool-collection' | 'agent-config' | 'agent-engine' | null>(null)
 const availableAgentConfigs = ref(agentConfigManager.getAllConfigs())
 const showReferenceDialog = ref(false)
 const referenceSession = ref<AgentSession | null>(null)
@@ -775,8 +717,6 @@ const composerRef = ref<{
   insertAtCursor: (value: string) => void
   getContentForSubmit?: () => string
 } | null>(null)
-const availableEngines = ref(agentEngineManager.getEnabledEngines())
-
 // === Demo Mode Data ===
 const loadDemoData = () => {
   // 创建演示会话
@@ -863,23 +803,6 @@ const loadDemoData = () => {
   agentStore.setSessions(demoSessions)
   agentStore.setActiveSessionId(demoSessions[0].id)
 
-  // 演示引擎列表
-  availableEngines.value = [
-    {
-      id: 'default-autogpt-engine',
-      name: t('agent.engine.autoGpt'),
-      engineType: 'autogpt',
-      enabled: true,
-      isBuiltIn: true
-    },
-    {
-      id: 'simple-chat-engine',
-      name: t('agent.engine.simpleChat'),
-      engineType: 'simple-chat',
-      enabled: true,
-      isBuiltIn: false
-    }
-  ] as any
   selectedEngineId.value = 'default-autogpt-engine'
 }
 
@@ -1004,13 +927,6 @@ const touchSession = (session: AgentSession) => {
 
 /** 工作区级：触发 store 持久化到 .metadoc */
 const persistSessions = () => agentStore.touchSession()
-
-// 工作区级：挂载时从 .metadoc 加载会话（演示模式跳过）
-onMounted(async () => {
-  if (isDemo.value) return
-  await agentStore.init()
-  ensureActiveSessionId()
-})
 
 watch(
   () => agentStore.activeSessionId,
@@ -1171,13 +1087,18 @@ const referenceCount = computed(() => activeSession.value?.referenceStore?.lengt
 
 const formatRelativeTime = (timestamp: string) => dayjs(timestamp).fromNow()
 
-const createSession = (agentConfigId?: string) => {
+const createSession = (agentConfigId?: string, sessionTitleOverride?: string) => {
   const configId = agentConfigId || agentConfigManager.getDefaultConfigId()
+  const resolvedTitle =
+    sessionTitleOverride?.trim() ||
+    t('agent.sessions.newTitle', { index: sessionsState.value.length + 1 })
   // 演示模式：直接创建演示会话
   if (isDemo.value) {
     const demoSession: AgentSession = {
       id: `demo-session-${Date.now()}`,
-      title: `${t('agent.demo.sessionTitle')} ${sessionsState.value.length + 1}`,
+      title:
+        sessionTitleOverride?.trim() ||
+        `${t('agent.demo.sessionTitle')} ${sessionsState.value.length + 1}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       messages: [],
@@ -1196,11 +1117,7 @@ const createSession = (agentConfigId?: string) => {
   }
 
   try {
-    const session = agentSessionManager.createSession(
-      configId,
-      t('agent.sessions.newTitle', { index: sessionsState.value.length + 1 }),
-      ''
-    )
+    const session = agentSessionManager.createSession(configId, resolvedTitle, '')
 
     // 获取当前文档信息并设置到publicContext
     const doc = activeDocument.value
@@ -1241,6 +1158,26 @@ const createSession = (agentConfigId?: string) => {
     notifyError(error instanceof Error ? error.message : String(error))
   }
 }
+
+/** 能力管理「AI 辅助」写入草稿：由全局对话框设置 pending，全页 Agent 就绪后消费 */
+function applyPendingAgentDraftPayload(pending: { draft: string; sessionTitle: string }) {
+  nextTick(() => {
+    createSession(agentConfigManager.getDefaultConfigId(), pending.sessionTitle)
+    nextTick(() => {
+      composerInput.value = pending.draft
+    })
+  })
+}
+
+watch(
+  () => agentManageUi.pendingAgentDraft,
+  (pending) => {
+    if (!pending || !agentViewReady.value) return
+    const p = agentManageUi.takePendingAgentDraft()
+    if (!p) return
+    applyPendingAgentDraftPayload(p)
+  }
+)
 
 const deleteSession = async (session?: AgentSession) => {
   const target = session ?? activeSession.value
@@ -2498,52 +2435,6 @@ const handleExportSession = async (session: AgentSession) => {
   }
 }
 
-const handleImportSession = () => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'application/json'
-  input.onchange = async (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0]
-    if (!file) return
-
-    try {
-      const text = await file.text()
-      const data = JSON.parse(text)
-
-      const session = agentSessionManager.deserializeSession(data, {
-        importDependencies: true,
-        overwriteDependencies: false
-      })
-
-      // 转换为旧格式
-      const legacySession: AgentSession = {
-        id: session.id,
-        title: session.title,
-        description: session.description,
-        createdAt: new Date(session.createdAt).toISOString(),
-        updatedAt: new Date(session.updatedAt).toISOString(),
-        messages: session.messages,
-        activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
-        agentConfigId: session.agentConfigId,
-        messageQueue: session.messageQueue,
-        referenceStore: session.referenceStore,
-        publicContext: session.publicContext,
-        executionNodes: session.executionNodes,
-        status: session.status
-      }
-
-      agentStore.setSessions([legacySession, ...agentStore.sessions])
-      ensureActiveSessionId()
-      agentStore.setActiveSessionId(session.id)
-      persistSessions()
-      notifySuccess(t('agent.sessions.importSuccess'))
-    } catch (error) {
-      notifyError(error instanceof Error ? error.message : String(error))
-    }
-  }
-  input.click()
-}
-
 const handleReferenceUpdate = () => {
   if (referenceSession.value) {
     // 更新会话
@@ -2581,39 +2472,7 @@ const handleReferenceUpdate = () => {
 }
 
 const handleManageCommand = (command: string) => {
-  if (command === 'import-session') {
-    handleImportSession()
-  } else {
-    manageDialogType.value = command as any
-    showManageDialog.value = true
-    // 如果是打开引擎管理，刷新引擎列表
-    if (command === 'agent-engine') {
-      availableEngines.value = agentEngineManager.getEnabledEngines()
-    }
-  }
-}
-
-const getEngineLabel = (engine: any) => {
-  if (typeof engine.name === 'string') {
-    return engine.name
-  }
-  // 优先使用i18n key获取翻译
-  const engineKey = engine.engineType
-  const i18nKey = `agentEngine.engines.${engineKey}`
-  const translated = t(i18nKey)
-  if (translated !== i18nKey) {
-    return translated
-  }
-  return engine.name['zh_cn']?.name || engine.name['en_us']?.name || engine.id
-}
-
-const handleEngineChange = () => {
-  // 引擎切换逻辑，后续在Agent执行时使用
-  notifySuccess(
-    t('agent.sessions.engineChanged', {
-      engine: getEngineLabel(agentEngineManager.getEngine(selectedEngineId.value)!)
-    })
-  )
+  agentManageUi.openManage(command)
 }
 
 // === SessionList 集成 ===
@@ -2824,6 +2683,11 @@ const handleMessageRegenerate = async (message: AgentMessage) => {
     return
   }
 
+  // 菜单关闭时的穿透点击可能误开编辑框；确认重新生成后一律关闭编辑态，避免与下方流程叠层
+  showEditMessageDialog.value = false
+  editingMessage.value = null
+  editingMessageContent.value = ''
+
   const userMessage = message as ChatAgentMessage
   // 删除该条用户消息之后的所有内容（消息、工具调用、意图识别等），当作从未发生过
   session.messages = session.messages.slice(0, messageIndex + 1)
@@ -2925,21 +2789,26 @@ const handleMessageDelete = async (message: AgentMessage) => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleDocumentClick)
 
   // 演示模式：加载演示数据
   if (isDemo.value) {
     loadDemoData()
+    agentViewReady.value = true
+    const p = agentManageUi.takePendingAgentDraft()
+    if (p) applyPendingAgentDraftPayload(p)
     return
   }
 
-  // 初始化引擎选择器
-  const defaultEngine = agentEngineManager.getDefaultEngine()
-  if (defaultEngine) {
-    selectedEngineId.value = defaultEngine.id
-  }
-  availableEngines.value = agentEngineManager.getEnabledEngines()
+  await agentStore.init()
+  ensureActiveSessionId()
+  agentViewReady.value = true
+  const pendingDraft = agentManageUi.takePendingAgentDraft()
+  if (pendingDraft) applyPendingAgentDraftPayload(pendingDraft)
+
+  // 固定使用 AutoGPT 引擎（不暴露用户切换入口）
+  selectedEngineId.value = 'default-autogpt-engine'
 })
 
 onBeforeUnmount(() => {
@@ -3013,7 +2882,7 @@ onBeforeUnmount(() => {
     color 0.2s ease;
 }
 
-/* sidebar-footer 区域（管理按钮 + 引擎选择器） */
+/* sidebar-footer 区域（管理按钮） */
 .sidebar-footer-content {
   display: flex;
   align-items: center;

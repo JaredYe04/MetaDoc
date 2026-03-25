@@ -76,6 +76,28 @@
         </button>
       </div>
       <div class="agent-compact-header-actions">
+        <DropdownMenu :modal="false">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <DropdownMenuTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="agent-compact-header-btn"
+                  :disabled="isGenerating"
+                >
+                  <Settings class="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{{ t('agent.manage.settingsMenu') }}</p>
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="end" :side-offset="4">
+            <AgentManageMenuItems @command="onCompactManageCommand" />
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DropdownMenu v-model:open="historyOpen" :modal="false">
           <Tooltip>
             <TooltipTrigger as-child>
@@ -558,7 +580,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
-import { Clock, ChevronDown, ChevronUp, Paperclip, Plus, X } from 'lucide-vue-next'
+import { Clock, ChevronDown, ChevronUp, Paperclip, Plus, Settings, X } from 'lucide-vue-next'
 import { messageBox } from '@renderer/utils/messageBox'
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
@@ -598,6 +620,7 @@ import ChatComposer from '../chat/ChatComposer.vue'
 import ReferenceDisplay from './ReferenceDisplay.vue'
 import ReferenceManager from './ReferenceManager.vue'
 import AgentReferencePicker from './AgentReferencePicker.vue'
+import AgentManageMenuItems from './AgentManageMenuItems.vue'
 import ContextBreakdownDialog from './ContextBreakdownDialog.vue'
 import type { AgentMessage, AgentSession, ChatAgentMessage } from '../../types/agent'
 import type { StagingEditRecord } from '../../stores/agent-edit-staging-store'
@@ -615,10 +638,15 @@ import { generateConversationTitleByAi } from '../../utils/conversation-title'
 import { cancelAiTask, useAiTasks } from '../../utils/ai_tasks'
 import { processTextReference } from '../../utils/agent-framework/reference-processor'
 import messageBridge from '../../bridge/message-bridge'
-import { useWorkspace as useWorkspaceStore } from '../../stores/workspace'
+import { useAgentManageUiStore } from '../../stores/agent-manage-ui-store'
 
 const { t } = useI18n()
 const workspace = useWorkspace()
+const agentManageUi = useAgentManageUiStore()
+
+function onCompactManageCommand(cmd: string) {
+  agentManageUi.openManage(cmd)
+}
 const agentStore = useAgentWorkspaceStore()
 const {
   sessions,
@@ -1767,6 +1795,10 @@ async function handleMessageRegenerate(message: AgentMessage) {
   } catch {
     return
   }
+
+  showEditMessageDialog.value = false
+  editingMessage.value = null
+  editingMessageContent.value = ''
 
   // 删除该条用户消息之后的所有内容（消息、工具调用、意图识别等），当作从未发生过
   session.messages = session.messages.slice(0, messageIndex + 1)

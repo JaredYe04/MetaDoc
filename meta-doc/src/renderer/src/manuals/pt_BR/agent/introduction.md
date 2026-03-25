@@ -186,7 +186,7 @@ export interface AgentConfig {
 - **Substituição de Parâmetros LLM**: Pode substituir a configuração global do LLM
 - **Persistência**: Armazenada em `localStorage`, chave `'agent-configs'`
 
-Veja detalhes em [[agent.config|Gerenciamento de Configuração do Agente]].
+A gestão relacionada ao Agente está no menu da **visualização Agente**. Comece por [[agent.tools|Gerenciamento de Conjuntos de Ferramentas]] e [[agent.capabilities|Regras, habilidades e gerenciamento MCP]]. (A entrada de índice «Configuração do Agente» foi removida; o artigo permanece como referência.)
 
 ### Conjunto de Ferramentas (ToolCollection)
 
@@ -202,7 +202,7 @@ Veja detalhes em [[agent.tools|Gerenciamento de Conjuntos de Ferramentas]].
 
 Materiais de referência são documentos e arquivos referenciados em uma sessão do Agente. O Agente pode perceber esse conteúdo e raciocinar/operar com base nele. Suporta vários tipos de referências, como arquivos, URLs, bases de conhecimento, etc.
 
-Veja detalhes em [[agent.references|Gerenciamento de Materiais de Referência]].
+Referências são usadas e geridas nas sessões; veja [[agent.session|Gerenciamento de Sessões do Agente]]. (A entrada separada «Materiais de referência» foi removida do índice.)
 
 ### Motor do Agente (AgentEngine)
 
@@ -210,7 +210,7 @@ Veja detalhes em [[agent.references|Gerenciamento de Materiais de Referência]].
 
 O motor do Agente define a estratégia de execução e o modo de comportamento do Agente, incluindo vários paradigmas como AutoGPT, ReAct, PlanExecute. Diferentes motores são adequados para diferentes cenários de tarefas.
 
-Veja detalhes em [[agent.engine|Gerenciamento do Motor do Agente]].
+Os paradigmas de execução são escolhidos pelo contexto da sessão; veja [[agent.session|Gerenciamento de Sessões do Agente]]. (A entrada «Motor do Agente» foi removida do índice.)
 
 ## Arquitetura do Sistema
 
@@ -303,11 +303,9 @@ O framework de Agentes é adequado para os seguintes cenários:
 Para começar a usar o framework de Agentes, é recomendado aprender na seguinte ordem:
 
 1.  [[agent.introduction|Visão Geral do Framework de Agentes]] (este documento)
-2.  [[agent.config|Gerenciamento de Configuração do Agente]]: Aprenda como configurar um Agente.
-3.  [[agent.tools|Gerenciamento de Conjuntos de Ferramentas]]: Aprenda como gerenciar conjuntos de ferramentas.
+2.  [[agent.tools|Gerenciamento de Conjuntos de Ferramentas]]: Aprenda como gerenciar conjuntos de ferramentas.
+3.  [[agent.capabilities|Regras, habilidades e gerenciamento MCP]]: Regras, skills do espaço de trabalho e MCP.
 4.  [[agent.session|Gerenciamento de Sessões do Agente]]: Crie e gerencie sessões.
-5.  [[agent.references|Gerenciamento de Materiais de Referência]]: Gerencie materiais de referência.
-6.  [[agent.engine|Gerenciamento do Motor do Agente]]: Selecione e configure motores.
 
 ## Perguntas Frequentes
 
@@ -331,7 +329,8 @@ R: Quando um AgentConfig associa múltiplos conjuntos de ferramentas, as ferrame
 ## Documentação Relacionada
 
 -   [[agent.session|Gerenciamento de Sessões do Agente]]
--   [[agent.config|Gerenciamento de Configuração do Agente]]
 -   [[agent.tools|Gerenciamento de Conjuntos de Ferramentas]]
--   [[agent.references|Gerenciamento de Materiais de Referência]]
--   [[agent.engine|Geren
+-   [[agent.capabilities|Regras, habilidades e gerenciamento MCP]]
+-   [[ai.llm-config|Configuração LLM]]
+
+<QuickStartPanel mode="demo" />

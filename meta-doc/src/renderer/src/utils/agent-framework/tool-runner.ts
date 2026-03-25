@@ -67,6 +67,27 @@ export class ToolRunner {
         throw new Error(`Tool ${toolId} is disabled`)
       }
 
+      const mcpCfg = tool.config.mcpConfig
+      if (tool.config.origin === 'mcp' && mcpCfg) {
+        const level = mcpCfg.permissionLevel || 'safe'
+        if (
+          (level === 'restricted' || level === 'dangerous') &&
+          params._mcpExecutionConfirmed !== true
+        ) {
+          return {
+            toolId,
+            toolName:
+              typeof tool.config.name === 'string'
+                ? tool.config.name
+                : tool.config.name['en_us']?.name || toolId,
+            status: 'failed',
+            error:
+              `MCP 工具 [${level}] 需用户确认执行：请在调用参数中加入 _mcpExecutionConfirmed: true（或由界面预注入）。`,
+            params
+          }
+        }
+      }
+
       getLogger().debug(`执行工具: ${toolId}`, params)
 
       // 如果提供了session，自动注入 sessionId、session、以及最后一则用户消息 id（用于编辑暂存等）

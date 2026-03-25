@@ -186,7 +186,7 @@ export interface AgentConfig {
 - **LLM 매개변수 재정의**: 전역 LLM 구성을 재정의할 수 있습니다.
 - **지속성**: `localStorage`에 저장되며, 키는 `'agent-configs'`입니다.
 
-자세한 내용은 [[agent.config|에이전트 구성 관리]]를 참조하세요.
+에이전트 관련 관리는 **에이전트 보기** 메뉴에 모여 있습니다. 먼저 [[agent.tools|도구 집합 관리]]와 [[agent.capabilities|규칙, 스킬 및 MCP 관리]]를 읽어 보세요. (구 「에이전트 구성 관리」 목차 항목은 제거되었고 문서 파일만 참고용으로 남아 있습니다.)
 
 ### 도구 집합 (ToolCollection)
 
@@ -202,7 +202,7 @@ export interface AgentConfig {
 
 참조 자료는 에이전트 세션에서 참조되는 문서와 파일로, 에이전트는 이 내용을 인식하고 이를 기반으로 추론 및 작업을 수행할 수 있습니다. 파일, URL, 지식 베이스 등 다양한 유형의 참조를 지원합니다.
 
-자세한 내용은 [[agent.references|참조 자료 관리]]를 참조하세요.
+참조 자료는 세션에서 사용·관리합니다. [[agent.session|에이전트 세션 관리]]를 참조하세요. (「참조 자료 관리」 독립 목차는 제거되었습니다.)
 
 ### 에이전트 엔진 (AgentEngine)
 
@@ -210,7 +210,7 @@ export interface AgentConfig {
 
 에이전트 엔진은 에이전트의 실행 전략과 동작 방식을 정의하며, AutoGPT, ReAct, PlanExecute 등 다양한 패러다임을 포함합니다. 다른 엔진은 다른 작업 시나리오에 적합합니다.
 
-자세한 내용은 [[agent.engine|에이전트 엔진 관리]]를 참조하세요.
+실행 방식은 세션·설정에 따라 자동으로 선택됩니다. [[agent.session|에이전트 세션 관리]]를 참조하세요. (「에이전트 엔진 관리」 독립 목차는 제거되었습니다.)
 
 ## 시스템 아키텍처
 
@@ -303,11 +303,9 @@ sequenceDiagram
 에이전트 프레임워크 사용을 시작하려면 다음 순서대로 학습하는 것이 좋습니다:
 
 1. [[agent.introduction|에이전트 프레임워크 개요]] (이 문서)
-2. [[agent.config|에이전트 구성 관리]]: 에이전트 구성 방법 이해
-3. [[agent.tools|도구 집합 관리]]: 도구 집합 관리 방법 학습
+2. [[agent.tools|도구 집합 관리]]: 도구 집합 관리 방법 학습
+3. [[agent.capabilities|규칙, 스킬 및 MCP 관리]]: 규칙, 워크스페이스 스킬, MCP
 4. [[agent.session|에이전트 세션 관리]]: 세션 생성 및 관리
-5. [[agent.references|참조 자료 관리]]: 참조 자료 관리
-6. [[agent.engine|에이전트 엔진 관리]]: 엔진 선택 및 구성
 
 ## 자주 묻는 질문
 
@@ -331,10 +329,8 @@ A: AgentConfig가 여러 도구 집합을 연결할 때, 사용 가능한 도구
 ## 관련 문서
 
 - [[agent.session|에이전트 세션 관리]]
-- [[agent.config|에이전트 구성 관리]]
 - [[agent.tools|도구 집합 관리]]
-- [[agent.references|참조 자료 관리]]
-- [[agent.engine|에이전트 엔진 관리]]
+- [[agent.capabilities|규칙, 스킬 및 MCP 관리]]
 - [[ai.llm-config|LLM 구성]]
 
 <QuickStartPanel mode="demo" />

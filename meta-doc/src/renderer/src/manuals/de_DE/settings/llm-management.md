@@ -102,7 +102,7 @@ Erläuterungen zu den Konfigurationsparametern für verschiedene LLM-Typen finde
 -   [[settings.llm|LLM-Konfiguration]]
 -   [[settings.llm-types|LLM-Typkonfiguration]]
 -   [[ai.chat|KI-Chat-Funktion]]
--   [[agent.config|Agent-Konfigurationsverwaltung]]
+-   [[agent.introduction|Agent-Konfigurationsverwaltung]]
 
 <QuickStartPanel mode="demo" />
 

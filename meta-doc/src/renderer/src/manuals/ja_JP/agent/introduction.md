@@ -186,7 +186,7 @@ export interface AgentConfig {
 - **LLMパラメータ上書き**：グローバルLLM設定を上書き可能
 - **永続化**：`localStorage` に `'agent-configs'` キーで保存
 
-詳細は[[agent.config|Agent設定管理]]を参照してください。
+Agent 関連の管理は **Agent ビュー** のメニューに集約されています。まず [[agent.tools|ツールセット管理]] と [[agent.capabilities|ルール、スキル、MCP管理]] を参照してください。（旧「Agent 設定管理」の索引エントリは削除済みで、記事ファイルのみ残しています。）
 
 ### ツールセット（ToolCollection）
 
@@ -202,7 +202,7 @@ export interface AgentConfig {
 
 参照素材は、Agentセッション内で参照されるドキュメントやファイルであり、Agentはこれらの内容を認識し、それらに基づいて推論や操作を行うことができます。ファイル、URL、ナレッジベースなど、さまざまなタイプの参照をサポートしています。
 
-詳細は[[agent.references|参照素材管理]]を参照してください。
+参照素材はセッション内で利用・管理します。[[agent.session|Agentセッション管理]] を参照してください。（「参照素材管理」の独立索引は削除済みです。）
 
 ### Agentエンジン（AgentEngine）
 
@@ -210,7 +210,7 @@ export interface AgentConfig {
 
 Agentエンジンは、Agentの実行戦略と動作方法を定義し、AutoGPT、ReAct、PlanExecuteなど複数のパラダイムを含みます。異なるエンジンは異なるタスクシナリオに適しています。
 
-詳細は[[agent.engine|Agentエンジン管理]]を参照してください。
+実行パラダイムはセッションと設定に基づき自動で選ばれます。日常利用は [[agent.session|Agentセッション管理]] を参照してください。（「Agentエンジン管理」の独立索引は削除済みです。）
 
 ## システムアーキテクチャ
 
@@ -303,11 +303,9 @@ Agentフレームワークは以下のシナリオに適しています：
 Agentフレームワークの使用を開始するには、以下の順序で学習することをお勧めします：
 
 1. [[agent.introduction|Agentフレームワーク概要]]（本文書）
-2. [[agent.config|Agent設定管理]]：Agentの設定方法を理解
-3. [[agent.tools|ツールセット管理]]：ツールセットの管理方法を学習
+2. [[agent.tools|ツールセット管理]]：ツールセットの管理方法を学習
+3. [[agent.capabilities|ルール、スキル、MCP管理]]：ルール、ワークスペーススキル、MCP
 4. [[agent.session|Agentセッション管理]]：セッションの作成と管理
-5. [[agent.references|参照素材管理]]：参照素材の管理
-6. [[agent.engine|Agentエンジン管理]]：エンジンの選択と設定
 
 ## よくある質問
 
@@ -331,10 +329,8 @@ A: AgentConfigが複数のツールセットを関連付ける場合、使用可
 ## 関連ドキュメント
 
 - [[agent.session|Agentセッション管理]]
-- [[agent.config|Agent設定管理]]
 - [[agent.tools|ツールセット管理]]
-- [[agent.references|参照素材管理]]
-- [[agent.engine|Agentエンジン管理]]
+- [[agent.capabilities|ルール、スキル、MCP管理]]
 - [[ai.llm-config|LLM設定]]
 
 <QuickStartPanel mode="demo" />

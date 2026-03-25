@@ -176,7 +176,7 @@ flowchart TD
 
 ### Selecting an Engine in Agent Configuration
 
-1. Go to [[agent.config|Agent Configuration Management]].
+1. Go to [[agent.introduction|Agent Framework Overview]].
 2. Create or edit an Agent configuration.
 3. Select the desired engine type in the "Engine" option.
 4. Save the configuration.
@@ -318,6 +318,6 @@ A: Yes. Different engines have different thinking modes and execution strategies
 ## Related Documentation
 
 - [[agent.introduction|Agent Framework Overview]]
-- [[agent.config|Agent Configuration Management]]
+- [[agent.introduction|Agent Framework Overview]]
 - [[agent.session|Agent Session Management]]
 - [[agent.tools|Toolset Management]]

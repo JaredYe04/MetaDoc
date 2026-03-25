@@ -186,6 +186,12 @@ export interface MCPToolConfig {
   toolName: string
   /** MCP服务器URL或路径 */
   serverUrl?: string
+  /**
+   * 权限分级：restricted / dangerous 需在调用参数中显式传入 _mcpExecutionConfirmed: true（或由 UI 注入）后方可执行
+   */
+  permissionLevel?: 'safe' | 'restricted' | 'dangerous'
+  /** JSON Schema 等，与 MCP 工具定义对齐 */
+  inputSchema?: unknown
   /** 其他MCP配置 */
   [key: string]: unknown
 }

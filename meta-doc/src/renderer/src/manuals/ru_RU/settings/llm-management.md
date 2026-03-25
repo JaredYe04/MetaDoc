@@ -102,7 +102,7 @@
 -   [[settings.llm|Конфигурация LLM]]
 -   [[settings.llm-types|Конфигурация типов LLM]]
 -   [[ai.chat|Функция AI-диалога]]
--   [[agent.config|Управление конфигурацией агента]]
+-   [[agent.introduction|Управление конфигурацией агента]]
 
 <QuickStartPanel mode="demo" />
 

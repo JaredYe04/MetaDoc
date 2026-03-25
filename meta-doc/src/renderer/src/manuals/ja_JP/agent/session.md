@@ -372,6 +372,6 @@ A: Agentは参照素材の内容を認識し、それらに基づいて推論や
 ## 関連ドキュメント
 
 -   [[agent.introduction|Agentフレームワーク概要]]
--   [[agent.config|Agent構成管理]]
+-   [[agent.introduction|Agent構成管理]]
 -   [[agent.references|参照素材管理]]
 -   [[agent.engine|Agentエンジン管理]]

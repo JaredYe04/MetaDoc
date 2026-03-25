@@ -176,7 +176,7 @@ flowchart TD
 
 ### 에이전트 구성에서 엔진 선택하기
 
-1. [[agent.config|에이전트 구성 관리]]로 이동
+1. [[agent.introduction|에이전트 구성 관리]]로 이동
 2. 에이전트 구성을 생성하거나 편집
 3. "엔진" 옵션에서 원하는 엔진 유형 선택
 4. 구성 저장
@@ -318,6 +318,6 @@ A: 그렇습니다. 다른 엔진은 사고 방식과 실행 전략이 다릅니
 ## 관련 문서
 
 - [[agent.introduction|에이전트 프레임워크 개요]]
-- [[agent.config|에이전트 구성 관리]]
+- [[agent.introduction|에이전트 구성 관리]]
 - [[agent.session|에이전트 세션 관리]]
 - [[agent.tools|도구 세트 관리]]

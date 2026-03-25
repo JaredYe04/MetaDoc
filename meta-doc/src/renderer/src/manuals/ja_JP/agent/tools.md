@@ -246,5 +246,5 @@ A: ツールセットを削除しても、作成済みのAgentConfigには影響
 ## 関連ドキュメント
 
 - [[agent.introduction|Agentフレームワーク概要]]
-- [[agent.config|Agent設定管理]]
+- [[agent.introduction|Agent設定管理]]
 - [[agent.session|Agentセッション管理]]

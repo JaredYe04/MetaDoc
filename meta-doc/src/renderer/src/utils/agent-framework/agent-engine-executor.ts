@@ -19,6 +19,7 @@ import { reactive, ref, type Ref } from 'vue'
 import { getLlmTemperature } from '../settings.js'
 import { getPromptByKey } from '../prompts'
 import { recognizeIntent, type IntentRecognitionResult } from './intent-processor'
+import { prepareAgentTurnContext } from './agent-context-prep'
 import { sessionHasPendingTodoItems } from '../agent-tools/todolist-tool'
 
 // 懒加载logger，避免初始化顺序问题
@@ -115,6 +116,8 @@ export abstract class BaseEngineExecutor {
     }
 
     getLogger().debug('[processIntentAndUpdateSpecs] 已清空activeToolSpecs，开始意图识别')
+
+    await prepareAgentTurnContext(session, userMessage)
 
     // singleStep（如 agent-cli）下跳过意图识别的 LLM 调用，直接用全部可用工具，避免每条消息两次 LLM 导致超时
     let intentResult: IntentRecognitionResult

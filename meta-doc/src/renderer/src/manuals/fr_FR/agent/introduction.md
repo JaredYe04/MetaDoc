@@ -186,7 +186,7 @@ export interface AgentConfig {
 - **Surcharge des paramètres LLM** : Peut remplacer la configuration LLM globale
 - **Persistance** : Stockée dans `localStorage`, clé `'agent-configs'`
 
-Voir [[agent.config|Gestion des configurations Agent]] pour plus de détails.
+La gestion liée à l’Agent est regroupée dans le menu de la **vue Agent**. Commencez par [[agent.tools|Gestion des ensembles d’outils]] et [[agent.capabilities|Règles, compétences et gestion MCP]]. (L’entrée d’index « Configuration Agent » a été retirée ; l’article reste en référence.)
 
 ### Ensemble d'outils (ToolCollection)
 
@@ -202,7 +202,7 @@ Voir [[agent.tools|Gestion des ensembles d'outils]] pour plus de détails.
 
 Les références sont les documents et fichiers cités dans une session Agent. L'Agent peut percevoir ces contenus et raisonner ou agir en se basant sur eux. Prend en charge divers types de références : fichiers, URL, bases de connaissances, etc.
 
-Voir [[agent.references|Gestion des références]] pour plus de détails.
+Les références se gèrent dans les sessions ; voir [[agent.session|Gestion des sessions Agent]]. (L’entrée séparée « Gestion des références » a été retirée de l’index.)
 
 ### Moteur Agent (AgentEngine)
 
@@ -210,7 +210,7 @@ Voir [[agent.references|Gestion des références]] pour plus de détails.
 
 Le moteur Agent définit la stratégie d'exécution et le mode de comportement de l'Agent, incluant plusieurs paradigmes comme AutoGPT, ReAct, PlanExecute. Différents moteurs sont adaptés à différents scénarios de tâches.
 
-Voir [[agent.engine|Gestion des moteurs Agent]] pour plus de détails.
+Les paradigmes d’exécution sont choisis selon le contexte de session ; voir [[agent.session|Gestion des sessions Agent]]. (L’entrée « Gestion des moteurs Agent » a été retirée de l’index.)
 
 ## Architecture du système
 
@@ -303,11 +303,9 @@ Le framework Agent est adapté aux scénarios suivants :
 Pour commencer à utiliser le framework Agent, il est recommandé d'apprendre dans l'ordre suivant :
 
 1. [[agent.introduction|Vue d'ensemble du framework Agent]] (ce document)
-2. [[agent.config|Gestion des configurations Agent]] : Comprendre comment configurer un Agent.
-3. [[agent.tools|Gestion des ensembles d'outils]] : Apprendre à gérer les ensembles d'outils.
+2. [[agent.tools|Gestion des ensembles d'outils]] : Apprendre à gérer les ensembles d'outils.
+3. [[agent.capabilities|Règles, compétences et gestion MCP]] : Règles, skills d’espace de travail et MCP.
 4. [[agent.session|Gestion des sessions Agent]] : Créer et gérer des sessions.
-5. [[agent.references|Gestion des références]] : Gérer les références.
-6. [[agent.engine|Gestion des moteurs Agent]] : Sélectionner et configurer un moteur.
 
 ## Questions fréquentes
 
@@ -331,10 +329,8 @@ R : Lorsqu'un AgentConfig est associé à plusieurs ensembles d'outils, les outi
 ## Documentation associée
 
 - [[agent.session|Gestion des sessions Agent]]
-- [[agent.config|Gestion des configurations Agent]]
 - [[agent.tools|Gestion des ensembles d'outils]]
-- [[agent.references|Gestion des références]]
-- [[agent.engine|Gestion des moteurs Agent]]
+- [[agent.capabilities|Règles, compétences et gestion MCP]]
 - [[ai.llm-config|Configuration LLM]]
 
 <QuickStartPanel mode="demo" />

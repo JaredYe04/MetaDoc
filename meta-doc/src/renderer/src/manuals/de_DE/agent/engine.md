@@ -176,7 +176,7 @@ flowchart TD
 
 ### Engine in der Agent-Konfiguration auswählen
 
-1. Gehen Sie zu [[agent.config|Agent-Konfigurationsverwaltung]]
+1. Gehen Sie zu [[agent.introduction|Agent-Konfigurationsverwaltung]]
 2. Erstellen oder bearbeiten Sie eine Agent-Konfiguration
 3. Wählen Sie den gewünschten Engine-Typ unter der Option "Engine"
 4. Speichern Sie die Konfiguration
@@ -318,6 +318,6 @@ A: Ja. Unterschiedliche Engines haben unterschiedliche Denkweisen und Ausführun
 ## Verwandte Dokumente
 
 - [[agent.introduction|Agent-Framework-Übersicht]]
-- [[agent.config|Agent-Konfigurationsverwaltung]]
+- [[agent.introduction|Agent-Konfigurationsverwaltung]]
 - [[agent.session|Agent-Sitzungsverwaltung]]
 - [[agent.tools|Tool-Satz-Verwaltung]]

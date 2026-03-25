@@ -39,6 +39,11 @@ function extname(filePath: string): string {
   return ''
 }
 
+function isPathUnderMetadoc(filePath: string): boolean {
+  const n = (filePath || '').replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '')
+  return n.includes('/.metadoc/') || n.endsWith('/.metadoc')
+}
+
 /**
  * 处理目录内容
  * 在 Worker 线程中执行，不会阻塞主线程
@@ -59,10 +64,12 @@ function processDirectoryContent(params: ProcessDirectoryParams): FileNode[] {
         children: undefined // 懒加载：不在这里加载子目录
       })
     } else {
-      // 只显示支持的文档格式文件
       const fileExt = extname(entry.path)
       const formatId = extensionMap[fileExt]
-      if (formatId) {
+      const isDotfile = entry.name.startsWith('.')
+      const underMeta = isPathUnderMetadoc(entry.path)
+      // 支持的文档格式、点号文件，或 .metadoc 下任意文件（含会话索引与 .msess）
+      if (formatId || isDotfile || underMeta) {
         files.push({
           name: entry.name,
           path: entry.path,

@@ -1,0 +1,156 @@
+/**
+ * Agent 设置类对话框 UI：与 Agent 全页标签是否打开无关，由侧边栏等入口直接打开。
+ */
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { useAgentWorkspaceStore } from './agent-workspace-store'
+import { useWorkspace } from './workspace'
+import { agentSessionManager } from '../utils/agent-framework/agent-session-manager'
+import type { AgentSession } from '../types/agent'
+import { notifyError, notifySuccess } from '../utils/notify'
+import { i18n } from '../i18n'
+
+export type AgentManageDialogType =
+  | 'tool-collection'
+  | 'agent-config'
+  | 'agent-engine'
+  | 'agent-capabilities-rules'
+  | 'agent-capabilities-skills'
+  | 'agent-capabilities-mcp'
+  | null
+
+export interface PendingAgentDraft {
+  draft: string
+  sessionTitle: string
+}
+
+const ALLOWED_DIALOG_COMMANDS: Exclude<AgentManageDialogType, null>[] = [
+  'tool-collection',
+  'agent-config',
+  'agent-engine',
+  'agent-capabilities-rules',
+  'agent-capabilities-skills',
+  'agent-capabilities-mcp'
+]
+
+function ensureActiveSessionAfterListChange(
+  agentStore: ReturnType<typeof useAgentWorkspaceStore>
+): void {
+  const list = agentStore.sessions
+  if (!list.length) {
+    agentStore.setActiveSessionId(null)
+    return
+  }
+  if (!list.some((s) => s.id === agentStore.activeSessionId)) {
+    agentStore.setActiveSessionId(list[0].id)
+  }
+}
+
+export const useAgentManageUiStore = defineStore('agent-manage-ui', () => {
+  const showManageDialog = ref(false)
+  const manageDialogType = ref<AgentManageDialogType>(null)
+  const pendingAgentDraft = ref<PendingAgentDraft | null>(null)
+
+  function closeManageDialog(): void {
+    showManageDialog.value = false
+  }
+
+  function openManageDialog(command: Exclude<AgentManageDialogType, null>): void {
+    manageDialogType.value = command
+    showManageDialog.value = true
+  }
+
+  async function importSessionFile(): Promise<void> {
+    const agentStore = useAgentWorkspaceStore()
+    await agentStore.init()
+
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/json'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      try {
+        const text = await file.text()
+        const data = JSON.parse(text)
+
+        const session = agentSessionManager.deserializeSession(data, {
+          importDependencies: true,
+          overwriteDependencies: false
+        })
+
+        const legacySession: AgentSession = {
+          id: session.id,
+          title: session.title,
+          description: session.description,
+          createdAt: new Date(session.createdAt).toISOString(),
+          updatedAt: new Date(session.updatedAt).toISOString(),
+          messages: session.messages,
+          activeToolIds: [],
+          agentConfigId: session.agentConfigId,
+          messageQueue: session.messageQueue,
+          referenceStore: session.referenceStore,
+          publicContext: session.publicContext,
+          executionNodes: session.executionNodes,
+          status: session.status
+        }
+
+        agentStore.setSessions([legacySession, ...agentStore.sessions])
+        ensureActiveSessionAfterListChange(agentStore)
+        agentStore.setActiveSessionId(session.id)
+        agentStore.touchSession()
+        notifySuccess(i18n.global.t('agent.sessions.importSuccess'))
+      } catch (error) {
+        notifyError(error instanceof Error ? error.message : String(error))
+      }
+    }
+    input.click()
+  }
+
+  /** 与原先 AgentView 设置菜单一致：import-session 直接调文件选择，其余打开对话框 */
+  function openManage(command: string): void {
+    if (command === 'import-session') {
+      void importSessionFile()
+      return
+    }
+    if (!ALLOWED_DIALOG_COMMANDS.includes(command as Exclude<AgentManageDialogType, null>)) {
+      return
+    }
+    openManageDialog(command as Exclude<AgentManageDialogType, null>)
+  }
+
+  /** 能力管理「AI 辅助创建」：关闭对话框，可选打开 Agent 标签，由 AgentView 挂载后消费 pending */
+  function requestAgentDraftFromCapabilities(payload: {
+    draft: string
+    sessionTitle: string
+    focusAgentTab: boolean
+  }): void {
+    closeManageDialog()
+    pendingAgentDraft.value = {
+      draft: payload.draft,
+      sessionTitle: payload.sessionTitle
+    }
+    if (payload.focusAgentTab) {
+      const workspace = useWorkspace()
+      workspace.openSystemTab('/agent', i18n.global.t('headMenu.agent'))
+    }
+  }
+
+  function takePendingAgentDraft(): PendingAgentDraft | null {
+    const p = pendingAgentDraft.value
+    pendingAgentDraft.value = null
+    return p
+  }
+
+  return {
+    showManageDialog,
+    manageDialogType,
+    pendingAgentDraft,
+    openManage,
+    closeManageDialog,
+    importSessionFile,
+    requestAgentDraftFromCapabilities,
+    takePendingAgentDraft
+  }
+})

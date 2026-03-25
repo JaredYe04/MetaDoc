@@ -9,7 +9,8 @@ import {
 } from 'radix-vue'
 import { X } from 'lucide-vue-next'
 import { cn } from '@renderer/lib/utils'
-import { ref, watch, onUnmounted, computed } from 'vue'
+import { inject, watch, onUnmounted, computed } from 'vue'
+import { DIALOG_OPEN_REF_KEY } from './dialogInjection'
 
 // 防止事件监听器自动继承到 DialogPortal（DialogPortal 渲染 fragment，无法继承）
 defineOptions({
@@ -35,24 +36,23 @@ const forwardedForRoot = computed(() => {
   return { ...rest, class: 'dialog-content dialog-content-viewport' }
 })
 
-// 跟踪 Dialog 打开状态
-const isOpen = ref(false)
-
-// 监听 forwarded 中的 open 属性变化
-watch(
-  () => (forwarded.value as any)?.open,
-  (newVal) => {
-    isOpen.value = !!newVal
-    // 关闭后：清理残留遮罩，并恢复 body 的 pointer-events（避免 reka-ui DismissableLayer 关闭时未恢复导致整页无法点击）
-    if (!newVal) {
-      setTimeout(() => {
-        removeClosedDialogOverlays()
-        restoreBodyPointerEvents()
-      }, 250)
-    }
-  },
-  { immediate: true }
-)
+// radix-vue 的 DialogContent 不把 open 放进 props，forwarded.open 恒为 undefined，无法触发清理。
+// 由 Dialog.vue provide 的受控 open 驱动关闭后的遮罩与 body 指针恢复。
+const dialogOpenRef = inject(DIALOG_OPEN_REF_KEY, null)
+if (dialogOpenRef) {
+  watch(
+    dialogOpenRef,
+    (open) => {
+      if (!open) {
+        setTimeout(() => {
+          removeClosedDialogOverlays()
+          restoreBodyPointerEvents()
+        }, 250)
+      }
+    },
+    { immediate: true }
+  )
+}
 
 function removeClosedDialogOverlays() {
   const overlays = document.querySelectorAll('.dialog-overlay[data-state="closed"]')

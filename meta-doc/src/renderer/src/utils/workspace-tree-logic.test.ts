@@ -7,7 +7,7 @@
  * - 子目录（已展开）：新建/删除文件与文件夹、删除整个子目录
  * - 多级展开：内层 add、unlinkDir 内层目录
  * - 重命名：文件/文件夹（unlink+add、add+unlink、unlinkDir+addDir、addDir+unlinkDir）
- * - .metadoc 忽略、不支持格式不添加、change 不改结构、已存在不重复添加
+ * - .metadoc 与点号文件：目录均展示；文件为支持格式或点号开头则加入；change 不改结构、已存在不重复添加
  * - 父节点未在 nodeMap 时返回 false（由调用方刷新回退）
  */
 import { describe, it, expect, beforeEach } from 'vitest'
@@ -193,7 +193,7 @@ describe('workspace-tree-logic', () => {
       expect(root.children).toHaveLength(0)
     })
 
-    it('add .metadoc：忽略', () => {
+    it('addDir .metadoc：加入树（与资源管理器展示一致）', () => {
       const payload: DirectoryChangedPayload = {
         directoryPath: 'C:/workspace',
         parentPath: 'C:/workspace',
@@ -201,7 +201,38 @@ describe('workspace-tree-logic', () => {
         filePath: 'C:/workspace/.metadoc'
       }
       applyFsEvent(nodeMap, payload, defaultFormatOptions)
-      expect(root.children).toHaveLength(0)
+      expect(root.children).toHaveLength(1)
+      expect(root.children![0]!.name).toBe('.metadoc')
+      expect(root.children![0]!.type).toBe('directory')
+    })
+
+    it('add 点号文件 .env：非支持扩展名也可加入', () => {
+      const payload: DirectoryChangedPayload = {
+        directoryPath: 'C:/workspace',
+        parentPath: 'C:/workspace',
+        eventType: 'add',
+        filePath: 'C:/workspace/.env'
+      }
+      applyFsEvent(nodeMap, payload, defaultFormatOptions)
+      expect(root.children).toHaveLength(1)
+      expect(root.children![0]!.name).toBe('.env')
+      expect(root.children![0]!.type).toBe('file')
+    })
+
+    it('add .metadoc 下非点号文件：扩展名未注册也可加入（如 sessions-index.json）', () => {
+      const md = makeDir('C:/workspace/.metadoc', '.metadoc')
+      root.children = [md]
+      md.parent = root
+      registerNode(nodeMap, md, root)
+      const payload: DirectoryChangedPayload = {
+        directoryPath: 'C:/workspace/.metadoc',
+        parentPath: 'C:/workspace/.metadoc',
+        eventType: 'add',
+        filePath: 'C:/workspace/.metadoc/sessions-index.json'
+      }
+      applyFsEvent(nodeMap, payload, defaultFormatOptions)
+      expect(md.children).toHaveLength(1)
+      expect(md.children![0]!.name).toBe('sessions-index.json')
     })
 
     it('parentPath 与 directoryPath 用反斜杠时仍能找到父节点', () => {
@@ -953,7 +984,7 @@ describe('workspace-tree-logic', () => {
       expect(nodeMap.has(normalizePathForCompare('D:/ws/sub/inner'))).toBe(false)
     })
 
-    it('15. .metadoc 目录：addDir 不加入树', () => {
+    it('15. .metadoc 目录：addDir 加入树', () => {
       const nodeMap: NodeMap = new Map()
       const root = makeRoot('D:/ws', 'ws')
       registerNode(nodeMap, root, null)
@@ -963,7 +994,8 @@ describe('workspace-tree-logic', () => {
         eventType: 'addDir',
         filePath: 'D:/ws/.metadoc'
       }, defaultFormatOptions)
-      expect(root.children).toHaveLength(0)
+      expect(root.children).toHaveLength(1)
+      expect(root.children![0]!.name).toBe('.metadoc')
     })
 
     it('16. 不支持格式的文件：add 不加入树', () => {

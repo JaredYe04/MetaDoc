@@ -102,7 +102,7 @@ Para explicações dos parâmetros de configuração de diferentes tipos de LLM,
 - [[settings.llm|Configuração de LLM]]
 - [[settings.llm-types|Configuração de Tipos de LLM]]
 - [[ai.chat|Funcionalidade de Conversa com IA]]
-- [[agent.config|Gerenciamento de Configuração de Agent]]
+- [[agent.introduction|Gerenciamento de Configuração de Agent]]
 
 <QuickStartPanel mode="demo" />
 

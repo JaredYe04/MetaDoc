@@ -186,7 +186,7 @@ export interface AgentConfig {
 - **LLM-Parameterüberschreibung**: Globale LLM-Konfiguration kann überschrieben werden
 - **Persistenz**: Gespeichert in `localStorage`, Schlüssel `'agent-configs'`
 
-Details siehe [[agent.config|Agent-Konfigurationsverwaltung]].
+Agent-bezogene Verwaltung ist im **Agent-Ansicht**-Menü gebündelt. Lesen Sie zuerst [[agent.tools|Toolset-Verwaltung]] und [[agent.capabilities|Regeln, Skills & MCP-Verwaltung]]. (Der eigenständige Indexeintrag „Agent-Konfiguration“ wurde entfernt; der Artikel bleibt als Referenz.)
 
 ### Toolset (ToolCollection)
 
@@ -202,7 +202,7 @@ Details siehe [[agent.tools|Toolset-Verwaltung]].
 
 Referenzmaterialien sind Dokumente und Dateien, auf die in einer Agent-Sitzung verwiesen wird. Der Agent kann diese Inhalte wahrnehmen und darauf basierend schlussfolgern und agieren. Unterstützt werden verschiedene Referenztypen wie Dateien, URLs, Wissensdatenbanken usw.
 
-Details siehe [[agent.references|Referenzmaterialien-Verwaltung]].
+Referenzen werden in Sitzungen genutzt und verwaltet; siehe [[agent.session|Agent-Sitzungsverwaltung]]. (Der eigenständige Eintrag „Referenzmaterialien“ wurde aus dem Index entfernt.)
 
 ### Agent-Engine (AgentEngine)
 
@@ -210,7 +210,7 @@ Details siehe [[agent.references|Referenzmaterialien-Verwaltung]].
 
 Die Agent-Engine definiert die Ausführungsstrategie und das Verhalten eines Agents, einschließlich verschiedener Paradigmen wie AutoGPT, ReAct, PlanExecute usw. Unterschiedliche Engines eignen sich für verschiedene Aufgaben-Szenarien.
 
-Details siehe [[agent.engine|Agent-Engine-Verwaltung]].
+Ausführungsparadigmen werden aus Sitzungskontext gewählt; siehe [[agent.session|Agent-Sitzungsverwaltung]]. (Der eigenständige Eintrag „Agent-Engine“ wurde aus dem Index entfernt.)
 
 ## Systemarchitektur
 
@@ -303,11 +303,9 @@ Das Agent-Framework eignet sich für folgende Szenarien:
 Um mit dem Agent-Framework zu beginnen, wird empfohlen, in folgender Reihenfolge zu lernen:
 
 1. [[agent.introduction|Agent-Framework-Übersicht]] (dieses Dokument)
-2. [[agent.config|Agent-Konfigurationsverwaltung]]: Erfahren, wie ein Agent konfiguriert wird
-3. [[agent.tools|Toolset-Verwaltung]]: Lernen, wie Toolsets verwaltet werden
+2. [[agent.tools|Toolset-Verwaltung]]: Lernen, wie Toolsets verwaltet werden
+3. [[agent.capabilities|Regeln, Skills & MCP-Verwaltung]]: Regeln, Workspace-Skills und MCP
 4. [[agent.session|Agent-Sitzungsverwaltung]]: Sitzungen erstellen und verwalten
-5. [[agent.references|Referenzmaterialien-Verwaltung]]: Referenzmaterialien verwalten
-6. [[agent.engine|Agent-Engine-Verwaltung]]: Engine auswählen und konfigurieren
 
 ## Häufig gestellte Fragen
 
@@ -331,10 +329,8 @@ A: Wenn eine AgentConfig mit mehreren Toolsets verknüpft ist, sind die verfügb
 ## Verwandte Dokumentation
 
 - [[agent.session|Agent-Sitzungsverwaltung]]
-- [[agent.config|Agent-Konfigurationsverwaltung]]
 - [[agent.tools|Toolset-Verwaltung]]
-- [[agent.references|Referenzmaterialien-Verwaltung]]
-- [[agent.engine|Agent-Engine-Verwaltung]]
+- [[agent.capabilities|Regeln, Skills & MCP-Verwaltung]]
 - [[ai.llm-config|LLM-Konfiguration]]
 
 <QuickStartPanel mode="demo" />

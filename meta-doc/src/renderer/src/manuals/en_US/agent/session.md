@@ -372,6 +372,6 @@ A: The Agent can perceive the content of reference materials and reason and oper
 ## Related Documentation
 
 -   [[agent.introduction|Agent Framework Overview]]
--   [[agent.config|Agent Configuration Management]]
+- [[agent.capabilities|Rules, Skills & MCP Management]]
 -   [[agent.references|Reference Material Management]]
 -   [[agent.engine|Agent Engine Management]]

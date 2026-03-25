@@ -24,6 +24,13 @@ import { metadataToolConfig } from './metadata-tool'
 import { titleFormatToolConfig } from './title-format-tool'
 import { toolSpecFetcherToolConfig } from './tool-spec-fetcher-tool'
 import { workspaceToolConfig } from './workspace-tool'
+import {
+  loadSkillToolConfig,
+  searchSkillToolConfig,
+  syncWorkspaceSkillsToolConfig,
+  createWorkspaceSkillToolConfig
+} from './skill-tools'
+import { createDynamicRuleToolConfig, updateDynamicRuleToolConfig } from './rule-tools'
 
 /**
  * 初始化所有内部Tool
@@ -87,6 +94,15 @@ export async function initializeAgentTools(): Promise<void> {
 
   // 注册工作区文件读取Tool
   agentToolManager.registerTool(workspaceToolConfig)
+
+  // Workspace Skills（摘要检索 + 懒加载全文）
+  agentToolManager.registerTool(searchSkillToolConfig)
+  agentToolManager.registerTool(loadSkillToolConfig)
+  agentToolManager.registerTool(syncWorkspaceSkillsToolConfig)
+  agentToolManager.registerTool(createWorkspaceSkillToolConfig)
+
+  agentToolManager.registerTool(createDynamicRuleToolConfig)
+  agentToolManager.registerTool(updateDynamicRuleToolConfig)
 
   // 初始化默认工具集（包含所有内置工具）
   initializeDefaultToolSet()

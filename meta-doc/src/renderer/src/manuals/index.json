@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
   "version": "1.0.0",
-  "lastUpdated": "2026-02-19",
+  "lastUpdated": "2026-03-26",
   "categories": [
     {
       "id": "quick-start",
@@ -823,8 +823,8 @@
           ],
           "relatedArticles": [
             "agent.session",
-            "agent.config",
-            "agent.tools"
+            "agent.tools",
+            "agent.capabilities"
           ],
           "file": "agent/introduction.md"
         },
@@ -852,37 +852,10 @@
             "agent.introduction"
           ],
           "relatedArticles": [
-            "agent.config"
+            "agent.tools",
+            "agent.capabilities"
           ],
           "file": "agent/session.md"
-        },
-        {
-          "id": "agent.config",
-          "title": {
-            "zh_CN": "Agent配置管理",
-            "en_US": "Agent Configuration",
-            "zh_TW": "Agent配置管理",
-            "es_ES": "Gestión de configuración de Agentes",
-            "pt_BR": "Gerenciamento de Configuração de Agente",
-            "ru_RU": "Управление конфигурацией агентов",
-            "ja_JP": "Agent設定管理",
-            "ko_KR": "에이전트 설정 관리",
-            "de_DE": "Verwaltung der Agenten-Konfiguration",
-            "fr_FR": "Gestion de la configuration Agent"
-          },
-          "tags": [
-            "Agent",
-            "配置"
-          ],
-          "difficulty": 3,
-          "estimatedTime": 25,
-          "prerequisites": [
-            "agent.introduction"
-          ],
-          "relatedArticles": [
-            "agent.tools"
-          ],
-          "file": "agent/config.md"
         },
         {
           "id": "agent.tools",
@@ -908,9 +881,39 @@
             "agent.introduction"
           ],
           "relatedArticles": [
-            "agent.config"
+            "agent.capabilities",
+            "agent.session"
           ],
           "file": "agent/tools.md"
+        },
+        {
+          "id": "agent.capabilities",
+          "title": {
+            "zh_CN": "规则、技能与 MCP 管理",
+            "en_US": "Rules, Skills & MCP Management",
+            "zh_TW": "規則、技能與 MCP 管理",
+            "es_ES": "Reglas, habilidades y gestión MCP",
+            "pt_BR": "Regras, habilidades e gerenciamento MCP",
+            "ru_RU": "Правила, навыки и управление MCP",
+            "ja_JP": "ルール、スキル、MCP管理",
+            "ko_KR": "규칙, 스킬 및 MCP 관리",
+            "de_DE": "Regeln, Skills & MCP-Verwaltung",
+            "fr_FR": "Règles, compétences et gestion MCP"
+          },
+          "tags": [
+            "Agent",
+            "能力"
+          ],
+          "difficulty": 3,
+          "estimatedTime": 25,
+          "prerequisites": [
+            "agent.introduction"
+          ],
+          "relatedArticles": [
+            "agent.tools",
+            "agent.session"
+          ],
+          "file": "agent/capabilities.md"
         }
       ]
     },
@@ -2128,8 +2131,8 @@
         "ai.llm-config",
         "agent.introduction",
         "agent.session",
-        "agent.config",
-        "agent.tools"
+        "agent.tools",
+        "agent.capabilities"
       ]
     },
     "office": {

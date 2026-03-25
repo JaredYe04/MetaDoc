@@ -176,7 +176,7 @@ flowchart TD
 
 ### Choisir un moteur dans la configuration de l'Agent
 
-1. Accédez à [[agent.config|Gestion de la configuration de l'Agent]]
+1. Accédez à [[agent.introduction|Gestion de la configuration de l'Agent]]
 2. Créez ou modifiez une configuration d'Agent
 3. Dans l'option "Moteur", sélectionnez le type de moteur souhaité
 4. Enregistrez la configuration
@@ -318,6 +318,6 @@ R : Oui. Les modes de pensée et les stratégies d'exécution diffèrent selon l
 ## Documentation associée
 
 - [[agent.introduction|Vue d'ensemble du framework Agent]]
-- [[agent.config|Gestion de la configuration de l'Agent]]
+- [[agent.introduction|Gestion de la configuration de l'Agent]]
 - [[agent.session|Gestion des sessions Agent]]
 - [[agent.tools|Gestion de l'ensemble d'outils]]

@@ -175,6 +175,7 @@ import { dirname, basename, extname, join, relative } from '../utils/path-utils'
 import * as treeLogic from '../utils/workspace-tree-logic'
 
 const normalizePathForCompare = treeLogic.normalizePathForCompare
+const isPathUnderMetadoc = treeLogic.isPathUnderMetadoc
 import { useCloseTab } from '../composables/useCloseTab'
 import { formatRegistry } from '../utils/format-registry'
 import * as Comlink from 'comlink'
@@ -842,13 +843,11 @@ const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
   return directoryLoadPool.execute(async () => {
     try {
       // 读取目录内容
-      let entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
+      const entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
         name: string
         path: string
         isDirectory: boolean
       }>
-      // 不在工作区树中显示 .metadoc 隐藏目录
-      entries = entries.filter((e) => e.name !== '.metadoc')
 
       // 初始化 Worker（如果还没有初始化）
       const worker = await initWorker()
@@ -873,12 +872,11 @@ const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
       if (isPathNotExistError(err)) throw err
       logger.error('加载目录内容失败:', { path: nodePath, error: err })
       try {
-        let entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
+        const entries = (await ipcRenderer.invoke('read-directory', nodePath)) as Array<{
           name: string
           path: string
           isDirectory: boolean
         }>
-        entries = entries.filter((e) => e.name !== '.metadoc')
         return processDirectoryContentInMainThread(entries)
       } catch (fallbackErr) {
         if (isPathNotExistError(fallbackErr)) throw fallbackErr
@@ -897,7 +895,6 @@ const processDirectoryContentInMainThread = (
   const files: FileNode[] = []
 
   for (const entry of entries) {
-    if (entry.name === '.metadoc') continue
     if (entry.isDirectory) {
       dirs.push({
         name: entry.name,
@@ -906,10 +903,10 @@ const processDirectoryContentInMainThread = (
         children: undefined
       })
     } else {
-      // 只显示支持的文档格式文件
       const fileExt = extname(entry.path)
       const formatId = formatRegistry.getFormatByExtension(fileExt)
-      if (formatId) {
+      const isDotfile = entry.name.startsWith('.')
+      if (formatId || isDotfile || isPathUnderMetadoc(entry.path)) {
         files.push({
           name: entry.name,
           path: entry.path,

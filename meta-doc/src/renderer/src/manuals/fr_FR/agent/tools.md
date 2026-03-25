@@ -246,5 +246,5 @@ R : La suppression d'un ensemble d'outils n'affecte pas les AgentConfig déjà c
 ## Documentation connexe
 
 - [[agent.introduction|Vue d'ensemble du cadre Agent]]
-- [[agent.config|Gestion de la configuration de l'Agent]]
+- [[agent.introduction|Gestion de la configuration de l'Agent]]
 - [[agent.session|Gestion des sessions de l'Agent]]

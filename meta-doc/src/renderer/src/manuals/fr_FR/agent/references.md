@@ -246,6 +246,6 @@ R : Les références elles-mêmes ne sont que des liens et n'occupent pas d'espa
 ## Documentation associée
 
 - [[agent.session|Gestion des sessions Agent]]
-- [[agent.config|Gestion de la configuration de l'Agent]]
+- [[agent.introduction|Gestion de la configuration de l'Agent]]
 - [[knowledge-base.usage|Utilisation de la base de connaissances]]
 - [[agent.introduction|Vue d'ensemble du cadre Agent]]

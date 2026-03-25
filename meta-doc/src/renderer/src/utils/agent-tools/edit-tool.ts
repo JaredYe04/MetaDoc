@@ -19,6 +19,7 @@ import { createDetailedError } from './tool-utils'
 import messageBridge from '../../bridge/message-bridge'
 import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
 import { newLinesToContent, parseUnifiedDiff, type UnifiedDiffHunk } from './edit-diff-parse'
+import { scheduleSkillIndexSyncAfterWrite } from '../agent-framework/skill-index-hook'
 
 export type { UnifiedDiffHunk } from './edit-diff-parse'
 export { parseUnifiedDiff } from './edit-diff-parse'
@@ -1026,6 +1027,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             filePath: absPath,
             content: newContent
           })
+          scheduleSkillIndexSyncAfterWrite(absPath)
           const addedLines = hunks.reduce((s, h) => s + (h.newLines?.length ?? h.newCount ?? 0), 0)
           const removedLines = hunks.reduce(
             (s, h) => s + (h.oldLines?.length ?? h.oldCount ?? 0),
@@ -1123,6 +1125,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           }
         )
         await messageBridge.invoke('write-file-content', { filePath: absPath, content: newContent })
+        scheduleSkillIndexSyncAfterWrite(absPath)
         const addedLines = hunks.reduce((s, h) => s + (h.newLines?.length ?? h.newCount ?? 0), 0)
         const removedLines = hunks.reduce((s, h) => s + (h.oldLines?.length ?? h.oldCount ?? 0), 0)
         try {

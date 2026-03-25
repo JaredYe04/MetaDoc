@@ -186,7 +186,7 @@ export interface AgentConfig {
 - **LLM Parameter Override**: Can override global LLM configuration.
 - **Persistence**: Stored in `localStorage` with the key `'agent-configs'`.
 
-For details, see [[agent.config|Agent Configuration Management]].
+Agent-related management is consolidated under the **Agent view** menu. Start with [[agent.tools|Tool Collection Management]] and [[agent.capabilities|Rules, Skills & MCP Management]]. (The standalone “Agent Configuration” manual entry has been removed from the index; the article file remains for reference only.)
 
 ### Tool Collection (ToolCollection)
 
@@ -202,7 +202,7 @@ For details, see [[agent.tools|Tool Collection Management]].
 
 Reference Materials are documents and files referenced within an Agent session. The Agent can perceive this content and reason or operate based on it. Supports various types of references such as files, URLs, and knowledge bases.
 
-For details, see [[agent.references|Reference Materials Management]].
+References are used and managed within sessions—see [[agent.session|Agent Session Management]]. (The standalone “Reference Materials Management” entry has been removed from the index.)
 
 ### Agent Engine (AgentEngine)
 
@@ -210,7 +210,7 @@ For details, see [[agent.references|Reference Materials Management]].
 
 The Agent Engine defines the Agent's execution strategy and behavior mode, including various paradigms such as AutoGPT, ReAct, and PlanExecute. Different engines are suitable for different task scenarios.
 
-For details, see [[agent.engine|Agent Engine Management]].
+Execution paradigms are selected automatically from session context; see [[agent.session|Agent Session Management]]. (The standalone “Agent Engine Management” entry has been removed from the index.)
 
 ## System Architecture
 
@@ -303,11 +303,9 @@ The Agent Framework is suitable for the following scenarios:
 To start using the Agent Framework, it is recommended to learn in the following order:
 
 1.  [[agent.introduction|Agent Framework Overview]] (this document)
-2.  [[agent.config|Agent Configuration Management]]: Learn how to configure an Agent.
-3.  [[agent.tools|Tool Collection Management]]: Learn how to manage tool collections.
+2.  [[agent.tools|Tool Collection Management]]: Learn how to manage tool collections.
+3.  [[agent.capabilities|Rules, Skills & MCP Management]]: Rules, workspace skills, and MCP.
 4.  [[agent.session|Agent Session Management]]: Create and manage sessions.
-5.  [[agent.references|Reference Materials Management]]: Manage reference materials.
-6.  [[agent.engine|Agent Engine Management]]: Select and configure engines.
 
 ## Frequently Asked Questions
 
@@ -331,10 +329,8 @@ A: When an AgentConfig is associated with multiple tool collections, the availab
 ## Related Documentation
 
 - [[agent.session|Agent Session Management]]
-- [[agent.config|Agent Configuration Management]]
 - [[agent.tools|Tool Collection Management]]
-- [[agent.references|Reference Materials Management]]
-- [[agent.engine|Agent Engine Management]]
+- [[agent.capabilities|Rules, Skills & MCP Management]]
 - [[ai.llm-config|LLM Configuration]]
 
 <QuickStartPanel mode="demo" />

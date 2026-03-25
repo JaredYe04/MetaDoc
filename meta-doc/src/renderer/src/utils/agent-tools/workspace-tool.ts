@@ -15,6 +15,10 @@ import WorkspaceDisplay from './components/WorkspaceDisplay.vue'
 import eventBus from '../event-bus'
 import messageBridge from '../../bridge/message-bridge'
 import { ensureDirectoryRecursive as ensureDirectoryRecursiveImpl } from './workspace-directory-helper'
+import {
+  pathLooksLikeWorkspaceSkillMd,
+  scheduleSkillIndexSyncAfterWrite
+} from '../agent-framework/skill-index-hook'
 
 const logger = createRendererLogger('WorkspaceTool')
 
@@ -166,10 +170,14 @@ function normalizePath(p: string): string {
 }
 
 /**
- * 简单防护：避免对 .metadoc 目录做写操作
+ * 简单防护：避免对 .metadoc 目录做写操作。
+ * 例外：`.metadoc/skills/` 下的技能文件允许创建/删除（与 Agent 技能系统一致）。
  */
 function isInMetaDoc(path: string): boolean {
   const n = normalizePath(path)
+  if (n.includes('/.metadoc/skills/') || n.endsWith('/.metadoc/skills')) {
+    return false
+  }
   return n.includes('/.metadoc/') || n.endsWith('/.metadoc')
 }
 
@@ -228,6 +236,9 @@ async function createFileWithDirs(
       fileName,
       content: content ?? ''
     })
+    if (pathLooksLikeWorkspaceSkillMd(normalized)) {
+      scheduleSkillIndexSyncAfterWrite(normalized)
+    }
     return { created: true, message: `文件已创建: ${normalized}` }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
@@ -1303,7 +1314,7 @@ Read files from workspace folders, **fuzzy-search** by path/file name across the
   - \`deleteDirectory\`: deletes a directory recursively. Implementation uses the workspace file service (\`delete-file-or-folder\` IPC) which should move content to the recycle bin when possible rather than permanent deletion.
   - \`createFile\`: creates a file. If parent directories do not exist, they will be created automatically. If the file already exists, it will be **left untouched** and a message will indicate it was skipped.
   - \`deleteFile\`: deletes a file. Implementation uses \`delete-file-or-folder\` IPC to move to recycle bin instead of permanent delete when possible.
-  - All operations treat paths under \`.metadoc\` as protected and will **skip** them with an explanatory message.
+  - Paths under \`.metadoc\` are protected **except** \`.metadoc/skills/\` (Agent workspace skills): you may \`createFile\` / \`deleteFile\` there for \`SKILL.md\`; other \`.metadoc\` paths are still skipped.
 - **No paths, no search, no operations**: returns workspace root directory tree (no error).
 - Line numbers are 1-based (first line is 1)
 - If line range exceeds file length, automatically truncates

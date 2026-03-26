@@ -164,117 +164,113 @@
         </ScrollArea>
       </TabsContent>
 
-      <TabsContent value="mcp" class="mt-0 space-y-4">
-        <div>
-          <h4 class="text-sm font-medium mb-2">{{ t('agent.manage.capabilities.mcpConnections') }}</h4>
-          <p v-if="activeMcpDisplay" class="text-xs font-mono opacity-80 mb-2 break-all">
-            {{ t('agent.manage.capabilities.mcpActiveUrl') }}: {{ activeMcpDisplay }}
-          </p>
-          <div class="flex flex-wrap gap-3 mb-3 items-end">
-            <FormField :label="t('agent.manage.capabilities.mcpLabel')" name="mcpNewLabel" class="min-w-[140px]">
-              <Input v-model="mcpNew.label" class="w-full" />
-            </FormField>
-            <FormField :label="t('agent.manage.capabilities.mcpBaseUrl')" name="mcpNewUrl" class="flex-1 min-w-[220px]">
-              <Input
-                v-model="mcpNew.baseUrl"
-                class="w-full font-mono text-sm"
-                placeholder="http://127.0.0.1:3000/mcp"
-              />
-            </FormField>
-            <Button
-              type="primary"
-              size="small"
-              :disabled="mcpBusy || !mcpNew.baseUrl.trim()"
-              @click="submitAddMcpConnection"
-            >
-              {{ t('agent.manage.capabilities.mcpAddConnection') }}
-            </Button>
-          </div>
-          <ScrollArea class="h-[min(24vh,220px)] border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead class="w-[72px]">{{ t('agent.manage.capabilities.colStatus') }}</TableHead>
-                  <TableHead>{{ t('agent.manage.capabilities.mcpLabel') }}</TableHead>
-                  <TableHead>{{ t('agent.manage.capabilities.mcpBaseUrl') }}</TableHead>
-                  <TableHead class="w-[260px]">{{ t('agent.manage.actions') }}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow v-for="c in mcpConnections" :key="c.id">
-                  <TableCell>
-                    <Badge v-if="c.is_active === 1" variant="default">active</Badge>
-                    <span v-else class="text-xs opacity-60">—</span>
-                  </TableCell>
-                  <TableCell class="max-w-[160px] truncate" :title="c.label">{{ c.label }}</TableCell>
-                  <TableCell class="max-w-[280px] font-mono text-xs truncate" :title="c.base_url">
-                    {{ c.base_url }}
-                  </TableCell>
-                  <TableCell>
-                    <div class="flex flex-wrap gap-1">
-                      <Button
-                        v-if="c.is_active !== 1"
-                        size="small"
-                        variant="outline"
-                        :disabled="mcpBusy"
-                        @click="setMcpConnectionActive(c.id)"
-                      >
-                        {{ t('agent.manage.capabilities.mcpSetActive') }}
-                      </Button>
-                      <Button size="small" variant="secondary" :disabled="mcpBusy" @click="openMcpEditDialog(c)">
-                        {{ t('common.edit') }}
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="ghost"
-                        class="text-destructive"
-                        :disabled="mcpBusy"
-                        @click="confirmDeleteMcpConnection(c)"
-                      >
-                        {{ t('agent.manage.capabilities.mcpDeleteConnection') }}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </ScrollArea>
+      <TabsContent value="mcp" class="mt-0 space-y-3">
+        <p v-if="mcpConfigPath" class="text-xs font-mono opacity-70 break-all">
+          {{ t('agent.manage.capabilities.mcpConfigPath') }}: {{ mcpConfigPath }}
+        </p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <Button size="small" :disabled="mcpBusy" @click="exportMcpConfig">
+            {{ t('agent.manage.capabilities.mcpConfigExport') }}
+          </Button>
+          <Button size="small" variant="outline" :disabled="mcpBusy" @click="triggerImportMcpConfig">
+            {{ t('agent.manage.capabilities.mcpConfigImport') }}
+          </Button>
+          <input
+            ref="mcpImportInputRef"
+            type="file"
+            accept="application/json,.json"
+            class="hidden"
+            @change="onMcpImportPicked"
+          />
+          <Button size="small" type="primary" :disabled="mcpBusy" @click="runMcpFullSync">
+            {{ t('agent.manage.capabilities.mcpSyncButton') }}
+          </Button>
+          <span v-if="mcpAutoSaveHint" class="text-xs opacity-60">{{ mcpAutoSaveHint }}</span>
         </div>
-
-        <div>
-          <div class="flex justify-between items-center mb-2 gap-2 flex-wrap">
-            <p class="text-sm opacity-70 flex-1 min-w-[200px]">{{ t('agent.manage.capabilities.mcpHint') }}</p>
-            <Button size="small" :disabled="mcpBusy" @click="loadMcpToolsOnly">
-              {{ t('agent.manage.capabilities.mcpRefreshTools') }}
-            </Button>
+        <div
+          v-if="mcpStructureErrors.length"
+          class="rounded-md border border-destructive/50 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+        >
+          <div class="font-medium mb-1">{{ t('agent.manage.capabilities.mcpConfigStructureErrors') }}</div>
+          <ul class="list-disc pl-4 space-y-0.5">
+            <li v-for="(err, idx) in mcpStructureErrors" :key="idx">{{ err }}</li>
+          </ul>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 min-h-[min(48vh,420px)]">
+          <div class="flex flex-col min-h-0 min-w-0 border rounded-md overflow-hidden">
+            <McpServersJsonMonacoField v-model="mcpConfigText" min-height="min(48vh,420px)" />
           </div>
-          <ScrollArea class="h-[min(48vh,420px)] border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{{ t('agent.manage.capabilities.colServer') }}</TableHead>
-                  <TableHead>{{ t('agent.manage.capabilities.colTool') }}</TableHead>
-                  <TableHead>{{ t('agent.manage.capabilities.colPermission') }}</TableHead>
-                  <TableHead>{{ t('agent.manage.capabilities.colDescription') }}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow v-for="m in mcpTools" :key="m.id">
-                  <TableCell class="font-mono text-xs">{{ m.server_name || '—' }}</TableCell>
-                  <TableCell class="font-mono text-xs">{{ m.tool_name }}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{{ m.permission_level }}</Badge>
-                  </TableCell>
-                  <TableCell class="max-w-[280px] text-sm line-clamp-2" :title="m.description || ''">
-                    {{ m.description || '—' }}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </ScrollArea>
+          <div
+            class="flex flex-col min-h-0 min-w-0 border rounded-md overflow-hidden"
+            :style="mcpToolsPanelStyle"
+          >
+            <div
+              class="text-xs px-3 py-2 border-b shrink-0"
+              :style="{ borderColor: mcpToolsPanelStyle.borderColor }"
+            >
+              <span class="opacity-80">{{ t('agent.manage.capabilities.mcpToolsTreeHint') }}</span>
+            </div>
+            <el-scrollbar max-height="420" class="mcp-tools-tree-scrollbar flex-1 min-h-[200px]">
+              <Tree
+                v-if="mcpTreeData.length"
+                :data="mcpTreeData"
+                node-key="id"
+                :default-expand-all="true"
+                class="mcp-capabilities-tree p-2"
+                @node-click="onMcpTreeNodeClick"
+              >
+                <template #default="{ data }">
+                  <span
+                    class="truncate font-mono block w-full"
+                    :class="data.tool ? 'mcp-tree-node--leaf' : 'mcp-tree-node--server'"
+                  >
+                    {{ data.label }}
+                  </span>
+                </template>
+              </Tree>
+              <p v-else class="text-sm opacity-60 p-4">{{ t('agent.manage.capabilities.mcpToolsTreeEmpty') }}</p>
+            </el-scrollbar>
+          </div>
         </div>
       </TabsContent>
     </Tabs>
+
+    <Dialog v-model:open="mcpToolDetailOpen">
+      <DialogContent class="max-w-[560px] max-h-[85vh] flex flex-col" :style="dialogStyle">
+        <DialogHeader>
+          <DialogTitle class="font-mono text-base break-all">{{ mcpToolDetail?.tool_name }}</DialogTitle>
+        </DialogHeader>
+        <div v-if="mcpToolDetail" class="space-y-3 flex-1 min-h-0 flex flex-col overflow-hidden text-sm">
+          <div>
+            <span class="text-xs opacity-70 block mb-1">{{ t('agent.manage.capabilities.colServer') }}</span>
+            <span class="font-mono">{{ mcpToolDetail.server_name || '—' }}</span>
+          </div>
+          <div>
+            <span class="text-xs opacity-70 block mb-1">{{ t('agent.manage.capabilities.colPermission') }}</span>
+            <Badge variant="outline">{{ mcpToolDetail.permission_level }}</Badge>
+          </div>
+          <div class="min-h-0 flex flex-col">
+            <span class="text-xs opacity-70 block mb-1">{{ t('agent.manage.capabilities.colDescription') }}</span>
+            <el-scrollbar max-height="200px" class="rounded-md border border-input">
+              <div class="p-2 whitespace-pre-wrap break-words">{{ mcpToolDetail.description || '—' }}</div>
+            </el-scrollbar>
+          </div>
+          <div class="min-h-0 flex flex-col flex-1">
+            <span class="text-xs opacity-70 block mb-1">{{
+              t('agent.manage.capabilities.mcpToolDetailInputSchema')
+            }}</span>
+            <el-scrollbar max-height="220px" class="rounded-md border border-input">
+              <pre class="p-2 text-xs font-mono whitespace-pre-wrap break-all m-0">{{
+                formatMcpInputSchema(mcpToolDetail.input_schema_json)
+              }}</pre>
+            </el-scrollbar>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="mcpToolDetailOpen = false">{{ t('common.close') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <Dialog v-model:open="ruleDialogOpen">
       <DialogContent class="max-w-[640px] max-h-[90vh] flex flex-col" :style="dialogStyle">
@@ -400,27 +396,6 @@
       </DialogContent>
     </Dialog>
 
-    <Dialog v-model:open="mcpEditOpen">
-      <DialogContent class="max-w-[520px]" :style="dialogStyle">
-        <DialogHeader>
-          <DialogTitle>{{ t('agent.manage.capabilities.mcpEditConnection') }}</DialogTitle>
-        </DialogHeader>
-        <div class="space-y-3">
-          <FormField :label="t('agent.manage.capabilities.mcpLabel')" name="mcpEditLabel">
-            <Input v-model="mcpEdit.label" class="w-full" />
-          </FormField>
-          <FormField :label="t('agent.manage.capabilities.mcpBaseUrl')" name="mcpEditUrl">
-            <Input v-model="mcpEdit.base_url" class="w-full font-mono text-sm" />
-          </FormField>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" @click="mcpEditOpen = false">{{ t('common.cancel') }}</Button>
-          <Button type="primary" :disabled="mcpBusy || !mcpEdit.base_url.trim()" @click="submitMcpEdit">
-            {{ t('agent.manage.capabilities.mcpSaveConnection') }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   </div>
 </template>
 
@@ -431,11 +406,14 @@ import { toast } from '@renderer/utils/toast'
 import { messageBox } from '../../../utils/messageBox'
 import { themeState } from '../../../utils/themes'
 import messageBridge from '../../../bridge/message-bridge'
+import { refreshMcpToolsInAgentToolManager } from '../../../utils/agent-framework'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { Switch } from '@renderer/components/ui/switch'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import SkillMdMonacoField from './SkillMdMonacoField.vue'
+import McpServersJsonMonacoField from './McpServersJsonMonacoField.vue'
+import { Tree, type TreeNode } from '@renderer/components/ui/tree'
 import {
   Table,
   TableBody,
@@ -562,25 +540,18 @@ interface McpRow {
   enabled: number
 }
 
-interface McpConnectionRow {
-  id: number
-  label: string
-  base_url: string
-  is_active: number
-  created_at: string
-  updated_at: string
-}
-
 const rules = ref<RuleRow[]>([])
 const skills = ref<SkillSummary[]>([])
 const mcpTools = ref<McpRow[]>([])
-const mcpConnections = ref<McpConnectionRow[]>([])
-const activeMcpRow = ref<McpConnectionRow | null>(null)
-const activeMcpDisplay = computed(() => activeMcpRow.value?.base_url ?? '')
-const mcpNew = ref({ label: '', baseUrl: '' })
 const mcpBusy = ref(false)
-const mcpEditOpen = ref(false)
-const mcpEdit = ref({ id: 0, label: '', base_url: '' })
+const mcpConfigText = ref('')
+const mcpConfigPath = ref('')
+const mcpStructureErrors = ref<string[]>([])
+const mcpAutoSaveHint = ref('')
+const mcpToolDetailOpen = ref(false)
+const mcpToolDetail = ref<McpRow | null>(null)
+const mcpImportInputRef = ref<HTMLInputElement | null>(null)
+let mcpSaveDebounce: ReturnType<typeof setTimeout> | null = null
 const skillsSyncing = ref(false)
 const ruleBusyId = ref<number | null>(null)
 const skillBusyId = ref<number | null>(null)
@@ -637,6 +608,61 @@ const dialogStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor
 }))
+
+const mcpToolsPanelStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor,
+  borderColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'
+}))
+
+/** 服务根节点：略大、加粗、颜色略深（相对子节点） */
+const mcpTreeServerColor = computed(() =>
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(0, 0, 0, 0.82)'
+)
+const mcpTreeLeafColor = computed(() =>
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(0, 0, 0, 0.82)'
+)
+
+const mcpTreeData = computed<TreeNode[]>(() => {
+  const byServer = new Map<string, McpRow[]>()
+  for (const m of mcpTools.value) {
+    const s = (m.server_name || '').trim() || '—'
+    if (!byServer.has(s)) byServer.set(s, [])
+    byServer.get(s)!.push(m)
+  }
+  const keys = [...byServer.keys()].sort((a, b) => a.localeCompare(b))
+  return keys.map((server) => ({
+    id: `srv:${server}`,
+    label: server,
+    children: (byServer.get(server) || [])
+      .slice()
+      .sort((a, b) => a.tool_name.localeCompare(b.tool_name))
+      .map((m) => ({
+        id: `tool:${m.id}`,
+        label: m.tool_name,
+        tool: m,
+        isLeaf: true
+      }))
+  }))
+})
+
+function formatMcpInputSchema(raw: string | null): string {
+  if (raw == null || raw === '') return '—'
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2)
+  } catch {
+    return raw
+  }
+}
+
+function onMcpTreeNodeClick(data: TreeNode) {
+  const row = data.tool as McpRow | undefined
+  if (row) {
+    mcpToolDetail.value = row
+    mcpToolDetailOpen.value = true
+  }
+}
 
 function workspaceRoots(): string[] {
   try {
@@ -763,99 +789,110 @@ async function loadMcpToolsOnly() {
   }
 }
 
-async function loadMcpConnections() {
-  const res = await messageBridge.invoke('agent-capabilities-list-mcp-connections')
-  if (res?.success && Array.isArray(res.connections)) {
-    mcpConnections.value = res.connections
-    activeMcpRow.value = res.active ?? null
-  } else {
-    toast.error(res?.message || t('agent.manage.capabilities.loadFailed'))
-  }
-}
-
-async function submitAddMcpConnection() {
+async function loadMcpConfig() {
   mcpBusy.value = true
   try {
-    const res = await messageBridge.invoke('agent-capabilities-add-mcp-connection', {
-      label: mcpNew.value.label.trim() || mcpNew.value.baseUrl.trim(),
-      baseUrl: mcpNew.value.baseUrl.trim()
-    })
-    if (res?.success) {
-      toast.success(t('agent.manage.capabilities.saveOk'))
-      mcpNew.value = { label: '', baseUrl: '' }
-      await loadMcpConnections()
+    const res = await messageBridge.invoke('agent-mcp-get-config')
+    if (res?.success && typeof res.content === 'string') {
+      mcpConfigText.value = res.content
+      mcpConfigPath.value = res.path || ''
+      mcpStructureErrors.value = []
+      mcpAutoSaveHint.value = ''
     } else {
-      toast.error(res?.message || t('agent.manage.capabilities.saveFailed'))
+      toast.error(res?.message || t('agent.manage.capabilities.loadFailed'))
     }
   } finally {
     mcpBusy.value = false
   }
 }
 
-function openMcpEditDialog(c: McpConnectionRow) {
-  mcpEdit.value = { id: c.id, label: c.label, base_url: c.base_url }
-  mcpEditOpen.value = true
-}
-
-async function submitMcpEdit() {
-  mcpBusy.value = true
-  try {
-    const res = await messageBridge.invoke('agent-capabilities-update-mcp-connection', {
-      id: mcpEdit.value.id,
-      label: mcpEdit.value.label.trim(),
-      baseUrl: mcpEdit.value.base_url.trim()
-    })
-    if (res?.success) {
-      toast.success(t('agent.manage.capabilities.saveOk'))
-      mcpEditOpen.value = false
-      await loadMcpConnections()
-    } else {
-      toast.error(res?.message || t('agent.manage.capabilities.saveFailed'))
-    }
-  } finally {
-    mcpBusy.value = false
-  }
-}
-
-async function setMcpConnectionActive(id: number) {
-  mcpBusy.value = true
-  try {
-    const res = await messageBridge.invoke('agent-capabilities-set-active-mcp-connection', { id })
-    if (res?.success) {
-      toast.success(t('agent.manage.capabilities.saveOk'))
-      activeMcpRow.value = res.active ?? null
-      await loadMcpConnections()
-    } else {
-      toast.error(res?.message || t('agent.manage.capabilities.saveFailed'))
-    }
-  } finally {
-    mcpBusy.value = false
-  }
-}
-
-async function confirmDeleteMcpConnection(c: McpConnectionRow) {
-  try {
-    await messageBox.confirm(
-      t('common.confirmDelete', { name: c.label || c.base_url }),
-      t('common.confirm'),
-      { type: 'warning' }
-    )
-  } catch {
+async function runMcpAutoSave(text: string) {
+  const v = await messageBridge.invoke('agent-mcp-validate-config', { content: text })
+  if (!v?.success) {
+    mcpStructureErrors.value = Array.isArray(v?.errors) ? v.errors : []
     return
   }
+  mcpStructureErrors.value = []
+  const res = await messageBridge.invoke('agent-mcp-save-config', { content: text })
+  if (res?.success) {
+    mcpAutoSaveHint.value = t('agent.manage.capabilities.mcpConfigSavedAt', {
+      time: new Date().toLocaleTimeString()
+    })
+  } else {
+    mcpAutoSaveHint.value = res?.message || t('agent.manage.capabilities.mcpConfigSaveFailed')
+  }
+}
+
+function exportMcpConfig() {
+  const blob = new Blob([mcpConfigText.value], { type: 'application/json;charset=utf-8' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = 'mcp-servers.json'
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+function triggerImportMcpConfig() {
+  mcpImportInputRef.value?.click()
+}
+
+function onMcpImportPicked(e: Event) {
+  const input = e.target as HTMLInputElement
+  const f = input.files?.[0]
+  input.value = ''
+  if (!f) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (typeof reader.result === 'string') {
+      mcpConfigText.value = reader.result
+    }
+  }
+  reader.readAsText(f)
+}
+
+/** 连接各 MCP 服务、同步工具注册表（配置中已删除的服务会清掉对应工具；成功连接的服务则重写该服务下工具） */
+async function runMcpFullSync() {
   mcpBusy.value = true
   try {
-    const res = await messageBridge.invoke('agent-capabilities-delete-mcp-connection', { id: c.id })
+    const res = await messageBridge.invoke('agent-mcp-sync-tools-from-config', {
+      content: mcpConfigText.value
+    })
     if (res?.success) {
-      toast.success(t('agent.manage.capabilities.saveOk'))
-      await loadMcpConnections()
+      const servers = Array.isArray(res.servers) ? res.servers : []
+      const failed = servers.filter((x: { ok?: boolean }) => !x.ok)
+      const n = res.registeredTotal ?? 0
+      if (failed.length) {
+        const names = failed.map((x: { server?: string }) => x.server).filter(Boolean).join(', ')
+        toast.warning(
+          t('agent.manage.capabilities.mcpSyncPartial', {
+            n,
+            servers: names || t('agent.manage.capabilities.mcpSyncUnknownServer')
+          })
+        )
+      } else {
+        toast.success(t('agent.manage.capabilities.mcpConfigSyncDone', { n }))
+      }
+      await loadMcpToolsOnly()
+      try {
+        await refreshMcpToolsInAgentToolManager()
+      } catch (e) {
+        console.warn('[MCP sync] refreshMcpToolsInAgentToolManager failed:', e)
+      }
     } else {
+      mcpStructureErrors.value = Array.isArray(res?.errors) ? res.errors : []
       toast.error(res?.message || t('agent.manage.capabilities.saveFailed'))
     }
   } finally {
     mcpBusy.value = false
   }
 }
+
+watch(mcpConfigText, (text) => {
+  if (mcpSaveDebounce) clearTimeout(mcpSaveDebounce)
+  mcpSaveDebounce = setTimeout(() => {
+    void runMcpAutoSave(text)
+  }, 900)
+})
 
 async function setRuleEnabled(r: RuleRow, enabled: boolean) {
   ruleBusyId.value = r.id
@@ -1159,13 +1196,13 @@ onMounted(() => {
   } else if (p === 'skills') {
     loadSkills()
   } else if (p === 'mcp') {
-    loadMcpConnections()
-    loadMcpToolsOnly()
+    void loadMcpConfig()
+    void loadMcpToolsOnly()
   } else {
     loadRules()
     loadSkills()
-    loadMcpConnections()
-    loadMcpToolsOnly()
+    void loadMcpConfig()
+    void loadMcpToolsOnly()
   }
 })
 </script>
@@ -1173,5 +1210,31 @@ onMounted(() => {
 <style scoped>
 .agent-capabilities-manager :deep(table) {
   width: 100%;
+}
+
+.mcp-capabilities-tree {
+  background: transparent;
+}
+
+.mcp-capabilities-tree :deep(.el-tree-node__content) {
+  border-radius: 6px;
+  min-height: 30px;
+}
+
+.mcp-tree-node--server {
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.35;
+  color: v-bind('mcpTreeServerColor');
+}
+
+.mcp-tree-node--leaf {
+  font-weight: 400;
+  font-size: 12px;
+  color: v-bind('mcpTreeLeafColor');
+}
+
+.mcp-tools-tree-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 </style>

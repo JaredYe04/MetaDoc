@@ -6,7 +6,7 @@ Beyond **tool collections**, Agents can be extended with **dynamic rules**, **wo
 
 - **Rules**: Constraints and instructions injected into session context. System rules are fixed; user rules can be toggled, edited, or removed, and may go through an approval workflow when created by the Agent via tools.
 - **Skills**: `SKILL.md` files (and metadata) under **`.metadoc/skills/<folder>/`** per workspace, indexed for retrieval so the Agent can follow documented procedures.
-- **MCP**: External tool servers speaking the MCP protocol. After you refresh the tool list, their tools join the environment’s tool surface; whether a specific Agent can use them still depends on **tool collections** and **Agent configuration**.
+- **MCP**: External MCP servers declared in a single **JSON config file** (stdio or HTTP). After you check connectivity and **sync tools to the registry**, their tools join the environment’s tool surface; whether a specific Agent can use them still depends on **tool collections** and **Agent configuration**.
 
 The following sections cover entry points, typical workflows, and how this ties to [[agent.tools|Tool Collection Management]] and [[agent.session|Agent Session Management]] (whether a tool is available to an Agent still depends on tool collections and session-side behavior).
 
@@ -59,13 +59,23 @@ Skills are **per workspace**, stored under **`.metadoc/skills/<skill-folder>/`**
 
 ## MCP tool management
 
-MCP management configures **connections** to MCP servers (fields such as base URL and transport depend on the UI). After saving, **refresh the tool list** to pull tools from the server. Those tools become available in the environment, but each **Agent** only sees tools allowed by its **tool collections** and **Agent configuration**.
+MCP is configured with **`mcp-servers.json`** under the app **user data** directory (same spirit as `mcpServers` in Cursor / Claude Desktop). The UI uses a **Monaco** JSON editor with **syntax** and **schema-style structure checks** (each server must have either **`command`** for stdio or **`url`** for HTTP Streamable transport—not both).
 
-**Typical steps:**
+**Config file essentials:**
+
+- **Path**: Shown in the UI; the file lives in Electron `userData`. The first time you open MCP management, a default file is created with an **empty** `mcpServers` object unless you already have a file.
+- **Shape**: `{ "mcpServers": { "<serverKey>": { ... } } }`. Prefer keys with letters, digits, `.`, `_`, `-`.
+- **Stdio example**: `"command": "npx"`, `"args": ["-y", "<mcp-package>"]`; optional `"env"`, `"cwd"` (use the package name from each MCP’s docs).
+- **HTTP example**: `"url": "https://..."` (**Streamable HTTP** in the current client; legacy SSE-only endpoints may not work).
+
+**Layout and workflow:**
 
 1. Open **Agent settings → MCP tool management**.
-2. Add or edit a connection, save, then refresh tools as offered by the UI.
-3. If a tool does not appear for an Agent, check tool-collection intersections and session-side settings for that Agent.
+2. **Top**: intro text, config path, **import/export JSON**, a single **Sync** button, and auto-save status.
+3. **Bottom split**: **Monaco** editor on the left; on the right, a **tree** of registered tools (each MCP server is a root, tools are leaves). Click a **tool** to open a dialog with description, permission, and input schema in scrollable areas.
+4. Edit JSON; when it is **structurally valid**, it **auto-saves** after a short debounce. Errors block writes.
+5. **Sync** connects with the current editor text, lists tools per server, and updates the **SQLite registry** and **embeddings**; servers removed from the file lose their tools; failures for some servers are reported while successful ones still update.
+6. If a tool still does not show for an Agent, check [[agent.tools|tool collections]] and that Agent’s settings.
 
 <AgentCapabilitiesManager mode="demo" initialPanel="mcp" />
 

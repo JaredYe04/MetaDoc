@@ -109,6 +109,12 @@ export async function initializeAgentTools(): Promise<void> {
 
   // 初始化默认Agent配置
   initializeDefaultAgentConfig()
+
+  try {
+    await refreshMcpToolsInAgentToolManager()
+  } catch (e) {
+    console.warn('[initializeAgentTools] refreshMcpToolsInAgentToolManager failed:', e)
+  }
 }
 
 /**
@@ -130,7 +136,7 @@ export function initializeDefaultToolSet(): void {
 /**
  * 初始化默认Agent配置
  */
-import { agentConfigManager, initializeSubagentPresets } from '../agent-framework'
+import { agentConfigManager, initializeSubagentPresets, refreshMcpToolsInAgentToolManager } from '../agent-framework'
 export function initializeDefaultAgentConfig(): void {
   // 默认工具集ID
   const defaultToolCollectionId = 'default-tool-set'

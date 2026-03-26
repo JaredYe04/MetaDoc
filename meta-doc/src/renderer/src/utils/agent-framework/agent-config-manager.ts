@@ -6,7 +6,9 @@
 import type { AgentConfig, SerializedEntity } from '../../types/agent-framework'
 import type { LocalizedText } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
+import { agentToolManager } from '../agent-tool-manager'
 import { toolCollectionManager } from './tool-collection-manager'
+import { MCP_AGENT_TOOL_ID_PREFIX } from './mcp-runtime-tools'
 
 /**
  * Agent配置管理器类
@@ -317,7 +319,14 @@ class AgentConfigManager {
       return []
     }
 
-    return toolCollectionManager.getToolIdsFromCollections(config.toolCollectionIds)
+    const fromCollections = toolCollectionManager.getToolIdsFromCollections(config.toolCollectionIds)
+    const mcpIds = agentToolManager
+      .getAllTools()
+      .filter(
+        (t) => t.config.origin === 'mcp' && t.config.id.startsWith(MCP_AGENT_TOOL_ID_PREFIX)
+      )
+      .map((t) => t.config.id)
+    return Array.from(new Set([...fromCollections, ...mcpIds]))
   }
 
   /**

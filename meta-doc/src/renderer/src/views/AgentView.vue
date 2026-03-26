@@ -45,19 +45,25 @@
       >
         <template #sidebar-footer>
           <div class="sidebar-footer-content">
-            <DropdownMenu :modal="false">
-              <DropdownMenuTrigger as-child>
-                <Button size="small" type="info" class="gap-1.5 [&_svg]:size-4">
-                  <Setting class="h-4 w-4 shrink-0" />
-                  <span class="truncate max-w-[8rem] sm:max-w-none">{{
-                    t('agent.manage.settingsMenu')
-                  }}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <AgentManageMenuItems @command="handleManageCommand($event)" />
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div class="sidebar-footer-menu">
+              <DropdownMenu :modal="false">
+                <DropdownMenuTrigger as-child>
+                  <Button
+                    size="small"
+                    type="info"
+                    class="w-full justify-start gap-1.5 [&_svg]:size-4"
+                  >
+                    <Setting class="h-4 w-4 shrink-0" />
+                    <span class="min-w-0 flex-1 truncate">{{
+                      t('agent.manage.settingsMenu')
+                    }}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <AgentManageMenuItems @command="handleManageCommand($event)" />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <!-- 引擎固定为 AutoGPT，不向用户展示切换控件 -->
           </div>
         </template>
@@ -2889,6 +2895,14 @@ onBeforeUnmount(() => {
   gap: 8px;
   padding: 10px 12px;
   border-top: 1px solid var(--el-border-color-lighter);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sidebar-footer-menu {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
 }
 
 .tool-pane {

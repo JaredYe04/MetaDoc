@@ -466,6 +466,45 @@ export function listMcpTools(): McpToolRow[] {
   )
 }
 
+/** 删除某 MCP 服务名下的工具及向量（同步前按服务重建） */
+export function deleteMcpToolsByServerName(serverName: string): void {
+  ensureAgentTables()
+  if (!tableExists('agent_mcp_tools_registry')) return
+  const rows = query<{ id: number }>(
+    'SELECT id FROM agent_mcp_tools_registry WHERE server_name = ?',
+    [serverName]
+  )
+  for (const r of rows) {
+    execute('DELETE FROM agent_mcp_embeddings WHERE mcp_registry_id = ?', [r.id])
+  }
+  execute('DELETE FROM agent_mcp_tools_registry WHERE server_name = ?', [serverName])
+}
+
+/**
+ * 删除「已不在配置中的服务」对应的工具行，避免残留。
+ * keepServerNames 为空时清空全部 MCP 工具注册表。
+ */
+export function deleteMcpToolsNotMatchingServerNames(keepServerNames: string[]): void {
+  ensureAgentTables()
+  if (!tableExists('agent_mcp_tools_registry')) return
+  if (keepServerNames.length === 0) {
+    execute('DELETE FROM agent_mcp_embeddings', [])
+    execute('DELETE FROM agent_mcp_tools_registry', [])
+    return
+  }
+  const placeholders = keepServerNames.map(() => '?').join(', ')
+  execute(
+    `DELETE FROM agent_mcp_embeddings WHERE mcp_registry_id IN (
+       SELECT id FROM agent_mcp_tools_registry WHERE server_name NOT IN (${placeholders})
+     )`,
+    keepServerNames
+  )
+  execute(
+    `DELETE FROM agent_mcp_tools_registry WHERE server_name NOT IN (${placeholders})`,
+    keepServerNames
+  )
+}
+
 /**
  * 单个 SKILL.md 写入后增量入库：解析、upsert 行、active 时写 embedding
  */

@@ -36,6 +36,13 @@ import {
   type McpPermissionLevel
 } from '../database/agent-capabilities-db'
 import { execute } from '../database/database'
+import {
+  readMcpServersConfigRaw,
+  writeMcpServersConfigRaw,
+  validateMcpServersConfigText
+} from './mcp-servers-config'
+import { probeMcpServersFromConfig, syncMcpToolsFromConfig } from './mcp-servers-sync'
+import { callMcpToolWithConfig } from './mcp-servers-call-tool'
 
 const logger = createMainLogger('AgentCapabilitiesHandlers')
 
@@ -347,6 +354,106 @@ export function bindAgentCapabilitiesHandlers(): void {
       return { success: false, message: e instanceof Error ? e.message : String(e) }
     }
   })
+
+  ipcBridge.registerHandle('agent-mcp-get-config', async () => {
+    try {
+      const { content, path: filePath, createdDefault } = readMcpServersConfigRaw()
+      return { success: true, content, path: filePath, createdDefault }
+    } catch (e) {
+      return {
+        success: false,
+        message: e instanceof Error ? e.message : String(e),
+        content: '',
+        path: '',
+        createdDefault: false
+      }
+    }
+  })
+
+  ipcBridge.registerHandle('agent-mcp-save-config', async (_e, params: { content: string }) => {
+    try {
+      const v = validateMcpServersConfigText(params.content || '')
+      if (!v.ok) {
+        return { success: false, errors: v.errors, message: v.errors.join('; ') }
+      }
+      writeMcpServersConfigRaw(params.content)
+      return { success: true }
+    } catch (e) {
+      return { success: false, message: e instanceof Error ? e.message : String(e) }
+    }
+  })
+
+  ipcBridge.registerHandle('agent-mcp-validate-config', async (_e, params: { content: string }) => {
+    const v = validateMcpServersConfigText(params.content || '')
+    return { success: v.ok, errors: v.errors }
+  })
+
+  ipcBridge.registerHandle('agent-mcp-probe-servers', async (_e, params: { content: string }) => {
+    try {
+      const v = validateMcpServersConfigText(params.content || '')
+      if (!v.ok || !v.parsed) {
+        return { success: false, errors: v.errors, servers: [] }
+      }
+      const servers = await probeMcpServersFromConfig(v.parsed)
+      return { success: true, servers }
+    } catch (e) {
+      logger.error('agent-mcp-probe-servers failed', e as Error)
+      return {
+        success: false,
+        message: e instanceof Error ? e.message : String(e),
+        servers: []
+      }
+    }
+  })
+
+  ipcBridge.registerHandle('agent-mcp-sync-tools-from-config', async (_e, params: { content: string }) => {
+    try {
+      const v = validateMcpServersConfigText(params.content || '')
+      if (!v.ok || !v.parsed) {
+        return { success: false, errors: v.errors, servers: [], registeredTotal: 0 }
+      }
+      const summary = await syncMcpToolsFromConfig(v.parsed)
+      return { success: true, ...summary }
+    } catch (e) {
+      logger.error('agent-mcp-sync-tools-from-config failed', e as Error)
+      return {
+        success: false,
+        message: e instanceof Error ? e.message : String(e),
+        servers: [],
+        registeredTotal: 0
+      }
+    }
+  })
+
+  /** Agent 运行时：按已保存的 mcp-servers.json 调用 MCP 工具（与同步使用的配置源一致） */
+  ipcBridge.registerHandle(
+    'agent-mcp-call-tool',
+    async (
+      _e,
+      params: { serverName: string; toolName: string; arguments?: Record<string, unknown> }
+    ) => {
+      try {
+        const { content } = readMcpServersConfigRaw()
+        const v = validateMcpServersConfigText(content || '{}')
+        if (!v.ok || !v.parsed) {
+          return { success: false, message: v.errors.join('; ') }
+        }
+        const rawArgs = params.arguments
+        const args =
+          rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs)
+            ? (rawArgs as Record<string, unknown>)
+            : {}
+        const out = await callMcpToolWithConfig(v.parsed, params.serverName, params.toolName, args)
+        if (!out.ok) {
+          return { success: false, message: out.error }
+        }
+        return { success: true, result: out.result }
+      } catch (e) {
+        logger.error('agent-mcp-call-tool failed', e as Error)
+        return { success: false, message: e instanceof Error ? e.message : String(e) }
+      }
+    }
+  )
 
   /** 用户确认后将草稿技能激活并重建向量 */
   ipcBridge.registerHandle('agent-capabilities-activate-skill', async (_e, params: { id: number }) => {

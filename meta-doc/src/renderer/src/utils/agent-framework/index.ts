@@ -12,6 +12,7 @@ export {
   SUBAGENT_COLLECTION_IDS,
   SUBAGENT_CONFIG_IDS
 } from './subagent-presets'
+export { refreshMcpToolsInAgentToolManager, MCP_AGENT_TOOL_ID_PREFIX } from './mcp-runtime-tools'
 
 // 执行器
 export { ToolRunner } from './tool-runner'

@@ -51,6 +51,11 @@
           :params-diff="message.params?.diff"
           :compact="compact"
         />
+        <AgentToolResultJsonExplorer
+          v-else-if="isMcpTool"
+          :data="unwrapToolDisplayDataForJsonExplorer(output.data)"
+          :compact="compact"
+        />
         <pre v-else class="tool-result-simple-raw">{{ formatOutput(output) }}</pre>
       </template>
     </div>
@@ -73,6 +78,7 @@ import { Progress } from '@renderer/components/ui/progress'
 import { agentToolManager } from '../../utils/agent-tool-manager'
 import { resolveToolOutputComponent } from '../../utils/agent-tools/resolve-tool-output-component'
 import { themeState } from '../../utils/themes'
+import AgentToolResultJsonExplorer from './AgentToolResultJsonExplorer.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -85,6 +91,26 @@ const props = withDefaults(
 const { t } = useI18n()
 
 const toolConfig = computed(() => agentToolManager.getTool(props.message.tool.id)?.config)
+
+const isMcpTool = computed(() => {
+  const id = props.message.tool?.id ?? ''
+  if (id.startsWith('mcp__')) return true
+  return toolConfig.value?.origin === 'mcp'
+})
+
+/** MCP 等工具把真实结果放在 data.content.raw / text（与 ToolCallbackData 一致） */
+function unwrapToolDisplayDataForJsonExplorer(data: unknown): unknown {
+  if (data && typeof data === 'object' && 'content' in data) {
+    const c = (data as { content?: unknown }).content
+    if (c && typeof c === 'object' && c !== null) {
+      const o = c as { raw?: unknown; text?: unknown }
+      if (o.raw !== undefined) return o.raw
+      if (o.text !== undefined) return o.text
+    }
+    if (c !== undefined) return c
+  }
+  return data
+}
 
 // 按当前语言解析工具名，使切换语言后 header 显示对应翻译
 const displayToolName = computed(() =>

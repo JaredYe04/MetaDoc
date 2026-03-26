@@ -93,6 +93,19 @@ class AgentToolManager {
   }
 
   /**
+   * 按 ID 前缀批量移除工具（仅用于 MCP 动态工具重建；不检查运行中状态）
+   */
+  removeToolsByIdPrefix(prefix: string): void {
+    const logger = createRendererLogger('AgentToolManager')
+    for (const id of [...this.tools.keys()]) {
+      if (id.startsWith(prefix)) {
+        this.tools.delete(id)
+        logger.info(`Tool ${id} 已按前缀移除`)
+      }
+    }
+  }
+
+  /**
    * 获取所有已注册的Tool
    */
   getAllTools(): RegisteredTool[] {

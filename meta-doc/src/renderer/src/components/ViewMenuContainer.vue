@@ -22,7 +22,7 @@
       <template #sidebar>
         <div class="view-menu-container-sidebar">
           <!-- Tab 切换 -->
-          <div class="sidebar-tabs" v-if="hasMultipleTabs">
+          <div v-if="hasMultipleTabs" class="sidebar-tabs">
             <Tooltip v-if="showAgentInSidebar">
               <TooltipTrigger as-child>
                 <div
@@ -159,6 +159,8 @@ const workspace = useWorkspace()
 
 const showWorkspaceExplorer = ref(false)
 const showWorkspaceGrep = ref(false)
+/** 用户是否在右侧边栏显示紧凑 Agent（与左侧菜单打开 Agent 全页标签无关） */
+const agentSidebarPanelEnabled = ref(true)
 const sidebarSize = ref(250)
 const activeTab = ref<'agent' | 'workspace' | 'grep' | 'meta'>('workspace')
 
@@ -174,7 +176,9 @@ const isAgentFullViewOpen = computed(() => {
   const tab = workspace.activeTab.value
   return tab?.kind === 'system' && tab?.route === '/agent'
 })
-const showAgentInSidebar = computed(() => !isAgentFullViewOpen.value)
+const showAgentInSidebar = computed(
+  () => agentSidebarPanelEnabled.value && !isAgentFullViewOpen.value
+)
 
 // 判断是否显示 MetaInfo Tab（当前 tab 是 md 或 tex 文档时显示）
 const showMetaInfoTab = computed(() => {
@@ -325,9 +329,20 @@ const handleToggleWorkspaceGrep = () => {
   setSetting('workspaceGrepVisible', showWorkspaceGrep.value)
 }
 
+const handleToggleAgentSidebarPanel = () => {
+  agentSidebarPanelEnabled.value = !agentSidebarPanelEnabled.value
+  setSetting('agentSidebarPanelVisible', agentSidebarPanelEnabled.value)
+}
+
 // 加载保存的状态
 const loadSavedState = async () => {
   try {
+    const savedAgentPanel = await getSetting('agentSidebarPanelVisible')
+    if (typeof savedAgentPanel === 'boolean') {
+      agentSidebarPanelEnabled.value = savedAgentPanel
+    } else {
+      agentSidebarPanelEnabled.value = true
+    }
     const savedWorkspace = await getSetting('workspaceExplorerVisible')
     if (typeof savedWorkspace === 'boolean') {
       showWorkspaceExplorer.value = savedWorkspace
@@ -366,6 +381,7 @@ onMounted(async () => {
   await loadSavedState()
   eventBus.on('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.on('toggle-workspace-grep', handleToggleWorkspaceGrep)
+  eventBus.on('toggle-agent-sidebar-panel', handleToggleAgentSidebarPanel)
   window.addEventListener('resize', updateWindowWidth)
   // directory-changed 必须在始终挂载的容器里监听，否则切到其他 tab 时 WorkspaceExplorer 未挂载收不到 IPC
   const ipc = messageBridge.getIpc()
@@ -377,6 +393,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.off('toggle-workspace-grep', handleToggleWorkspaceGrep)
+  eventBus.off('toggle-agent-sidebar-panel', handleToggleAgentSidebarPanel)
   window.removeEventListener('resize', updateWindowWidth)
   const ipc = messageBridge.getIpc()
   if (ipc?.removeListener) {

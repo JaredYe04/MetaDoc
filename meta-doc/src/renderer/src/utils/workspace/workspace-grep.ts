@@ -1,6 +1,7 @@
 import messageBridge from '../../bridge/message-bridge'
 import { formatRegistry } from '../format-registry'
 import { createRendererLogger } from '../logger'
+import { findFuzzyMatchesInText } from '../fuzzy-text-search'
 import { searchInText as searchInTextCore, type TextSearchMatch } from '../text-search-utils'
 
 const logger = createRendererLogger('WorkspaceGrep')
@@ -22,6 +23,9 @@ export interface WorkspaceGrepMatch {
 export interface WorkspaceGrepOptions {
   pattern: string
   isRegex?: boolean
+  /** 与 agent grep 一致的模糊搜索（不可与 isRegex 同时使用） */
+  fuzzy?: boolean
+  similarityThreshold?: number
   matchCase?: boolean
   wholeWord?: boolean
   contextLines?: number
@@ -85,22 +89,42 @@ async function grepInFile(
       if (controlCount / content.length > 0.3) return []
     }
 
-    const textMatches = searchInTextCore(content, options.pattern, {
-      useRegex: options.isRegex === true,
-      matchCase: options.matchCase === true,
-      wholeWord: options.wholeWord === true
-    })
-
     const contextLines = options.contextLines ?? 3
+    const fuzzy = options.fuzzy === true && options.isRegex !== true
+    const similarityThreshold =
+      typeof options.similarityThreshold === 'number' && !Number.isNaN(options.similarityThreshold)
+        ? Math.min(1, Math.max(0, options.similarityThreshold))
+        : 0.6
 
-    const limited =
-      options.maxMatchesPerFile && options.maxMatchesPerFile > 0
-        ? textMatches.slice(0, options.maxMatchesPerFile)
-        : textMatches
+    let limited: Array<TextSearchMatch | (typeof fuzzyMatches)[0]>
+    let fuzzyMatches: ReturnType<typeof findFuzzyMatchesInText> = []
+
+    if (fuzzy) {
+      fuzzyMatches = findFuzzyMatchesInText(
+        content,
+        options.pattern,
+        similarityThreshold,
+        contextLines
+      )
+      limited =
+        options.maxMatchesPerFile && options.maxMatchesPerFile > 0
+          ? fuzzyMatches.slice(0, options.maxMatchesPerFile)
+          : fuzzyMatches
+    } else {
+      const textMatches = searchInTextCore(content, options.pattern, {
+        useRegex: options.isRegex === true,
+        matchCase: options.matchCase === true,
+        wholeWord: options.wholeWord === true
+      })
+      limited =
+        options.maxMatchesPerFile && options.maxMatchesPerFile > 0
+          ? textMatches.slice(0, options.maxMatchesPerFile)
+          : textMatches
+    }
 
     const lines = content.split(/\r?\n/)
 
-    return limited.map((m: TextSearchMatch) => {
+    return limited.map((m: TextSearchMatch | (typeof fuzzyMatches)[number]) => {
       const lineIndex = m.line - 1
       const startLine = Math.max(0, lineIndex - contextLines)
       const endLine = Math.min(lines.length - 1, lineIndex + contextLines)

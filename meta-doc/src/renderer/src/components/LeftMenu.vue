@@ -107,6 +107,37 @@
           {{ $t('leftMenu.exportAsTemplate') }}
         </UISubMenuItem>
 
+        <UISubMenu
+          :icon="Clock"
+          :title="$t('leftMenu.recentFiles')"
+          trigger="hover"
+          :level="2"
+          @open="refreshRecentDocs"
+        >
+          <template #title>
+            <span>{{ $t('leftMenu.recentFiles') }}</span>
+          </template>
+          <UISubMenuItem :is-title="true" :disabled="true">
+            <template #icon>
+              <Clock class="w-4 h-4" />
+            </template>
+            {{ $t('leftMenu.recentFilesTooltip') }}
+          </UISubMenuItem>
+          <UISubMenuItem
+            v-for="item in recentDocs.slice(0, 10)"
+            :key="item"
+            :icon="FileText"
+            :hint="item"
+            @click="
+              askSave(() => {
+                openRecentDoc(item)
+              })
+            "
+          >
+            {{ basename(item) }}
+          </UISubMenuItem>
+        </UISubMenu>
+
         <UISubMenuItem :icon="X" :disabled="!isDocumentTab" @click="emitMenu('close-active-tab')">
           {{ $t('leftMenu.close') }}
         </UISubMenuItem>
@@ -179,93 +210,40 @@
         @click="emitMenu('setting')"
       />
 
-      <!-- 最近文件菜单 -->
+      <!-- 视图菜单：控制 ViewMenuContainer 侧栏中 Agent / 工作目录 / 工作区搜索是否显示 -->
       <UISubMenu
-        v-if="menuId === 'recent-files' && isMenuItemVisible('recent-files')"
-        :title="$t('leftMenu.recentFiles')"
-        :tooltip="$t('leftMenu.recentFiles')"
-        :icon-image="(themeState.currentTheme as any).RecentIcon"
+        v-if="menuId === 'view' && isMenuItemVisible('view')"
+        :title="$t('leftMenu.view')"
+        :tooltip="$t('leftMenu.view')"
+        :icon="PanelLeft"
         trigger="click"
         :level="1"
-        class="recent-files-menu"
-        @open="refreshRecentDocs"
       >
         <template #title>
-          <Clock class="recent-files-icon w-5 h-5" />
-          <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
+          <PanelLeft class="menu-icon-image w-[18px] h-[18px]" />
+          <span>{{ $t('leftMenu.view') }}</span>
         </template>
-
-        <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <Clock class="w-4 h-4" />
+            <PanelLeft class="w-4 h-4" />
           </template>
-          {{ $t('leftMenu.recentFilesTooltip') }}
+          {{ $t('leftMenu.viewTooltip') }}
         </UISubMenuItem>
-
         <UISubMenuItem
-          v-for="item in recentDocs.slice(0, 10)"
-          :key="item"
-          :icon="FileText"
-          @click="
-            askSave(() => {
-              openRecentDoc(item)
-            })
-          "
+          :icon-image="(themeState.currentTheme as any).AgentIcon"
+          @click="toggleAgentSidebarPanel"
         >
-          {{ item }}
+          {{ $t('leftMenu.viewSidebarAgent') }}
         </UISubMenuItem>
-      </UISubMenu>
-
-      <!-- 语言菜单 -->
-      <UISubMenu
-        v-if="menuId === 'language' && isMenuItemVisible('language')"
-        :title="$t('leftMenu.langTooltip')"
-        :tooltip="$t('leftMenu.langTooltip')"
-        :icon-image="(themeState.currentTheme as any).LanguageIcon"
-        trigger="click"
-        :level="1"
-      >
-        <template #title>
-          <img
-            :src="(themeState.currentTheme as any).LanguageIcon"
-            class="menu-icon-image"
-            alt="language"
-          />
-          <span>{{ $t('leftMenu.langTooltip') }}</span>
-        </template>
-
-        <!-- 标题项 -->
-        <UISubMenuItem :is-title="true" :disabled="true">
-          <template #icon>
-            <img
-              :src="(themeState.currentTheme as any).LanguageIcon"
-              class="menu-title-icon"
-              alt="language"
-            />
-          </template>
-          {{ $t('leftMenu.langTooltip') }}
+        <UISubMenuItem
+          :icon-image="(themeState.currentTheme as any).FolderIcon"
+          @click="toggleWorkspaceExplorer"
+        >
+          {{ $t('leftMenu.workspaceExplorer') }}
         </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('zh_CN')"> 中文（简体） </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('zh_TW')"> 中文（繁體） </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('en_US')"> English (US) </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('ja_JP')"> 日本語 </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('ko_KR')"> 한국어 </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('fr_FR')"> Français </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('de_DE')"> Deutsch </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('es_ES')"> Español </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('pt_BR')"> Português (BR) </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('ru_RU')"> Русский </UISubMenuItem>
+        <UISubMenuItem :icon="Search" @click="toggleWorkspaceGrep">
+          {{ $t('leftMenu.workspaceGrep') }}
+        </UISubMenuItem>
       </UISubMenu>
 
       <!-- 知识库 -->
@@ -284,15 +262,6 @@
         :tooltip="$t('headMenu.agent', 'Agent')"
         :icon-image="(themeState.currentTheme as any).AgentIcon"
         @click="openAgent"
-      />
-
-      <!-- 工作目录 -->
-      <UIMenuItem
-        v-if="menuId === 'workspace-explorer' && isMenuItemVisible('workspace-explorer')"
-        :label="$t('leftMenu.workspaceExplorer', '工作目录')"
-        :tooltip="$t('leftMenu.workspaceExplorer', '工作目录')"
-        :icon-image="(themeState.currentTheme as any).FolderIcon"
-        @click="toggleWorkspaceExplorer"
       />
 
       <!-- LLM统计 -->
@@ -376,7 +345,7 @@
         <!-- 用户反馈：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('user-feedback')"
-          :iconImage="(themeState.currentTheme as any).FeedbackIcon"
+          :icon-image="(themeState.currentTheme as any).FeedbackIcon"
           @click="openUserFeedback"
         >
           {{ $t('leftMenu.userFeedback', '用户反馈') }}
@@ -389,29 +358,6 @@
           @click="openUserManual"
         >
           {{ $t('leftMenu.userManual', '用户手册') }}
-        </UISubMenuItem>
-
-        <!-- 工作目录：默认在更多功能子菜单中 -->
-        <UISubMenuItem
-          v-if="!isMenuItemVisible('workspace-explorer')"
-          :iconImage="(themeState.currentTheme as any).FolderIcon"
-          @click="toggleWorkspaceExplorer"
-        >
-          {{ $t('leftMenu.workspaceExplorer', '工作目录') }}
-        </UISubMenuItem>
-
-        <!-- 工作区 grep：在更多功能子菜单中 -->
-        <UISubMenuItem :icon="Search" @click="toggleWorkspaceGrep">
-          {{ $t('leftMenu.workspaceGrep', '工作区搜索') }}
-        </UISubMenuItem>
-
-        <!-- 工作目录：默认在更多功能子菜单中 -->
-        <UISubMenuItem
-          v-if="!isMenuItemVisible('workspace-explorer')"
-          :iconImage="(themeState.currentTheme as any).FolderIcon"
-          @click="toggleWorkspaceExplorer"
-        >
-          {{ $t('leftMenu.workspaceExplorer', '工作目录') }}
         </UISubMenuItem>
 
         <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
@@ -466,7 +412,7 @@
     </template>
 
     <!-- 顶部和底部之间的分隔符（spacer） -->
-    <div class="menu-spacer" v-if="getMenuOrder().bottom.length > 0"></div>
+    <div v-if="getMenuOrder().bottom.length > 0" class="menu-spacer"></div>
 
     <!-- 底部菜单项 -->
     <template v-for="menuId in getMenuOrder().bottom" :key="menuId">
@@ -571,6 +517,37 @@
           {{ $t('leftMenu.exportAsTemplate') }}
         </UISubMenuItem>
 
+        <UISubMenu
+          :icon="Clock"
+          :title="$t('leftMenu.recentFiles')"
+          trigger="hover"
+          :level="2"
+          @open="refreshRecentDocs"
+        >
+          <template #title>
+            <span>{{ $t('leftMenu.recentFiles') }}</span>
+          </template>
+          <UISubMenuItem :is-title="true" :disabled="true">
+            <template #icon>
+              <Clock class="w-4 h-4" />
+            </template>
+            {{ $t('leftMenu.recentFilesTooltip') }}
+          </UISubMenuItem>
+          <UISubMenuItem
+            v-for="item in recentDocs.slice(0, 10)"
+            :key="item"
+            :icon="FileText"
+            :hint="item"
+            @click="
+              askSave(() => {
+                openRecentDoc(item)
+              })
+            "
+          >
+            {{ basename(item) }}
+          </UISubMenuItem>
+        </UISubMenu>
+
         <UISubMenuItem :icon="X" :disabled="!isDocumentTab" @click="emitMenu('close-active-tab')">
           {{ $t('leftMenu.close') }}
         </UISubMenuItem>
@@ -638,102 +615,41 @@
         @click="emitMenu('setting')"
       />
 
-      <!-- 最近文件菜单 -->
+      <!-- 视图菜单 -->
       <UISubMenu
-        v-if="menuId === 'recent-files' && isMenuItemVisible('recent-files')"
-        :title="$t('leftMenu.recentFiles')"
-        :tooltip="$t('leftMenu.recentFiles')"
-        :icon-image="(themeState.currentTheme as any).RecentIcon"
-        trigger="click"
-        :level="1"
-        class="recent-files-menu bottom-menu"
-        @open="refreshRecentDocs"
-      >
-        <template #title>
-          <img
-            :src="(themeState.currentTheme as any).RecentIcon"
-            class="recent-files-icon"
-            alt="recent"
-          />
-          <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
-        </template>
-
-        <!-- 标题项 -->
-        <UISubMenuItem :is-title="true" :disabled="true">
-          <template #icon>
-            <img
-              :src="(themeState.currentTheme as any).RecentIcon"
-              class="menu-title-icon"
-              alt="recent"
-            />
-          </template>
-          {{ $t('leftMenu.recentFilesTooltip') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem
-          v-for="item in recentDocs.slice(0, 10)"
-          :key="item"
-          :icon="FileText"
-          @click="
-            askSave(() => {
-              openRecentDoc(item)
-            })
-          "
-        >
-          {{ item }}
-        </UISubMenuItem>
-      </UISubMenu>
-
-      <!-- 语言菜单 -->
-      <UISubMenu
-        v-if="menuId === 'language' && isMenuItemVisible('language')"
-        :title="$t('leftMenu.langTooltip')"
-        :tooltip="$t('leftMenu.langTooltip')"
-        :icon-image="(themeState.currentTheme as any).LanguageIcon"
+        v-if="menuId === 'view' && isMenuItemVisible('view')"
+        :title="$t('leftMenu.view')"
+        :tooltip="$t('leftMenu.view')"
+        :icon="PanelLeft"
         trigger="click"
         :level="1"
         class="bottom-menu"
       >
         <template #title>
-          <img
-            :src="(themeState.currentTheme as any).LanguageIcon"
-            class="menu-icon-image"
-            alt="language"
-          />
-          <span>{{ $t('leftMenu.langTooltip') }}</span>
+          <PanelLeft class="menu-icon-image w-[18px] h-[18px]" />
+          <span>{{ $t('leftMenu.view') }}</span>
         </template>
-
-        <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <img
-              :src="(themeState.currentTheme as any).LanguageIcon"
-              class="menu-title-icon"
-              alt="language"
-            />
+            <PanelLeft class="w-4 h-4" />
           </template>
-          {{ $t('leftMenu.langTooltip') }}
+          {{ $t('leftMenu.viewTooltip') }}
         </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('zh_CN')"> 中文（简体） </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('zh_TW')"> 中文（繁體） </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('en_US')"> English (US) </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('ja_JP')"> 日本語 </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('ko_KR')"> 한국어 </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('fr_FR')"> Français </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('de_DE')"> Deutsch </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('es_ES')"> Español </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('pt_BR')"> Português (BR) </UISubMenuItem>
-
-        <UISubMenuItem @click="changeLang('ru_RU')"> Русский </UISubMenuItem>
+        <UISubMenuItem
+          :icon-image="(themeState.currentTheme as any).AgentIcon"
+          @click="toggleAgentSidebarPanel"
+        >
+          {{ $t('leftMenu.viewSidebarAgent') }}
+        </UISubMenuItem>
+        <UISubMenuItem
+          :icon-image="(themeState.currentTheme as any).FolderIcon"
+          @click="toggleWorkspaceExplorer"
+        >
+          {{ $t('leftMenu.workspaceExplorer') }}
+        </UISubMenuItem>
+        <UISubMenuItem :icon="Search" @click="toggleWorkspaceGrep">
+          {{ $t('leftMenu.workspaceGrep') }}
+        </UISubMenuItem>
       </UISubMenu>
 
       <!-- 知识库 -->
@@ -754,16 +670,6 @@
         :icon-image="(themeState.currentTheme as any).AgentIcon"
         class="bottom-menu"
         @click="openAgent"
-      />
-
-      <!-- 工作目录 -->
-      <UIMenuItem
-        v-if="menuId === 'workspace-explorer' && isMenuItemVisible('workspace-explorer')"
-        :label="$t('leftMenu.workspaceExplorer', '工作目录')"
-        :tooltip="$t('leftMenu.workspaceExplorer', '工作目录')"
-        :icon-image="(themeState.currentTheme as any).FolderIcon"
-        class="bottom-menu"
-        @click="toggleWorkspaceExplorer"
       />
 
       <!-- LLM统计 -->
@@ -851,7 +757,7 @@
         <!-- 用户反馈：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
         <UISubMenuItem
           v-if="!isMenuItemVisible('user-feedback')"
-          :iconImage="(themeState.currentTheme as any).FeedbackIcon"
+          :icon-image="(themeState.currentTheme as any).FeedbackIcon"
           @click="openUserFeedback"
         >
           {{ $t('leftMenu.userFeedback', '用户反馈') }}
@@ -975,8 +881,8 @@
 </template>
 
 <script lang="ts" setup>
-import { updateRecentDocs, getRecentDocs, getSetting, setSetting } from '../utils/settings'
-import { extname } from '../utils/path-utils'
+import { getRecentDocs, getSetting } from '../utils/settings'
+import { basename, extname } from '../utils/path-utils'
 import { formatRegistry } from '../utils/format-registry'
 import { computed, onMounted, ref, provide, watch } from 'vue'
 import UIMenu from './ui/UIMenu.vue'
@@ -995,7 +901,6 @@ import {
   Power,
   Image,
   Home,
-  LayoutGrid,
   BookOpen,
   Eye,
   Paperclip,
@@ -1008,7 +913,9 @@ import {
   X,
   FolderPlus as FolderAdd,
   Wand2 as MagicStick,
-  Search
+  Search,
+  PanelLeft,
+  LayoutGrid as Grid
 } from 'lucide-vue-next'
 
 import eventBus from '../utils/event-bus'
@@ -1016,7 +923,6 @@ import { toast } from '@renderer/utils/toast'
 import { themeState, mixColors } from '../utils/themes'
 import { avatar } from '../stores/user'
 import { useActiveDocument } from '../composables/useActiveDocument'
-import { EarthIcon } from 'tdesign-icons-vue-next'
 import { getExportOptions } from '../services/export-manager.ts'
 import type { DocumentFormat, ExportFormat } from '../../../types'
 import { exportAdapterRegistry } from '../services/export-adapters'
@@ -1042,12 +948,11 @@ const exportAsTemplateTitle = ref('')
 const exportAsTemplateDescription = ref('')
 const exportAsTemplateAiLoading = ref(false)
 import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
+const { t, locale } = useI18n()
 import { convertMarkdownToLatex } from '../utils/latex-utils'
 import { createRendererLogger } from '../utils/logger'
 import { isDevEnvironment } from '../utils/dev-env'
 import { useWorkspace } from '../stores/workspace'
-const { locale } = useI18n()
 const logger = createRendererLogger('LeftMenu')
 const workspace = useWorkspace()
 const isDev = ref(false)
@@ -1061,6 +966,14 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
       iconImage: (themeState.currentTheme as any).FileIcon,
       visible: true,
       isCore: true,
+      position: 'top'
+    },
+    {
+      id: 'view',
+      label: t('leftMenu.view'),
+      icon: PanelLeft,
+      visible: true,
+      isCore: false,
       position: 'top'
     },
     {
@@ -1080,22 +993,6 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
       position: 'top'
     },
     {
-      id: 'recent-files',
-      label: t('leftMenu.recentFiles'),
-      iconImage: (themeState.currentTheme as any).RecentIcon,
-      visible: true,
-      isCore: false,
-      position: 'top'
-    },
-    {
-      id: 'language',
-      label: t('leftMenu.langTooltip'),
-      iconImage: (themeState.currentTheme as any).LanguageIcon,
-      visible: true,
-      isCore: true,
-      position: 'top'
-    },
-    {
       id: 'knowledge-base',
       label: t('leftMenu.knowledgeBase', '知识库'),
       iconImage: (themeState.currentTheme as any).KnowledgeIcon,
@@ -1109,14 +1006,6 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
       iconImage: (themeState.currentTheme as any).AgentIcon,
       visible: true,
       isCore: false,
-      position: 'top'
-    },
-    {
-      id: 'workspace-explorer',
-      label: t('leftMenu.workspaceExplorer', '工作目录'),
-      iconImage: (themeState.currentTheme as any).FolderIcon,
-      visible: false,
-      isCore: true,
       position: 'top'
     },
     {
@@ -1189,6 +1078,19 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
 // 强制核心菜单项始终可见（主页、文件、设置、更多功能、退出）
 const CORE_MENU_IDS = ['home', 'file', 'settings', 'more-features', 'exit']
 
+/** 已从侧栏移除的菜单 id：最近文件并入文件；语言进设置；工作目录/搜索并入视图 */
+const DEPRECATED_LEFT_MENU_IDS = new Set(['recent-files', 'language', 'workspace-explorer'])
+
+function migrateLeftMenuOrder(order: string[]): string[] {
+  const next = order.filter((id) => !DEPRECATED_LEFT_MENU_IDS.has(id))
+  if (!next.includes('view')) {
+    const fi = next.indexOf('file')
+    if (fi >= 0) next.splice(fi + 1, 0, 'view')
+    else next.unshift('view')
+  }
+  return next
+}
+
 // 菜单配置状态（包含顺序和可见性）
 const menuConfigState = ref<{
   items: MenuConfigItem[]
@@ -1227,17 +1129,22 @@ const loadMenuConfig = async () => {
       // 使用保存的顺序，但确保所有项都在列表中
       const savedOrder = config.map((item: any) => item.id)
       const allIds = menuConfigItems.value.map((item) => item.id)
-      const orderedIds = [...savedOrder, ...allIds.filter((id) => !savedOrder.includes(id))]
+      const orderedIds = migrateLeftMenuOrder([
+        ...savedOrder,
+        ...allIds.filter((id) => !savedOrder.includes(id))
+      ])
       menuConfigState.value.order = orderedIds
     } else {
       // 使用默认配置
       menuConfigState.value.items = menuConfigItems.value.map((item) => ({ ...item }))
-      menuConfigState.value.order = menuConfigItems.value.map((item) => item.id)
+      menuConfigState.value.order = migrateLeftMenuOrder(
+        menuConfigItems.value.map((item) => item.id)
+      )
     }
   } catch (error) {
     logger.error('加载菜单配置失败:', error)
     menuConfigState.value.items = menuConfigItems.value.map((item) => ({ ...item }))
-    menuConfigState.value.order = menuConfigItems.value.map((item) => item.id)
+    menuConfigState.value.order = migrateLeftMenuOrder(menuConfigItems.value.map((item) => item.id))
   }
 }
 
@@ -1251,7 +1158,9 @@ const isMenuItemVisible = (menuId: string) => {
 // 获取菜单项的顺序（用于渲染，分为 top 和 bottom）
 const getMenuOrder = () => {
   // 根据配置的顺序排列
-  const order = menuConfigState.value.order || menuConfigItems.value.map((item) => item.id)
+  const order = migrateLeftMenuOrder(
+    menuConfigState.value.order || menuConfigItems.value.map((item) => item.id)
+  )
   const visibleIds = order.filter((id) => {
     const item = menuConfigState.value.items.find((i) => i.id === id)
     return item ? item.visible : true
@@ -1355,14 +1264,6 @@ const subMenuHoverColor = sidebarHoverColor
 // 提供 collapse 状态给子组件
 provide('menuCollapse', isCollapse)
 
-const changeLang = (lang: string) => {
-  locale.value = lang
-  localStorage.setItem('lang', lang)
-  logger.info(`Language changed to ${lang}`)
-  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
-  emitMenu('lang-changed', lang)
-}
-
 const toggleUserProfile = () => {
   emitMenu('toggle-user-profile')
 }
@@ -1426,6 +1327,10 @@ const toggleWorkspaceExplorer = () => {
 
 const toggleWorkspaceGrep = () => {
   emitMenu('toggle-workspace-grep')
+}
+
+const toggleAgentSidebarPanel = () => {
+  emitMenu('toggle-agent-sidebar-panel')
 }
 
 // 打开调试工具

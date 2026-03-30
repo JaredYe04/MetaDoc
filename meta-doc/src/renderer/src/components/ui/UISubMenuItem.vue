@@ -1,7 +1,8 @@
 <template>
   <div
     class="ui-sub-menu-item"
-    :class="{ 'is-title': isTitle, 'is-disabled': disabled }"
+    :class="{ 'is-title': isTitle, 'is-disabled': disabled, 'has-hint-label': !!hint }"
+    :title="hint || undefined"
     @click="handleClick"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
@@ -36,11 +37,14 @@ const props = withDefaults(
     iconImage?: string
     disabled?: boolean
     isTitle?: boolean
+    /** 悬停时原生 tooltip 文案（如最近文件的完整路径） */
+    hint?: string
   }>(),
   {
     label: '',
     disabled: false,
-    isTitle: false
+    isTitle: false,
+    hint: ''
   }
 )
 
@@ -169,6 +173,13 @@ const handleMouseLeave = () => {
   flex: 1;
   color: inherit;
   transition: none !important;
+}
+
+.ui-sub-menu-item.has-hint-label .ui-sub-menu-item__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ui-sub-menu-item.is-title .ui-sub-menu-item__content {

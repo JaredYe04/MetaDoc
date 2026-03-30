@@ -14,7 +14,6 @@
           ref="previewContainerRef"
           class="content-preview"
           :class="themeState.currentTheme.mdeditorClass"
-          :style="{ color: themeState.currentTheme.textColor }"
         ></div>
       </div>
     </div>
@@ -201,6 +200,20 @@ watch(
   { immediate: false }
 )
 
+// 应用主题 / 代码高亮主题变化时重新预览，避免全局 hljs 样式切换后主页仍沿用旧渲染
+watch(
+  () =>
+    [
+      themeState.currentTheme.type,
+      themeState.currentTheme.codeTheme,
+      themeState.currentTheme.vditorTheme
+    ] as const,
+  () => {
+    if (!props.markdown?.trim()) return
+    renderPreview()
+  }
+)
+
 onMounted(() => {
   nextTick(() => {
     nextTick(() => renderPreview())
@@ -246,6 +259,8 @@ onMounted(() => {
   line-height: 1.7;
   font-size: 15px;
   min-height: 0;
+  /* 与主题正文色一致；勿对整树使用 * { color: inherit }，否则会压过 hljs（见 MarkdownEditor.vue） */
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 .content-preview :deep(img) {

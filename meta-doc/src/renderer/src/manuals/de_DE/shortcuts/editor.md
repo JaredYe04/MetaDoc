@@ -1,4 +1,4 @@
-# Editor-Tastenkombinationen
+﻿# Editor-Tastenkombinationen
 
 ## Übersicht
 

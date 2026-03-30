@@ -1,4 +1,4 @@
-# Perfil de Usuario
+﻿# Perfil de Usuario
 
 ## Descripción General
 
@@ -14,7 +14,6 @@ Puede abrir el cuadro de diálogo del perfil de usuario de las siguientes manera
 - **Manual del Usuario**: Se puede acceder a la configuración del perfil de usuario desde el manual del usuario.
 - **Opción de Menú**: Algunos menús pueden tener una opción para el perfil de usuario.
 
-<QuickStartPanel mode="demo" />
 
 ### Interfaz del Perfil de Usuario
 
@@ -85,7 +84,6 @@ Evalúe su nivel de familiaridad con la sintaxis de Markdown:
 - **Intermedio**: Familiarizado con la sintaxis común y funciones extendidas.
 - **Avanzado**: Domina Markdown, conoce varias sintaxis extendidas.
 
-<QuickStartLatex mode="demo" />
 
 ### Competencia en LaTeX
 
@@ -226,7 +224,6 @@ El perfil de usuario:
 - [[user.feedback|Comentarios del Usuario]]
 - [[quick-start.guide|Guía de Inicio Rápido]]
 
-<QuickStartPanel mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 

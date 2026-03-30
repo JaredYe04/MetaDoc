@@ -1,4 +1,4 @@
-# Gestion des thèmes personnalisés
+﻿# Gestion des thèmes personnalisés
 
 ## Vue d'ensemble
 

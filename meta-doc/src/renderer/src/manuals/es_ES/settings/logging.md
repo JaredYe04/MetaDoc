@@ -1,4 +1,4 @@
-# Configuración de Registros
+﻿# Configuración de Registros
 
 ## Descripción General
 
@@ -266,6 +266,5 @@ Cada entrada de registro contiene la siguiente información:
 -   [[settings.basic|Configuración Básica]]
 -   [[settings.about|Información Acerca de]]
 
-<QuickStartPanel mode="demo" />
 
 <ResizableDivider mode="demo" />

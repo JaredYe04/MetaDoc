@@ -1,4 +1,4 @@
-# Ferramentas de Depuração
+﻿# Ferramentas de Depuração
 
 ## Visão Geral
 

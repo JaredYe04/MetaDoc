@@ -1,4 +1,4 @@
-# Comentarios del Usuario
+﻿# Comentarios del Usuario
 
 ## Descripción General
 
@@ -110,7 +110,6 @@ Puede acceder a los comentarios del usuario a través de la página de configura
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-<QuickStartPanel mode="demo" />
 
 ```mermaid
 graph TB

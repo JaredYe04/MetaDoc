@@ -1,4 +1,4 @@
-# Gestion des références
+﻿# Gestion des références
 
 ## Vue d'ensemble
 

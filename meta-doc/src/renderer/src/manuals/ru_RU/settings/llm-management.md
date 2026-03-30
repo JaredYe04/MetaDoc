@@ -1,4 +1,4 @@
-# Управление конфигурациями LLM
+﻿# Управление конфигурациями LLM
 
 ## Обзор
 
@@ -104,6 +104,5 @@
 -   [[ai.chat|Функция AI-диалога]]
 -   [[agent.introduction|Управление конфигурацией агента]]
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />

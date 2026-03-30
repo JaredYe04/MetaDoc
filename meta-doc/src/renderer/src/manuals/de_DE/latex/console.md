@@ -1,4 +1,4 @@
-# Konsolenausgabe
+﻿# Konsolenausgabe
 
 ## Übersicht
 

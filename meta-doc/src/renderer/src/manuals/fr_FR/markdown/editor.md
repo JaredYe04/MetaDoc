@@ -1,4 +1,4 @@
-# Guide d'utilisation de l'éditeur Markdown
+﻿# Guide d'utilisation de l'éditeur Markdown
 
 ## Vue d'ensemble
 
@@ -10,7 +10,6 @@ Que vous rédigiez un blog technique, organisiez des notes d'apprentissage ou r�
 
 <SectionOptimizer mode="demo" title="段落优化示例" path="1" :tree='{}' language="markdown" :adapter='null' />
 
-<QuickStartMarkdown mode="demo" />
 
 ## Les trois modes d'édition
 

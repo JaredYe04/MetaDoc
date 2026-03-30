@@ -1,4 +1,4 @@
-# Métadonnées du document
+﻿# Métadonnées du document
 
 ## Vue d'ensemble
 

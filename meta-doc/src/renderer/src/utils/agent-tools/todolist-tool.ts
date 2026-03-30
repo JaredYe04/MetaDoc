@@ -1324,10 +1324,9 @@ Returns the created or updated todo list with all items and their status.
       },
       items: {
         type: 'array',
-        description: 'Task list: string array or mixed (strings + objects)',
-        items: {
-          oneOf: [{ type: 'string' }, { type: 'object' }]
-        }
+        description:
+          'Task list: string array or mixed (strings + objects). Items may be strings or objects.',
+        items: {}
       },
       todoList: {
         type: 'object',
@@ -1335,13 +1334,8 @@ Returns the created or updated todo list with all items and their status.
           'Manually created task list object; if items or todoList provided, input can be omitted'
       },
       markComplete: {
-        oneOf: [
-          { type: 'string' },
-          { type: 'array', items: { type: 'string' } },
-          { type: 'boolean' }
-        ],
         description:
-          'Mark task(s) complete: 1) single task ID string; 2) array of task IDs; 3) true to mark next after last completed'
+          'Mark task(s) complete: task ID string, array of task IDs, boolean true to mark next after last completed, or string "true".'
       },
       updateStatus: {
         type: 'object',
@@ -1354,8 +1348,7 @@ Returns the created or updated todo list with all items and their status.
           },
           status: {
             type: 'string',
-            enum: ['pending', 'in_progress', 'completed', 'cancelled'],
-            description: 'New status'
+            description: 'New status: pending | in_progress | completed | cancelled'
           }
         },
         required: ['itemId', 'status']

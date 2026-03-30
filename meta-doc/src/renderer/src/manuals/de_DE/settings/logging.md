@@ -1,4 +1,4 @@
-# Protokollierungskonfiguration
+﻿# Protokollierungskonfiguration
 
 ## Übersicht
 
@@ -266,6 +266,5 @@ Jeder Protokolleintrag enthält folgende Informationen:
 -   [[settings.basic|Grundeinstellungen]]
 -   [[settings.about|Über-Informationen]]
 
-<QuickStartPanel mode="demo" />
 
 <ResizableDivider mode="demo" />

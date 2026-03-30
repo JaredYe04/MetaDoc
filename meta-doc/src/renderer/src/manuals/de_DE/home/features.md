@@ -1,69 +1,20 @@
-# Startseiten-Funktionen
+﻿# Startseiten-Funktionen
 
 ## Übersicht
 
 Die Startseite ist die Einstiegsoberfläche von MetaDoc und bietet Funktionen wie Schnellstart, Neues Dokument und Datei öffnen. Das Design der Startseite ist klar und ansprechend, um Ihnen einen schnellen Einstieg in die Nutzung von MetaDoc zu ermöglichen.
 
-## Schnellstart
+## Agent-Eingabe und Vorschlags-Prompts
 
-### Schnellstart-Assistent
+Oben auf der Startseite steht dieselbe **Eingabeleiste** wie im **Agent**-Tab (mit @-Referenzen). Der Text bleibt bis zum **Senden** nur auf der Startseite; danach wechselt die App zum **Agent**-Tab, legt eine **neue Sitzung** an und sendet die Nachricht.
 
-Klicken Sie auf die Schaltfläche "Schnellstart", um den Schnellstart-Assistenten zu starten:
+Darunter: **Vorschlags-Prompts** (kurze Ideen, oft mit Emoji):
 
-1.  **Format wählen**: Wählen Sie das Dokumentformat (Markdown oder LaTeX)
-2.  **Metadaten festlegen**: Geben Sie Dokumenttitel, Autor usw. ein
-3.  **KI-Inhalte generieren**: Nutzen Sie KI-Unterstützung zum Erstellen von Dokumentinhalten
-4.  **Dokumentvorschau**: Vorschau der generierten Dokumentinhalte anzeigen
-5.  **Dokument erstellen**: Dokument nach Bestätigung anlegen
+- **Neu mischen** für neue Zufallsauswahl
+- Jeder Chip wechselt etwa alle **10–20 Sekunden** automatisch mit Animation
+- Klick füllt die Eingabe; **Strg+Z** (**⌘Z** auf dem Mac) stellt den vorherigen Inhalt wieder her
 
-Die Format-Auswahloberfläche des Schnellstart-Assistenten sieht wie folgt aus:
-
-<QuickStartPanel mode="demo" />
-
-### Markdown-Schnellstart
-
-Nach Auswahl des Markdown-Formats:
-
--   **Vorlagenauswahl**: Es können Markdown-Vorlagen ausgewählt werden
--   **Inhaltsgenerierung**: KI kann Markdown-Inhalte generieren
--   **Schnellbearbeitung**: Direkter Bearbeitungsstart nach der Erstellung
-
-Die Assistentenoberfläche nach Auswahl von Markdown:
-
-<QuickStartMarkdown mode="demo" />
-
-### LaTeX-Schnellstart
-
-Nach Auswahl des LaTeX-Formats:
-
--   **Dokumenttyp**: Es können Dokumenttypen (article, book usw.) ausgewählt werden
--   **Inhaltsgenerierung**: KI kann LaTeX-Inhalte generieren
--   **Kompilierungsvorschau**: Nach der Erstellung kann eine PDF-Vorschau kompiliert werden
-
-Die Assistentenoberfläche nach Auswahl von LaTeX:
-
-<QuickStartLatex mode="demo" />
-
-```mermaid
-graph LR
-    A[点击快速开始] --> B{选择格式}
-    B -->|Markdown| C[Markdown向导]
-    B -->|LaTeX| D[LaTeX向导]
-    C --> E[设置元信息]
-    D --> E
-    E --> F[AI生成内容]
-    F --> G[预览文档]
-    G --> H[创建文档]
-    style A fill:#f3f4f6,stroke:#374151
-    style B fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style D fill:#f3f4f6,stroke:#374151
-    style E fill:#f3f4f6,stroke:#374151
-    style F fill:#f3f4f6,stroke:#374151
-    style G fill:#f3f4f6,stroke:#374151
-    style H fill:#f3f4f6,stroke:#374151
-```
-
+> Der alte **Schnellstart**-Assistent entfällt. Neue Dokumente über **Neues Dokument** oder das linke Menü.
 ## Neues Dokument
 
 ### Leeres Dokument erstellen

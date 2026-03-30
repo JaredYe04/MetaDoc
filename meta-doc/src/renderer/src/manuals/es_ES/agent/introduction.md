@@ -1,4 +1,4 @@
-# Resumen del Marco de Agente
+﻿# Resumen del Marco de Agente
 
 ## Visión General
 
@@ -333,4 +333,3 @@ R: Cuando un AgentConfig está asociado a múltiples conjuntos de herramientas, 
 - [[agent.capabilities|Reglas, habilidades y gestión MCP]]
 - [[ai.llm-config|Configuración LLM]]
 
-<QuickStartPanel mode="demo" />

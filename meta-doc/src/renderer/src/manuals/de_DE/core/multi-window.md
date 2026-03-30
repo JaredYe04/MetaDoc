@@ -1,4 +1,4 @@
-# Multi-Fenster-Verwaltung
+﻿# Multi-Fenster-Verwaltung
 
 ## Übersicht
 
@@ -180,6 +180,5 @@ Funktionen der Dateiverknüpfung:
 
 <MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
 
-<QuickStartPanel mode="demo" />
 
 <LeftMenu mode="demo" />

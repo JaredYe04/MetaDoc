@@ -1,4 +1,4 @@
-# Agent Framework Overview
+﻿# Agent Framework Overview
 
 ## Overview
 
@@ -333,4 +333,3 @@ A: When an AgentConfig is associated with multiple tool collections, the availab
 - [[agent.capabilities|Rules, Skills & MCP Management]]
 - [[ai.llm-config|LLM Configuration]]
 
-<QuickStartPanel mode="demo" />

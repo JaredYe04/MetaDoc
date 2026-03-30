@@ -1,4 +1,4 @@
-# Настройки службы загрузки
+﻿# Настройки службы загрузки
 
 ## Обзор
 
@@ -82,7 +82,6 @@ graph TB
 -   **macOS**: `~/Library/Application Support/MetaDoc/images`
 -   **Linux**: `~/.config/MetaDoc/images`
 
-<QuickStartPanel mode="demo" />
 
 ### Управление директорией
 

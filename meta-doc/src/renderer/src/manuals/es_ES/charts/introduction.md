@@ -1,4 +1,4 @@
-# Funciones de Gráficos
+﻿# Funciones de Gráficos
 
 ## Descripción General
 

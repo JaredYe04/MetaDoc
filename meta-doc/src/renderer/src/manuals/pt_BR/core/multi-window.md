@@ -1,4 +1,4 @@
-# Gerenciamento de Múltiplas Janelas
+﻿# Gerenciamento de Múltiplas Janelas
 
 ## Visão Geral
 
@@ -180,6 +180,5 @@ Funcionalidade de associação de arquivos:
 
 <MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
 
-<QuickStartPanel mode="demo" />
 
 <LeftMenu mode="demo" />

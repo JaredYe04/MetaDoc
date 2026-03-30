@@ -1,4 +1,4 @@
-# Visão Geral do Framework de Agentes
+﻿# Visão Geral do Framework de Agentes
 
 ## Visão Geral
 
@@ -333,4 +333,3 @@ R: Quando um AgentConfig associa múltiplos conjuntos de ferramentas, as ferrame
 -   [[agent.capabilities|Regras, habilidades e gerenciamento MCP]]
 -   [[ai.llm-config|Configuração LLM]]
 
-<QuickStartPanel mode="demo" />

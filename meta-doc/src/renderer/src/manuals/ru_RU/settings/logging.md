@@ -1,4 +1,4 @@
-# Конфигурация журналов
+﻿# Конфигурация журналов
 
 ## Обзор
 
@@ -266,6 +266,5 @@ YYYY-MM-DD HH-mm-ss.log
 -   [[settings.basic|Базовые настройки]]
 -   [[settings.about|Информация о программе]]
 
-<QuickStartPanel mode="demo" />
 
 <ResizableDivider mode="demo" />

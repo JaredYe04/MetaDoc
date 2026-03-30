@@ -1,4 +1,4 @@
-# LaTeX-Editor Benutzerhandbuch
+﻿# LaTeX-Editor Benutzerhandbuch
 
 ## Übersicht
 
@@ -10,7 +10,6 @@ Der Monaco Editor ist die Editor-Kernkomponente, die von Visual Studio Code verw
 
 <ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "编译完成", "type": "out"}]' />
 
-<QuickStartLatex mode="demo" />
 
 <LaTeXEditor mode="demo" />
 

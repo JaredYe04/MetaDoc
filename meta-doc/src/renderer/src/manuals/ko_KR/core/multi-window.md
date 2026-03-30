@@ -1,4 +1,4 @@
-# 다중 창 관리
+﻿# 다중 창 관리
 
 ## 개요
 
@@ -180,6 +180,5 @@ graph LR
 
 <MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
 
-<QuickStartPanel mode="demo" />
 
 <LeftMenu mode="demo" />

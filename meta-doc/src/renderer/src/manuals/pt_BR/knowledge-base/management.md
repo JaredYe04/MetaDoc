@@ -1,4 +1,4 @@
-# Gerenciamento de Base de Conhecimento
+﻿# Gerenciamento de Base de Conhecimento
 
 ## Visão Geral
 

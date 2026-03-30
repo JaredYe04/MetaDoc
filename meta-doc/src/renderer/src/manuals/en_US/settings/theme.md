@@ -1,4 +1,4 @@
-# Theme Configuration
+﻿# Theme Configuration
 
 ## Overview
 

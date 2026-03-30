@@ -1,4 +1,4 @@
-# Fonctionnalités avancées du Markdown
+﻿# Fonctionnalités avancées du Markdown
 
 ## Vue d'ensemble
 

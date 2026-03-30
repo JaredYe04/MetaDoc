@@ -1,4 +1,4 @@
-# Gerenciamento de Configuração do Agente
+﻿# Gerenciamento de Configuração do Agente
 
 ## Visão Geral
 

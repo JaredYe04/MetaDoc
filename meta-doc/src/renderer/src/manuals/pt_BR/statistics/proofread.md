@@ -1,4 +1,4 @@
-# Estatísticas da Ferramenta de Revisão
+﻿# Estatísticas da Ferramenta de Revisão
 
 ## Visão Geral
 

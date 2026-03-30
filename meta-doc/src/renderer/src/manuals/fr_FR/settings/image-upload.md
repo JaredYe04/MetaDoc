@@ -1,4 +1,4 @@
-# Configuration du service de téléchargement
+﻿# Configuration du service de téléchargement
 
 ## Vue d'ensemble
 
@@ -82,7 +82,6 @@ Si aucun répertoire d'images local n'est défini, le système utilise le réper
 - **macOS** : `~/Library/Application Support/MetaDoc/images`
 - **Linux** : `~/.config/MetaDoc/images`
 
-<QuickStartPanel mode="demo" />
 
 ### Gestion du répertoire
 

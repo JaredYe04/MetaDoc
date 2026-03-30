@@ -1,4 +1,4 @@
-# Gerenciamento de Mecanismo de Agente
+﻿# Gerenciamento de Mecanismo de Agente
 
 ## Visão Geral
 

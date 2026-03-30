@@ -85,14 +85,20 @@
         </Button>
 
         <Button
-          :title="loading ? t('aiChat.cancelTooltip') : t('aiChat.sendTooltip')"
-          :variant="loading ? 'destructive' : 'default'"
+          :title="
+            showPrimaryAsStop
+              ? t('aiChat.cancelTooltip')
+              : showPrimaryAsQueueSend
+                ? t('aiChat.queueSendTooltip')
+                : t('aiChat.sendTooltip')
+          "
+          :variant="showPrimaryAsStop ? 'destructive' : 'default'"
           size="icon"
           class="composer-btn"
-          :disabled="loading ? false : disabled || !hasContentToSend"
-          @click.prevent="loading ? emit('cancel') : handleSubmit()"
+          :disabled="showPrimaryAsStop ? false : disabled || !hasContentToSend"
+          @click.prevent="showPrimaryAsStop ? emit('cancel') : handleSubmit()"
         >
-          <ArrowUp v-if="!loading" class="w-4 h-4" />
+          <ArrowUp v-if="!showPrimaryAsStop" class="w-4 h-4" />
           <svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
             <rect x="6" y="6" width="12" height="12" rx="2" />
           </svg>
@@ -156,6 +162,15 @@ const props = withDefaults(
     showReferencePicker?: boolean
     /** 根据 @ 的原始值返回展示文案（如文件名、标签页标题） */
     getAtLabel?: (rawValue: string) => string
+    /** 为真时始终使用多行布局（如主页 Agent 输入区默认多行工具条） */
+    forceMultilineLayout?: boolean
+    /** 为真时允许在输入框无文字时仍发送（如主页仅带上传附件发送） */
+    allowSendWithoutComposerText?: boolean
+    /**
+     * 生成中且为真时：输入框有内容则主按钮为发送（入队），无内容则为终止。
+     * 未开启时保持原行为：生成中主按钮始终为终止。
+     */
+    queueWhileLoading?: boolean
   }>(),
   {
     modelValue: '',
@@ -170,7 +185,10 @@ const props = withDefaults(
     enableKnowledgeBaseQuery: false,
     compact: false,
     showReferencePicker: false,
-    getAtLabel: undefined
+    getAtLabel: undefined,
+    forceMultilineLayout: false,
+    allowSendWithoutComposerText: false,
+    queueWhileLoading: false
   }
 )
 
@@ -183,6 +201,8 @@ const emit = defineEmits<{
   (e: 'cancel'): void
   (e: 'update:enableKnowledgeBaseQuery', value: boolean): void
   (e: 'open-reference-picker'): void
+  /** 输入区键盘事件（先于组件默认处理；可 preventDefault） */
+  (e: 'composer-keydown', event: KeyboardEvent): void
 }>()
 
 const { t } = useI18n()
@@ -217,10 +237,19 @@ const effectiveInputTrim = computed(() => {
 
 const hasContentToSend = computed(() => {
   const v = props.modelValue || ''
-  if (!v) return false
-  if (v.replace(/@\[[^\]]*\]/g, '').trim().length > 0) return true
-  return /@\[[^\]]*\]/.test(v)
+  const hasTyped =
+    v.replace(/@\[[^\]]*\]/g, '').trim().length > 0 || /@\[[^\]]*\]/.test(v)
+  if (hasTyped) return true
+  return !!props.allowSendWithoutComposerText
 })
+
+const showPrimaryAsQueueSend = computed(
+  () => props.loading && props.queueWhileLoading && hasContentToSend.value
+)
+
+const showPrimaryAsStop = computed(
+  () => props.loading && !showPrimaryAsQueueSend.value
+)
 
 const multilineThreshold = 6
 const autoResize = () => {
@@ -304,6 +333,8 @@ const toggleKnowledgeBaseQuery = () => {
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (props.disabled) return
+  emit('composer-keydown', event)
+  if (event.defaultPrevented) return
   if (event.key === '@' && props.showReferencePicker) {
     emit('open-reference-picker')
     return
@@ -390,12 +421,26 @@ watch(
   () => props.modelValue,
   () => {
     if (props.showReferencePicker) {
+      if (props.forceMultilineLayout) {
+        isMultiline.value = true
+        return
+      }
       const text = props.modelValue || ''
       const lines = text.split(/\n/).length
       const textOnlyLen = text.replace(/@\[[^\]]*\]/g, '').length
       isMultiline.value = lines > multilineThreshold || textOnlyLen > 400
     } else {
       nextTick(autoResize)
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.forceMultilineLayout,
+  (v) => {
+    if (v && props.showReferencePicker) {
+      isMultiline.value = true
     }
   },
   { immediate: true }
@@ -449,26 +494,25 @@ defineExpose({
 onMounted(async () => {
   updateMaxScrollHeight()
   window.addEventListener('resize', updateMaxScrollHeight)
-  // 确保初始状态为单行模式
-  isMultiline.value = false
-  // 等待 DOM 完全渲染后再调整大小
-  await nextTick()
-  // 强制设置为单行高度
-  if (textareaRef.value) {
-    const el = textareaRef.value
-    el.style.height = 'auto'
-    // 先计算单行高度
-    const style = window.getComputedStyle(el)
-    const lineHeight = parseFloat(style.lineHeight || '0') || 24
-    const padding = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0')
-    singleLineHeight.value = Math.ceil(lineHeight + padding) || 24
-    el.style.height = `${singleLineHeight.value}px`
+  if (props.forceMultilineLayout && props.showReferencePicker) {
+    isMultiline.value = true
+  } else {
     isMultiline.value = false
+    await nextTick()
+    if (textareaRef.value) {
+      const el = textareaRef.value
+      el.style.height = 'auto'
+      const style = window.getComputedStyle(el)
+      const lineHeight = parseFloat(style.lineHeight || '0') || 24
+      const padding = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0')
+      singleLineHeight.value = Math.ceil(lineHeight + padding) || 24
+      el.style.height = `${singleLineHeight.value}px`
+      isMultiline.value = false
+    }
+    nextTick(() => {
+      autoResize()
+    })
   }
-  // 然后再调用 autoResize 确保状态正确
-  nextTick(() => {
-    autoResize()
-  })
   if (typeof window !== 'undefined') {
     const stored = window.localStorage.getItem(SEND_PREF_KEY)
     if (stored !== null) {
@@ -498,12 +542,18 @@ onBeforeUnmount(() => {
 <style scoped>
 .chat-composer {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .composer-shell {
-  width: min(960px, 100%);
+  width: 100%;
+  max-width: min(960px, 100%);
+  min-width: 0;
+  box-sizing: border-box;
   border-radius: 28px;
   border: 1px solid transparent;
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
@@ -524,6 +574,8 @@ onBeforeUnmount(() => {
 /* 紧凑模式：占满 panel 宽度，长文本时输入框右边界为 panel 边界 */
 .chat-composer--compact .composer-shell {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border-radius: 5px;
   padding: 4px 6px;
   gap: 4px;

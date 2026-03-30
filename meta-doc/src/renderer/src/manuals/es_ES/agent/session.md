@@ -1,4 +1,4 @@
-# Gestión de Sesiones del Agente
+﻿# Gestión de Sesiones del Agente
 
 ## Visión General
 

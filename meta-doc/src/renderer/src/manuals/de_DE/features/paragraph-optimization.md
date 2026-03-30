@@ -1,4 +1,4 @@
-# Absatzoptimierungsfunktion
+﻿# Absatzoptimierungsfunktion
 
 ## Übersicht
 

@@ -1,4 +1,4 @@
-# 使用者資料
+﻿# 使用者資料
 
 ## 概述
 
@@ -14,7 +14,6 @@
 - **使用者手冊**：在使用者手冊中可以存取使用者資料設定
 - **選單選項**：某些選單中可能有使用者資料選項
 
-<QuickStartPanel mode="demo" />
 
 ### 使用者資料介面
 
@@ -85,7 +84,6 @@ graph TB
 - **中級**：熟悉常用語法和擴充功能
 - **高階**：精通 Markdown，瞭解各種擴充語法
 
-<QuickStartLatex mode="demo" />
 
 ### LaTeX 熟練度
 
@@ -226,7 +224,6 @@ graph TB
 - [[user.feedback|使用者回饋]]
 - [[quick-start.guide|快速開始指南]]
 
-<QuickStartPanel mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 

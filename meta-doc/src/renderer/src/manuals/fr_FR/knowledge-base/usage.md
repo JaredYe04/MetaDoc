@@ -1,4 +1,4 @@
-# Utilisation de la base de connaissances
+﻿# Utilisation de la base de connaissances
 
 ## Vue d'ensemble
 

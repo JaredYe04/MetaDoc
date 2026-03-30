@@ -1,4 +1,4 @@
-# Funcionalidade de Visualização de PDF
+﻿# Funcionalidade de Visualização de PDF
 
 ## Visão Geral
 

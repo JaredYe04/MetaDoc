@@ -1,4 +1,4 @@
-# Opérations sur les fichiers
+﻿# Opérations sur les fichiers
 
 ## Vue d'ensemble
 

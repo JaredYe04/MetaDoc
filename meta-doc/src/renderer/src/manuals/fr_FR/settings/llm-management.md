@@ -1,4 +1,4 @@
-# Gestion des configurations LLM
+﻿# Gestion des configurations LLM
 
 ## Vue d'ensemble
 
@@ -104,6 +104,5 @@ Pour les détails des paramètres de configuration selon les types de LLM, consu
 - [[ai.chat|Fonctionnalité de conversation IA]]
 - [[agent.introduction|Gestion de la configuration Agent]]
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />

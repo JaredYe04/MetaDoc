@@ -1,4 +1,4 @@
-# Uso da Base de Conhecimento
+﻿# Uso da Base de Conhecimento
 
 ## Visão Geral
 

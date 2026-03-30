@@ -1,4 +1,4 @@
-# LaTeX-Kompilierung und Vorschau
+﻿# LaTeX-Kompilierung und Vorschau
 
 ## Übersicht
 

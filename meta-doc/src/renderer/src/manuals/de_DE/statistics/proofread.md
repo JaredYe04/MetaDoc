@@ -1,4 +1,4 @@
-# Korrekturwerkzeug-Statistiken
+﻿# Korrekturwerkzeug-Statistiken
 
 ## Übersicht
 

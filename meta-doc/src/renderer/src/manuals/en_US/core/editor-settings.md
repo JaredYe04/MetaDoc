@@ -1,4 +1,4 @@
-# Editor Settings
+﻿# Editor Settings
 
 ## Overview
 

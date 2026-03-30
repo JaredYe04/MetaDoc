@@ -1,4 +1,4 @@
-# 업로드 서비스 설정
+﻿# 업로드 서비스 설정
 
 ## 개요
 
@@ -82,7 +82,6 @@ graph TB
 - **macOS**: `~/Library/Application Support/MetaDoc/images`
 - **Linux**: `~/.config/MetaDoc/images`
 
-<QuickStartPanel mode="demo" />
 
 ### 디렉토리 관리
 

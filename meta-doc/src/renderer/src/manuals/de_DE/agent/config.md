@@ -1,4 +1,4 @@
-# Agent-Konfigurationsverwaltung
+﻿# Agent-Konfigurationsverwaltung
 
 ## Übersicht
 

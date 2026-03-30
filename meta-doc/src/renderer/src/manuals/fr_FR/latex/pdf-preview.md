@@ -1,4 +1,4 @@
-# Fonctionnalité de prévisualisation PDF
+﻿# Fonctionnalité de prévisualisation PDF
 
 ## Vue d'ensemble
 

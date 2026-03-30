@@ -1,4 +1,4 @@
-# Rules, Skills & MCP Management
+﻿# Rules, Skills & MCP Management
 
 ## Overview
 

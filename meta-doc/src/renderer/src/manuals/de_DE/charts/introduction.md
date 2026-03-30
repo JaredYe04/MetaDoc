@@ -1,4 +1,4 @@
-# Diagrammfunktionen
+﻿# Diagrammfunktionen
 
 ## Übersicht
 

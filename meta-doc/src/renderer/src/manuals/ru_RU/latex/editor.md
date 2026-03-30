@@ -1,4 +1,4 @@
-# Руководство по использованию редактора LaTeX
+﻿# Руководство по использованию редактора LaTeX
 
 ## Обзор
 
@@ -10,7 +10,6 @@ Monaco Editor — это ядро редактора, используемого
 
 <ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "Компиляция завершена", "type": "out"}]' />
 
-<QuickStartLatex mode="demo" />
 
 <LaTeXEditor mode="demo" />
 

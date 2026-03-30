@@ -1,4 +1,4 @@
-# User Profile
+﻿# User Profile
 
 ## Overview
 
@@ -14,7 +14,6 @@ You can open the User Profile dialog in the following ways:
 - **User Manual**: Access user profile settings from within the user manual.
 - **Menu Option**: Some menus may contain a user profile option.
 
-<QuickStartPanel mode="demo" />
 
 ### User Profile Interface
 
@@ -85,7 +84,6 @@ Assess your familiarity with Markdown syntax:
 - **Intermediate**: Familiar with common syntax and extended features.
 - **Advanced**: Proficient in Markdown, knowledgeable about various extended syntaxes.
 
-<QuickStartLatex mode="demo" />
 
 ### LaTeX Proficiency
 
@@ -226,7 +224,6 @@ The user profile will be:
 - [[user.feedback|User Feedback]]
 - [[quick-start.guide|Quick Start Guide]]
 
-<QuickStartPanel mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 

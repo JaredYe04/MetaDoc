@@ -1,4 +1,4 @@
-# Configuración de carga de imágenes
+﻿# Configuración de carga de imágenes
 
 ## Descripción general
 

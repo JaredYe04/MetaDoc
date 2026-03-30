@@ -1,4 +1,4 @@
-# Función de vista previa de PDF
+﻿# Función de vista previa de PDF
 
 ## Descripción general
 

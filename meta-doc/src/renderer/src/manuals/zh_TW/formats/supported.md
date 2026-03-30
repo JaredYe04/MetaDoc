@@ -1,4 +1,4 @@
-# 支援的文件格式
+﻿# 支援的文件格式
 
 ## 概述
 
@@ -14,11 +14,8 @@ MetaDoc 支援多種文件格式，包括 Markdown、LaTeX 和純文字格式。
 
 <MainTabs mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
-<QuickStartMarkdown mode="demo" />
 
-<QuickStartLatex mode="demo" />
 
 ## 支援的格式
 

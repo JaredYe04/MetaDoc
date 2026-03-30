@@ -1,4 +1,4 @@
-# Markdown-Editor-Funktionen
+﻿# Markdown-Editor-Funktionen
 
 ## Übersicht
 
@@ -197,7 +197,6 @@ Nachdem Vervollständigungsvorschläge angezeigt werden, können Sie:
 
 <SectionOptimizer mode="demo" title="段落优化示例" path="1" :tree='{}' language="markdown" :adapter='null' />
 
-<QuickStartMarkdown mode="demo" />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
@@ -324,6 +323,5 @@ A: Versuchen Sie, die Wissensdatenbank-Integration zu aktivieren, die maximale T
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartMarkdown mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "edit", "items": ["find", "replace"]}]' />

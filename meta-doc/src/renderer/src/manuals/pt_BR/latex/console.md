@@ -1,4 +1,4 @@
-# Saída do Console
+﻿# Saída do Console
 
 ## Visão Geral
 

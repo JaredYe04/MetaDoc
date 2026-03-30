@@ -1,4 +1,4 @@
-# Nur-Text-Editor
+﻿# Nur-Text-Editor
 
 ## Übersicht
 

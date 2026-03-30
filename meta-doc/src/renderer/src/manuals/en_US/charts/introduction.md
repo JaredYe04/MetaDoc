@@ -1,4 +1,4 @@
-# Chart Feature Introduction
+﻿# Chart Feature Introduction
 
 ## Overview
 

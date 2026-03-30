@@ -1,4 +1,4 @@
-# Wissensdatenbank-Konfiguration
+﻿# Wissensdatenbank-Konfiguration
 
 ## Übersicht
 

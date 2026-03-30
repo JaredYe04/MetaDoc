@@ -1,4 +1,4 @@
-# LLM類型配置
+﻿# LLM類型配置
 
 ## 概述
 
@@ -135,7 +135,6 @@ OpenAI兼容API支援所有兼容OpenAI API格式的服務，包括OpenAI官方A
 - 使用兼容OpenAI API的第三方服務
 - 需要自訂API路徑的服務
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />
 

@@ -1,4 +1,4 @@
-# Bild-Upload-Konfiguration
+﻿# Bild-Upload-Konfiguration
 
 ## Übersicht
 

@@ -1,4 +1,4 @@
-# Funcionalidade de Visualização de Estrutura
+﻿# Funcionalidade de Visualização de Estrutura
 
 ## Visão Geral
 

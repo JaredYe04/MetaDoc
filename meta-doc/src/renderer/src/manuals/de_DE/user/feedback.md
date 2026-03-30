@@ -1,4 +1,4 @@
-# Nutzerfeedback
+﻿# Nutzerfeedback
 
 ## Übersicht
 
@@ -110,7 +110,6 @@ Sie können über die Einstellungsseite auf das Nutzerfeedback zugreifen:
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-<QuickStartPanel mode="demo" />
 
 ```mermaid
 graph TB

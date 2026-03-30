@@ -1,4 +1,4 @@
-# 多視窗管理
+﻿# 多視窗管理
 
 ## 概述
 
@@ -180,6 +180,5 @@ graph LR
 
 <MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
 
-<QuickStartPanel mode="demo" />
 
 <LeftMenu mode="demo" />

@@ -1,4 +1,4 @@
-# Funcionalidade IA de Esquema
+﻿# Funcionalidade IA de Esquema
 
 ## Visão Geral
 

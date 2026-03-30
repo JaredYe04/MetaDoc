@@ -1,4 +1,4 @@
-# Raccourcis clavier de l'éditeur
+﻿# Raccourcis clavier de l'éditeur
 
 ## Vue d'ensemble
 

@@ -1,4 +1,4 @@
-# Menu Configuration
+﻿# Menu Configuration
 
 ## Overview
 

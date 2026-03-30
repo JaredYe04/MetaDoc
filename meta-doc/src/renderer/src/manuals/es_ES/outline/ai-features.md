@@ -1,4 +1,4 @@
-# Funciones de IA para Esquemas
+﻿# Funciones de IA para Esquemas
 
 ## Descripción General
 

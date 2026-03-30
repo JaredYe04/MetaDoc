@@ -1,4 +1,4 @@
-# Dialogue IA
+﻿# Dialogue IA
 
 ## Vue d'ensemble
 

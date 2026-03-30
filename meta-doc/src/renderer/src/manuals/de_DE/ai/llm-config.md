@@ -1,4 +1,4 @@
-# LLM-Konfigurationsanleitung
+﻿# LLM-Konfigurationsanleitung
 
 ## Übersicht
 

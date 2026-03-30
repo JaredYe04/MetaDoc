@@ -1,4 +1,4 @@
-# Multi-Tab Management
+﻿# Multi-Tab Management
 
 ## Overview
 
@@ -14,7 +14,6 @@ Tab management includes functions such as creating new tabs, switching, closing,
 
 <ProofreadView mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
 <GraphWindow mode="demo" />
 

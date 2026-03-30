@@ -1,4 +1,4 @@
-# Configuration de la base de connaissances
+﻿# Configuration de la base de connaissances
 
 ## Vue d'ensemble
 

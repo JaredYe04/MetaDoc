@@ -1,4 +1,4 @@
-# Configuración de tipos de LLM
+﻿# Configuración de tipos de LLM
 
 ## Descripción general
 
@@ -135,7 +135,6 @@ En la mayoría de los casos no es necesario configurarlos, se pueden usar los va
 - Usar servicios de terceros compatibles con la API de OpenAI
 - Servicios que requieren rutas de API personalizadas
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />
 

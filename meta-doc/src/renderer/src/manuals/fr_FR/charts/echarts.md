@@ -1,4 +1,4 @@
-# Graphiques ECharts
+﻿# Graphiques ECharts
 
 ## Vue d'ensemble
 

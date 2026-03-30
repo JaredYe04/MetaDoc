@@ -1,4 +1,4 @@
-# 로그 설정
+﻿# 로그 설정
 
 ## 개요
 
@@ -266,6 +266,5 @@ YYYY-MM-DD HH-mm-ss.log
 - [[settings.basic|기본 설정]]
 - [[settings.about|정보]]
 
-<QuickStartPanel mode="demo" />
 
 <ResizableDivider mode="demo" />

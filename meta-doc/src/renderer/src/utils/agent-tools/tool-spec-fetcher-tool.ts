@@ -305,8 +305,8 @@ Fetches the full specification (fullSpec) of one or more tools. This allows you 
         },
         description: 'Array of tool IDs to fetch specs for (use this OR toolId, not both)'
       }
-    },
-    oneOf: [{ required: ['toolId'] }, { required: ['toolIds'] }]
+    }
+    // 不使用 oneOf：部分 OpenAI 兼容网关禁止工具 schema 顶层出现 oneOf
   },
   outputSchema: {
     type: 'object',

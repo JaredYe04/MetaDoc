@@ -1,4 +1,4 @@
-# PDF-Vorschaufunktion
+﻿# PDF-Vorschaufunktion
 
 ## Übersicht
 

@@ -1,4 +1,4 @@
-# Editor de texto plano
+﻿# Editor de texto plano
 
 ## Descripción general
 

@@ -1,4 +1,4 @@
-# LLM Configuration Management
+﻿# LLM Configuration Management
 
 ## Overview
 
@@ -104,6 +104,5 @@ For explanations of configuration parameters for different LLM types, see [[sett
 - [[ai.chat|AI Chat Feature]]
 - [[agent.introduction|Agent Framework Overview]]
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />

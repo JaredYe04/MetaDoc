@@ -1,4 +1,4 @@
-# Funcionalidade de Exportação
+﻿# Funcionalidade de Exportação
 
 ## Visão Geral
 

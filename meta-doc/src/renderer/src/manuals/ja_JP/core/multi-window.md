@@ -1,4 +1,4 @@
-# マルチウィンドウ管理
+﻿# マルチウィンドウ管理
 
 ## 概要
 
@@ -180,6 +180,5 @@ graph LR
 
 <MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
 
-<QuickStartPanel mode="demo" />
 
 <LeftMenu mode="demo" />

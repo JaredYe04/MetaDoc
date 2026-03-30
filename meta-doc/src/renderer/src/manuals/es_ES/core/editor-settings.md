@@ -1,4 +1,4 @@
-# Configuración del Editor
+﻿# Configuración del Editor
 
 ## Descripción General
 

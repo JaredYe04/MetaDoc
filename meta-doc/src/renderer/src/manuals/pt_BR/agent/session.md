@@ -1,4 +1,4 @@
-# Gerenciamento de Sessões do Agent
+﻿# Gerenciamento de Sessões do Agent
 
 ## Visão Geral
 

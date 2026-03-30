@@ -1,4 +1,4 @@
-# Gráficos Mermaid
+﻿# Gráficos Mermaid
 
 ## Visão Geral
 

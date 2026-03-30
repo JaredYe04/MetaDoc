@@ -1,4 +1,4 @@
-# 対応ドキュメント形式
+﻿# 対応ドキュメント形式
 
 ## 概要
 
@@ -14,11 +14,8 @@ MetaDocは、Markdown、LaTeX、プレーンテキスト形式など、複数の
 
 <MainTabs mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
-<QuickStartMarkdown mode="demo" />
 
-<QuickStartLatex mode="demo" />
 
 ## 対応形式
 

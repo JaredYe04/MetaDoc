@@ -1,4 +1,4 @@
-# Upload-Diensteinstellungen
+﻿# Upload-Diensteinstellungen
 
 ## Übersicht
 
@@ -82,7 +82,6 @@ Wenn kein lokales Bildverzeichnis festgelegt ist, verwendet das System ein Stand
 - **macOS**: `~/Library/Application Support/MetaDoc/images`
 - **Linux**: `~/.config/MetaDoc/images`
 
-<QuickStartPanel mode="demo" />
 
 ### Verzeichnisverwaltung
 

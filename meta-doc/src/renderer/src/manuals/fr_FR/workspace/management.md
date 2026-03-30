@@ -1,4 +1,4 @@
-# Gestion du répertoire de travail
+﻿# Gestion du répertoire de travail
 
 ## Vue d'ensemble
 

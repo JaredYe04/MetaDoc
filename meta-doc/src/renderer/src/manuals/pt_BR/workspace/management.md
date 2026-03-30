@@ -1,4 +1,4 @@
-# Gerenciamento de Diretório de Trabalho
+﻿# Gerenciamento de Diretório de Trabalho
 
 ## Visão Geral
 

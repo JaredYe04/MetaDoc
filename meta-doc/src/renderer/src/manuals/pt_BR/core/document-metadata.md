@@ -1,4 +1,4 @@
-# Metadados do Documento
+﻿# Metadados do Documento
 
 ## Visão Geral
 

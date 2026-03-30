@@ -1,4 +1,4 @@
-# Обратная связь от пользователей
+﻿# Обратная связь от пользователей
 
 ## Обзор
 
@@ -110,7 +110,6 @@
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-<QuickStartPanel mode="demo" />
 
 ```mermaid
 graph TB

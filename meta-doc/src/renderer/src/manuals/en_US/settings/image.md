@@ -1,4 +1,4 @@
-# Image Upload Configuration
+﻿# Image Upload Configuration
 
 ## Overview
 

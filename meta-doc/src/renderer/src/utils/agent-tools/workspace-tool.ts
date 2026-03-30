@@ -1347,9 +1347,10 @@ Read files from workspace folders, **fuzzy-search** by path/file name across the
           '模糊搜索关键词（类似 Everything）。在整个工作区内按路径/文件名模糊匹配，返回匹配项及路径与目录结构；无需先列根目录。有值时优先执行搜索'
       },
       paths: {
-        oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
+        type: 'array',
+        items: { type: 'string' },
         description:
-          '文件路径（字符串或数组）。不提供、空数组或空字符串时返回工作区根目录树或搜索结果；有值时读取对应文件。支持行数范围：":L123-L456" 或 ":L123"'
+          '文件路径列表（单路径用单元素数组）。亦兼容实现侧将裸字符串规范为单元素数组。不提供、空数组时返回工作区根目录树或搜索结果；有值时读取对应文件。支持行数范围：":L123-L456" 或 ":L123"'
       },
       summarized: {
         type: 'boolean',
@@ -1361,45 +1362,26 @@ Read files from workspace folders, **fuzzy-search** by path/file name across the
         description: '工作区文件夹路径。如果不提供，使用第一个工作区文件夹'
       },
       operations: {
-        oneOf: [
-          {
-            type: 'object',
-            properties: {
-              type: {
-                type: 'string',
-                enum: ['createDirectory', 'deleteDirectory', 'createFile', 'deleteFile']
-              },
-              path: {
-                type: 'string'
-              },
-              content: {
-                type: 'string'
-              }
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              description:
+                'createDirectory | deleteDirectory | createFile | deleteFile'
             },
-            required: ['type', 'path']
-          },
-          {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                type: {
-                  type: 'string',
-                  enum: ['createDirectory', 'deleteDirectory', 'createFile', 'deleteFile']
-                },
-                path: {
-                  type: 'string'
-                },
-                content: {
-                  type: 'string'
-                }
-              },
-              required: ['type', 'path']
+            path: {
+              type: 'string'
+            },
+            content: {
+              type: 'string'
             }
-          }
-        ],
+          },
+          required: ['type', 'path']
+        },
         description:
-          '文件/目录操作配置，可以是单个对象或对象数组。支持的类型：createDirectory（递归创建目录，类似 mkdir -p）、deleteDirectory（删除目录并移动到回收站）、createFile（创建文件，自动创建缺失目录，已存在则跳过并返回提示）、deleteFile（删除文件并移动到回收站）。路径可以是工作区根目录下的相对路径或绝对路径。'
+          '文件/目录操作列表（单条操作用单元素数组）。类型：createDirectory（递归创建目录）、deleteDirectory（删除目录并移动到回收站）、createFile（创建文件，已存在则跳过）、deleteFile（删除文件并移动到回收站）。路径可为工作区相对或绝对路径。'
       }
     }
   },

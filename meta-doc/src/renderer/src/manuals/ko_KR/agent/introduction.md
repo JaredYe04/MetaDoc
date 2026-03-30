@@ -1,4 +1,4 @@
-# 에이전트 프레임워크 개요
+﻿# 에이전트 프레임워크 개요
 
 ## 개요
 
@@ -333,4 +333,3 @@ A: AgentConfig가 여러 도구 집합을 연결할 때, 사용 가능한 도구
 - [[agent.capabilities|규칙, 스킬 및 MCP 관리]]
 - [[ai.llm-config|LLM 구성]]
 
-<QuickStartPanel mode="demo" />

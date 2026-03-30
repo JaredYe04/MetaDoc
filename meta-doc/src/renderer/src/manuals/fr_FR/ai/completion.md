@@ -1,4 +1,4 @@
-# Complétion automatique par IA
+﻿# Complétion automatique par IA
 
 ## Vue d'ensemble
 

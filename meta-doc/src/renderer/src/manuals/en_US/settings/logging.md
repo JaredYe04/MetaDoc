@@ -1,4 +1,4 @@
-# Log Configuration
+﻿# Log Configuration
 
 ## Overview
 
@@ -266,6 +266,5 @@ Each log entry contains the following information:
 -   [[settings.basic|Basic Settings]]
 -   [[settings.about|About Information]]
 
-<QuickStartPanel mode="demo" />
 
 <ResizableDivider mode="demo" />

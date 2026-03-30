@@ -1,4 +1,4 @@
-# Configuración del Servicio de Subida
+﻿# Configuración del Servicio de Subida
 
 ## Descripción General
 
@@ -82,7 +82,6 @@ Si no se establece un directorio local de imágenes, el sistema utilizará el di
 - **macOS**: `~/Library/Application Support/MetaDoc/images`
 - **Linux**: `~/.config/MetaDoc/images`
 
-<QuickStartPanel mode="demo" />
 
 ### Gestión del Directorio
 

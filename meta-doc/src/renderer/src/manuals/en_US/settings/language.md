@@ -1,4 +1,4 @@
-# Multilingual Support
+﻿# Multilingual Support
 
 ## Overview
 

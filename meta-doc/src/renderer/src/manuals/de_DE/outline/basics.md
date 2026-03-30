@@ -1,4 +1,4 @@
-# Gliederungsansicht-Funktion
+﻿# Gliederungsansicht-Funktion
 
 ## Übersicht
 

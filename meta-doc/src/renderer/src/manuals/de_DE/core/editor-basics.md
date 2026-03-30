@@ -1,4 +1,4 @@
-# Grundlegende Editor-Operationen
+﻿# Grundlegende Editor-Operationen
 
 ## Übersicht
 

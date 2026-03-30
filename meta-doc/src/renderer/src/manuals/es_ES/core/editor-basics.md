@@ -1,4 +1,4 @@
-# Operaciones básicas del editor
+﻿# Operaciones básicas del editor
 
 ## Descripción general
 

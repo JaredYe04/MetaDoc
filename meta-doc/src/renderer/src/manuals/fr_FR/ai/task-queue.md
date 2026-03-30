@@ -1,4 +1,4 @@
-# File d'attente des tâches IA
+﻿# File d'attente des tâches IA
 
 ## Vue d'ensemble
 

@@ -1,4 +1,4 @@
-# Gestión de Ventanas Múltiples
+﻿# Gestión de Ventanas Múltiples
 
 ## Descripción General
 
@@ -180,6 +180,5 @@ Funcionalidad de asociación de archivos:
 
 <MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
 
-<QuickStartPanel mode="demo" />
 
 <LeftMenu mode="demo" />

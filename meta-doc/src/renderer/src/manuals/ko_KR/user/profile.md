@@ -1,4 +1,4 @@
-# 사용자 프로필
+﻿# 사용자 프로필
 
 ## 개요
 
@@ -14,7 +14,6 @@
 - **사용자 매뉴얼**: 사용자 매뉴얼에서 사용자 프로필 설정에 접근할 수 있습니다.
 - **메뉴 옵션**: 일부 메뉴에 사용자 프로필 옵션이 있을 수 있습니다.
 
-<QuickStartPanel mode="demo" />
 
 ### 사용자 프로필 인터페이스
 
@@ -85,7 +84,6 @@ Markdown 구문에 대한 친숙도를 평가합니다:
 - **중급**: 일반적인 구문과 확장 기능에 익숙합니다.
 - **고급**: Markdown에 능숙하며 다양한 확장 구문을 이해합니다.
 
-<QuickStartLatex mode="demo" />
 
 ### LaTeX 숙련도
 
@@ -226,7 +224,6 @@ Agent 프레임워크 사용 경험을 평가합니다:
 - [[user.feedback|사용자 피드백]]
 - [[quick-start.guide|빠른 시작 가이드]]
 
-<QuickStartPanel mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 

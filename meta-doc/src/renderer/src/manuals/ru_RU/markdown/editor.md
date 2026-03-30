@@ -1,4 +1,4 @@
-# Руководство по использованию редактора Markdown
+﻿# Руководство по использованию редактора Markdown
 
 ## Обзор
 
@@ -10,7 +10,6 @@
 
 <SectionOptimizer mode="demo" title="段落优化示例" path="1" :tree='{}' language="markdown" :adapter='null' />
 
-<QuickStartMarkdown mode="demo" />
 
 ## Три режима редактирования
 

@@ -1,4 +1,4 @@
-# Agent-Framework-Übersicht
+﻿# Agent-Framework-Übersicht
 
 ## Übersicht
 
@@ -333,4 +333,3 @@ A: Wenn eine AgentConfig mit mehreren Toolsets verknüpft ist, sind die verfügb
 - [[agent.capabilities|Regeln, Skills & MCP-Verwaltung]]
 - [[ai.llm-config|LLM-Konfiguration]]
 
-<QuickStartPanel mode="demo" />

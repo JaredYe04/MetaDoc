@@ -1,4 +1,4 @@
-# Gerenciamento de Conjuntos de Ferramentas
+﻿# Gerenciamento de Conjuntos de Ferramentas
 
 ## Visão Geral
 

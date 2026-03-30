@@ -431,6 +431,29 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 const EDIT_TOOL_DESCRIPTION =
   'Anchor-based `edits`: insert_at before|after; insert_newline_policy auto|none (default auto: avoids same-line glue after insert); match_scope anchor|full for replace/delete—full deletes/replaces the entire literal before+anchor+after string (use anchor scope to affect only anchor text while contexts disambiguate). Empty anchor with context when unique.'
 
+/** 与 edit-engine EditOperation 对齐，供 JSON Schema `items` 使用（兼容严格网关） */
+const EDIT_OPERATION_ITEM_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    type: { type: 'string', enum: ['replace', 'insert', 'delete'] },
+    target: {
+      type: 'object',
+      properties: {
+        anchor: { type: 'string' },
+        context_before: { type: 'string' },
+        context_after: { type: 'string' }
+      },
+      required: ['anchor']
+    },
+    content: { type: 'string' },
+    insert_at: { type: 'string', enum: ['before', 'after'] },
+    match_scope: { type: 'string', enum: ['anchor', 'full'] },
+    insert_newline_policy: { type: 'string', enum: ['auto', 'none'] }
+  },
+  required: ['id', 'type', 'target']
+} as const
+
 export const editToolConfig: AgentToolConfig = {
   id: 'edit',
   name: 'Document Edit',
@@ -495,12 +518,19 @@ Insert after heading line: \`{"type":"insert","target":{"anchor":"# Title\\\\n"}
     properties: {
       edits: {
         type: 'array',
+        items: EDIT_OPERATION_ITEM_JSON_SCHEMA,
         description:
           '编辑意图：target + content；insert_at、insert_newline_policy:auto|none；match_scope:full 会替换/删除整段 before+anchor+after 字面量，仅删锚段请用默认 anchor'
       },
       editPlan: {
         type: 'object',
-        description: '与 { edits: [...] } 等价，可与 edits 二选一'
+        description: '与 { edits: [...] } 等价，可与 edits 二选一',
+        properties: {
+          edits: {
+            type: 'array',
+            items: EDIT_OPERATION_ITEM_JSON_SCHEMA
+          }
+        }
       },
       editsJson: {
         type: 'string',
@@ -521,8 +551,8 @@ Insert after heading line: \`{"type":"insert","target":{"anchor":"# Title\\\\n"}
     properties: {
       appliedEdits: { type: 'number' },
       failedEdits: { type: 'number' },
-      hunks: { type: 'array' },
-      engineLogs: { type: 'array' }
+      hunks: { type: 'array', items: {} },
+      engineLogs: { type: 'array', items: {} }
     }
   }
 }

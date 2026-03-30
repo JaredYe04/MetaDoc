@@ -1,4 +1,4 @@
-# Agentフレームワーク概要
+﻿# Agentフレームワーク概要
 
 ## 概要
 
@@ -333,4 +333,3 @@ A: AgentConfigが複数のツールセットを関連付ける場合、使用可
 - [[agent.capabilities|ルール、スキル、MCP管理]]
 - [[ai.llm-config|LLM設定]]
 
-<QuickStartPanel mode="demo" />

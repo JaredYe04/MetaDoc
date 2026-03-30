@@ -1,4 +1,4 @@
-# Fila de Tarefas de IA
+﻿# Fila de Tarefas de IA
 
 ## Visão Geral
 

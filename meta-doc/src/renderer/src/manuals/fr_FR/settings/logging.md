@@ -1,4 +1,4 @@
-# Configuration des journaux
+﻿# Configuration des journaux
 
 ## Vue d'ensemble
 
@@ -266,6 +266,5 @@ Chaque entrée de journal contient les informations suivantes :
 - [[settings.basic|Paramètres de base]]
 - [[settings.about|Informations]]
 
-<QuickStartPanel mode="demo" />
 
 <ResizableDivider mode="demo" />

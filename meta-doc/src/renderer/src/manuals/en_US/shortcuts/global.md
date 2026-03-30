@@ -1,4 +1,4 @@
-# Global Shortcuts
+﻿# Global Shortcuts
 
 ## Overview
 
@@ -210,4 +210,3 @@ If a shortcut conflicts with the system or other software:
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartPanel mode="demo" />

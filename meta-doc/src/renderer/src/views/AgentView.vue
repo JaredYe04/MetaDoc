@@ -23,7 +23,6 @@
         :title="t('agent.sessions.title')"
         :items="sessionListItems"
         :active-index="activeSessionId || ''"
-        :disabled="isGenerating"
         :create-button-tooltip="t('agent.sessions.new')"
         :rename-label="t('agent.sessions.rename')"
         :duplicate-label="t('agent.sessions.duplicate')"
@@ -82,32 +81,12 @@
                 </Badge>
                 <Tooltip>
                   <TooltipTrigger as-child>
-                    <Badge variant="outline" class="cursor-pointer" @click="toggleToolPane">
+                    <Badge variant="outline" class="cursor-pointer" @click="toolsDialogOpen = true">
                       {{ t('agent.conversation.tools', { count: activeToolCount }) }}
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    <p>
-                      {{
-                        showToolPane
-                          ? t('agent.conversation.hideTools', '点击隐藏工具面板')
-                          : t('agent.conversation.showTools', '点击显示工具面板')
-                      }}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger as-child>
-                    <Badge
-                      variant="outline"
-                      class="cursor-pointer"
-                      @click="handleOpenReferenceDialog"
-                    >
-                      {{ t('agent.conversation.references', { count: referenceCount }) }}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p>{{ t('agent.conversation.referencesTooltip', '点击管理引用') }}</p>
+                    <p>{{ t('agent.conversation.openToolsDialog', '点击查看可用工具列表') }}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -142,16 +121,25 @@
                 <ReferenceDisplay
                   v-if="activeSession"
                   :references="activeSession.referenceStore || []"
-                  :active-reference-ids="activeReferenceIds"
-                  @toggle="handleToggleReference"
+                  :active-reference-ids="(activeSession.referenceStore || []).map((r) => r.id)"
+                  readonly
+                  removable
+                  :remove-aria-label="t('agent.reference.removeFromComposer', '移除附件')"
+                  @remove="handleRemoveComposerReference"
+                />
+                <AgentComposerSendQueuePanel
+                  v-if="activeSession && (activeSession.composerSendQueue?.length ?? 0) > 0"
+                  :queue="activeSession.composerSendQueue || []"
+                  @update:queue="onComposerSendQueueUpdate"
                 />
                 <ChatComposer
                   :key="activeSessionId || 'no-session'"
                   ref="composerRef"
                   class="conversation-composer agent-view-composer"
                   v-model="composerInput"
-                  :loading="isGenerating"
-                  :disabled="!activeSession || isGenerating"
+                  :loading="isActiveSessionGenerating"
+                  :queue-while-loading="true"
+                  :disabled="!activeSession"
                   :show-attach="false"
                   :show-voice="false"
                   :placeholder="t('aiChat.inputPlaceholder')"
@@ -168,7 +156,7 @@
                     <div class="agent-view-composer-leading">
                       <AgentReferencePicker
                         v-model:open="referencePickerOpen"
-                        :disabled="isGenerating"
+                        :disabled="!activeSession"
                         @select-file="handleReferencePickerFile"
                         @select-tab="handleReferencePickerTab"
                         @select-dir="handleReferencePickerDir"
@@ -179,7 +167,7 @@
                             variant="ghost"
                             size="icon"
                             class="agent-view-composer-btn"
-                            :disabled="isGenerating"
+                            :disabled="!activeSession"
                             :title="t('aiChat.attachTooltip')"
                           >
                             <Paperclip class="agent-view-composer-btn-icon" />
@@ -201,7 +189,7 @@
                             variant="ghost"
                             size="icon"
                             class="agent-context-ring-btn agent-context-ring-wrap"
-                            :disabled="isGenerating"
+                            :disabled="!activeSession"
                             :title="t('agent.contextBreakdown.tooltip')"
                             @click="contextBreakdownDialogOpen = true"
                           >
@@ -250,109 +238,6 @@
               <Empty :description="t('agent.conversation.none')" />
             </div>
           </section>
-
-          <ResizableDivider
-            v-if="showToolPane"
-            direction="vertical"
-            :size="5"
-            @resize-start="handleToolPaneResizeStart"
-            @resize="handleToolPaneResize"
-            @resize-end="handleToolPaneResizeEnd"
-          />
-          <section
-            v-if="showToolPane"
-            class="tool-pane"
-            :style="[panelStyle, { width: toolPaneWidth + 'px', flexShrink: 0 }]"
-          >
-            <header class="pane-header">
-              <div class="tool-header-title">
-                <h2>{{ t('agent.tools.title') }}</h2>
-              </div>
-              <!-- <div class="tool-legend">
-            <Badge variant="secondary">{{ t('agent.tools.legend.available') }}</Badge>
-            <Badge variant="warning">{{ t('agent.tools.legend.running') }}</Badge>
-          </div> -->
-            </header>
-            <div class="tool-content">
-              <Card class="tool-panel tool-list-panel" :style="panelStyle">
-                <CardContent class="p-0 h-full overflow-hidden">
-                  <ScrollArea class="tool-list-scroll">
-                    <Table class="tool-table">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead class="w-[140px]">{{ t('agent.tools.name') }}</TableHead>
-                          <TableHead class="w-[110px]">{{ t('agent.tools.state') }}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow
-                          v-for="tool in tools"
-                          :key="tool.id"
-                          :data-state="activeTool?.id === tool.id ? 'selected' : undefined"
-                          :class="getToolRowClass(tool)"
-                          class="cursor-pointer"
-                          @click="selectTool(tool)"
-                        >
-                          <TableCell class="truncate max-w-[140px]">{{ tool.name }}</TableCell>
-                          <TableCell>
-                            <Badge v-if="tool.running" variant="warning">
-                              {{ t('agent.tool.status.running') }}
-                            </Badge>
-                            <Badge
-                              v-else-if="
-                                activeSession?.activeToolIds &&
-                                activeSession.activeToolIds.length > 0 &&
-                                activeSession.activeToolIds.includes(tool.id)
-                              "
-                              variant="default"
-                            >
-                              {{ t('agent.tools.enabled') }}
-                            </Badge>
-                            <Badge v-else variant="secondary">
-                              {{ t('agent.tools.available') }}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-              <div class="tool-detail-wrapper">
-                <div v-if="activeTool" class="tool-detail" :style="detailStyle">
-                  <h3 class="tool-detail__title">{{ activeTool.name }}</h3>
-                  <dl class="tool-detail__list">
-                    <dt class="tool-detail__label">{{ t('agent.tools.detail.name') }}</dt>
-                    <dd class="tool-detail__value">{{ activeTool.name ?? '' }}</dd>
-                    <dt class="tool-detail__label">{{ t('agent.tools.detail.description') }}</dt>
-                    <dd class="tool-detail__value">{{ activeTool.description ?? '' }}</dd>
-                    <dt class="tool-detail__label">{{ t('agent.tools.detail.origin') }}</dt>
-                    <dd class="tool-detail__value">
-                      <Badge>{{ originLabel(activeTool.origin as ToolOrigin) }}</Badge>
-                    </dd>
-                    <template v-if="activeTool.tags?.length">
-                      <dt class="tool-detail__label">{{ t('agent.tools.detail.tags') }}</dt>
-                      <dd class="tool-detail__value">
-                        <div class="tag-group">
-                          <Badge
-                            v-for="tag in activeTool.tags"
-                            :key="tag"
-                            variant="default"
-                            class="mr-1"
-                          >
-                            {{ tag }}
-                          </Badge>
-                        </div>
-                      </dd>
-                    </template>
-                  </dl>
-                </div>
-                <div v-else class="tool-detail placeholder" :style="detailStyle">
-                  <Empty :description="t('agent.tools.detail.placeholder')" />
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
       </SessionList>
     </div>
@@ -380,6 +265,103 @@
         </div>
         <DialogFooter>
           <Button variant="ghost" @click="showReferenceDialog = false">{{
+            t('common.close')
+          }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog v-model:open="toolsDialogOpen">
+      <DialogContent
+        class="sm:max-w-[900px] agent-tools-dialog-content"
+        style="height: 80vh; display: flex; flex-direction: column"
+      >
+        <DialogHeader>
+          <DialogTitle>{{ t('agent.tools.title') }}</DialogTitle>
+        </DialogHeader>
+        <div class="agent-tools-dialog-body flex flex-1 flex-col gap-3 min-h-0 overflow-hidden p-1">
+          <div class="tool-content flex-1 min-h-0">
+            <Card class="tool-panel tool-list-panel" :style="panelStyle">
+              <CardContent class="p-0 h-full overflow-hidden">
+                <ScrollArea class="tool-list-scroll">
+                  <Table class="tool-table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead class="w-[140px]">{{ t('agent.tools.name') }}</TableHead>
+                        <TableHead class="w-[110px]">{{ t('agent.tools.state') }}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow
+                        v-for="tool in tools"
+                        :key="tool.id"
+                        :data-state="activeTool?.id === tool.id ? 'selected' : undefined"
+                        :class="getToolRowClass(tool)"
+                        class="cursor-pointer"
+                        @click="selectTool(tool)"
+                      >
+                        <TableCell class="truncate max-w-[140px]">{{ tool.name }}</TableCell>
+                        <TableCell>
+                          <Badge v-if="tool.running" variant="warning">
+                            {{ t('agent.tool.status.running') }}
+                          </Badge>
+                          <Badge
+                            v-else-if="
+                              activeSession?.activeToolIds &&
+                              activeSession.activeToolIds.length > 0 &&
+                              activeSession.activeToolIds.includes(tool.id)
+                            "
+                            variant="default"
+                          >
+                            {{ t('agent.tools.enabled') }}
+                          </Badge>
+                          <Badge v-else variant="secondary">
+                            {{ t('agent.tools.available') }}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+            <div class="tool-detail-wrapper">
+              <div v-if="activeTool" class="tool-detail" :style="detailStyle">
+                <h3 class="tool-detail__title">{{ activeTool.name }}</h3>
+                <dl class="tool-detail__list">
+                  <dt class="tool-detail__label">{{ t('agent.tools.detail.name') }}</dt>
+                  <dd class="tool-detail__value">{{ activeTool.name ?? '' }}</dd>
+                  <dt class="tool-detail__label">{{ t('agent.tools.detail.description') }}</dt>
+                  <dd class="tool-detail__value">{{ activeTool.description ?? '' }}</dd>
+                  <dt class="tool-detail__label">{{ t('agent.tools.detail.origin') }}</dt>
+                  <dd class="tool-detail__value">
+                    <Badge>{{ originLabel(activeTool.origin as ToolOrigin) }}</Badge>
+                  </dd>
+                  <template v-if="activeTool.tags?.length">
+                    <dt class="tool-detail__label">{{ t('agent.tools.detail.tags') }}</dt>
+                    <dd class="tool-detail__value">
+                      <div class="tag-group">
+                        <Badge
+                          v-for="tag in activeTool.tags"
+                          :key="tag"
+                          variant="default"
+                          class="mr-1"
+                        >
+                          {{ tag }}
+                        </Badge>
+                      </div>
+                    </dd>
+                  </template>
+                </dl>
+              </div>
+              <div v-else class="tool-detail placeholder" :style="detailStyle">
+                <Empty :description="t('agent.tools.detail.placeholder')" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="toolsDialogOpen = false">{{
             t('common.close')
           }}</Button>
         </DialogFooter>
@@ -418,7 +400,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, reactive, type Ref } from 'vue'
+import {
+  computed,
+  nextTick,
+  onActivated,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+  reactive,
+  type Ref
+} from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { ai_task_status } from '../utils/consts'
@@ -447,6 +439,7 @@ import {
   DropdownMenuSeparator
 } from '@renderer/components/ui/dropdown-menu'
 import { themeState, mixColors } from '../utils/themes'
+import AgentComposerSendQueuePanel from '../components/agent/AgentComposerSendQueuePanel.vue'
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue'
 import ChatComposer from '../components/chat/ChatComposer.vue'
 import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue'
@@ -457,8 +450,17 @@ import type {
   AgentSession,
   AgentTool,
   ChatAgentMessage,
+  ComposerSendQueueItem,
   ToolOrigin
 } from '../types/agent'
+import {
+  applyComposerInterruptCleanup,
+  clearComposerQueueDrainRetries,
+  cloneReferenceStoreSnapshot,
+  createComposerSendQueueItem,
+  isAgentSessionReadyForNextLlmTurn,
+  retryComposerQueueDrainLater
+} from '../utils/agent-composer-send-queue'
 import { cloneDeep } from 'lodash'
 import { useWorkspace, detectDocumentFormat } from '../stores/workspace'
 import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
@@ -470,6 +472,7 @@ import {
   AIContextManager
 } from '../utils/agent-framework'
 import type { ContextBreakdown } from '../utils/agent-framework'
+import { getSessionComposerDraft, isAgentSessionPristine } from '../utils/agent-session-pristine'
 import { generateConversationTitleByAi } from '../utils/conversation-title'
 import { createRendererLogger } from '../utils/logger'
 import { agentToolManager } from '../utils/agent-tool-manager'
@@ -479,6 +482,7 @@ import {
   resolveDirectoryToReference,
   resolveFilePathToReference
 } from '../utils/agent-framework/reference-processor'
+import { isLikelyFilesystemReferenceOrigin } from '../utils/agent-framework/reference-artifact-paths'
 import messageBridge from '../bridge/message-bridge'
 import {
   ai_types,
@@ -495,7 +499,6 @@ import ReferenceManager from '../components/agent/ReferenceManager.vue'
 import CardGrid from '../components/common/CardGrid.vue'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
-import ResizableDivider from '../components/base/ResizableDivider.vue'
 import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
 import type { Reference } from '../types/agent-framework'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
@@ -521,7 +524,7 @@ dayjs.extend(relativeTime)
 
 const { t } = useI18n()
 const workspace = useWorkspace()
-const { activeDocument, activeTabId, removeTab, moveTab, activateTab } = workspace
+const { activeDocument, activeTabId, activeTab, removeTab, moveTab, activateTab } = workspace
 const agentStore = useAgentWorkspaceStore()
 const agentManageUi = useAgentManageUiStore()
 /** Agent 全页已就绪（init 完成）后再消费「能力管理 → AI 草稿」，避免抢在 load 之前建会话 */
@@ -529,12 +532,26 @@ const agentViewReady = ref(false)
 // 与紧凑面板共享的 UI 状态（输入框、生成状态、引擎选择、任务句柄）
 const {
   composerInput,
+  composerInputBySessionId,
   selectedEngineId,
   isGenerating,
-  generatingSessionId,
   currentAiTaskHandle,
-  aiTaskHandles
+  aiTaskHandles,
+  workspaceRoot
 } = storeToRefs(agentStore)
+
+const {
+  addGeneratingSession,
+  removeGeneratingSession,
+  isSessionGenerating,
+  registerAgentRunHandle,
+  unregisterAgentRunSession,
+  getAgentRunHandlesForSession
+} = agentStore
+
+const isActiveSessionGenerating = computed(() =>
+  isSessionGenerating(agentStore.activeSessionId)
+)
 
 const borderColor = computed(() =>
   themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
@@ -574,7 +591,7 @@ const sessionMenuStyle = computed(() => ({
 }))
 
 const agentViewStyle = computed(() => ({
-  gridTemplateColumns: showToolPane.value ? '280px 1fr 360px' : '280px 1fr'
+  gridTemplateColumns: '280px 1fr'
 }))
 
 const sampleTools: AgentTool[] = [
@@ -686,8 +703,14 @@ const tools = computed(() => {
       .filter((tool) => availableToolIds.includes(tool.config.id))
       .map((tool) => ({
         id: tool.config.id,
-        name: agentToolManager.getLocalizedToolName(tool.config.id, String(tool.config.name ?? tool.config.id)),
-        description: agentToolManager.getLocalizedToolDescription(tool.config.id, String(tool.config.description ?? '')),
+        name: agentToolManager.getLocalizedToolName(
+          tool.config.id,
+          String(tool.config.name ?? tool.config.id)
+        ),
+        description: agentToolManager.getLocalizedToolDescription(
+          tool.config.id,
+          String(tool.config.description ?? '')
+        ),
         origin: (tool.config.origin === 'internal'
           ? 'renderer'
           : tool.config.origin === 'mcp'
@@ -709,14 +732,13 @@ const sessionsState = computed(() => agentStore.sessions)
 const activeSessionId = computed(() => agentStore.activeSessionId)
 const activeToolId = ref<string | null>(null)
 const syncingSessions = ref(false)
-// 当前激活的引用ID列表（用于控制哪些引用会被发送给AI）
-const activeReferenceIds = ref<string[]>([])
 const shouldBootstrapDemoSessions = false // 不再使用示例会话
 const demoAppliedDocs = new Set<string>()
 const openSessionMenuId = ref<string | null>(null)
 // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
 const availableAgentConfigs = ref(agentConfigManager.getAllConfigs())
 const showReferenceDialog = ref(false)
+const toolsDialogOpen = ref(false)
 const referenceSession = ref<AgentSession | null>(null)
 const referencePickerOpen = ref(false)
 const composerRef = ref<{
@@ -755,6 +777,7 @@ const loadDemoData = () => {
       activeToolIds: ['code-executor'],
       agentConfigId: 'default-agent-config',
       messageQueue: [],
+      composerSendQueue: [],
       referenceStore: [],
       publicContext: {
         document: {
@@ -784,6 +807,7 @@ const loadDemoData = () => {
       activeToolIds: [],
       agentConfigId: 'default-agent-config',
       messageQueue: [],
+      composerSendQueue: [],
       referenceStore: [],
       publicContext: {},
       executionNodes: [],
@@ -799,6 +823,7 @@ const loadDemoData = () => {
       activeToolIds: [],
       agentConfigId: 'default-agent-config',
       messageQueue: [],
+      composerSendQueue: [],
       referenceStore: [],
       publicContext: {},
       executionNodes: [],
@@ -822,6 +847,7 @@ const guardDemoAction = (actionName: string): boolean => {
 }
 
 async function resolveAtExtraReferences(content: string): Promise<Reference[]> {
+  const log = createRendererLogger('AgentView')
   const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
   const extraRefs: Reference[] = []
   for (const rawId of refIdsInInput) {
@@ -841,15 +867,29 @@ async function resolveAtExtraReferences(content: string): Promise<Reference[]> {
         if (r) extraRefs.push(r)
       }
     } catch (e) {
-      logger.warn('[resolveAtExtraReferences] 解析 @ 引用失败', rawId, e)
+      log.warn('[resolveAtExtraReferences] 解析 @ 引用失败', rawId, e)
     }
   }
   return extraRefs
 }
+
+/** 意图识别阶段补充附件路径（referenceStore 可能在发送后已清空，依赖最后一条用户消息上的快照） */
+function composeIntentUserText(session: AgentSession, base: string): string {
+  const last = session.messages
+    .filter((m) => m.role === 'user' && m.type === 'chat')
+    .slice(-1)[0] as ChatAgentMessage | undefined
+  const wa = last?.workspaceAttachments
+  if (!wa?.length) return base
+  return (
+    base +
+    '\n\n[User attachments on disk — read via workspace tool]\n' +
+    wa.map((a) => `- ${a.name} (${a.format}): ${a.absolutePath}`).join('\n')
+  )
+}
+
 const showEditMessageDialog = ref(false)
 const editingMessage = ref<ChatAgentMessage | null>(null)
 const editingMessageContent = ref('')
-const showToolPane = ref(false) // 默认隐藏工具面板
 // 不再要求文章初始化后才能使用 Agent View，可直接打开使用
 const needsFormatSelection = computed(() => false)
 
@@ -884,32 +924,6 @@ const contextBreakdown = computed<ContextBreakdown | null>(() => {
 })
 const contextBreakdownDialogOpen = ref(false)
 
-// 初始化activeReferenceIds（当activeSession变化时）
-watch(
-  () => activeSession.value?.referenceStore,
-  (newStore) => {
-    if (newStore && newStore.length > 0) {
-      // 获取所有引用ID，默认全部激活
-      const allReferenceIds = newStore.map((ref) => ref.id)
-      // 如果activeReferenceIds为空或者是新会话，则激活所有引用
-      if (
-        activeReferenceIds.value.length === 0 ||
-        !activeReferenceIds.value.some((id) => allReferenceIds.includes(id))
-      ) {
-        activeReferenceIds.value = [...allReferenceIds]
-      } else {
-        // 否则，只保留仍然存在的引用ID
-        activeReferenceIds.value = activeReferenceIds.value.filter((id) =>
-          allReferenceIds.includes(id)
-        )
-      }
-    } else {
-      activeReferenceIds.value = []
-    }
-  },
-  { immediate: true, deep: true }
-)
-
 const activeTool = computed(
   () => tools.value.find((tool) => tool.id === activeToolId.value) ?? null
 )
@@ -936,31 +950,10 @@ const persistSessions = () => agentStore.touchSession()
 
 watch(
   () => agentStore.activeSessionId,
-  (newId) => {
+  () => {
     activeToolId.value = null
-    composerInput.value = ''
     openSessionMenuId.value = null
-    // 切换会话时，重置激活的引用ID列表，默认激活所有引用
-    if (activeSession.value?.referenceStore) {
-      activeReferenceIds.value = activeSession.value.referenceStore.map((ref) => ref.id)
-    } else {
-      activeReferenceIds.value = []
-    }
   }
-)
-
-// 监听referenceStore变化，自动激活新添加的引用
-watch(
-  () => activeSession.value?.referenceStore,
-  (newStore) => {
-    if (newStore && newStore.length > 0) {
-      // 获取所有引用ID
-      const allReferenceIds = newStore.map((ref) => ref.id)
-      // 合并到activeReferenceIds，保留已激活的引用
-      activeReferenceIds.value = [...new Set([...activeReferenceIds.value, ...allReferenceIds])]
-    }
-  },
-  { deep: true }
 )
 
 const scrollToBottom = () => {
@@ -975,7 +968,7 @@ const scrollToBottom = () => {
 // AI 正在输出时，消息列表或最后一条助手消息内容变化则自动滚到底部，始终显示最新内容
 watch(
   () => {
-    if (!isGenerating.value) return null
+    if (!isSessionGenerating(agentStore.activeSessionId)) return null
     const msgs = activeSession.value?.messages
     if (!msgs?.length) return null
     const last = msgs[msgs.length - 1]
@@ -997,10 +990,9 @@ watch(
   ([newFormat, newTabId]) => {
     if (!newFormat || !newTabId) return
 
-    const genId = generatingSessionId.value
-    // 更新所有会话的publicContext中的文档格式信息（生成中的会话不修改，避免视图切换时改写导致 subagent/tool 拿到空上下文）
+    // 更新所有会话的 publicContext 中的文档格式信息（生成中的会话不修改，避免改写正在执行的上下文）
     sessionsState.value.forEach((session) => {
-      if (genId && session.id === genId) return
+      if (isSessionGenerating(session.id)) return
       if (session.publicContext?.document?.id === newTabId) {
         session.publicContext.document.format = newFormat as 'md' | 'tex'
       }
@@ -1015,16 +1007,20 @@ watch(
 const allTasks = useAiTasks()
 let unlockCheckTimer: ReturnType<typeof setTimeout> | null = null
 watch(
-  [allTasks, () => activeSession.value?.id, isGenerating],
-  ([tasks, sessionId, generating]) => {
+  [
+    allTasks,
+    () => activeSession.value?.id,
+    () => isSessionGenerating(activeSessionId.value)
+  ],
+  ([tasks, sessionId, activeSessionGenerating]) => {
     // 清除之前的定时器
     if (unlockCheckTimer) {
       clearTimeout(unlockCheckTimer)
       unlockCheckTimer = null
     }
 
-    // 只有在生成中时才检查
-    if (!generating || !sessionId) {
+    // 仅当「当前展示的会话」处于生成中时才检查（避免后台其他会话运行时的误判）
+    if (!activeSessionGenerating || !sessionId) {
       return
     }
 
@@ -1087,13 +1083,36 @@ watch(
 
 const messageCount = computed(() => activeSession.value?.messages.length ?? 0)
 const activeToolCount = computed(() => tools.value.length ?? 0) // 计算所有可用工具的数量
-const referenceCount = computed(() => activeSession.value?.referenceStore?.length ?? 0)
 
 // 工具选择功能已移除，工具列表现在为只读模式
 
 const formatRelativeTime = (timestamp: string) => dayjs(timestamp).fromNow()
 
+/** 当前激活会话若为「空白新会话」，复用并可选更新标题，避免连点产生多个空会话 */
+function tryReusePristineActiveSession(sessionTitleOverride?: string): boolean {
+  const cur = activeSession.value
+  if (!cur) return false
+  const draft = getSessionComposerDraft(
+    cur.id,
+    agentStore.activeSessionId,
+    composerInput.value,
+    composerInputBySessionId.value
+  )
+  if (!isAgentSessionPristine(cur, draft)) return false
+  const title = sessionTitleOverride?.trim()
+  if (title) {
+    cur.title = title
+    cur.titleUserEdited = false
+    touchSession(cur)
+    persistSessions()
+  }
+  return true
+}
+
 const createSession = (agentConfigId?: string, sessionTitleOverride?: string) => {
+  if (tryReusePristineActiveSession(sessionTitleOverride)) {
+    return
+  }
   const configId = agentConfigId || agentConfigManager.getDefaultConfigId()
   const resolvedTitle =
     sessionTitleOverride?.trim() ||
@@ -1111,6 +1130,7 @@ const createSession = (agentConfigId?: string, sessionTitleOverride?: string) =>
       activeToolIds: [],
       agentConfigId: configId,
       messageQueue: [],
+      composerSendQueue: [],
       referenceStore: [],
       publicContext: {},
       executionNodes: [],
@@ -1150,6 +1170,8 @@ const createSession = (agentConfigId?: string, sessionTitleOverride?: string) =>
       activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
       agentConfigId: session.agentConfigId,
       messageQueue: session.messageQueue || [],
+      composerSendQueue: (session as { composerSendQueue?: AgentSession['composerSendQueue'] })
+        .composerSendQueue ?? [],
       referenceStore: session.referenceStore || [],
       publicContext: session.publicContext || {},
       executionNodes: session.executionNodes || [],
@@ -1183,6 +1205,95 @@ watch(
     if (!p) return
     applyPendingAgentDraftPayload(p)
   }
+)
+
+/** 主页暂存在 `_home_pending` 的附件迁入新建会话目录，并更新 Reference 的 origin */
+async function migrateHomePendingRefsIfNeeded(
+  session: AgentSession,
+  pendingRefs: Reference[]
+): Promise<Reference[]> {
+  const needs = pendingRefs.some(
+    (r) => r.metadata?.attachmentStorage === 'workspace' && r.metadata?.homePending === true
+  )
+  if (!needs) return pendingRefs
+  let root = agentStore.workspaceRoot
+  if (!root) {
+    root = await agentStore.refreshWorkspaceRoot()
+  }
+  if (!root) return pendingRefs
+  try {
+    const migrations = (await messageBridge.invoke('migrate-home-pending-attachments', {
+      workspaceRoot: root,
+      toSessionId: session.id
+    })) as Array<{ oldAbsolutePath: string; newAbsolutePath: string; relativePath: string }>
+    const map = new Map(migrations.map((m) => [m.oldAbsolutePath, m]))
+    return pendingRefs.map((ref) => {
+      if (!(ref.metadata?.homePending && ref.metadata?.attachmentStorage === 'workspace')) {
+        return ref
+      }
+      const m = map.get(ref.origin)
+      if (!m) return ref
+      const meta = { ...(ref.metadata as Record<string, unknown>) }
+      delete meta.homePending
+      meta.workspaceRelativePath = m.relativePath
+      return {
+        ...ref,
+        origin: m.newAbsolutePath,
+        metadata: meta
+      }
+    })
+  } catch (e) {
+    createRendererLogger('AgentView').warn('migrate home pending attachments failed', e)
+    return pendingRefs
+  }
+}
+
+/** 主页发送首条消息：新建会话、注入附件引用并提交 */
+function applyHomeLaunchSubmit(content: string, pendingRefs: Reference[] = []) {
+  nextTick(() => {
+    createSession(agentConfigManager.getDefaultConfigId())
+    void (async () => {
+      await nextTick()
+      const session = activeSession.value
+      if (!session) return
+      if (pendingRefs.length > 0) {
+        const refs = await migrateHomePendingRefsIfNeeded(session, pendingRefs)
+        for (const ref of refs) {
+          agentSessionManager.addReferenceObject(session as any, ref)
+        }
+        touchSession(session)
+        persistSessions()
+      }
+      composerInput.value = content
+      await nextTick()
+      void handleComposerSubmit(undefined, content)
+    })()
+  })
+}
+
+function consumeHomeSubmitIfReady() {
+  if (!agentViewReady.value) return
+  const tab = activeTab.value
+  if (!tab || tab.kind !== 'system' || tab.route !== '/agent') return
+  const pending = agentManageUi.takePendingHomeAgentSubmit()
+  if (!pending) return
+  applyHomeLaunchSubmit(pending.content, pending.references)
+}
+
+watch(
+  () => activeTab.value?.route,
+  () => {
+    consumeHomeSubmitIfReady()
+  }
+)
+
+/** 主页 setPending 后若本页已就绪，补一次消费；与 onMounted / route watch 互补 */
+watch(
+  () => agentManageUi.pendingHomeAgentSubmit,
+  () => {
+    nextTick(() => consumeHomeSubmitIfReady())
+  },
+  { flush: 'post', immediate: true }
 )
 
 const deleteSession = async (session?: AgentSession) => {
@@ -1244,6 +1355,8 @@ const createDefaultSession = () => {
       activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
       agentConfigId: defaultSession.agentConfigId,
       messageQueue: defaultSession.messageQueue || [],
+      composerSendQueue: (defaultSession as { composerSendQueue?: AgentSession['composerSendQueue'] })
+        .composerSendQueue ?? [],
       referenceStore: defaultSession.referenceStore || [],
       publicContext: defaultSession.publicContext || {},
       executionNodes: defaultSession.executionNodes || [],
@@ -1310,10 +1423,49 @@ const createChatMessage = (
   referenceIds: referenceIds || []
 })
 
+/** 在 executeAgentEngine 定义之后赋值 */
+let runComposerSendPipelineForSessionRef: ((s: AgentSession, c: string) => Promise<void>) | null = null
+
+function onComposerSendQueueUpdate(next: ComposerSendQueueItem[]) {
+  const s = activeSession.value
+  if (!s) return
+  s.composerSendQueue = next
+  touchSession(s)
+  persistSessions()
+}
+
+function scheduleComposerQueueDrain(sessionId: string) {
+  void nextTick(async () => {
+    await flushOneComposerSendQueueItem(sessionId)
+  })
+}
+
+async function flushOneComposerSendQueueItem(sessionId: string): Promise<void> {
+  if (isSessionGenerating(sessionId)) return
+  const idx = sessionsState.value.findIndex((s) => s.id === sessionId)
+  if (idx === -1) return
+  const session = sessionsState.value[idx]
+  const q = session.composerSendQueue
+  if (!q?.length) return
+  if (!isAgentSessionReadyForNextLlmTurn(session)) {
+    retryComposerQueueDrainLater(sessionId, flushOneComposerSendQueueItem)
+    return
+  }
+  clearComposerQueueDrainRetries(sessionId)
+  const item = q.shift()!
+  touchSession(session)
+  persistSessions()
+  session.referenceStore = cloneReferenceStoreSnapshot(item.referenceSnapshot) as AgentSession['referenceStore']
+  if (!runComposerSendPipelineForSessionRef) return
+  try {
+    await runComposerSendPipelineForSessionRef(session, item.markdown)
+  } catch (e) {
+    createRendererLogger('AgentView').error('[composerSendQueue] flush failed', e)
+  }
+}
+
 const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: string) => {
-  // 演示模式：显示提示并返回
   if (guardDemoAction(t('agent.demo.action.sendMessage'))) {
-    // 演示模式下添加模拟消息
     const session = activeSession.value
     if (session) {
       const message = createChatMessage(
@@ -1323,7 +1475,6 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
       session.messages.push(message)
       touchSession(session)
       composerInput.value = ''
-      // 模拟AI回复
       setTimeout(() => {
         const reply = createChatMessage(
           'assistant',
@@ -1340,13 +1491,7 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
   }
 
   const logger = createRendererLogger('AgentView')
-  logger.debug('[handleComposerSubmit] 开始处理用户消息提交')
-
-  // 在提交消息前检查文档格式
-  if (needsFormatSelection.value) {
-    // 格式未选择，不处理消息
-    return
-  }
+  if (needsFormatSelection.value) return
 
   const session = activeSession.value
   if (!session) {
@@ -1354,143 +1499,46 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
     return
   }
 
-  // 优先用 submit 事件带来的内容（ChatComposer 从输入框取的最新值），否则再读 store
   const rawContent =
     contentFromEvent ??
     (typeof composerRef.value?.getContentForSubmit === 'function'
       ? composerRef.value.getContentForSubmit()
       : composerInput.value)
-  const content = rawContent.trim()
+  let content = rawContent.trim()
+  const refStoreLen = session.referenceStore?.length ?? 0
+  if (!content && refStoreLen > 0) {
+    content = t(
+      'agent.composer.attachmentsOnlyUserMessage',
+      'Please answer based on the attached references.'
+    )
+  }
   if (!content) {
     logger.warn('[handleComposerSubmit] 消息内容为空')
     return
   }
 
-  logger.debug(`[handleComposerSubmit] 用户消息内容: ${content.substring(0, 50)}...`)
-
-  // 清空之前的活跃工具（用户发送新消息时，等待意图识别结果）
-  if (session.activeToolIds) {
-    session.activeToolIds = []
-    logger.debug('[handleComposerSubmit] 已清空activeToolIds，等待意图识别结果')
-  }
-
-  const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
-  const extraRefs = await resolveAtExtraReferences(content)
-
-  // 消息的 referenceIds 仅用于“附件引用”（referenceStore 的 ref-id），避免 @ 引用污染附件菜单
-  const storeIds = new Set((session.referenceStore || []).map((r) => r.id))
-  const attachmentIdsInInput = refIdsInInput.filter((id) => storeIds.has(id))
-  const messageRefIds =
-    attachmentIdsInInput.length > 0 ? attachmentIdsInInput : [...activeReferenceIds.value]
-  const isFirstUserMessage = session.messages.length === 1
-  const message = createChatMessage('user', content, messageRefIds)
-  session.messages.push(message)
-  logger.debug(
-    `[handleComposerSubmit] 用户消息已添加，ID: ${message.id}, 当前消息数量: ${session.messages.length}`
-  )
-
-  touchSession(session)
-
-  // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
-  const shouldQueryKnowledgeBase = false
-
-  // 在 nextTick 中清空输入并持久化，避免 contenteditable 的 input 事件把旧内容写回
-  nextTick(() => {
-    composerInput.value = ''
+  if (isSessionGenerating(session.id)) {
+    if (!session.composerSendQueue) session.composerSendQueue = []
+    session.composerSendQueue.push(
+      createComposerSendQueueItem(content, cloneReferenceStoreSnapshot(session.referenceStore))
+    )
+    notifyInfo(t('agent.composer.queuedHint'))
+    touchSession(session)
+    nextTick(() => {
+      composerInput.value = ''
+      session.referenceStore = []
+      persistSessions()
+    })
+    scrollToBottom()
     persistSessions()
-  })
-
-  // 滚动到底部
-  scrollToBottom()
-
-  // 执行Agent引擎
-  try {
-    const engineId = selectedEngineId.value || 'default-autogpt-engine'
-    const engine = agentEngineManager.getEngine(engineId)
-    logger.debug(`[handleComposerSubmit] 选择的引擎: ${engineId}, 引擎类型: ${engine?.engineType}`)
-
-    // 对于SimpleChat引擎，在用户消息发送后立即创建空的assistant消息气泡
-    if (engine?.engineType === 'simple-chat') {
-      logger.debug('[handleComposerSubmit] 使用simple-chat引擎，准备创建流式输出消息气泡')
-
-      // 创建空的assistant消息，使用reactive确保响应式更新
-      const assistantMessage: ChatAgentMessage = reactive({
-        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        role: 'assistant',
-        type: 'chat',
-        timestamp: new Date().toISOString(),
-        markdown: ''
-      }) as ChatAgentMessage
-
-      logger.debug(
-        `[handleComposerSubmit] 创建了reactive assistantMessage, ID: ${assistantMessage.id}`
-      )
-
-      // 关键：确保直接操作sessionsState中的session，而不是computed返回的session
-      // 因为computed返回的是新对象，直接操作它可能不会触发响应式更新
-      const sessionIndex = sessionsState.value.findIndex((s) => s.id === session.id)
-      if (sessionIndex === -1) {
-        logger.error('[handleComposerSubmit] 找不到session在sessionsState中的索引')
-        return
-      }
-
-      // 直接操作sessionsState中的session，确保响应式更新
-      const actualSession = sessionsState.value[sessionIndex]
-      actualSession.messages.push(assistantMessage)
-      logger.debug(
-        `[handleComposerSubmit] assistantMessage已添加到actualSession.messages, 当前消息数量: ${actualSession.messages.length}`
-      )
-
-      touchSession(actualSession)
-
-      // 等待Vue完成响应式更新
-      await nextTick()
-      logger.debug('[handleComposerSubmit] nextTick完成，准备执行引擎')
-
-      // 执行引擎，传入assistantMessage
-      // 注意：使用actualSession而不是computed的session，确保响应式更新
-      // 注意：SimpleChat引擎现在使用LlmAdapter.callChatViaTask，它会直接更新assistantMessage.markdown
-      await executeAgentEngine(
-        content,
-        undefined,
-        undefined,
-        assistantMessage,
-        actualSession,
-        shouldQueryKnowledgeBase,
-        extraRefs
-      )
-
-      logger.debug('[handleComposerSubmit] 引擎执行完成')
-    } else {
-      logger.debug('[handleComposerSubmit] 使用其他引擎类型')
-      await executeAgentEngine(
-        content,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        shouldQueryKnowledgeBase,
-        extraRefs
-      )
-    }
-    // 第一轮对话完成后，根据整轮会话内容由 AI 生成标题（参考 AIChat.vue）
-    if (isFirstUserMessage && !session.titleUserEdited) {
-      generateConversationTitleByAi(
-        session.messages,
-        session.title || t('agent.sessions.defaultTitle')
-      )
-        .then((newTitle) => {
-          if (newTitle && !session.titleUserEdited) {
-            session.title = newTitle
-            persistSessions()
-          }
-        })
-        .catch((err) => logger.debug('生成会话标题失败', err))
-    }
-  } catch (error) {
-    logger.error('[handleComposerSubmit] 执行失败:', error)
-    notifyError(error instanceof Error ? error.message : String(error))
+    return
   }
+
+  if (!runComposerSendPipelineForSessionRef) {
+    logger.error('[handleComposerSubmit] 发送管线未初始化')
+    return
+  }
+  await runComposerSendPipelineForSessionRef(session, content)
 }
 
 // 执行Agent引擎
@@ -1503,33 +1551,27 @@ const executeAgentEngine = async (
   shouldQueryKnowledgeBase: boolean = false,
   extraReferences?: Reference[]
 ) => {
-  isGenerating.value = true
-
-  // 使用传入的actualSession，如果没有则使用computed的session
+  // 多会话并行时必须传入 actualSession；缺省仅兼容「单会话且当前 tab 即目标」的旧调用，否则易串到 activeSession
   const session = actualSession || activeSession.value
   if (!session || !session.agentConfigId) {
     notifyWarning(t('agent.sessions.noAgentConfig'))
-    isGenerating.value = false
     return
   }
-  generatingSessionId.value = session.id
 
   const engineId = selectedEngineId.value || 'default-autogpt-engine'
   const engine = agentEngineManager.getEngine(engineId)
   if (!engine) {
     notifyError(t('agent.sessions.engineNotFound'))
-    generatingSessionId.value = null
-    isGenerating.value = false
     return
   }
 
   const agentConfig = agentConfigManager.getConfig(session.agentConfigId)
   if (!agentConfig) {
     notifyError(t('agent.sessions.agentConfigNotFound'))
-    generatingSessionId.value = null
-    isGenerating.value = false
     return
   }
+
+  addGeneratingSession(session.id)
 
   // // 确保文档格式已设置（如果文档格式未确定，自动检测）
   // // 同时更新session的publicContext，确保Agent知道当前文档格式
@@ -1580,9 +1622,6 @@ const executeAgentEngine = async (
   //   }
   // }
 
-  // 注意：UI锁和isGenerating状态已经在函数开始时设置（第1167-1168行）
-  // 这里不需要重复设置
-
   // 创建AbortController用于取消
   const abortController = new AbortController()
   const originKey = `agent-${session.id}-${Date.now()}`
@@ -1631,7 +1670,7 @@ const executeAgentEngine = async (
         const intentResult = await recognizeIntent(
           session as any,
           agentConfig,
-          userMessage,
+          composeIntentUserText(session, userMessage),
           intentOutputRef,
           engine,
           {
@@ -1654,12 +1693,14 @@ const executeAgentEngine = async (
         // 意图识别失败不影响主流程，继续执行
       }
 
-      // 构建上下文消息，只包含激活的引用
-      // 从用户消息中获取referenceIds（如果有），否则使用当前激活的引用
+      // 构建上下文消息：附件引用以最后一条用户消息的 referenceIds 为准（发送后 referenceStore 已清空）
       const lastUserMessage = session.messages
         .filter((m) => m.role === 'user' && m.type === 'chat')
         .slice(-1)[0] as ChatAgentMessage | undefined
-      const messageReferenceIds = lastUserMessage?.referenceIds || activeReferenceIds.value
+      const messageReferenceIds =
+        lastUserMessage?.referenceIds && lastUserMessage.referenceIds.length > 0
+          ? lastUserMessage.referenceIds
+          : (session.referenceStore || []).map((r) => r.id)
       const contextMessages = AIContextManager.buildMessages(session, agentConfig, {
         activeReferenceIds: messageReferenceIds,
         extraReferences
@@ -1700,7 +1741,7 @@ const executeAgentEngine = async (
         undefined,
         undefined,
         (handle: string) => {
-          aiTaskHandles.value.add(handle)
+          registerAgentRunHandle(session.id, handle)
         }
       )
 
@@ -1773,8 +1814,7 @@ const executeAgentEngine = async (
         originKey,
         reactiveMessage: assistantMessage,
         onTaskCreated: (handle: string) => {
-          currentAiTaskHandle.value = handle
-          aiTaskHandles.value.add(handle)
+          registerAgentRunHandle(session.id, handle)
           logger.debug(`[executeAgentEngine] AI任务已创建，handle: ${handle}`)
         },
         onToolCallsDetected
@@ -1830,7 +1870,7 @@ const executeAgentEngine = async (
 
       if (isCancelled) {
         logger.debug('Agent引擎任务已取消')
-        removeLastIncompleteAssistantMessage(session)
+        applyComposerInterruptCleanup(session, t('agent.task.cancelled'))
         session.status = 'idle'
         persistSessions()
         return
@@ -1864,13 +1904,9 @@ const executeAgentEngine = async (
       if (stopWatcher) {
         stopWatcher()
       }
-      // 清理handle
-      if (currentAiTaskHandle.value) {
-        aiTaskHandles.value.delete(currentAiTaskHandle.value)
-      }
-      currentAiTaskHandle.value = null
-      generatingSessionId.value = null
-      isGenerating.value = false
+      unregisterAgentRunSession(session.id)
+      removeGeneratingSession(session.id)
+      scheduleComposerQueueDrain(session.id)
     }
   } else {
     // 对于其他引擎，使用现有的执行器逻辑
@@ -1881,7 +1917,10 @@ const executeAgentEngine = async (
       const lastUserMsg = session.messages
         .filter((m: any) => m.role === 'user' && m.type === 'chat')
         .slice(-1)[0] as ChatAgentMessage | undefined
-      const messageRefIds = lastUserMsg?.referenceIds ?? activeReferenceIds.value
+      const messageRefIds =
+        lastUserMsg?.referenceIds && lastUserMsg.referenceIds.length > 0
+          ? lastUserMsg.referenceIds
+          : (session.referenceStore || []).map((r) => r.id)
       const executor = AgentEngineExecutorFactory.create(engine, session, agentConfig, {
         signal: abortController.signal,
         activeReferenceIds: messageRefIds,
@@ -1891,8 +1930,7 @@ const executeAgentEngine = async (
           persistSessions()
         },
         onTaskCreated: (handle: string) => {
-          // 保存所有AI任务的handle，以便取消
-          aiTaskHandles.value.add(handle)
+          registerAgentRunHandle(session.id, handle)
         }
       })
 
@@ -1915,7 +1953,7 @@ const executeAgentEngine = async (
 
       if (isCancelled) {
         logger.debug('Agent引擎任务已取消')
-        removeLastIncompleteAssistantMessage(session)
+        applyComposerInterruptCleanup(session, t('agent.task.cancelled'))
         session.status = 'idle'
         persistSessions()
         return
@@ -1935,29 +1973,129 @@ const executeAgentEngine = async (
 
       throw error
     } finally {
-      // 清理handle
-      if (currentAiTaskHandle.value) {
-        aiTaskHandles.value.delete(currentAiTaskHandle.value)
-      }
-      currentAiTaskHandle.value = null
-      generatingSessionId.value = null
-      isGenerating.value = false
+      unregisterAgentRunSession(session.id)
+      removeGeneratingSession(session.id)
+      scheduleComposerQueueDrain(session.id)
     }
+  }
+}
+
+runComposerSendPipelineForSessionRef = async (session: AgentSession, content: string) => {
+  const logger = createRendererLogger('AgentView')
+  logger.debug(`[runComposerSendPipeline] ${content.substring(0, 50)}...`)
+
+  const liveSession = sessionsState.value.find((s) => s.id === session.id)
+  if (!liveSession) {
+    logger.error('[runComposerSendPipeline] 会话不在工作区列表', session.id)
+    return
+  }
+
+  if (liveSession.activeToolIds) {
+    liveSession.activeToolIds = []
+  }
+
+  const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
+  const extraRefs = await resolveAtExtraReferences(content)
+
+  const storeRefs = [...(liveSession.referenceStore || [])]
+  const storeIds = new Set(storeRefs.map((r) => r.id))
+  const attachmentIdsInInput = refIdsInInput.filter((id) => storeIds.has(id))
+  const messageRefIds =
+    attachmentIdsInInput.length > 0 ? attachmentIdsInInput : storeRefs.map((r) => r.id)
+  const workspaceAttachments = storeRefs
+    .filter((r) => r.metadata?.attachmentStorage === 'workspace')
+    .map((r) => ({
+      name: r.name,
+      absolutePath: r.origin,
+      relativePath: String(r.metadata?.workspaceRelativePath ?? ''),
+      format: r.format
+    }))
+  const inlineReferenceSnippets = storeRefs
+    .filter(
+      (r) =>
+        r.metadata?.attachmentStorage !== 'workspace' &&
+        typeof r.parsedContent === 'string' &&
+        r.parsedContent.length > 0
+    )
+    .map((r) => ({
+      name: r.name,
+      format: r.format,
+      text: r.parsedContent
+    }))
+  const isFirstUserMessage = liveSession.messages.length === 1
+  const message = createChatMessage('user', content, messageRefIds) as ChatAgentMessage
+  if (workspaceAttachments.length > 0) message.workspaceAttachments = workspaceAttachments
+  if (inlineReferenceSnippets.length > 0) message.inlineReferenceSnippets = inlineReferenceSnippets
+  liveSession.messages.push(message)
+  liveSession.referenceStore = []
+  touchSession(liveSession)
+
+  const shouldQueryKnowledgeBase = false
+
+  nextTick(() => {
+    composerInput.value = ''
+    persistSessions()
+  })
+  scrollToBottom()
+
+  try {
+    const engineId = selectedEngineId.value || 'default-autogpt-engine'
+    const engine = agentEngineManager.getEngine(engineId)
+
+    if (engine?.engineType === 'simple-chat') {
+      const assistantMessage: ChatAgentMessage = reactive({
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'assistant',
+        type: 'chat',
+        timestamp: new Date().toISOString(),
+        markdown: ''
+      }) as ChatAgentMessage
+
+      liveSession.messages.push(assistantMessage)
+      touchSession(liveSession)
+      await nextTick()
+
+      await executeAgentEngine(
+        content,
+        undefined,
+        undefined,
+        assistantMessage,
+        liveSession,
+        shouldQueryKnowledgeBase,
+        extraRefs
+      )
+    } else {
+      await executeAgentEngine(
+        content,
+        undefined,
+        undefined,
+        undefined,
+        liveSession,
+        shouldQueryKnowledgeBase,
+        extraRefs
+      )
+    }
+    if (isFirstUserMessage && !liveSession.titleUserEdited) {
+      generateConversationTitleByAi(
+        liveSession.messages,
+        liveSession.title || t('agent.sessions.defaultTitle')
+      )
+        .then((newTitle) => {
+          if (newTitle && !liveSession.titleUserEdited) {
+            liveSession.title = newTitle
+            persistSessions()
+          }
+        })
+        .catch((err) => logger.debug('生成会话标题失败', err))
+    }
+  } catch (error) {
+    logger.error('[runComposerSendPipeline] 执行失败:', error)
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
 const handleComposerReset = () => {
   composerInput.value = ''
-}
-
-// 切换引用激活状态
-const handleToggleReference = (referenceId: string) => {
-  const index = activeReferenceIds.value.indexOf(referenceId)
-  if (index > -1) {
-    activeReferenceIds.value.splice(index, 1)
-  } else {
-    activeReferenceIds.value.push(referenceId)
-  }
 }
 
 const handleAttachFile = async (fileOrFiles?: File | File[]) => {
@@ -1976,6 +2114,24 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
       '../utils/agent-framework/reference-processor'
     )
 
+    let root = workspaceRoot.value
+    if (!root) {
+      root = await agentStore.refreshWorkspaceRoot()
+    }
+    if (!root) {
+      notifyError(
+        t(
+          'agent.attachments.needWorkspace',
+          '请先在侧栏打开工作区文件夹，以便将附件保存到 .metadoc/attachments。'
+        )
+      )
+      return
+    }
+    const workspaceAttachmentOpts = {
+      workspaceRoot: root,
+      sessionId: activeSession.value.id
+    }
+
     // 检查输入框中是否是URL（用户可能粘贴了URL）
     const inputText = composerInput.value.trim()
     const isUrl = /^https?:\/\//.test(inputText)
@@ -1984,7 +2140,9 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
 
     if (isUrl && files.length === 0) {
       // 处理URL（用户输入了URL但没有选择文件）
-      const reference = await processUrlReference(inputText)
+      const reference = await processUrlReference(inputText, undefined, {
+        workspaceAttachment: workspaceAttachmentOpts
+      })
       composerInput.value = '' // 清空输入框
 
       const newFormatSession: any = {
@@ -2036,7 +2194,9 @@ const handleAttachFile = async (fileOrFiles?: File | File[]) => {
                   })
                 : t('agent.reference.processingNamedFile', { name: file.name })
             )
-            const reference = await processFileUpload(file)
+            const reference = await processFileUpload(file, undefined, undefined, {
+              workspaceAttachment: workspaceAttachmentOpts
+            })
             references.push(reference)
             successCount++
           } catch (error) {
@@ -2179,75 +2339,33 @@ async function openAttachFilePicker() {
   }
 }
 
-/**
- * 取消/中断后移除最后一条未完成的 assistant 消息，确保下次发送时 session 末尾是 user，API 请求上下文完整。
- */
-function removeLastIncompleteAssistantMessage(session: AgentSession) {
-  const messages = session.messages
-  if (!messages?.length) return
-  const last = messages[messages.length - 1]
-  if (last.role !== 'assistant' || last.type !== 'chat') return
-  const md = (last as ChatAgentMessage).markdown
-  const toolCalls = (last as any).tool_calls
-  const hasToolCalls = Array.isArray(toolCalls) && toolCalls.length > 0
-  const emptyContent = !md || !String(md).trim()
-  if (emptyContent) {
-    messages.pop()
-    return
-  }
-  if (!hasToolCalls) return
-  const tcIds = new Set((toolCalls as Array<{ id?: string }>).map((tc) => tc.id).filter(Boolean))
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i]
-    if (m.role === 'tool' && (m as any).tool_call_id && tcIds.has((m as any).tool_call_id)) {
-      tcIds.delete((m as any).tool_call_id)
-    }
-  }
-  if (tcIds.size > 0) {
-    messages.pop()
-  }
-}
-
 const handleCancelGeneration = () => {
   const session = activeSession.value
   if (!session) {
     return
   }
 
-  // 获取所有AI任务
   const allTasks = useAiTasks()
 
-  // 根据session.id找到所有相关的任务（通过origin_key前缀匹配）
   const sessionPrefix = `agent-${session.id}-`
   const relatedTasks = allTasks.value.filter(
     (task) => task.origin_key && task.origin_key.startsWith(sessionPrefix)
   )
-
-  // 取消所有相关的任务
   relatedTasks.forEach((task) => {
     cancelAiTask(task.handle, false)
   })
 
-  // 取消所有由Agent发起的AI任务（通过handle集合）
-  if (aiTaskHandles.value.size > 0) {
-    const handlesToCancel = Array.from(aiTaskHandles.value)
-    handlesToCancel.forEach((handle) => {
-      cancelAiTask(handle, false)
-    })
-    aiTaskHandles.value.clear()
-  }
+  const runHandles = getAgentRunHandlesForSession(session.id)
+  runHandles.forEach((handle) => {
+    cancelAiTask(handle, false)
+  })
+  unregisterAgentRunSession(session.id)
+  removeGeneratingSession(session.id)
 
-  // 同时取消当前任务（如果有）
-  if (currentAiTaskHandle.value) {
-    cancelAiTask(currentAiTaskHandle.value, false)
-    currentAiTaskHandle.value = null
-  }
-
-  generatingSessionId.value = null
-  isGenerating.value = false
   session.status = 'idle'
-  removeLastIncompleteAssistantMessage(session)
+  applyComposerInterruptCleanup(session, t('agent.task.cancelled'))
   persistSessions()
+  scheduleComposerQueueDrain(session.id)
 }
 
 const originLabel = (origin: AgentTool['origin']) => {
@@ -2272,6 +2390,29 @@ const handleOpenReferenceDialog = () => {
     referenceSession.value = activeSession.value
     showReferenceDialog.value = true
   }
+}
+
+const handleRemoveComposerReference = async (referenceId: string) => {
+  const session = activeSession.value
+  if (!session?.referenceStore?.length) {
+    return
+  }
+  const ref = session.referenceStore.find((r) => r.id === referenceId)
+  if (!ref) {
+    return
+  }
+  if (isLikelyFilesystemReferenceOrigin(ref.origin) && messageBridge.getIpc()) {
+    try {
+      await messageBridge.invoke('delete-reference-artifact-file', {
+        absolutePath: ref.origin,
+        workspaceRoot: workspaceRoot.value || undefined
+      })
+    } catch (err) {
+      createRendererLogger('AgentView').warn('[handleRemoveComposerReference] 删除引用文件失败', err)
+    }
+  }
+  session.referenceStore = session.referenceStore.filter((r) => r.id !== referenceId)
+  persistSessions()
 }
 
 const handleSessionMenuAction = async (
@@ -2486,7 +2627,8 @@ const sessionListItems = computed<SessionListItem[]>(() =>
   sessionsState.value.map((session) => ({
     id: session.id,
     title: session.title,
-    updatedAt: session.updatedAt || session.createdAt || new Date().toISOString()
+    updatedAt: session.updatedAt || session.createdAt || new Date().toISOString(),
+    generating: isSessionGenerating(session.id)
   }))
 )
 
@@ -2540,39 +2682,8 @@ const handleSessionListDelete = (item: SessionListItem) => {
   }
 }
 
-// === ResizableDivider 工具面板宽度 ===
-const TOOL_PANE_WIDTH_KEY = 'agent-view-tool-pane-width'
-const DEFAULT_TOOL_PANE_WIDTH = 360
-const MIN_TOOL_PANE_WIDTH = 240
-const MAX_TOOL_PANE_WIDTH = 600
-const toolPaneWidth = ref(
-  parseInt(localStorage.getItem(TOOL_PANE_WIDTH_KEY) || String(DEFAULT_TOOL_PANE_WIDTH))
-)
-let toolPaneWidthAtStart = DEFAULT_TOOL_PANE_WIDTH
-
-const handleToolPaneResizeStart = () => {
-  toolPaneWidthAtStart = toolPaneWidth.value
-}
-
-const handleToolPaneResize = (delta: number) => {
-  // delta > 0 = 向右拖动 → 工具面板缩小; delta < 0 = 向左拖动 → 工具面板放大
-  const newWidth = Math.max(
-    MIN_TOOL_PANE_WIDTH,
-    Math.min(MAX_TOOL_PANE_WIDTH, toolPaneWidthAtStart - delta)
-  )
-  toolPaneWidth.value = newWidth
-}
-
-const handleToolPaneResizeEnd = () => {
-  localStorage.setItem(TOOL_PANE_WIDTH_KEY, String(toolPaneWidth.value))
-}
-
 const handleDocumentClick = () => {
   openSessionMenuId.value = null
-}
-
-const toggleToolPane = () => {
-  showToolPane.value = !showToolPane.value
 }
 
 // 消息操作方法
@@ -2590,6 +2701,12 @@ const handleConfirmEditMessage = async () => {
     return
   }
 
+  const session = activeSession.value
+  if (isSessionGenerating(session.id)) {
+    notifyWarning(t('agent.sessions.alreadyGenerating'))
+    return
+  }
+
   const content = editingMessageContent.value.trim()
   if (!content) {
     notifyWarning(t('agent.message.editPlaceholder'))
@@ -2597,7 +2714,6 @@ const handleConfirmEditMessage = async () => {
   }
 
   // 找到消息并更新
-  const session = activeSession.value
   const messageIndex = session.messages.findIndex((m) => m.id === editingMessage.value!.id)
   if (messageIndex !== -1) {
     const message = session.messages[messageIndex] as ChatAgentMessage
@@ -2666,7 +2782,8 @@ const handleConfirmEditMessage = async () => {
 
     // 重新触发AI生成（AgentView 不使用 RAG 功能）
     const extraRefs = await resolveAtExtraReferences(content)
-    await executeAgentEngine(content, undefined, undefined, undefined, undefined, false, extraRefs)
+    const liveSession = sessionsState.value.find((s) => s.id === session.id) ?? session
+    await executeAgentEngine(content, undefined, undefined, undefined, liveSession, false, extraRefs)
   }
 }
 
@@ -2678,6 +2795,11 @@ const handleMessageRegenerate = async (message: AgentMessage) => {
   const session = activeSession.value
   const messageIndex = session.messages.findIndex((m) => m.id === message.id)
   if (messageIndex === -1) return
+
+  if (isSessionGenerating(session.id)) {
+    notifyWarning(t('agent.sessions.alreadyGenerating'))
+    return
+  }
 
   try {
     await messageBox.confirm(
@@ -2703,7 +2825,16 @@ const handleMessageRegenerate = async (message: AgentMessage) => {
   persistSessions()
 
   const extraRefs = await resolveAtExtraReferences(userMessage.markdown || '')
-  await executeAgentEngine(userMessage.markdown, undefined, undefined, undefined, undefined, false, extraRefs)
+  const liveSession = sessionsState.value.find((s) => s.id === session.id) ?? session
+  await executeAgentEngine(
+    userMessage.markdown,
+    undefined,
+    undefined,
+    undefined,
+    liveSession,
+    false,
+    extraRefs
+  )
 }
 
 const handleMessageDuplicate = async (message: AgentMessage) => {
@@ -2804,17 +2935,29 @@ onMounted(async () => {
     agentViewReady.value = true
     const p = agentManageUi.takePendingAgentDraft()
     if (p) applyPendingAgentDraftPayload(p)
+    consumeHomeSubmitIfReady()
+    selectedEngineId.value = 'default-autogpt-engine'
     return
   }
 
-  await agentStore.init()
-  ensureActiveSessionId()
-  agentViewReady.value = true
-  const pendingDraft = agentManageUi.takePendingAgentDraft()
-  if (pendingDraft) applyPendingAgentDraftPayload(pendingDraft)
+  try {
+    await agentStore.init()
+    ensureActiveSessionId()
+  } catch (e) {
+    createRendererLogger('AgentView').error('Agent 工作区 init 失败', e)
+  } finally {
+    agentViewReady.value = true
+    const pendingDraft = agentManageUi.takePendingAgentDraft()
+    if (pendingDraft) applyPendingAgentDraftPayload(pendingDraft)
+    consumeHomeSubmitIfReady()
+  }
 
   // 固定使用 AutoGPT 引擎（不暴露用户切换入口）
   selectedEngineId.value = 'default-autogpt-engine'
+})
+
+onActivated(() => {
+  consumeHomeSubmitIfReady()
 })
 
 onBeforeUnmount(() => {

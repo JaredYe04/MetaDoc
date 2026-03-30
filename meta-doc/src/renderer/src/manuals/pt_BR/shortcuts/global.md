@@ -1,4 +1,4 @@
-# Atalhos Globais
+﻿# Atalhos Globais
 
 ## Visão Geral
 
@@ -210,4 +210,3 @@ Se um atalho entrar em conflito com o sistema ou outro software:
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartPanel mode="demo" />

@@ -1,4 +1,4 @@
-# 다중 탭 관리
+﻿# 다중 탭 관리
 
 ## 개요
 
@@ -14,7 +14,6 @@ MetaDoc는 다중 탭 관리를 지원하여 여러 문서를 동시에 열 수 
 
 <ProofreadView mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
 <GraphWindow mode="demo" />
 

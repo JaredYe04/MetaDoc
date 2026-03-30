@@ -3,7 +3,7 @@
  * 负责管理Agent的上下文，包括历史消息、工作记忆、引用素材等
  */
 
-import { AgentMessage } from '../../types/agent'
+import type { AgentMessage, ChatAgentMessage } from '../../types/agent'
 import type { AgentSession as LegacyAgentSession } from '../../types/agent'
 import type { AgentSession, Reference, PublicContext, AgentEngine } from '../../types/agent-framework'
 import type { AgentConfig } from '../../types/agent-framework'
@@ -12,6 +12,23 @@ import { LlmAdapter } from './llm-adapter'
 import { getPromptByKey } from '../prompts'
 import { ToolRunner, type ToolObservation } from './tool-runner'
 import { useWorkspace } from '../../stores/workspace'
+import { agentToolManager } from '../agent-tool-manager'
+
+function resolveToolDisplayNameForSynthetic(toolId: string): string {
+  try {
+    const tool = agentToolManager.getTool(toolId)
+    const n = tool?.config?.name
+    if (typeof n === 'string') return n
+    if (n && typeof n === 'object') {
+      return (n as { zh_cn?: { name?: string }; en_us?: { name?: string } }).zh_cn?.name ||
+        (n as { en_us?: { name?: string } }).en_us?.name ||
+        toolId
+    }
+  } catch {
+    /* ignore */
+  }
+  return toolId
+}
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
 
@@ -704,7 +721,12 @@ export class AIContextManager {
         content += `Description: ${ref.description}\n`
       }
 
-      if (ref.parsedContent) {
+      if (ref.metadata?.attachmentStorage === 'workspace' && !ref.parsedContent) {
+        content += `Workspace attachment (read via workspace tool; absolute path): ${ref.origin}\n`
+        if (ref.metadata?.workspaceRelativePath) {
+          content += `Relative to workspace root: ${ref.metadata.workspaceRelativePath}\n`
+        }
+      } else if (ref.parsedContent) {
         content += `\nParsed content (data analysis/text extraction):\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
       } else {
         logger.warn(`[buildReferencesContent] Reference ${ref.name} missing parsedContent`)
@@ -717,6 +739,31 @@ export class AIContextManager {
     })
 
     return content
+  }
+
+  /** 将用户消息中快照的附件路径/内联片段拼入发给 LLM 的正文（工作区附件不注入全文） */
+  private static appendUserChatAttachmentHints(content: string, msg: ChatAgentMessage): string {
+    let out = content
+    const wa = msg.workspaceAttachments
+    if (wa && wa.length > 0) {
+      const lines = wa.map((a) => `- ${a.name} (${a.format}): ${a.absolutePath}`).join('\n')
+      const relHint = wa
+        .map((a) => a.relativePath)
+        .filter(Boolean)
+        .map((p) => `  relative: ${p}`)
+        .join('\n')
+      out +=
+        '\n\n[Attached files in workspace — file contents are not inlined. Use the **workspace** tool with these absolute paths (or the relative paths from workspace root).]\n' +
+        lines +
+        (relHint ? `\n${relHint}` : '')
+    }
+    const inlineSnippets = msg.inlineReferenceSnippets
+    if (inlineSnippets && inlineSnippets.length > 0) {
+      for (const s of inlineSnippets) {
+        out += `\n\n[Reference snippet: ${s.name}] (format: ${s.format})\n\`\`\`\n${s.text}\n\`\`\``
+      }
+    }
+    return out
   }
 
   /**
@@ -737,7 +784,11 @@ export class AIContextManager {
         if (msg.type === 'chat') {
           // 发送给 AI 时把闭合 tag @[path] 转成 @path，便于模型理解
           const rawContent = msg.markdown || ''
-          const contentForLlm = rawContent.replace(/@\[([^\]]+)\]/g, '@$1')
+          let contentForLlm = rawContent.replace(/@\[([^\]]+)\]/g, '@$1')
+          contentForLlm = this.appendUserChatAttachmentHints(
+            contentForLlm,
+            msg as ChatAgentMessage
+          )
           llmMessages.push({
             role: msg.role,
             content: contentForLlm
@@ -1081,7 +1132,9 @@ export class AIContextManager {
     summary?: string,
     tool_call_id?: string,
     toolConfig?: any,
-    params?: Record<string, unknown> // 添加params参数，用于保存工具调用参数
+    params?: Record<string, unknown>, // 添加params参数，用于保存工具调用参数
+    /** 若指定，将消息插入到该下标处（splice），否则 push 到末尾；用于在 assistant 与 tool 块之间补协议占位 */
+    insertAtIndex?: number
   ): AgentMessage {
     const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
@@ -1241,7 +1294,11 @@ export class AIContextManager {
       ...(params ? { params } : {}) // 保存工具调用参数，用于快照导出
     } as any // 使用as any因为params不在ToolAgentMessage接口中，但我们需要保存它
 
-    session.messages.push(message)
+    if (typeof insertAtIndex === 'number' && insertAtIndex >= 0) {
+      session.messages.splice(insertAtIndex, 0, message)
+    } else {
+      session.messages.push(message)
+    }
     // 兼容新旧格式的updatedAt
     if (typeof session.updatedAt === 'string') {
       session.updatedAt = new Date().toISOString()
@@ -1250,6 +1307,93 @@ export class AIContextManager {
     }
 
     return message
+  }
+
+  /**
+   * 中断/取消后：将仍为 running/pending 的工具行收尾，并为尚无对应 tool 消息的 tool_call_id 补失败占位，
+   * 保证发给 LLM 的上下文满足「每个 tool_call_id 均有 tool 消息」的协议。
+   */
+  static finalizeInterruptedToolRounds(
+    session: AgentSession | LegacyAgentSession,
+    reason: string
+  ): void {
+    const messages = session.messages
+    if (!Array.isArray(messages) || messages.length === 0) return
+
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i] as any
+      if (
+        m.role === 'tool' &&
+        m.type === 'tool' &&
+        (m.status === 'running' || m.status === 'pending')
+      ) {
+        const toolId = m.tool?.id || 'unknown'
+        let toolName = toolId
+        const tn = m.tool?.name
+        if (typeof tn === 'string') toolName = tn
+        else if (tn && typeof tn === 'object') {
+          toolName =
+            (tn as { zh_cn?: { name?: string }; en_us?: { name?: string } }).zh_cn?.name ||
+            (tn as { en_us?: { name?: string } }).en_us?.name ||
+            toolId
+        }
+        const obs: ToolObservation = {
+          toolId,
+          toolName,
+          status: 'failed',
+          error: reason
+        }
+        AIContextManager.completeToolMessage(session, m.id, obs, m.params)
+      }
+    }
+
+    const assistantIndicesWithTools: number[] = []
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i]
+      if (m.role !== 'assistant' || m.type !== 'chat') continue
+      const tcs = (m as any).tool_calls
+      if (Array.isArray(tcs) && tcs.length > 0) assistantIndicesWithTools.push(i)
+    }
+    for (let k = assistantIndicesWithTools.length - 1; k >= 0; k--) {
+      const i = assistantIndicesWithTools[k]
+      const m = messages[i]
+      const tcs = (m as any).tool_calls
+      const needed = new Map<string, { toolId: string }>()
+      for (const tc of tcs) {
+        const id = tc?.id
+        if (!id || typeof id !== 'string') continue
+        const toolId =
+          tc.tool_id ||
+          (typeof tc.function?.name === 'string' ? tc.function.name : '') ||
+          'unknown'
+        needed.set(id, { toolId })
+      }
+      let insertAt = i + 1
+      while (insertAt < messages.length && messages[insertAt].role === 'tool') {
+        const tid = (messages[insertAt] as any).tool_call_id
+        if (tid && needed.has(tid)) needed.delete(tid)
+        insertAt++
+      }
+      if (needed.size === 0) continue
+      let idx = insertAt
+      for (const [callId, meta] of needed) {
+        const nm = resolveToolDisplayNameForSynthetic(meta.toolId)
+        AIContextManager.addToolMessage(
+          session,
+          meta.toolId,
+          nm,
+          'failed',
+          undefined,
+          reason,
+          undefined,
+          callId,
+          undefined,
+          undefined,
+          idx
+        )
+        idx++
+      }
+    }
   }
 
   /**

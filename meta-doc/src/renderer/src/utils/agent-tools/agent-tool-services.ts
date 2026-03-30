@@ -15,6 +15,7 @@ import { useWorkspace } from '../../stores/workspace'
 import { useActiveDocument } from '../../composables/useActiveDocument'
 import { isElectronEnv } from '../event-bus'
 import messageBridge from '../../bridge/message-bridge'
+import { notifyWorkspaceFilesystemChange } from '../workspace-fs-notify'
 
 /**
  * 主题服务接口
@@ -383,6 +384,16 @@ class AgentToolServices {
       return entries
     }
 
+    const pathIsDirectory = async (p: string): Promise<boolean> => {
+      if (!isElectronEnv() || !messageBridge.getIpc()) return false
+      try {
+        const entries = await messageBridge.invoke('read-directory', p)
+        return Array.isArray(entries)
+      } catch {
+        return false
+      }
+    }
+
     return {
       getActiveDocument: () => {
         const doc = activeDocument.value
@@ -503,6 +514,7 @@ class AgentToolServices {
           fileName,
           content: content ?? ''
         })) as string
+        notifyWorkspaceFilesystemChange(String(newPath).replace(/\\/g, '/'), 'add')
         return newPath
       },
 
@@ -514,6 +526,7 @@ class AgentToolServices {
           parentPath,
           folderName
         })) as string
+        notifyWorkspaceFilesystemChange(String(newPath).replace(/\\/g, '/'), 'addDir')
         return newPath
       },
 
@@ -521,17 +534,24 @@ class AgentToolServices {
         if (!isElectronEnv() || !messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
+        const wasDir = await pathIsDirectory(targetPath)
         await messageBridge.invoke('delete-file-or-folder', targetPath)
+        notifyWorkspaceFilesystemChange(targetPath.replace(/\\/g, '/'), wasDir ? 'unlinkDir' : 'unlink')
       },
 
       renamePath: async (oldPath: string, newName: string) => {
         if (!isElectronEnv() || !messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
+        const wasDir = await pathIsDirectory(oldPath)
         const newPath = (await messageBridge.invoke('rename-file-or-folder', {
           oldPath,
           newName
         })) as string
+        const normOld = oldPath.replace(/\\/g, '/')
+        const normNew = String(newPath).replace(/\\/g, '/')
+        notifyWorkspaceFilesystemChange(normOld, wasDir ? 'unlinkDir' : 'unlink')
+        notifyWorkspaceFilesystemChange(normNew, wasDir ? 'addDir' : 'add')
         return newPath
       },
 
@@ -540,13 +560,18 @@ class AgentToolServices {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
         await messageBridge.invoke('copy-file-or-folder', { sourcePath, targetPath })
+        const isDir = await pathIsDirectory(targetPath)
+        notifyWorkspaceFilesystemChange(targetPath.replace(/\\/g, '/'), isDir ? 'addDir' : 'add')
       },
 
       movePath: async (sourcePath: string, targetPath: string) => {
         if (!isElectronEnv() || !messageBridge.getIpc()) {
           throw new Error('IPC Renderer 未初始化，此功能仅在 Electron 环境中可用')
         }
+        const wasDir = await pathIsDirectory(sourcePath)
         await messageBridge.invoke('move-file-or-folder', { sourcePath, targetPath })
+        notifyWorkspaceFilesystemChange(sourcePath.replace(/\\/g, '/'), wasDir ? 'unlinkDir' : 'unlink')
+        notifyWorkspaceFilesystemChange(targetPath.replace(/\\/g, '/'), wasDir ? 'addDir' : 'add')
       }
     }
   }

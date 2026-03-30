@@ -38,6 +38,19 @@ function getTargetAction(e: KeyboardEvent, isMac: boolean): ShortcutActionId | n
   return null
 }
 
+/**
+ * 焦点在普通输入控件且不在文档编辑器内时，不劫持快捷键（由浏览器处理复制/粘贴/剪切/撤销等）。
+ * 与 find/replace 分支一致；否则在「文件标签激活 + Agent 侧 Textarea 聚焦」时仍会 dispatch 到 Monaco。
+ */
+function isNativeTextInputOutsideEditor(target: HTMLElement): boolean {
+  const isInInput =
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.isContentEditable
+  if (!isInInput) return false
+  return !target.closest('.vditor, .monaco-editor, .editor, [data-editor]')
+}
+
 export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
   const { workspace, t } = options
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
@@ -68,6 +81,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
         // 焦点在 Xterm 终端内时，不拦截：Ctrl+C 发 SIGINT，Ctrl+V 粘贴，Ctrl+Z 发 SIGTSTP
         const inTerminal = target.closest('.xterm, .xterm-instance')
         if (inTerminal) return
+        if (isNativeTextInputOutsideEditor(target)) return
         if (!inDialog && inEditor) {
           e.preventDefault()
           e.stopPropagation()
@@ -79,6 +93,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
       case 'undo':
       case 'redo':
         if (target.closest('.xterm, .xterm-instance')) return
+        if (isNativeTextInputOutsideEditor(target)) return
         if (!inDialog && inEditor) {
           e.preventDefault()
           e.stopPropagation()
@@ -100,12 +115,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
         return
 
       case 'find': {
-        const isInInput =
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable
-        if (isInInput && !target.closest('.vditor, .monaco-editor, .editor, [data-editor]'))
-          return
+        if (isNativeTextInputOutsideEditor(target)) return
         e.preventDefault()
         e.stopPropagation()
         eventBus.emit('search-replace')
@@ -113,12 +123,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
       }
 
       case 'replace': {
-        const isInInput =
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable
-        if (isInInput && !target.closest('.vditor, .monaco-editor, .editor, [data-editor]'))
-          return
+        if (isNativeTextInputOutsideEditor(target)) return
         e.preventDefault()
         e.stopPropagation()
         eventBus.emit('search-replace', { expandReplace: true })

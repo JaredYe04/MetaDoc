@@ -57,17 +57,53 @@ function generateRequestId(): string {
   return `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
+/** 主页 GlobalHome 上传时尚无 Agent 会话，附件暂存于 `.metadoc/attachments/_home_pending/`，打开 Agent 后迁移到真实 sessionId */
+export const AGENT_HOME_PENDING_ATTACHMENT_SESSION_ID = '_home_pending'
+
+function buildWorkspaceAttachmentMetadata(
+  relativePath: string,
+  sessionId: string
+): Record<string, unknown> {
+  return {
+    attachmentStorage: 'workspace',
+    workspaceRelativePath: relativePath,
+    ...(sessionId === AGENT_HOME_PENDING_ATTACHMENT_SESSION_ID ? { homePending: true } : {})
+  }
+}
+
+/** 解析后的文本落盘文件名（与源名区分，统一 .txt 便于 workspace 读取） */
+function buildExtractedAttachmentFilename(originalName: string): string {
+  const base =
+    originalName
+      .replace(/[/\\?%*:|"<>]/g, '_')
+      .replace(/\.[^./\\]+$/i, '')
+      .trim()
+      .slice(0, 80) || 'attachment'
+  return `${base}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-extracted.txt`
+}
+
+export interface ProcessFileUploadOptions {
+  /**
+   * 解析完成后将**提取/过滤后的纯文本**写入工作区 `.metadoc/attachments/<sessionId>/`（非原始二进制）。
+   * LLM 通过 workspace 工具读该 .txt；会话内 `parsedContent` 置空以免重复占上下文。
+   */
+  workspaceAttachment?: { workspaceRoot: string; sessionId: string }
+}
+
 /**
  * 处理文件上传
  * @param file 文件对象
  * @param abortSignal 可选的AbortSignal，用于取消操作
  * @param requestId 可选的requestId，用于取消主进程任务
+ * @param options 可选；若含 workspaceAttachment 则在完整解析（PDF/PPTX/OCR 等）后把提取文本写入工作区附件目录
  */
 export async function processFileUpload(
   file: File,
   abortSignal?: AbortSignal,
-  requestId?: string
+  requestId?: string,
+  options?: ProcessFileUploadOptions
 ): Promise<Reference> {
+  const workspacePersist = options?.workspaceAttachment
   const filename = file.name
   const format = referenceAdapterManager.inferFormatFromFilename(filename)
 
@@ -258,6 +294,31 @@ export async function processFileUpload(
         updatedAt: Date.now()
       }
 
+      if (workspacePersist) {
+        if (!messageBridge.getIpc()) {
+          throw new Error('工作区附件需要 Electron IPC：无法将解析文本写入 .metadoc/attachments')
+        }
+        const outName = buildExtractedAttachmentFilename(filename)
+        const saved = (await messageBridge.invoke('save-agent-session-attachment', {
+          workspaceRoot: workspacePersist.workspaceRoot,
+          sessionId: workspacePersist.sessionId,
+          filename: outName,
+          content: filteredContent,
+          encoding: 'utf8'
+        })) as { absolutePath: string; relativePath: string }
+        reference.origin = saved.absolutePath
+        reference.parsedContent = ''
+        reference.metadata = buildWorkspaceAttachmentMetadata(
+          saved.relativePath,
+          workspacePersist.sessionId
+        )
+        getLogger().info(`[processFileUpload] 已写入工作区提取文本附件`, {
+          name: filename,
+          savedPath: saved.absolutePath,
+          textLength: filteredContent.length
+        })
+      }
+
       getLogger().info(`[processFileUpload] Reference对象创建完成`, {
         id: reference.id,
         name: reference.name,
@@ -288,12 +349,17 @@ export async function processFileUpload(
   return promise
 }
 
+export interface ProcessUrlReferenceOptions {
+  workspaceAttachment?: { workspaceRoot: string; sessionId: string }
+}
+
 /**
  * 处理URL引用
  */
 export async function processUrlReference(
   url: string,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  urlOptions?: ProcessUrlReferenceOptions
 ): Promise<Reference> {
   // 使用任务管理器注册任务
   const { handle, promise } = registerTask(
@@ -327,7 +393,7 @@ export async function processUrlReference(
       const format = referenceAdapterManager.inferFormatFromUrl(url)
       const isHtml = format === 'html' || format === 'htm'
 
-      let content: string
+      let content: string | undefined
       let filePath: string | undefined
 
       try {
@@ -462,6 +528,23 @@ export async function processUrlReference(
         parsedContent: filteredContent,
         createdAt: Date.now(),
         updatedAt: Date.now()
+      }
+
+      if (urlOptions?.workspaceAttachment && messageBridge.getIpc()) {
+        const wa = urlOptions.workspaceAttachment
+        const fn = buildExtractedAttachmentFilename(
+          `url-${urlObj.hostname.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+        )
+        const saved = (await messageBridge.invoke('save-agent-session-attachment', {
+          workspaceRoot: wa.workspaceRoot,
+          sessionId: wa.sessionId,
+          filename: fn,
+          content: filteredContent,
+          encoding: 'utf8'
+        })) as { absolutePath: string; relativePath: string }
+        reference.origin = saved.absolutePath
+        reference.parsedContent = ''
+        reference.metadata = buildWorkspaceAttachmentMetadata(saved.relativePath, wa.sessionId)
       }
 
       return reference

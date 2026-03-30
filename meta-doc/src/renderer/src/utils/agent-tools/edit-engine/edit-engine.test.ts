@@ -100,6 +100,59 @@ describe('edit-engine', () => {
     expect(text).toBe('## New\n')
   })
 
+  it('match_scope:full：context 末尾多写换行而文件无 EOF 换行时仍可命中', () => {
+    const file = '## H\nbody'
+    const edits: EditOperation[] = [
+      {
+        id: 'e1',
+        type: 'replace',
+        target: {
+          anchor: '## H',
+          context_before: '',
+          context_after: '\nbody\n'
+        },
+        match_scope: 'full',
+        content: '## New'
+      }
+    ]
+    const { text } = applyEdits(file, edits)
+    expect(text).toBe('## New')
+  })
+
+  it('UTF-8 BOM 不影响首行锚点与 full 段匹配', () => {
+    const file = '\uFEFF# Title\nx'
+    const edits: EditOperation[] = [
+      {
+        id: 'e1',
+        type: 'replace',
+        target: { anchor: '# Title', context_before: '', context_after: '\nx' },
+        match_scope: 'full',
+        content: '# OK'
+      }
+    ]
+    const { text } = applyEdits(file, edits)
+    expect(text).toBe('# OK')
+  })
+
+  it('TARGET_NOT_FOUND 错误信息包含 fullNeedle 预览', () => {
+    try {
+      applyEdits('abc', [
+        {
+          id: 'x',
+          type: 'replace',
+          target: { anchor: 'nope', context_before: 'pre', context_after: 'post' },
+          match_scope: 'full',
+          content: 'z'
+        }
+      ])
+      expect.fail('should throw')
+    } catch (e) {
+      expect(e).toBeInstanceOf(EditEngineError)
+      expect((e as EditEngineError).message).toContain('fullNeedle')
+      expect((e as EditEngineError).message).toContain('prenopepost')
+    }
+  })
+
   it('insert：锚后同行粘连时自动换行（无需 content 自带前导 \\n）', () => {
     const file = 'pre### 章节2### tail'
     const edits: EditOperation[] = [

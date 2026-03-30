@@ -22,6 +22,21 @@ export interface AgentMessageBase {
   timestamp: string
 }
 
+/** 用户发送时快照：工作区 .metadoc/attachments 下的文件路径（供 LLM 用 workspace 工具读取，不注入全文） */
+export interface UserMessageWorkspaceAttachment {
+  name: string
+  absolutePath: string
+  relativePath: string
+  format: string
+}
+
+/** 非工作区附件（如引用管理器导入）在发送时内联到该条用户消息的文本快照 */
+export interface UserMessageInlineReferenceSnippet {
+  name: string
+  format: string
+  text: string
+}
+
 export interface ChatAgentMessage extends AgentMessageBase {
   type: 'chat'
   markdown: string
@@ -32,6 +47,10 @@ export interface ChatAgentMessage extends AgentMessageBase {
   }>
   /** 消息关联的引用ID列表（仅用于UI展示，不传给AI） */
   referenceIds?: string[]
+  /** 本轮通过工作区保存的附件路径（发送后 referenceStore 已清空，靠此字段展示与拼进 LLM 用户消息） */
+  workspaceAttachments?: UserMessageWorkspaceAttachment[]
+  /** 管理附件等产生的纯文本引用快照（发送时从 referenceStore 移入消息） */
+  inlineReferenceSnippets?: UserMessageInlineReferenceSnippet[]
 }
 
 export interface ThoughtAgentMessage extends AgentMessageBase {
@@ -85,6 +104,25 @@ export interface AgentTool {
   lastUsed?: string
 }
 
+/** Composer 在 Agent 执行中先入队，本轮完全结束后按 FIFO 自动发送 */
+export interface ComposerSendQueueItem {
+  id: string
+  markdown: string
+  /** 入队时附件区快照（发送该条前写回 referenceStore） */
+  referenceSnapshot: Array<{
+    id: string
+    name: string
+    origin: string
+    format: string
+    parsedContent: string
+    description?: string
+    metadata?: Record<string, unknown>
+    createdAt: number
+    updatedAt: number
+  }>
+  createdAt: string
+}
+
 export interface AgentSession {
   id: string
   title: string
@@ -105,6 +143,8 @@ export interface AgentSession {
     insertedAtMessageId?: string
     processed: boolean
   }>
+  /** 用户输入待发送队列（与 messageQueue 框架队列无关） */
+  composerSendQueue?: ComposerSendQueueItem[]
   referenceStore?: Array<{
     id: string
     name: string

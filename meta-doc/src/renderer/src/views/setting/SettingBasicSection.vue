@@ -317,11 +317,13 @@
         </FormField>
       </div>
 
-      <FormField
-        :label="t('setting.referenceDirManagement', '引用文件目录管理')"
-        name="referenceDirManagement"
-        layout="horizontal"
-      >
+      <div class="font-settings-group reference-storage-groups">
+        <h4 class="font-group-title">
+          {{ t('setting.referenceGlobalSection', '全局引用目录') }}
+        </h4>
+        <p class="reference-section-desc">
+          {{ t('setting.referenceGlobalSectionDesc', '应用数据目录下的引用缓存（如解析上传时的临时文件）。') }}
+        </p>
         <div class="reference-dir-management">
           <div class="reference-dir-info">
             <span class="reference-dir-size-label"
@@ -341,7 +343,145 @@
             </Button>
           </div>
         </div>
-      </FormField>
+        <FormField
+          :label="t('setting.referenceGlobalAutoPrune', '自动清理（早于）')"
+          name="referenceGlobalAutoPruneDays"
+          layout="horizontal"
+        >
+          <Select
+            :model-value="String(normalizePruneDaysForUi(settings.referenceGlobalAutoPruneDays))"
+            @update:model-value="saveGlobalAutoPruneDays"
+          >
+            <SelectTrigger class="w-[280px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent class="min-w-[280px]">
+              <SelectItem
+                v-for="opt in referenceAutoPruneOptions"
+                :key="'g-' + opt.days"
+                :value="String(opt.days)"
+              >
+                {{ t(opt.labelKey, opt.labelDefault) }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+
+        <div class="reference-cleanup-block flex items-start justify-between gap-4">
+          <div class="reference-cleanup-block__text min-w-0 flex-1">
+            <h5 class="reference-cleanup-block__title">
+              {{ t('setting.cleanupExpiredSectionTitle', '清理过期文件') }}
+            </h5>
+            <p class="reference-section-desc reference-cleanup-block__hint">
+              {{
+                agentWorkspaceRoot
+                  ? t(
+                      'setting.cleanupExpiredHintGlobalWithWorkspace',
+                      '「清理过期文件」按上方规则处理全局与工作区；「清空全部缓存」会同时清空全局引用目录与当前工作区 .metadoc/attachments。'
+                    )
+                  : t(
+                      'setting.cleanupExpiredHintNoWorkspace',
+                      '根据上方「早于 N 天」规则删除过期文件；「清空全部缓存」仅清空全局引用目录（当前无工作区文件夹，不会清理工作区附件）。'
+                    )
+              }}
+            </p>
+          </div>
+          <div class="reference-cleanup-block__actions flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <Button size="small" type="primary" @click="runReferencePruneNow">
+              {{ t('setting.cleanupExpiredFiles', '清理过期文件') }}
+            </Button>
+            <Button size="small" type="danger" @click="clearAllReferenceCaches">
+              {{ t('setting.clearAllReferenceCaches', '清空全部缓存') }}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div class="font-settings-group reference-storage-groups">
+        <h4 class="font-group-title">
+          {{ t('setting.referenceAgentSection', 'Agent 工作区附件') }}
+        </h4>
+        <p class="reference-section-desc">
+          {{
+            t(
+              'setting.referenceAgentSectionDesc',
+              '当前工作区 .metadoc/attachments 下的会话附件（按路径供工具读取）。'
+            )
+          }}
+        </p>
+        <template v-if="!agentWorkspaceRoot">
+          <p class="reference-section-desc text-muted-foreground">
+            {{ t('setting.referenceAgentNoWorkspace', '未选择工作区时无法统计或清理此处附件。') }}
+          </p>
+        </template>
+        <template v-else>
+          <div class="reference-dir-management">
+            <div class="reference-dir-info">
+              <span class="reference-dir-size-label"
+                >{{ t('setting.referenceDirSize', '目录大小') }}:
+              </span>
+              <span class="reference-dir-size-value">{{
+                formatFileSize(agentAttachmentsDirSize)
+              }}</span>
+            </div>
+            <div class="reference-dir-actions">
+              <Button size="small" @click="refreshAgentAttachmentsDirSize">
+                {{ t('setting.refresh', '刷新') }}
+              </Button>
+              <Button size="small" type="danger" @click="clearAgentAttachmentsDir">
+                {{ t('setting.clearAgentAttachmentsDir', '清空附件目录') }}
+              </Button>
+            </div>
+          </div>
+        </template>
+        <FormField
+          :label="t('setting.referenceAgentAutoPrune', '工作区附件自动清理（早于）')"
+          name="referenceAgentAutoPruneDays"
+          layout="horizontal"
+        >
+          <Select
+            :model-value="String(normalizePruneDaysForUi(settings.referenceAgentAutoPruneDays))"
+            @update:model-value="saveAgentAutoPruneDays"
+          >
+            <SelectTrigger class="w-[280px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent class="min-w-[280px]">
+              <SelectItem
+                v-for="opt in referenceAutoPruneOptions"
+                :key="'a-' + opt.days"
+                :value="String(opt.days)"
+              >
+                {{ t(opt.labelKey, opt.labelDefault) }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+
+        <div class="reference-cleanup-block flex items-start justify-between gap-4">
+          <div class="reference-cleanup-block__text min-w-0 flex-1">
+            <h5 class="reference-cleanup-block__title">
+              {{ t('setting.cleanupExpiredSectionTitle', '清理过期文件') }}
+            </h5>
+            <p class="reference-section-desc reference-cleanup-block__hint">
+              {{
+                t(
+                  'setting.cleanupExpiredHintAgentOnly',
+                  '此处仅影响当前工作区：「清理过期文件」会按上方规则清理本工作区附件；红色按钮只清空 .metadoc/attachments，不会动全局引用目录。'
+                )
+              }}
+            </p>
+          </div>
+          <div class="reference-cleanup-block__actions flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <Button size="small" type="primary" @click="runReferencePruneNow">
+              {{ t('setting.cleanupExpiredFiles', '清理过期文件') }}
+            </Button>
+            <Button size="small" type="danger" @click="clearAgentAttachmentsDir">
+              {{ t('setting.clearAgentWorkspaceOnly', '清空工作区附件') }}
+            </Button>
+          </div>
+        </div>
+      </div>
     </Form>
 
     <FontDebugPanel />
@@ -349,7 +489,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
@@ -371,6 +512,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui
 import { FontSelect } from '@renderer/components/ui/font-select'
 import { preloadFonts } from '@renderer/services/font-service'
 import FontDebugPanel from '@renderer/components/FontDebugPanel.vue'
+import { useAgentWorkspaceStore } from '../../stores/agent-workspace-store'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 
 // Demo mode support
@@ -388,6 +530,44 @@ const applyInterfaceLanguage = (lang: string) => {
 }
 
 const referenceDirSize = ref<number>(0)
+const agentAttachmentsDirSize = ref<number>(0)
+
+const agentWsStore = useAgentWorkspaceStore()
+const { workspaceRoot: agentWorkspaceRoot } = storeToRefs(agentWsStore)
+const { refreshWorkspaceRoot } = agentWsStore
+
+const referenceAutoPruneOptions = [
+  { days: 0, labelKey: 'setting.referenceAutoPruneOff', labelDefault: '关闭' },
+  { days: 1, labelKey: 'setting.referenceAutoPrune1d', labelDefault: '1 天前' },
+  { days: 3, labelKey: 'setting.referenceAutoPrune3d', labelDefault: '3 天前' },
+  { days: 7, labelKey: 'setting.referenceAutoPrune7d', labelDefault: '7 天前' },
+  { days: 14, labelKey: 'setting.referenceAutoPrune14d', labelDefault: '14 天前' },
+  { days: 30, labelKey: 'setting.referenceAutoPrune30d', labelDefault: '30 天前' },
+  { days: 90, labelKey: 'setting.referenceAutoPrune90d', labelDefault: '90 天前' },
+  { days: 180, labelKey: 'setting.referenceAutoPrune180d', labelDefault: '半年（180 天）前' },
+  { days: 365, labelKey: 'setting.referenceAutoPrune365d', labelDefault: '一年（365 天）前' }
+] as const
+
+/** 未写入磁盘前可能为 undefined；显式 0 表示「关闭」 */
+const normalizePruneDaysForUi = (v: unknown): number => {
+  if (v === undefined || v === null || v === '') return 7
+  const n = typeof v === 'number' ? v : parseInt(String(v), 10)
+  return Number.isFinite(n) && n >= 0 ? n : 7
+}
+
+const saveGlobalAutoPruneDays = async (v: unknown) => {
+  const n = parseInt(String(v), 10)
+  const num = Number.isFinite(n) && n >= 0 ? n : 7
+  settings.referenceGlobalAutoPruneDays = num
+  await setSetting('referenceGlobalAutoPruneDays', num)
+}
+
+const saveAgentAutoPruneDays = async (v: unknown) => {
+  const n = parseInt(String(v), 10)
+  const num = Number.isFinite(n) && n >= 0 ? n : 7
+  settings.referenceAgentAutoPruneDays = num
+  await setSetting('referenceAgentAutoPruneDays', num)
+}
 
 const currentEditorModeHint = computed(() => {
   const mode = settings.vditorMode
@@ -498,6 +678,149 @@ const openReferenceDir = async () => {
   }
 }
 
+const refreshAgentAttachmentsDirSize = async () => {
+  await refreshWorkspaceRoot()
+  const root = agentWorkspaceRoot.value
+  if (!root) {
+    agentAttachmentsDirSize.value = 0
+    return
+  }
+  try {
+    const messageBridge = (await import('../../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
+      throw new Error('IPC渲染器不可用')
+    }
+    const size = (await messageBridge.invoke('get-agent-attachments-dir-size', {
+      workspaceRoot: root
+    })) as number
+    agentAttachmentsDirSize.value = size
+  } catch (error) {
+    notifyError(
+      t('setting.getDirSizeFailed', '获取目录大小失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
+  }
+}
+
+const clearAgentAttachmentsDir = async () => {
+  await refreshWorkspaceRoot()
+  const root = agentWorkspaceRoot.value
+  if (!root) return
+  try {
+    await messageBox.confirm(
+      t(
+        'setting.clearAgentAttachmentsConfirm',
+        '确定要清空当前工作区下 Agent 附件目录吗？此操作将删除 .metadoc/attachments 中的全部文件，且无法恢复。'
+      ),
+      t('setting.clearAgentAttachmentsDir', '清空附件目录'),
+      {
+        type: 'warning',
+        confirmButtonText: t('common.confirm', '确认'),
+        cancelButtonText: t('common.cancel', '取消')
+      }
+    )
+    const messageBridge = (await import('../../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
+      throw new Error('IPC渲染器不可用')
+    }
+    await messageBridge.invoke('clear-all-agent-attachments', { workspaceRoot: root })
+    await refreshAgentAttachmentsDirSize()
+    notifySuccess(t('setting.clearAgentAttachmentsSuccess', '工作区附件目录已清空'))
+  } catch (error) {
+    if (error !== 'cancel') {
+      notifyError(
+        t('setting.clearAgentAttachmentsFailed', '清空工作区附件失败') +
+          ': ' +
+          (error instanceof Error ? error.message : String(error))
+      )
+    }
+  }
+}
+
+const runReferencePruneNow = async () => {
+  if (isDemo.value) return
+  await refreshWorkspaceRoot()
+  const g = normalizePruneDaysForUi(settings.referenceGlobalAutoPruneDays)
+  const a = normalizePruneDaysForUi(settings.referenceAgentAutoPruneDays)
+  if (g <= 0 && a <= 0) {
+    notifyWarning(
+      t(
+        'setting.referencePruneNoRule',
+        '请先在「自动清理」中将全局或工作区其中至少一项设为「早于 N 天」（或直接使用「清空全部缓存」）。'
+      )
+    )
+    return
+  }
+  try {
+    const messageBridge = (await import('../../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
+      throw new Error('IPC渲染器不可用')
+    }
+    const roots = a > 0 && agentWorkspaceRoot.value ? [agentWorkspaceRoot.value] : []
+    await messageBridge.invoke('prune-reference-storage-by-age', {
+      globalDays: g,
+      agentDays: a,
+      workspaceRoots: roots
+    })
+    await refreshReferenceDirSize()
+    await refreshAgentAttachmentsDirSize()
+    notifySuccess(t('setting.referencePruneDone', '已按规则清理过期引用文件'))
+  } catch (error) {
+    notifyError(
+      t('setting.referencePruneFailed', '清理失败') +
+        ': ' +
+        (error instanceof Error ? error.message : String(error))
+    )
+  }
+}
+
+const clearAllReferenceCaches = async () => {
+  if (isDemo.value) return
+  try {
+    const confirmBody = agentWorkspaceRoot.value
+      ? t(
+          'setting.clearAllReferenceCachesConfirmFull',
+          '将清空全局引用目录，并清空当前工作区 .metadoc/attachments 下的全部附件。此操作不可恢复，确定继续？'
+        )
+      : t(
+          'setting.clearAllReferenceCachesConfirmGlobalOnly',
+          '将清空全局引用目录（当前无工作区，不会清理工作区附件）。此操作不可恢复，确定继续？'
+        )
+    await messageBox.confirm(confirmBody, t('setting.clearAllReferenceCaches', '清空全部缓存'), {
+      type: 'warning',
+      confirmButtonText: t('common.confirm', '确认'),
+      cancelButtonText: t('common.cancel', '取消')
+    })
+    const messageBridge = (await import('../../bridge/message-bridge')).default
+    if (!messageBridge.getIpc()) {
+      throw new Error('IPC渲染器不可用')
+    }
+    await messageBridge.invoke('clear-reference-dir')
+    const rootAfter = agentWorkspaceRoot.value
+    if (rootAfter) {
+      await messageBridge.invoke('clear-all-agent-attachments', { workspaceRoot: rootAfter })
+    }
+    await refreshReferenceDirSize()
+    await refreshAgentAttachmentsDirSize()
+    notifySuccess(t('setting.clearAllReferenceCachesSuccess', '已全部清空相关缓存'))
+  } catch (error) {
+    if (error !== 'cancel') {
+      notifyError(
+        t('setting.clearAllReferenceCachesFailed', '清空缓存失败') +
+          ': ' +
+          (error instanceof Error ? error.message : String(error))
+      )
+    }
+  }
+}
+
+watch(agentWorkspaceRoot, () => {
+  if (!isDemo.value) {
+    void refreshAgentAttachmentsDirSize()
+  }
+})
+
 // 清空reference目录
 const clearReferenceDir = async () => {
   try {
@@ -543,6 +866,7 @@ const loadDemoData = () => {
   settings.metadataSaveMode = 'sidecar'
   // 引用目录大小 (15MB = 15 * 1024 * 1024 bytes)
   referenceDirSize.value = 15 * 1024 * 1024
+  agentAttachmentsDirSize.value = 8 * 1024 * 1024
   // 其他演示设置
   settings.autoOpenHomeOnStartup = true
   settings.bypassCodeBlock = false
@@ -554,6 +878,8 @@ const loadDemoData = () => {
   settings.fontEditorWestern = 'JetBrains Mono'
   settings.fontPreviewChinese = 'Noto Sans SC'
   settings.fontPreviewWestern = 'Georgia'
+  settings.referenceGlobalAutoPruneDays = 7
+  settings.referenceAgentAutoPruneDays = 7
 }
 
 onMounted(() => {
@@ -571,7 +897,11 @@ onMounted(() => {
   if (settings.particleEffect !== false) {
     saveSetting('particleEffect', false)
   }
-  refreshReferenceDirSize()
+  void (async () => {
+    await refreshWorkspaceRoot()
+    await refreshReferenceDirSize()
+    await refreshAgentAttachmentsDirSize()
+  })()
 })
 </script>
 
@@ -630,6 +960,30 @@ onMounted(() => {
 .reference-dir-actions {
   display: flex;
   gap: 8px;
+}
+
+.reference-storage-groups .reference-section-desc {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+.reference-cleanup-block {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.reference-cleanup-block__title {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.reference-cleanup-block__hint {
+  margin: 0;
 }
 
 .metadata-info-icon {

@@ -66,12 +66,87 @@
       :current-content="fileConflictData.currentContent"
       :external-content="fileConflictData.externalContent"
       :saved-content="fileConflictData.savedContent"
-      :format="fileConflictData.format"
+      :format="fileConflictDialogFormat"
       :merge-result="fileConflictData.mergeResult"
       @use-external="handleFileConflictUseExternal"
       @keep-current="handleFileConflictKeepCurrent"
       @merge="handleFileConflictMerge"
     />
+
+    <!-- 全局：从绘图/气泡等请求「插入到文档」时选择 Markdown / LaTeX 等标签页 -->
+    <Dialog v-model:open="insertDocumentDialogVisible">
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{{ t('aiChat.selectDocumentTitle', '选择要插入的文档') }}</DialogTitle>
+        </DialogHeader>
+        <div class="main-insert-doc-content">
+          <div class="main-insert-doc-header">
+            <span class="main-insert-doc-count">
+              <template v-if="insertDocumentSelectedTabIds.length > 0">
+                {{ t('aiChat.selectedDocCount', { n: insertDocumentSelectedTabIds.length }) }}
+              </template>
+              <template v-else>{{ t('aiChat.pickDocToInsert', '请选择要插入的文档') }}</template>
+            </span>
+            <Button
+              v-if="insertDocumentTabs.length > 0"
+              variant="ghost"
+              size="sm"
+              @click="toggleInsertDocumentSelectAll"
+            >
+              {{
+                insertDocumentSelectedTabIds.length === insertDocumentTabs.length
+                  ? t('aiChat.deselectAll', '取消全选')
+                  : t('aiChat.selectAll', '全选')
+              }}
+            </Button>
+          </div>
+          <ScrollArea class="main-insert-doc-scroll h-[400px]">
+            <div class="main-insert-doc-list">
+              <div
+                v-for="tab in insertDocumentTabs"
+                :key="tab.id"
+                class="main-insert-doc-card"
+                :class="{ selected: insertDocumentSelectedTabIds.includes(tab.id) }"
+                @click="toggleInsertDocumentTabSelection(tab.id)"
+              >
+                <div class="main-insert-doc-card-checkbox">
+                  <Checkbox
+                    :checked="insertDocumentSelectedTabIds.includes(tab.id)"
+                    @update:checked="toggleInsertDocumentTabSelection(tab.id)"
+                  />
+                </div>
+                <div class="main-insert-doc-card-body">
+                  <div class="main-insert-doc-card-title-row">
+                    <FileText class="h-5 w-5 shrink-0 text-primary" />
+                    <span class="main-insert-doc-title">{{ tab.displayName }}</span>
+                    <span class="main-insert-doc-format">{{ tab.formatLabel }}</span>
+                  </div>
+                  <div v-if="tab.path" class="main-insert-doc-path">
+                    <Folder class="h-4 w-4 shrink-0" />
+                    <span>{{ tab.path }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="insertDocumentTabs.length === 0" class="main-insert-doc-empty">
+                <Empty :description="t('aiChat.noDocuments', '没有打开的文档')" :image-size="80" />
+              </div>
+            </div>
+            <ScrollBar />
+          </ScrollArea>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="insertDocumentDialogVisible = false">{{
+            t('common.cancel')
+          }}</Button>
+          <Button
+            :disabled="insertDocumentSelectedTabIds.length === 0"
+            @click="confirmInsertDocumentSelection"
+          >
+            {{ t('common.confirm') }} ({{ insertDocumentSelectedTabIds.length }})
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -99,7 +174,7 @@ import { onMounted, onBeforeUnmount, ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { messageBox } from '@renderer/utils/messageBox'
-import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { getSetting, updateRecentDocs } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
@@ -129,6 +204,18 @@ import {
 import { formatRegistry } from '../utils/format-registry'
 
 import TabSwitcherOverlay from '../components/TabSwitcherOverlay.vue'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '../components/ui/dialog'
+import { Button } from '../components/ui/button'
+import { ScrollArea, ScrollBar } from '../components/ui/scroll-area'
+import { Checkbox } from '../components/ui/checkbox'
+import { Empty } from '../components/ui/empty'
+import { FileText, Folder } from 'lucide-vue-next'
 import { useTabSwitcher } from '../composables/useTabSwitcher'
 import { useCloseTab } from '../composables/useCloseTab'
 import messageBridge from '../bridge/message-bridge'
@@ -202,6 +289,105 @@ const fileConflictData = ref<{
     }>
   }
 } | null>(null)
+
+const fileConflictDialogFormat = computed((): 'md' | 'tex' | undefined => {
+  const f = fileConflictData.value?.format
+  if (f === 'tex') return 'tex'
+  if (f === 'md' || f === 'txt' || typeof f === 'string') return 'md'
+  return undefined
+})
+
+/** 全局「插入到文档」：选择目标 Markdown / LaTeX 等标签页（绘图、气泡菜单等） */
+interface InsertDocumentTabItem {
+  id: string
+  displayName: string
+  path: string
+  formatLabel: string
+}
+
+const insertDocumentDialogVisible = ref(false)
+const insertDocumentSelectedTabIds = ref<string[]>([])
+const insertDocumentPendingContent = ref('')
+
+const insertDocumentTabs = computed<InsertDocumentTabItem[]>(() => {
+  return workspace.tabs
+    .filter((tab) => (tab.kind === 'file' || tab.kind === 'new') && tab.id)
+    .map((tab) => {
+      let displayName = ''
+      if (tab.title && tab.title.trim() && tab.title !== '未命名文档') {
+        displayName = tab.title.trim()
+      } else if (tab.path) {
+        const segments = tab.path.split(/[/\\]+/).filter(Boolean)
+        displayName = segments[segments.length - 1] || tab.path
+      } else {
+        displayName = t('workspace.untitledDocument', '未命名文档')
+      }
+      const fmt = (tab.format as string) || ''
+      const pathLower = (tab.path || '').toLowerCase()
+      const inferred =
+        fmt || (pathLower.endsWith('.tex') ? 'tex' : pathLower.endsWith('.txt') ? 'txt' : 'md')
+      const formatLabel =
+        inferred === 'tex' ? 'LaTeX' : inferred === 'txt' ? 'Text' : 'Markdown'
+      return {
+        id: String(tab.id),
+        displayName,
+        path: tab.path || '',
+        formatLabel
+      }
+    })
+})
+
+function toggleInsertDocumentTabSelection(tabId: string) {
+  const idx = insertDocumentSelectedTabIds.value.indexOf(tabId)
+  if (idx > -1) insertDocumentSelectedTabIds.value.splice(idx, 1)
+  else insertDocumentSelectedTabIds.value.push(tabId)
+}
+
+function toggleInsertDocumentSelectAll() {
+  if (insertDocumentSelectedTabIds.value.length === insertDocumentTabs.value.length) {
+    insertDocumentSelectedTabIds.value = []
+  } else {
+    insertDocumentSelectedTabIds.value = insertDocumentTabs.value.map((x) => x.id)
+  }
+}
+
+function confirmInsertDocumentSelection() {
+  if (insertDocumentSelectedTabIds.value.length === 0 || !insertDocumentPendingContent.value) return
+  const content = insertDocumentPendingContent.value
+  const tabIds = [...insertDocumentSelectedTabIds.value]
+  insertDocumentDialogVisible.value = false
+  insertDocumentPendingContent.value = ''
+  insertDocumentSelectedTabIds.value = []
+  if (tabIds.length === 1) {
+    eventBus.emit('ai-chat-insert-to-document', { content, tabId: tabIds[0] })
+    notifySuccess(t('aiChat.insertToDocumentSuccess', '内容已插入到文档'))
+  } else {
+    notifyInfo(t('aiChat.insertingToManyDocuments', { n: tabIds.length }))
+    let completed = 0
+    tabIds.forEach((tabId, index) => {
+      setTimeout(() => {
+        eventBus.emit('ai-chat-insert-to-document', { content, tabId })
+        completed++
+        if (completed === tabIds.length) {
+          notifySuccess(t('aiChat.insertToDocumentsSuccess', '内容已插入到所选文档'))
+        }
+      }, index * 200)
+    })
+  }
+}
+
+function handleRequestInsertToDocumentGlobal(payload: unknown) {
+  const data = payload as { content: string }
+  if (!data?.content) return
+  if (insertDocumentTabs.value.length === 0) {
+    eventBus.emit('ai-chat-export-to-document', { content: data.content })
+    notifySuccess(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
+    return
+  }
+  insertDocumentPendingContent.value = data.content
+  insertDocumentSelectedTabIds.value = []
+  insertDocumentDialogVisible.value = true
+}
 
 // ============================================================================
 // 工具函数
@@ -1096,6 +1282,11 @@ function initMainEventListeners() {
     const data = payload as { content: string; tabId?: string }
     if (!data || !data.content) return
 
+    const withTrailingNewlineForMdBlock = (s: string) => {
+      if (!s) return s
+      return s.replace(/\s*$/, '') + '\n'
+    }
+
     // 确定目标文档tabId
     let targetTabId: string | null = null
 
@@ -1129,7 +1320,7 @@ function initMainEventListeners() {
     if (!targetTabId) {
       const newTab = workspace.openNewDocumentTab()
       workspace.initializeDocumentFromTemplate(newTab.id, 'md', 'blank')
-      workspace.updateDocumentMarkdown(newTab.id, data.content)
+      workspace.updateDocumentMarkdown(newTab.id, withTrailingNewlineForMdBlock(data.content))
       notifySuccess(t('aiChat.insertSuccess', '内容已插入到文档'), {
         title: t('main.notification.success.title')
       })
@@ -1158,9 +1349,10 @@ function initMainEventListeners() {
         const newContent = currentContent + (currentContent ? '\n\n' : '') + data.content
         workspace.updateDocumentMarkdown(targetTabId, newContent)
       } else if (doc.format === 'md') {
-        // Markdown格式，直接追加
+        // Markdown格式，直接追加（末尾补换行，避免代码块与后文粘连无法闭合）
         const currentContent = doc.markdown || ''
-        const newContent = currentContent + (currentContent ? '\n\n' : '') + data.content
+        const chunk = withTrailingNewlineForMdBlock(data.content)
+        const newContent = currentContent + (currentContent ? '\n\n' : '') + chunk
         workspace.updateDocumentMarkdown(targetTabId, newContent)
         // 不显示通知，避免多选时显示多个通知
         // ElNotification({
@@ -1237,6 +1429,7 @@ function initMainEventListeners() {
     }
   }
   eventBus.on('ai-chat-insert-to-document', handleAiChatInsertToDocument)
+  eventBus.on('ai-chat-request-insert-to-document', handleRequestInsertToDocumentGlobal)
 
   // 处理AI Chat导出到新文档
   const handleAiChatExportToDocument = async (payload: unknown) => {
@@ -1335,6 +1528,8 @@ function initMainEventListeners() {
     () => eventBus.off('show-error', handleShowError),
     () => eventBus.off('show-warning', handleShowWarning),
     () => eventBus.off('ai-chat-insert-to-document', handleAiChatInsertToDocument),
+    () =>
+      eventBus.off('ai-chat-request-insert-to-document', handleRequestInsertToDocumentGlobal),
     () => eventBus.off('ai-chat-export-to-document', handleAiChatExportToDocument),
     () => eventBus.off('open-tool-tab', handleOpenToolTab),
     () => eventBus.off('open-system-tab', handleOpenSystemTab),
@@ -1609,5 +1804,123 @@ onBeforeUnmount(() => {
   height: fit-content;
 
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 插入到文档：选择标签页对话框 */
+.main-insert-doc-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.main-insert-doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.main-insert-doc-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.main-insert-doc-scroll {
+  padding: 12px 4px;
+}
+
+.main-insert-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.main-insert-doc-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 2px solid var(--el-border-color-light);
+  border-radius: 12px;
+  background: var(--el-bg-color);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.main-insert-doc-card:hover {
+  border-color: var(--el-color-primary-light-7);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.main-insert-doc-card.selected {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.2);
+}
+
+.main-insert-doc-card-checkbox {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.main-insert-doc-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.main-insert-doc-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.main-insert-doc-title {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.main-insert-doc-format {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(64, 158, 255, 0.12);
+  color: var(--el-color-primary);
+}
+
+.main-insert-doc-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  padding-left: 2px;
+}
+
+.main-insert-doc-path span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main-insert-doc-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 16px;
+  min-height: 200px;
 }
 </style>

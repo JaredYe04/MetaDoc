@@ -50,6 +50,8 @@ describe('workspace-directory-helper', () => {
 
       expect(r.created).toBe(true)
       expect(r.message).toContain('目录已创建')
+      expect(r.pathsCreated.length).toBeGreaterThanOrEqual(1)
+      expect(r.pathsCreated).toContain('C:/Users/tange/Documents/metadoc-agent-test/图表测试')
       const createCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'create-directory')
       expect(createCalls.length).toBeGreaterThanOrEqual(1)
       expect(createCalls.some((c: unknown[]) => (c[1] as { folderName: string }).folderName === '图表测试')).toBe(true)
@@ -70,7 +72,12 @@ describe('workspace-directory-helper', () => {
       })
 
       const ipc = { invoke: mockInvoke }
-      await ensureDirectoryRecursive('C:/base/中文测试文件夹/images', ipc)
+      const r = await ensureDirectoryRecursive('C:/base/中文测试文件夹/images', ipc)
+      expect(r.pathsCreated).toEqual([
+        'C:/base',
+        'C:/base/中文测试文件夹',
+        'C:/base/中文测试文件夹/images'
+      ])
 
       const createCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'create-directory')
       expect(createCalls).toHaveLength(3)

@@ -19,6 +19,7 @@ import { scheduleSkillIndexSyncAfterWrite } from '../agent-framework/skill-index
 import type { UnifiedDiffHunk } from './edit-diff-parse'
 import type { ApplyEditLogEntry, EditOperation, EditPlan } from './edit-engine'
 import { applyEdits, EditEngineError } from './edit-engine'
+import { notifyWorkspaceFilesystemChange } from '../workspace-fs-notify'
 
 export type { UnifiedDiffHunk } from './edit-diff-parse'
 export { parseUnifiedDiff } from './edit-diff-parse'
@@ -111,10 +112,30 @@ function engineLogsToHunks(logs: ApplyEditLogEntry[]): UnifiedDiffHunk[] {
 const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const tabId = params.tabId as string | undefined
   const filePathParam = params.filePath as string | undefined
+  const rawParams = params as Record<string, unknown>
+
+  if (
+    rawParams.diff != null &&
+    rawParams.edits == null &&
+    rawParams.editPlan == null &&
+    rawParams.editsJson == null
+  ) {
+    return {
+      status: 'failed',
+      error: createDetailedError(
+        'edit 工具已升级为 V2：不再接受 `diff`（git unified diff）。请改用 `edits` 数组或 `editPlan`。',
+        [
+          '{"filePath":"path.md","edits":[{"id":"e1","type":"replace","target":{"anchor":"旧句","context_before":"","context_after":""},"content":"新句"}]}',
+          '润色/替换：用 replace + anchor（及必要时 context）定位；新建空文件：一条 insert，anchor 为 ""，content 为全文'
+        ],
+        []
+      )
+    }
+  }
 
   let plan: EditPlan
   try {
-    plan = parseEditPlan(params as Record<string, unknown>)
+    plan = parseEditPlan(rawParams)
   } catch (e) {
     return {
       status: 'failed',
@@ -205,6 +226,9 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
       await messageBridge.invoke('write-file-content', { filePath: absPath, content: resultText })
       scheduleSkillIndexSyncAfterWrite(absPath)
+      if (isNew) {
+        notifyWorkspaceFilesystemChange(absPath, 'add')
+      }
 
       try {
         const sid = params._sessionId as string | undefined

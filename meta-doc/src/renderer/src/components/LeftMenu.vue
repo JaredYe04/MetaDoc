@@ -55,6 +55,16 @@
           {{ $t('leftMenu.open') }}
         </UISubMenuItem>
 
+        <UISubMenuItem :icon="FolderTree" @click="openWorkspaceFromMenu">
+          {{ $t('leftMenu.openWorkspace') }}
+        </UISubMenuItem>
+        <UISubMenuItem :icon="FolderPlus" @click="addFolderToWorkspaceFromMenu">
+          {{ $t('leftMenu.addFolderToWorkspace') }}
+        </UISubMenuItem>
+        <UISubMenuItem :icon="FolderX" @click="closeWorkspaceFoldersFromMenu">
+          {{ $t('leftMenu.closeWorkspace') }}
+        </UISubMenuItem>
+
         <UISubMenuItem :icon="FolderCheck" @click="saveAll">
           {{ $t('leftMenu.saveAll') }}
         </UISubMenuItem>
@@ -463,6 +473,16 @@
 
         <UISubMenuItem :icon="FolderOpen" @click="openDoc">
           {{ $t('leftMenu.open') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="FolderTree" @click="openWorkspaceFromMenu">
+          {{ $t('leftMenu.openWorkspace') }}
+        </UISubMenuItem>
+        <UISubMenuItem :icon="FolderPlus" @click="addFolderToWorkspaceFromMenu">
+          {{ $t('leftMenu.addFolderToWorkspace') }}
+        </UISubMenuItem>
+        <UISubMenuItem :icon="FolderX" @click="closeWorkspaceFoldersFromMenu">
+          {{ $t('leftMenu.closeWorkspace') }}
         </UISubMenuItem>
 
         <UISubMenuItem :icon="FolderCheck" @click="saveAll">
@@ -894,6 +914,8 @@ import {
   FolderOpen,
   FolderCheck,
   FolderPlus,
+  FolderTree,
+  FolderX,
   User,
   BarChart3,
   FileX,
@@ -1308,6 +1330,18 @@ const exportOptionLabel = (option: { labelKey?: string; label?: string; format: 
 // 打开全局主页
 const openGlobalHome = () => {
   workspace.openSystemTab('/global-home', t('leftMenu.home', '主页'))
+}
+
+const openWorkspaceFromMenu = () => {
+  eventBus.emit('workspace-invoke-open-workspace')
+}
+
+const addFolderToWorkspaceFromMenu = () => {
+  eventBus.emit('workspace-invoke-add-folder')
+}
+
+const closeWorkspaceFoldersFromMenu = () => {
+  eventBus.emit('workspace-invoke-close-all-folders')
 }
 
 // 打开知识库

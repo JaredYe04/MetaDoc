@@ -1,6 +1,67 @@
 <template>
   <div :class="['agent-message', alignmentClass, { 'agent-message--compact': compact }]">
     <div class="agent-message__main">
+      <!-- 非紧凑用户：时间戳与「…」在气泡左侧（时间戳在左，菜单在时间戳与气泡之间） -->
+      <div
+        v-if="message.role === 'user' && !compact && message.type === 'chat'"
+        class="agent-message__user-leading"
+        @mouseenter="handleActionsMouseEnter"
+        @mouseleave="handleActionsMouseLeave"
+      >
+        <transition name="fade">
+          <span v-if="showTimestamp" class="agent-message__timestamp-flow">
+            {{ formatTimestamp(message.timestamp) }}
+          </span>
+        </transition>
+        <transition name="fade">
+          <div
+            v-if="showActions"
+            class="agent-message__user-leading-more"
+            @mouseenter="handleActionsMouseEnter"
+            @mouseleave="handleActionsMouseLeave"
+          >
+            <DropdownMenu
+              :modal="false"
+              @click.stop
+              @update:open="handleDropdownVisibleChange"
+            >
+              <DropdownMenuTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="small"
+                  class="ai-action-btn"
+                  @click.stop.prevent
+                  @mouseenter="handleDropdownMouseEnter"
+                  @mouseleave="handleDropdownMouseLeave"
+                >
+                  <el-icon><More /></el-icon>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                @mouseenter="handleDropdownMouseEnter"
+                @mouseleave="handleDropdownMouseLeave"
+                @close-auto-focus="preventDropdownCloseAutoFocus"
+              >
+                <DropdownMenuItem @select="handleActionCommand('edit')">
+                  {{ t('agent.message.edit') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @select="handleActionCommand('regenerate')">
+                  {{ t('agent.message.regenerate') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @select="handleActionCommand('duplicate')">
+                  {{ t('agent.message.duplicateSession') }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @select="handleActionCommand('delete')">
+                  {{ t('agent.message.delete') }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </transition>
+      </div>
+
       <!-- 消息气泡（用户消息保持气泡样式，AI消息平铺） -->
       <div
         :class="[
@@ -15,10 +76,10 @@
         @mouseleave="handleMouseLeave"
         @click="message.role === 'user' ? handleUserMessageBodyClick($event) : undefined"
       >
-        <!-- 时间戳（用户消息显示在左边，AI消息显示在右边） -->
+        <!-- 时间戳：助手在气泡内绝对定位；紧凑用户仍在左侧绝对定位；非紧凑用户时间戳在气泡外 agent-message__user-leading -->
         <transition name="fade">
           <div
-            v-if="showTimestamp"
+            v-if="showTimestamp && (message.role !== 'user' || compact)"
             class="agent-message__timestamp"
             :class="{
               'agent-message__timestamp--left': message.role === 'user',
@@ -26,50 +87,6 @@
             }"
           >
             {{ formatTimestamp(message.timestamp) }}
-          </div>
-        </transition>
-
-        <!-- 用户消息操作按钮（hover时显示，保持原有下拉菜单方式） -->
-        <transition name="fade">
-          <div
-            v-if="showActions && message.role === 'user'"
-            class="agent-message__actions agent-message__actions--left"
-            @mouseenter="handleActionsMouseEnter"
-            @mouseleave="handleActionsMouseLeave"
-          >
-            <Tooltip :content="t('agent.message.edit')" placement="top">
-              <Button circle size="small" @click.stop="handleEdit">
-                <el-icon><Edit /></el-icon>
-              </Button>
-            </Tooltip>
-            <DropdownMenu @click.stop @update:open="handleDropdownVisibleChange">
-              <DropdownMenuTrigger as-child>
-                <Button
-                  circle
-                  size="small"
-                  @mouseenter="handleDropdownMouseEnter"
-                  @mouseleave="handleDropdownMouseLeave"
-                >
-                  <el-icon><More /></el-icon>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                @mouseenter="handleDropdownMouseEnter"
-                @mouseleave="handleDropdownMouseLeave"
-                @close-auto-focus="preventDropdownCloseAutoFocus"
-              >
-                <DropdownMenuItem @select="handleActionCommand('regenerate')">
-                  {{ t('agent.message.regenerate') }}
-                </DropdownMenuItem>
-                <DropdownMenuItem @select="handleActionCommand('duplicate')">
-                  {{ t('agent.message.duplicateSession') }}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @select="handleActionCommand('delete')">
-                  {{ t('agent.message.delete') }}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </transition>
 
@@ -254,37 +271,54 @@
       </div>
     </div>
 
-    <!-- 用户消息操作按钮（紧凑模式下在气泡下方，始终显示，与 AI 消息一致） -->
-    <div
-      v-if="compact && message.role === 'user' && message.type === 'chat'"
-      class="user-message-actions"
-    >
-      <Tooltip :content="t('agent.message.edit')" placement="bottom">
-        <Button variant="ghost" size="small" class="ai-action-btn" @click.stop.prevent="handleEdit">
-          <el-icon><Edit /></el-icon>
-        </Button>
-      </Tooltip>
-      <Tooltip :content="t('agent.message.regenerate')" placement="bottom">
-        <Button
-          variant="ghost"
-          size="small"
-          class="ai-action-btn"
-          @click.stop.prevent="emit('regenerate', message)"
+    <!-- 紧凑模式用户消息：「…」在气泡下方（非紧凑时在气泡左侧 agent-message__user-leading） -->
+    <transition name="fade">
+      <div
+        v-if="compact && message.role === 'user' && message.type === 'chat'"
+        class="user-message-actions user-message-actions--compact"
+        @mouseenter="handleActionsMouseEnter"
+        @mouseleave="handleActionsMouseLeave"
+      >
+        <DropdownMenu
+          :modal="false"
+          @click.stop
+          @update:open="handleDropdownVisibleChange"
         >
-          <el-icon><Refresh /></el-icon>
-        </Button>
-      </Tooltip>
-      <Tooltip :content="t('agent.message.delete')" placement="bottom">
-        <Button
-          variant="ghost"
-          size="small"
-          class="ai-action-btn"
-          @click.stop.prevent="emit('delete', message)"
-        >
-          <el-icon><Delete /></el-icon>
-        </Button>
-      </Tooltip>
-    </div>
+          <DropdownMenuTrigger as-child>
+            <Button
+              variant="ghost"
+              size="small"
+              class="ai-action-btn"
+              @click.stop.prevent
+              @mouseenter="handleDropdownMouseEnter"
+              @mouseleave="handleDropdownMouseLeave"
+            >
+              <el-icon><More /></el-icon>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            @mouseenter="handleDropdownMouseEnter"
+            @mouseleave="handleDropdownMouseLeave"
+            @close-auto-focus="preventDropdownCloseAutoFocus"
+          >
+            <DropdownMenuItem @select="handleActionCommand('edit')">
+              {{ t('agent.message.edit') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @select="handleActionCommand('regenerate')">
+              {{ t('agent.message.regenerate') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @select="handleActionCommand('duplicate')">
+              {{ t('agent.message.duplicateSession') }}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem @select="handleActionCommand('delete')">
+              {{ t('agent.message.delete') }}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </transition>
 
     <!-- AI消息操作按钮（平铺在消息下方，仅显示删除；重新生成仅允许在用户消息下使用） -->
     <div v-if="message.role === 'assistant' && message.type === 'chat'" class="ai-message-actions">
@@ -305,13 +339,10 @@
       v-if="
         message.role === 'user' &&
         message.type === 'chat' &&
-        (message as ChatAgentMessage).referenceIds &&
-        (message as ChatAgentMessage).referenceIds!.length > 0 &&
-        sessionReferences &&
-        sessionReferences.length > 0
+        userMessageReferenceList.length > 0
       "
-      :references="sessionReferences"
-      :active-reference-ids="(message as ChatAgentMessage).referenceIds || []"
+      :references="userMessageReferenceList"
+      :active-reference-ids="userMessageReferenceActiveIds"
       readonly
       :class="['agent-message__references', { 'agent-message__references--compact': compact }]"
     />
@@ -322,7 +353,7 @@
 import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
-import { User, Edit, More, Loading, Check, Search, Refresh, Delete } from '@element-plus/icons-vue'
+import { User, More, Check, Search, Refresh, Delete } from '@element-plus/icons-vue'
 import { ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Avatar, AvatarFallback } from '@renderer/components/ui/avatar'
@@ -405,6 +436,53 @@ const editsForThisMessage = computed(() => {
 })
 const canRollback = computed(() => editsForThisMessage.value.some((r) => r.status !== 'rejected'))
 const canRedo = computed(() => editsForThisMessage.value.some((r) => r.status === 'rejected'))
+
+/** 历史用户消息上的附件：优先 workspaceAttachments 快照，否则从 session referenceStore 按 referenceIds 解析 */
+const userMessageReferenceList = computed((): Reference[] => {
+  if (props.message.role !== 'user' || props.message.type !== 'chat') return []
+  const m = props.message as ChatAgentMessage
+  const now = Date.now()
+  const wa = m.workspaceAttachments
+  const out: Reference[] = []
+  if (wa && wa.length > 0) {
+    for (let i = 0; i < wa.length; i++) {
+      const a = wa[i]!
+      out.push({
+        id: `wa:${i}:${a.absolutePath}`,
+        name: a.name,
+        origin: a.relativePath || a.absolutePath,
+        format: a.format,
+        parsedContent: '',
+        createdAt: now,
+        updatedAt: now
+      })
+    }
+  }
+  const inline = m.inlineReferenceSnippets
+  if (inline && inline.length > 0) {
+    for (let i = 0; i < inline.length; i++) {
+      const s = inline[i]!
+      out.push({
+        id: `inline:${i}:${s.name}`,
+        name: s.name,
+        origin: s.format,
+        format: s.format,
+        parsedContent: '',
+        createdAt: now,
+        updatedAt: now
+      })
+    }
+  }
+  if (out.length > 0) return out
+  const ids = m.referenceIds || []
+  const store = props.sessionReferences || []
+  if (ids.length === 0 || !store.length) return []
+  return store.filter((r) => ids.includes(r.id))
+})
+
+const userMessageReferenceActiveIds = computed(() =>
+  userMessageReferenceList.value.map((r) => r.id)
+)
 
 const showTimestamp = ref(false)
 const showActions = ref(false)
@@ -1028,6 +1106,9 @@ const handleUserMessageBodyClick = (e: MouseEvent) => {
 
 const handleActionCommand = (command: string) => {
   switch (command) {
+    case 'edit':
+      handleEdit()
+      break
     case 'regenerate':
       emit('regenerate', props.message)
       break
@@ -1106,9 +1187,9 @@ onBeforeUnmount(() => {
 .agent-message__references {
   margin-top: 8px;
   box-sizing: border-box;
-  /* 与消息气泡宽度一致 */
+  /* 与消息气泡宽度一致（用户行右侧头像 40px + gap 12px） */
   width: min(75%, 750px);
-  max-width: calc(100% - 60px);
+  max-width: calc(100% - 52px);
   min-width: min(250px, 50%);
   /* 对齐方式 */
   display: flex;
@@ -1255,9 +1336,10 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-/* 用户消息气泡可点击，等同编辑 */
+/* 用户消息气泡可点击，等同编辑；预留宽度与头像列一致（40px + 12px gap），避免右侧莫名留白 */
 .agent-message.align-right .agent-message__body:not(.agent-message__body--flat) {
   cursor: pointer;
+  max-width: calc(100% - 52px);
 }
 
 .agent-message__body--user-compact {
@@ -1291,6 +1373,39 @@ onBeforeUnmount(() => {
   gap: 2px;
   padding: 2px 4px;
   margin-bottom: 4px;
+}
+
+/* 非紧凑用户：时间戳 +「…」在气泡左侧（agent-message__user-leading） */
+.agent-message.align-right .agent-message__user-leading {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  margin-right: 8px;
+  align-self: flex-end;
+  margin-bottom: 6px;
+}
+
+.agent-message__timestamp-flow {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.agent-message__user-leading-more {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.agent-message--compact .user-message-actions--compact {
+  align-self: stretch;
+  width: 100%;
+  margin-right: 0;
 }
 
 .ai-action-btn {
@@ -1329,11 +1444,6 @@ onBeforeUnmount(() => {
   gap: 4px;
   align-items: center;
   z-index: 5;
-}
-
-.agent-message__actions--left {
-  left: -80px;
-  right: auto;
 }
 
 .agent-message__actions--right {

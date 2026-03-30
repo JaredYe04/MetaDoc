@@ -144,7 +144,7 @@
 4. **SubagentsBatchParser**  
    - `{"subagents": [{ "id"/"task"/"output_file" }]}`，展开为多个 subagent 调用。
 5. **ActionParamsParser**  
-   - `{"action": "edit", "params": {...}}`，action 作 tool_id，params 标准化（如 file_path→filePath，edit 的 content→diff）。
+   - `{"action": "edit", "params": {...}}`，action 作 tool_id，params 标准化（如 file_path→filePath；edit 的 content→V2 `edits`，适用于空文件写入）。
 6. **OpenAIFunctionCallParser**  
    - 裸 JSON 的 tool/name/tool_id + arguments，避免与 `<tool_call>` 内 JSON 重复匹配。
 

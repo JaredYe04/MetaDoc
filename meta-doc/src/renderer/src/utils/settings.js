@@ -147,7 +147,11 @@ export const settings = reactive({
   fontEditorChinese: 'OPPO Sans 4.0',
   fontEditorWestern: 'Fira Code',
   fontPreviewChinese: 'OPPO Sans 4.0', // 渲染预览中文字体
-  fontPreviewWestern: 'New York' // 渲染预览西文字体
+  fontPreviewWestern: 'New York', // 渲染预览西文字体
+  /** 全局 userData/reference 自动清理：早于 N 天的文件；0 表示不自动清理 */
+  referenceGlobalAutoPruneDays: 7,
+  /** 工作区 .metadoc/attachments 自动清理：早于 N 天的文件；0 表示不自动清理 */
+  referenceAgentAutoPruneDays: 7
 })
 
 // 关键设置列表：需要在窗口显示前加载的设置（影响UI渲染）

@@ -88,6 +88,7 @@ export async function runSubagent(
       } as AgentMessage
     ],
     messageQueue: [],
+    composerSendQueue: [],
     referenceStore: parentSession.referenceStore ? [...parentSession.referenceStore] : [],
     publicContext,
     executionNodes: [],

@@ -433,9 +433,9 @@ export abstract class BaseEngineExecutor {
     }
     const hasEditTool = tools.some((t) => t.id === 'edit')
     if (hasEditTool) {
-      const editDiffNote = getPromptByKey('agent.toolCallSpec.documentEditDiffNote')?.trim()
-      if (editDiffNote) {
-        prompt += '\n\n' + editDiffNote
+      const editV2Note = getPromptByKey('agent.toolCallSpec.documentEditV2Note')?.trim()
+      if (editV2Note) {
+        prompt += '\n\n' + editV2Note
       }
     }
     prompt += '\n\n## Notes When Calling Tools\n'

@@ -19,7 +19,7 @@ export type IpcLike = {
 export async function ensureDirectoryRecursive(
   fullPath: string,
   ipc: IpcLike
-): Promise<{ created: boolean; message: string }> {
+): Promise<{ created: boolean; message: string; pathsCreated: string[] }> {
   const normalized = normalizePath(fullPath)
 
   let prefix = ''
@@ -33,6 +33,7 @@ export async function ensureDirectoryRecursive(
   const segments = rest.split('/').filter((s) => s.length > 0)
   let current = prefix || (normalized.startsWith('/') ? '/' : '')
   let createdAny = false
+  const pathsCreated: string[] = []
 
   for (const seg of segments) {
     if (!seg) continue
@@ -46,6 +47,7 @@ export async function ensureDirectoryRecursive(
       if (!exists) {
         await ipc.invoke('create-directory', { parentPath, folderName })
         createdAny = true
+        pathsCreated.push(normalizePath(fullPathForSeg))
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -55,7 +57,7 @@ export async function ensureDirectoryRecursive(
   }
 
   if (createdAny) {
-    return { created: true, message: `目录已创建: ${normalized}` }
+    return { created: true, message: `目录已创建: ${normalized}`, pathsCreated }
   }
-  return { created: false, message: `目录已存在，未重复创建: ${normalized}` }
+  return { created: false, message: `目录已存在，未重复创建: ${normalized}`, pathsCreated: [] }
 }

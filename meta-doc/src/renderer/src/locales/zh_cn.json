@@ -928,32 +928,110 @@
       }
     },
     "toolLabels": {
-      "edit": { "name": "文档编辑", "description": "仅接受 git 风格 diff：传入带 -（删除）和 +（插入）行的字符串" },
-      "terminal-execution": { "name": "终端执行", "description": "执行终端命令，需用户批准（可设置信任模式）" },
-      "todolist-planning": { "name": "意图识别与任务规划", "description": "分析用户意图并将复杂任务分解为结构化待办列表" },
-      "timestamp": { "name": "时间戳", "description": "返回当前时间戳并记录每次调用时间以计算时间差" },
-      "latex-compile": { "name": "LaTeX 编译", "description": "编译 LaTeX 项目并返回 PDF 路径或日志" },
-      "outline-tree": { "name": "大纲树", "description": "获取文档大纲树（仅 .md/.tex）" },
-      "tool-spec-fetcher": { "name": "工具说明获取", "description": "获取一个或多个工具的完整说明（fullSpec）" },
-      "workspace": { "name": "工作区文件读取", "description": "读取工作区文件、按路径/名称模糊搜索或列出根目录" },
-      "diff": { "name": "文本对比", "description": "对比两段文本并返回统一 diff" },
-      "grep": { "name": "文本搜索", "description": "在文档/工作区内搜索或搜索并替换" },
-      "proofread": { "name": "文本校对", "description": "检查文本中的语法、拼写和 LaTeX 语法错误" },
-      "data-calculation": { "name": "数据计算", "description": "执行复杂数学计算，包括数值、向量、矩阵等运算" },
-      "color-processing": { "name": "颜色处理", "description": "处理颜色混合、亮度/对比度调整、互补色等" },
-      "metadata": { "name": "元信息管理", "description": "访问、修改文档元信息，调用 AI 生成标题、描述、关键词等" },
-      "title-format": { "name": "标题格式化", "description": "格式化文档标题：调整标题层级、添加/移除编号、移除前缀等" },
-      "outline-optimize": { "name": "大纲优化", "description": "使用 AI 生成/优化文档大纲（仅 .md/.tex），按 filePath 或 tabId 指定文档" },
-      "web-crawler": { "name": "网页访问", "description": "访问指定 URL，获取网页 HTML 内容或 API 响应" },
-      "rag-retrieval": { "name": "RAG 知识库检索", "description": "从知识库检索与问题相关的文档片段，增强 AI 回答准确性" },
-      "data-analysis": { "name": "数据分析", "description": "自动分析 CSV、JSON 等数据，提取字段、描述统计、聚合分析等" },
-      "chart-generation": { "name": "图表生成", "description": "根据提示词生成各类图表（Mermaid、ECharts、PlantUML、flowchart、graphviz 等），支持导出 SVG、PNG、PDF" },
-      "search_skill": { "name": "技能检索", "description": "在工作区 .metadoc/skills 下对已激活技能做向量检索，仅返回摘要" },
-      "load_skill": { "name": "加载技能", "description": "按 skillId 加载已激活技能的完整 SKILL.md 正文" },
-      "sync_workspace_skills": { "name": "同步工作区技能索引", "description": "扫描各工作区 .metadoc/skills 并更新 SQLite 与向量（active 技能）" },
-      "create_workspace_skill": { "name": "创建工作区技能", "description": "写入 .metadoc/skills/<目录>/SKILL.md 并立即入库与 embedding" },
-      "create_dynamic_rule": { "name": "创建动态规则", "description": "向应用数据库插入动态 Agent 规则（写入系统提示），勿用工作区文件代替" },
-      "update_dynamic_rule": { "name": "更新动态规则", "description": "按 ruleId 更新已有动态规则的标题、正文或优先级" }
+      "edit": {
+        "name": "文档编辑",
+        "description": "仅接受 git 风格 diff：传入带 -（删除）和 +（插入）行的字符串"
+      },
+      "terminal-execution": {
+        "name": "终端执行",
+        "description": "执行终端命令，需用户批准（可设置信任模式）"
+      },
+      "todolist-planning": {
+        "name": "意图识别与任务规划",
+        "description": "分析用户意图并将复杂任务分解为结构化待办列表"
+      },
+      "timestamp": {
+        "name": "时间戳",
+        "description": "返回当前时间戳并记录每次调用时间以计算时间差"
+      },
+      "latex-compile": {
+        "name": "LaTeX 编译",
+        "description": "编译 LaTeX 项目并返回 PDF 路径或日志"
+      },
+      "outline-tree": {
+        "name": "大纲树",
+        "description": "获取文档大纲树（仅 .md/.tex）"
+      },
+      "tool-spec-fetcher": {
+        "name": "工具说明获取",
+        "description": "获取一个或多个工具的完整说明（fullSpec）"
+      },
+      "workspace": {
+        "name": "工作区文件读取",
+        "description": "读取工作区文件、按路径/名称模糊搜索或列出根目录"
+      },
+      "diff": {
+        "name": "文本对比",
+        "description": "对比两段文本并返回统一 diff"
+      },
+      "grep": {
+        "name": "文本搜索",
+        "description": "在文档/工作区内搜索或搜索并替换"
+      },
+      "proofread": {
+        "name": "文本校对",
+        "description": "检查文本中的语法、拼写和 LaTeX 语法错误"
+      },
+      "data-calculation": {
+        "name": "数据计算",
+        "description": "执行复杂数学计算，包括数值、向量、矩阵等运算"
+      },
+      "color-processing": {
+        "name": "颜色处理",
+        "description": "处理颜色混合、亮度/对比度调整、互补色等"
+      },
+      "metadata": {
+        "name": "元信息管理",
+        "description": "访问、修改文档元信息，调用 AI 生成标题、描述、关键词等"
+      },
+      "title-format": {
+        "name": "标题格式化",
+        "description": "格式化文档标题：调整标题层级、添加/移除编号、移除前缀等"
+      },
+      "outline-optimize": {
+        "name": "大纲优化",
+        "description": "使用 AI 生成/优化文档大纲（仅 .md/.tex），按 filePath 或 tabId 指定文档"
+      },
+      "web-crawler": {
+        "name": "网页访问",
+        "description": "访问指定 URL，获取网页 HTML 内容或 API 响应"
+      },
+      "rag-retrieval": {
+        "name": "RAG 知识库检索",
+        "description": "从知识库检索与问题相关的文档片段，增强 AI 回答准确性"
+      },
+      "data-analysis": {
+        "name": "数据分析",
+        "description": "自动分析 CSV、JSON 等数据，提取字段、描述统计、聚合分析等"
+      },
+      "chart-generation": {
+        "name": "图表生成",
+        "description": "根据提示词生成各类图表（Mermaid、ECharts、PlantUML、flowchart、graphviz 等），支持导出 SVG、PNG、PDF"
+      },
+      "search_skill": {
+        "name": "技能检索",
+        "description": "在工作区 .metadoc/skills 下对已激活技能做向量检索，仅返回摘要"
+      },
+      "load_skill": {
+        "name": "加载技能",
+        "description": "按 skillId 加载已激活技能的完整 SKILL.md 正文"
+      },
+      "sync_workspace_skills": {
+        "name": "同步工作区技能索引",
+        "description": "扫描各工作区 .metadoc/skills 并更新 SQLite 与向量（active 技能）"
+      },
+      "create_workspace_skill": {
+        "name": "创建工作区技能",
+        "description": "写入 .metadoc/skills/<目录>/SKILL.md 并立即入库与 embedding"
+      },
+      "create_dynamic_rule": {
+        "name": "创建动态规则",
+        "description": "向应用数据库插入动态 Agent 规则（写入系统提示），勿用工作区文件代替"
+      },
+      "update_dynamic_rule": {
+        "name": "更新动态规则",
+        "description": "按 ruleId 更新已有动态规则的标题、正文或优先级"
+      }
     },
     "toolCall": "调用工具",
     "toolResult": "工具结果",
@@ -1246,18 +1324,66 @@
     "overallScore": "总体评分",
     "dimensionScore": "维度评分",
     "dimDesc": {
-      "sentence_uniformity": { "high": "句式过于统一", "mid": "句式较为统一", "low": "句式变化丰富" },
-      "lexical_diversity": { "high": "词汇重复、保守", "mid": "词汇使用较为保守", "low": "词汇使用多样" },
-      "reasoning_smoothness": { "high": "逻辑过于平滑", "mid": "逻辑较为平滑", "low": "逻辑自然" },
-      "personal_trace": { "high": "缺乏个人思考痕迹", "mid": "个人痕迹较少", "low": "个人思考痕迹明显" },
-      "stylistic_risk": { "high": "高度符合AIGC模板", "mid": "部分符合AIGC模板", "low": "风格自然" },
-      "over_explanation": { "high": "教科书式解释", "mid": "解释较为详细", "low": "解释适度" },
-      "hedging_pattern": { "high": "大量使用模糊限定词", "mid": "使用较多模糊限定词", "low": "模糊限定词使用适度" },
-      "opening_transition_pattern": { "high": "过渡语高度模板化", "mid": "过渡语较为模板化", "low": "过渡自然" },
-      "structural_repetition": { "high": "结构过于规整", "mid": "结构较为规整", "low": "结构自然" },
-      "abstractness": { "high": "过于抽象空洞", "mid": "略显抽象", "low": "具体有据" },
-      "emotional_flatness": { "high": "情感过于平淡", "mid": "情感较平淡", "low": "情感自然" },
-      "formulaic_closure": { "high": "收尾高度套路化", "mid": "收尾较套路", "low": "收尾自然" }
+      "sentence_uniformity": {
+        "high": "句式过于统一",
+        "mid": "句式较为统一",
+        "low": "句式变化丰富"
+      },
+      "lexical_diversity": {
+        "high": "词汇重复、保守",
+        "mid": "词汇使用较为保守",
+        "low": "词汇使用多样"
+      },
+      "reasoning_smoothness": {
+        "high": "逻辑过于平滑",
+        "mid": "逻辑较为平滑",
+        "low": "逻辑自然"
+      },
+      "personal_trace": {
+        "high": "缺乏个人思考痕迹",
+        "mid": "个人痕迹较少",
+        "low": "个人思考痕迹明显"
+      },
+      "stylistic_risk": {
+        "high": "高度符合AIGC模板",
+        "mid": "部分符合AIGC模板",
+        "low": "风格自然"
+      },
+      "over_explanation": {
+        "high": "教科书式解释",
+        "mid": "解释较为详细",
+        "low": "解释适度"
+      },
+      "hedging_pattern": {
+        "high": "大量使用模糊限定词",
+        "mid": "使用较多模糊限定词",
+        "low": "模糊限定词使用适度"
+      },
+      "opening_transition_pattern": {
+        "high": "过渡语高度模板化",
+        "mid": "过渡语较为模板化",
+        "low": "过渡自然"
+      },
+      "structural_repetition": {
+        "high": "结构过于规整",
+        "mid": "结构较为规整",
+        "low": "结构自然"
+      },
+      "abstractness": {
+        "high": "过于抽象空洞",
+        "mid": "略显抽象",
+        "low": "具体有据"
+      },
+      "emotional_flatness": {
+        "high": "情感过于平淡",
+        "mid": "情感较平淡",
+        "low": "情感自然"
+      },
+      "formulaic_closure": {
+        "high": "收尾高度套路化",
+        "mid": "收尾较套路",
+        "low": "收尾自然"
+      }
     }
   },
   "aigcDetection": {
@@ -1538,6 +1664,7 @@
     "closeKnowledgeBase": "禁用知识检索库",
     "copy": "复制",
     "cut": "剪切",
+    "generateIllustrationFromSelection": "生成插图",
     "insertGraph": "插入绘图",
     "locateToPdf": "定位到PDF位置",
     "openAutoCompletion": "启用AI补全",
@@ -1990,6 +2117,22 @@
     "renameTitle": "重命名会话",
     "sessionsTitle": "绘图会话",
     "simpleMode": "简单模式",
+    "quickDialogTitle": "根据选中文本生成插图",
+    "openInGraphTool": "在绘图工具中打开",
+    "quickDialogSelectionPreview": "选中文本",
+    "quickDialogDefaultPromptIntro": "请根据以下选中文档内容生成合适的插图（流程图、示意图、数据图等），风格与文档一致：",
+    "quickSessionTitle": "插图 · {doc} · {snippet}",
+    "quickDialogSessionError": "创建绘图会话失败",
+    "copyMarkdown": "复制 Markdown",
+    "copyLatexCode": "复制 LaTeX 代码环境",
+    "copyLatexIncludegraphics": "复制 \\includegraphics 模板",
+    "exportChart": "导出",
+    "openExportFolder": "打开所在文件夹",
+    "insertIntoDocument": "插入到文档",
+    "insertedIntoDocument": "已插入到文档",
+    "selectTextForIllustration": "请先选中要生成插图的文本",
+    "insertFromEditorDefaultPrompt": "请根据以下光标附近的文档上下文，生成适合插入当前文档的插图（流程图、示意图、数据图等）。可补充图表类型与重点：",
+    "insertFromEditorSessionTitle": "插图（来自编辑器）",
     "user": "用户",
     "userRequest": "用户新需求"
   },
@@ -2120,6 +2263,60 @@
       "generateArticle": "生成文章",
       "reset": "重置生成内容",
       "accept": "接受生成内容"
+    },
+    "suggestedPromptsRefresh": "换一批",
+    "suggestedPromptsHint": "试试这些灵感：",
+    "agentPrompts": {
+      "p01": "📝 帮我生成一篇实验报告",
+      "p02": "🏋️ 帮我规划这周的健身计划",
+      "p03": "🍳 帮我写一份7天家常菜谱",
+      "p04": "📊 帮我整理项目周报的要点",
+      "p05": "✈️ 帮我做一份周末短途旅行攻略",
+      "p06": "💼 帮我写一封正式英文求职邮件",
+      "p07": "📚 帮我制定30天阅读计划",
+      "p08": "🧪 帮我设计一个简单化学实验步骤",
+      "p09": "🎓 帮我写课程小论文大纲",
+      "p10": "💡 帮我头脑风暴5个产品创意",
+      "p11": "📧 帮我回复一封棘手的客户邮件",
+      "p12": "🛒 帮我列一份性价比高的装机清单",
+      "p13": "🐱 帮我写宠物猫一周养护备忘",
+      "p14": "🎤 帮我准备5分钟班会发言稿",
+      "p15": "🧘 帮我安排睡前放松小流程",
+      "p16": "📱 帮我写60秒短视频口播脚本",
+      "p17": "🌍 用简单语言给孩子讲气候变化",
+      "p18": "🏠 帮我列搬家前后checklist",
+      "p19": "💰 帮我做一个月度简易记账说明",
+      "p20": "🎯 帮我把年度目标拆成季度里程碑",
+      "p21": "🎮 帮我写游戏关卡设计的文字说明",
+      "p22": "🎨 帮我描述一个品牌的视觉风格（配色+字体）",
+      "p23": "🏃 帮我制定新手跑5公里训练计划",
+      "p24": "🍱 帮我写健康午餐便当搭配建议",
+      "p25": "📖 帮我用三段式总结一本书的读书笔记",
+      "p26": "🔧 用步骤说明如何用命令行压缩文件夹",
+      "p27": "📝 帮我写技术博客开头三段",
+      "p28": "🎬 帮我写微电影分镜头大纲",
+      "p29": "🌱 帮我列阳台种菜入门清单",
+      "p30": "🧑‍💻 帮我准备实习生第一天任务清单",
+      "p31": "📅 帮我排一周学习时间表（每天2小时）",
+      "p32": "🎹 帮我规划零基础钢琴90天练习路径",
+      "p33": "🚗 帮我写自驾游安全注意事项",
+      "p34": "☕ 帮我介绍手冲咖啡步骤与参数",
+      "p35": "🎁 帮我想10个不贵又有心意的礼物idea",
+      "p36": "📣 帮我写活动推文（含话题标签）",
+      "p37": "🧊 帮我写冰箱食物存放小常识科普",
+      "p38": "🏥 帮我整理体检常见指标说明（非医疗建议）",
+      "p39": "🐕 帮我写遛狗礼仪与社区友好提示",
+      "p40": "🧪 帮我对比两种笔记软件的适用场景",
+      "p41": "🎓 帮我写一段30秒英语口语自我介绍",
+      "p42": "📦 帮我写退换货协商话术",
+      "p43": "🌙 帮我写5分钟助眠冥想引导词",
+      "p44": "🏫 帮家长会列与老师沟通的提纲",
+      "p45": "💻 帮我写Windows常用快捷键备忘",
+      "p46": "🎄 帮我策划家庭节日聚餐菜单",
+      "p47": "📌 帮我写项目风险管理简短清单",
+      "p48": "🧮 用生活例子解释复利计算",
+      "p49": "🎪 帮孩子列一篇马戏观后感提纲",
+      "p50": "🚀 用要点列出创业路演幻灯片结构"
     }
   },
   "knowledgeBase": {
@@ -2599,7 +2796,10 @@
     "userManual": "用户手册",
     "userProfileTooltip": "用户资料",
     "workspaceExplorer": "工作目录",
-    "workspaceGrep": "工作区搜索"
+    "workspaceGrep": "工作区搜索",
+    "view": "视图",
+    "viewTooltip": "侧栏显示与布局",
+    "viewSidebarAgent": "Agent"
   },
   "llm-adapter": {
     "failed": "配置失败",
@@ -3730,7 +3930,7 @@
       "toolDescPlaceholder": "请先选择一个Tool查看说明",
       "toolDescDefault": "这是工具的详细说明，包含参数格式、使用场景等信息",
       "paramsPlaceholder": "请输入JSON格式的参数，例如: {\"prompt\": \"生成一个流程图\", \"chartType\": \"mermaid\"}",
-      "selectToolPlaceholder": "选择要测试的Tool（留空则测试所有）",
+      "selectToolPlaceholder": "选择要测试的Tool",
       "selectModulePlaceholder": "选择要测试的模块（留空则测试所有）",
       "toolCalls": "工具调用",
       "referenceCount": "引用数量",
@@ -3762,7 +3962,6 @@
       "newVersionFound": "发现新版本: {version}",
       "load": "加载",
       "selectTool": "选择Tool",
-      "selectToolPlaceholder": "选择要测试的Tool",
       "savedConfig": "保存的配置",
       "contextTab": "上下文Tab",
       "unnamed": "未命名",
@@ -4126,6 +4325,7 @@
     "selectLlmConfig": "选择LLM配置",
     "selectPendingRequest": "选择待处理请求",
     "selectWesternFont": "选择西文字体",
+    "interfaceLanguage": "界面语言",
     "startupOption": "启动选项",
     "submitFailed": "提交失败",
     "submitManualResponse": "提交响应",

@@ -18,6 +18,30 @@
       </FormField>
 
       <FormField
+        :label="t('setting.interfaceLanguage', '界面语言')"
+        name="interfaceLanguage"
+        layout="horizontal"
+      >
+        <Select :model-value="locale" @update:model-value="applyInterfaceLanguage">
+          <SelectTrigger class="w-[280px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent class="min-w-[280px]">
+            <SelectItem value="zh_CN">中文（简体）</SelectItem>
+            <SelectItem value="zh_TW">中文（繁體）</SelectItem>
+            <SelectItem value="en_US">English (US)</SelectItem>
+            <SelectItem value="ja_JP">日本語</SelectItem>
+            <SelectItem value="ko_KR">한국어</SelectItem>
+            <SelectItem value="fr_FR">Français</SelectItem>
+            <SelectItem value="de_DE">Deutsch</SelectItem>
+            <SelectItem value="es_ES">Español</SelectItem>
+            <SelectItem value="pt_BR">Português (BR)</SelectItem>
+            <SelectItem value="ru_RU">Русский</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormField>
+
+      <FormField
         :label="t('setting.autoOpenHomeOnStartup', '启动时自动打开主页')"
         name="autoOpenHomeOnStartup"
         layout="horizontal"
@@ -355,7 +379,13 @@ const props = defineProps<{
 }>()
 const isDemo = computed(() => props.mode === 'demo')
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+const applyInterfaceLanguage = (lang: string) => {
+  locale.value = lang
+  localStorage.setItem('lang', lang)
+  eventBus.emit('lang-changed', lang)
+}
 
 const referenceDirSize = ref<number>(0)
 
@@ -626,7 +656,11 @@ onMounted(() => {
   padding: 16px;
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
-  background-color: color-mix(in srgb, hsl(var(--accent, 220 14% 18%)) 20%, hsl(var(--background, 0 0% 98%)) 80%);
+  background-color: color-mix(
+    in srgb,
+    hsl(var(--accent, 220 14% 18%)) 20%,
+    hsl(var(--background, 0 0% 98%)) 80%
+  );
 }
 
 .font-group-title {

@@ -546,7 +546,8 @@ const {
   isSessionGenerating,
   registerAgentRunHandle,
   unregisterAgentRunSession,
-  getAgentRunHandlesForSession
+  getAgentRunHandlesForSession,
+  setOpenTabIds
 } = agentStore
 
 const isActiveSessionGenerating = computed(() =>
@@ -1138,6 +1139,7 @@ const createSession = (agentConfigId?: string, sessionTitleOverride?: string) =>
     }
     agentStore.setSessions([demoSession, ...agentStore.sessions])
     agentStore.setActiveSessionId(demoSession.id)
+    setOpenTabIds([demoSession.id, ...agentStore.openTabIds.filter((id) => id !== demoSession.id)])
     notifySuccess(t('agent.sessions.createSuccess', '会话创建成功'))
     return
   }
@@ -1181,6 +1183,7 @@ const createSession = (agentConfigId?: string, sessionTitleOverride?: string) =>
     agentStore.setSessions([legacySession, ...agentStore.sessions])
     ensureActiveSessionId()
     agentStore.setActiveSessionId(session.id)
+    setOpenTabIds([session.id, ...agentStore.openTabIds.filter((id) => id !== session.id)])
     persistSessions()
   } catch (error) {
     notifyError(error instanceof Error ? error.message : String(error))
@@ -2032,6 +2035,21 @@ runComposerSendPipelineForSessionRef = async (session: AgentSession, content: st
 
   const shouldQueryKnowledgeBase = false
 
+  // 与 AIChat 一致：用户首条消息发出后即并行生成标题，不等待第一轮 Agent 回复结束
+  if (isFirstUserMessage && !liveSession.titleUserEdited) {
+    generateConversationTitleByAi(
+      liveSession.messages,
+      liveSession.title || t('agent.sessions.defaultTitle')
+    )
+      .then((newTitle) => {
+        if (newTitle && !liveSession.titleUserEdited) {
+          liveSession.title = newTitle
+          persistSessions()
+        }
+      })
+      .catch((err) => logger.debug('生成会话标题失败', err))
+  }
+
   nextTick(() => {
     composerInput.value = ''
     persistSessions()
@@ -2074,19 +2092,6 @@ runComposerSendPipelineForSessionRef = async (session: AgentSession, content: st
         shouldQueryKnowledgeBase,
         extraRefs
       )
-    }
-    if (isFirstUserMessage && !liveSession.titleUserEdited) {
-      generateConversationTitleByAi(
-        liveSession.messages,
-        liveSession.title || t('agent.sessions.defaultTitle')
-      )
-        .then((newTitle) => {
-          if (newTitle && !liveSession.titleUserEdited) {
-            liveSession.title = newTitle
-            persistSessions()
-          }
-        })
-        .catch((err) => logger.debug('生成会话标题失败', err))
     }
   } catch (error) {
     logger.error('[runComposerSendPipeline] 执行失败:', error)
@@ -2537,6 +2542,7 @@ const handleDuplicateSession = async (session: AgentSession) => {
     agentStore.setSessions([legacySession, ...agentStore.sessions])
     ensureActiveSessionId()
     agentStore.setActiveSessionId(duplicated.id)
+    setOpenTabIds([duplicated.id, ...agentStore.openTabIds.filter((id) => id !== duplicated.id)])
     persistSessions()
     notifySuccess(t('agent.sessions.duplicateSuccess'))
   } catch (error) {
@@ -2895,6 +2901,7 @@ const handleMessageDuplicate = async (message: AgentMessage) => {
     agentStore.setSessions([legacySession, ...agentStore.sessions])
     ensureActiveSessionId()
     agentStore.setActiveSessionId(duplicated.id)
+    setOpenTabIds([duplicated.id, ...agentStore.openTabIds.filter((id) => id !== duplicated.id)])
     persistSessions()
     notifySuccess(t('agent.sessions.duplicateSuccess'))
   } catch (error) {

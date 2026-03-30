@@ -1735,6 +1735,21 @@ runComposerSendPipelineForSessionRef = async (session: AgentSession, content: st
 
   touchSession(liveSession)
 
+  // 与 AIChat 一致：用户首条消息发出后即并行生成标题，不等待第一轮 Agent 回复结束
+  if (isFirstUserMessage && !liveSession.titleUserEdited) {
+    generateConversationTitleByAi(
+      liveSession.messages,
+      liveSession.title || t('agent.sessions.defaultTitle')
+    )
+      .then((newTitle) => {
+        if (newTitle && !liveSession.titleUserEdited) {
+          liveSession.title = newTitle
+          persistSessions()
+        }
+      })
+      .catch(() => {})
+  }
+
   agentStore.setComposerInput('')
   nextTick(() => agentStore.setComposerInput(''))
   persistSessions()
@@ -1742,19 +1757,6 @@ runComposerSendPipelineForSessionRef = async (session: AgentSession, content: st
 
   try {
     await executeAgentEngine(content, liveSession, extraRefs)
-    if (isFirstUserMessage && !liveSession.titleUserEdited) {
-      generateConversationTitleByAi(
-        liveSession.messages,
-        liveSession.title || t('agent.sessions.defaultTitle')
-      )
-        .then((newTitle) => {
-          if (newTitle && !liveSession.titleUserEdited) {
-            liveSession.title = newTitle
-            persistSessions()
-          }
-        })
-        .catch(() => {})
-    }
   } catch (error) {
     logger.error('[runComposerSendPipeline] 执行失败:', error)
     notifyError(error instanceof Error ? error.message : String(error))

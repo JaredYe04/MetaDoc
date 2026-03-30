@@ -477,7 +477,28 @@ const textEditorAdapter = shallowRef<TextEditorAdapter | null>(null)
 const titleIndex = ref<TitleIndex | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 const containerWidth = ref(0)
+const vditorInnerLayoutObserver = shallowRef<ResizeObserver | null>(null)
 let layoutObserver: ResizeObserver | null = null
+
+/** Vditor 的 setPadding 只响应 window.resize；侧栏/大纲改变 .vditor-ir 宽度时若不触发，版心左右留白会卡在旧值 */
+const syncVditorPaddingAfterLayout = debounce(() => {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event('resize'))
+}, 50)
+
+function attachVditorInnerLayoutObservers(editorRoot: HTMLElement) {
+  vditorInnerLayoutObserver.value?.disconnect()
+  vditorInnerLayoutObserver.value = null
+  if (typeof ResizeObserver === 'undefined') return
+  const ro = new ResizeObserver(() => {
+    syncVditorPaddingAfterLayout()
+  })
+  for (const sel of ['.vditor-ir', '.vditor-wysiwyg', '.vditor-sv'] as const) {
+    const el = editorRoot.querySelector(sel)
+    if (el) ro.observe(el)
+  }
+  vditorInnerLayoutObserver.value = ro
+}
 
 const isVditorLoading = ref(true)
 const showTitleMenu = ref(false)
@@ -1980,6 +2001,7 @@ onMounted(async () => {
       if (!entries.length) return
       const width = entries[0].contentRect.width
       containerWidth.value = width
+      syncVditorPaddingAfterLayout()
     })
     layoutObserver.observe(containerRef.value)
     containerWidth.value = containerRef.value.clientWidth
@@ -2440,6 +2462,8 @@ onMounted(async () => {
                 }
               }
               bindTitleMenu()
+              attachVditorInnerLayoutObservers(editorElement)
+              syncVditorPaddingAfterLayout()
             }
 
             // 监听Vditor内部的模式切换
@@ -2480,6 +2504,8 @@ onMounted(async () => {
                           mode: currentMode
                         })
                         bindTitleMenu()
+                        attachVditorInnerLayoutObservers(editorElement)
+                        syncVditorPaddingAfterLayout()
                       }
                     }
                   })
@@ -2519,6 +2545,7 @@ onMounted(async () => {
                     }
                     setupOutlineResizer()
                     bindTitleMenu()
+                    syncVditorPaddingAfterLayout()
                   })
                 }
               }
@@ -2542,6 +2569,7 @@ onMounted(async () => {
                     setupOutlineResizer()
                     bindTitleMenu()
                   }
+                  syncVditorPaddingAfterLayout()
                 })
 
                 outlineObserver.observe(outlineContainer, {
@@ -2557,6 +2585,8 @@ onMounted(async () => {
 
               // 初始化时设置大纲宽度拖拽
               setupOutlineResizer()
+              attachVditorInnerLayoutObservers(editorElement)
+              syncVditorPaddingAfterLayout()
             }
           }
         } catch (e) {
@@ -2712,6 +2742,9 @@ onBeforeUnmount(() => {
   eventBus.off('vditor-sync-with-html', handleSyncWithHtml)
   eventBus.off('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)
   eventBus.off('sync-editor-theme', handleSyncEditorTheme)
+  vditorInnerLayoutObserver.value?.disconnect()
+  vditorInnerLayoutObserver.value = null
+  syncVditorPaddingAfterLayout.cancel()
   if (layoutObserver) {
     layoutObserver.disconnect()
     layoutObserver = null

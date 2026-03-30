@@ -1,4 +1,4 @@
-# Verificação Ortográfica por IA
+﻿# Verificação Ortográfica por IA
 
 ## Visão Geral
 

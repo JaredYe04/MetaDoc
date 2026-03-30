@@ -1,4 +1,4 @@
-# Editor de Texto Simples
+﻿# Editor de Texto Simples
 
 ## Visão Geral
 

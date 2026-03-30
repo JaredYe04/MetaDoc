@@ -1,4 +1,4 @@
-# Mehrfach-Tab-Verwaltung
+﻿# Mehrfach-Tab-Verwaltung
 
 ## Übersicht
 
@@ -14,7 +14,6 @@ Die Tab-Verwaltung umfasst Funktionen wie Neu erstellen, Wechseln, Schließen, Z
 
 <ProofreadView mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
 <GraphWindow mode="demo" />
 

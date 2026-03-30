@@ -1,4 +1,4 @@
-# Configuração de Upload de Imagens
+﻿# Configuração de Upload de Imagens
 
 ## Visão Geral
 

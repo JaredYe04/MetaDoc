@@ -1,4 +1,4 @@
-# Erweiterte Markdown-Funktionen
+﻿# Erweiterte Markdown-Funktionen
 
 ## Übersicht
 

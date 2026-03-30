@@ -1,4 +1,4 @@
-# Paragraph Optimization Feature
+﻿# Paragraph Optimization Feature
 
 ## Overview
 

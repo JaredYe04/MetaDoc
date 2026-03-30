@@ -1,4 +1,4 @@
-# User Feedback
+﻿# User Feedback
 
 ## Overview
 
@@ -110,7 +110,6 @@ You can access user feedback via the settings page:
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-<QuickStartPanel mode="demo" />
 
 ```mermaid
 graph TB

@@ -1,4 +1,4 @@
-# Multi-Window Management
+﻿# Multi-Window Management
 
 ## Overview
 
@@ -180,6 +180,5 @@ File association features:
 
 <MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
 
-<QuickStartPanel mode="demo" />
 
 <LeftMenu mode="demo" />

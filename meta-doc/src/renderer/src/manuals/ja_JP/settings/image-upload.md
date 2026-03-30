@@ -1,4 +1,4 @@
-# アップロードサービス設定
+﻿# アップロードサービス設定
 
 ## 概要
 
@@ -82,7 +82,6 @@ graph TB
 - **macOS**：`~/Library/Application Support/MetaDoc/images`
 - **Linux**：`~/.config/MetaDoc/images`
 
-<QuickStartPanel mode="demo" />
 
 ### ディレクトリ管理
 

@@ -1,4 +1,4 @@
-# Guide d'utilisation de l'éditeur LaTeX
+﻿# Guide d'utilisation de l'éditeur LaTeX
 
 ## Vue d'ensemble
 
@@ -10,7 +10,6 @@ Monaco Editor est le moteur d'édition utilisé par Visual Studio Code, doté de
 
 <ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "Compilation terminée", "type": "out"}]' />
 
-<QuickStartLatex mode="demo" />
 
 <LaTeXEditor mode="demo" />
 

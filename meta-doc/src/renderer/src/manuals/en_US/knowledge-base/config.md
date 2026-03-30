@@ -1,4 +1,4 @@
-# Knowledge Base Configuration
+﻿# Knowledge Base Configuration
 
 ## Overview
 

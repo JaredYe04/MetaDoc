@@ -1,4 +1,4 @@
-# Guía de Inicio Rápido
+﻿# Guía de Inicio Rápido
 
 ## Descripción General
 
@@ -99,7 +99,6 @@ El asistente de inicio rápido de MetaDoc es un diseño considerado. No solo cre
 
 El primer paso del asistente es seleccionar el formato del documento. MetaDoc recomendará inteligentemente las opciones adecuadas según su escenario de uso:
 
-<QuickStartPanel mode="demo" />
 
 #### Inicio Rápido de Markdown
 
@@ -109,7 +108,6 @@ Al seleccionar Markdown, el asistente proporcionará:
 - **Esquema Estructurado**: Generará automáticamente el marco del documento, ayudándole a organizar sus ideas.
 - **Vista Previa en Tiempo Real**: Escriba y vea simultáneamente, comprendiendo al instante el efecto de presentación final del documento.
 
-<QuickStartMarkdown mode="demo" />
 
 #### Inicio Rápido de LaTeX
 
@@ -119,7 +117,6 @@ Al seleccionar LaTeX, el asistente proporcionará:
 - **Guía de Estructura**: Generará automáticamente la estructura estándar de un documento LaTeX.
 - **Autocompletado Inteligente**: Asistencia de IA para generar código LaTeX, reduciendo la barrera de aprendizaje.
 
-<QuickStartLatex mode="demo" />
 
 #### Valor Central del Asistente
 

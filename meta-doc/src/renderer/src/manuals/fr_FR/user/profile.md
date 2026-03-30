@@ -1,4 +1,4 @@
-# Profil utilisateur
+﻿# Profil utilisateur
 
 ## Vue d'ensemble
 
@@ -14,7 +14,6 @@ Vous pouvez ouvrir la boîte de dialogue du profil utilisateur des manières sui
 - **Manuel de l'utilisateur** : Vous pouvez accéder aux paramètres du profil utilisateur depuis le manuel de l'utilisateur.
 - **Option de menu** : Certains menus peuvent contenir une option pour le profil utilisateur.
 
-<QuickStartPanel mode="demo" />
 
 ### Interface du profil utilisateur
 
@@ -85,7 +84,6 @@ Le scénario choisi influence :
 - **Intermédiaire** : Maîtrise la syntaxe courante et les fonctions étendues.
 - **Avancé** : Expert en Markdown, connaît diverses syntaxes étendues.
 
-<QuickStartLatex mode="demo" />
 
 ### Maîtrise de LaTeX
 
@@ -226,7 +224,6 @@ Le profil utilisateur sera :
 - [[user.feedback|Retour utilisateur]]
 - [[quick-start.guide|Guide de démarrage rapide]]
 
-<QuickStartPanel mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 

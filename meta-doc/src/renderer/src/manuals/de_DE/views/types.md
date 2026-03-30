@@ -1,4 +1,4 @@
-# Ansichtstypen
+﻿# Ansichtstypen
 
 ## Übersicht
 
@@ -10,7 +10,6 @@ MetaDoc unterstützt verschiedene Ansichtstypen, von denen jeder unterschiedlich
 
 Die Startseitenansicht ist die Einstiegsoberfläche von MetaDoc und bietet Funktionen für einen schnellen Start und kürzlich verwendete Dokumente.
 
-<QuickStartPanel mode="demo" />
 
 **Hauptfunktionen**:
 

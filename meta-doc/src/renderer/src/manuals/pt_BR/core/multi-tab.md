@@ -1,4 +1,4 @@
-# Gerenciamento de Múltiplas Abas
+﻿# Gerenciamento de Múltiplas Abas
 
 ## Visão Geral
 
@@ -14,7 +14,6 @@ O gerenciamento de abas inclui funções como criar, alternar, fechar, ordenar p
 
 <ProofreadView mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
 <GraphWindow mode="demo" />
 

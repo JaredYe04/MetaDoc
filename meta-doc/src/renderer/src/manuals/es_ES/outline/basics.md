@@ -1,4 +1,4 @@
-# Vista de Esquema
+﻿# Vista de Esquema
 
 ## Descripción General
 

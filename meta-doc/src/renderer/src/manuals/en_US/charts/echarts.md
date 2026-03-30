@@ -1,4 +1,4 @@
-# ECharts Charts
+﻿# ECharts Charts
 
 ## Overview
 

@@ -28,7 +28,6 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Skeleton } from '@renderer/components/ui/skeleton'
 import { renderMarkdownPreview, local2fileProtocol, local2httpProtocol } from '../../../utils/md-utils'
 import { themeState } from '../../../utils/themes'
-import eventBus from '../../../utils/event-bus'
 
 const { t } = useI18n()
 
@@ -101,11 +100,6 @@ const renderPreview = async () => {
         })
         button.addEventListener('click', () => {
           props.openSystemTab('/global-home', t('headMenu.home') || '主页')
-          nextTick(() => {
-            nextTick(() => {
-              setTimeout(() => eventBus.emit('open-quickstart'), 150)
-            })
-          })
         })
       }
     })

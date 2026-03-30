@@ -29,7 +29,6 @@
 <ComponentName mode="demo" />
 <LeftMenu mode="demo" />
 <MainTabs mode="demo" />
-<QuickStartPanel mode="demo" />
 ```
 
 - **mode**：必须为 `demo`（或省略，系统会自动补全为 demo）。
@@ -60,9 +59,6 @@
 
 - **标签页功能**：使用 `<MainTabs mode="demo" />` 展示标签页栏
 - **快速开始向导**：
-  - 格式选择：`<QuickStartPanel mode="demo" />`
-  - Markdown向导：`<QuickStartMarkdown mode="demo" />`
-  - LaTeX向导：`<QuickStartLatex mode="demo" />`
 - **编辑器功能**：
   - **查找替换**：使用 `<SearchReplaceMenu mode="demo" :position='{"top": 100, "left": 200}' :adapter='null' />` 展示查找替换菜单
   - **段落优化**：使用 `<SectionOptimizer mode="demo" title="示例" :position='{"top": 100, "left": 200}' path="1" :tree='{}' language="markdown" :adapter='null' />` 展示段落优化器
@@ -81,7 +77,7 @@
 - ✅ **介绍查找替换功能**：展示 `SearchReplaceMenu`
 - ✅ **介绍元信息功能**：展示 `MetaInfoPanel`
 - ✅ **介绍标签页操作**：展示 `MainTabs`
-- ✅ **介绍快速开始**：展示 `QuickStartPanel`、`QuickStartMarkdown` 或 `QuickStartLatex`
+- ~~**介绍快速开始**~~：已废弃；组件已移至 `components/home/_quickstart_archive/`，手册中不再嵌入
 - ❌ **不要**：无论什么内容都只展示菜单组件
 
 #### 技术约束
@@ -145,46 +141,9 @@
 <MainTabs mode="demo" />
 ```
 
-##### 3. 快速开始组件
+##### 3. 快速开始组件（已归档）
 
-**QuickStartPanel** - 快速开始格式选择面板
-
-基于代码实现 (`components/home/QuickStartPanel.vue`)：
-
-- **Props**：
-  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
-
-**使用示例**：
-
-```markdown
-<QuickStartPanel mode="demo" />
-```
-
-**QuickStartMarkdown** - Markdown快速开始向导
-
-基于代码实现 (`components/home/QuickStartMarkdown.vue`)：
-
-- **Props**：
-  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
-
-**使用示例**：
-
-```markdown
-<QuickStartMarkdown mode="demo" />
-```
-
-**QuickStartLatex** - LaTeX快速开始向导
-
-基于代码实现 (`components/home/QuickStartLatex.vue`)：
-
-- **Props**：
-  - `mode`: `'normal' | 'demo'` - 模式，默认为 `'demo'`
-
-**使用示例**：
-
-```markdown
-<QuickStartLatex mode="demo" />
-```
+`QuickStartPanel` / `QuickStartMarkdown` / `QuickStartLatex` 已从产品界面与 demo 注册中移除，源码在 `components/home/_quickstart_archive/`，**请勿**在新文档中嵌入。
 
 ##### 4. 编辑器组件
 

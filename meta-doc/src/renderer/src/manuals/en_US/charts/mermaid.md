@@ -1,4 +1,4 @@
-# Mermaid Charts
+﻿# Mermaid Charts
 
 ## Overview
 

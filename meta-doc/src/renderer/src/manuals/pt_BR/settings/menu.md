@@ -1,4 +1,4 @@
-# Configuração de Menu
+﻿# Configuração de Menu
 
 ## Visão Geral
 

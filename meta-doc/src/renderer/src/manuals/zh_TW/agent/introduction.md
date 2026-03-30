@@ -1,4 +1,4 @@
-# Agent框架概述
+﻿# Agent框架概述
 
 ## 概述
 
@@ -333,4 +333,3 @@ A: 當AgentConfig關聯多個工具集時，可用的工具是所有工具集的
 - [[agent.capabilities|規則、技能與 MCP 管理]]
 - [[ai.llm-config|LLM配置]]
 
-<QuickStartPanel mode="demo" />

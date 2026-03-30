@@ -1,69 +1,20 @@
-# 主頁功能
+﻿# 主頁功能
 
 ## 概述
 
 主頁是MetaDoc的入口介面，提供快速開始、新建文件、開啟檔案等功能。主頁設計簡潔美觀，幫助您快速開始使用MetaDoc。
 
-## 快速開始
+## Agent 與推薦提示
 
-### 快速開始精靈
+主頂部提供與 **Agent 全頁**相同的輸入框（支援 @ 引用檔案/分頁/目錄）。內容僅暫存於本頁，**按傳送**後會開啟 **Agent** 分頁並**建立新工作階段**，再送出該則訊息。
 
-點擊「快速開始」按鈕可以啟動快速開始精靈：
+輸入框下方為 **推薦需求**（多則含圖示的範例提示）：
 
-1.  **選擇格式**：選擇文件格式（Markdown或LaTeX）
-2.  **設定元資訊**：輸入文件標題、作者等資訊
-3.  **AI生成內容**：使用AI輔助生成文件內容
-4.  **預覽文件**：預覽生成的文件內容
-5.  **建立文件**：確認後建立文件
+- 可按 **換一批** 隨機刷新
+- 每則約 **10～20 秒**會自動隨機替換並有轉場動畫
+- 點選會將文字填入輸入框；可用 **Ctrl+Z** / **⌘Z** 還原填入前內容
 
-快速開始精靈的格式選擇介面如下：
-
-<QuickStartPanel mode="demo" />
-
-### Markdown快速開始
-
-選擇Markdown格式後：
-
--   **範本選擇**：可以選擇Markdown範本
--   **內容生成**：AI可以生成Markdown內容
--   **快速編輯**：建立後立即開始編輯
-
-選擇Markdown後進入的精靈介面：
-
-<QuickStartMarkdown mode="demo" />
-
-### LaTeX快速開始
-
-選擇LaTeX格式後：
-
--   **文件類型**：可以選擇文件類型（article、book等）
--   **內容生成**：AI可以生成LaTeX內容
--   **編譯預覽**：建立後可以編譯預覽PDF
-
-選擇LaTeX後進入的精靈介面：
-
-<QuickStartLatex mode="demo" />
-
-```mermaid
-graph LR
-    A[點擊快速開始] --> B{選擇格式}
-    B -->|Markdown| C[Markdown精靈]
-    B -->|LaTeX| D[LaTeX精靈]
-    C --> E[設定元資訊]
-    D --> E
-    E --> F[AI生成內容]
-    F --> G[預覽文件]
-    G --> H[建立文件]
-    style A fill:#f3f4f6,stroke:#374151
-    style B fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style D fill:#f3f4f6,stroke:#374151
-    style E fill:#f3f4f6,stroke:#374151
-    style F fill:#f3f4f6,stroke:#374151
-    style G fill:#f3f4f6,stroke:#374151
-    style H fill:#f3f4f6,stroke:#374151
-```
-
+> 舊版「快速開始」精靈已移除；請用 **新建文件** 或左側選單建立文件。
 ## 新建文件
 
 ### 建立空白文件

@@ -1,4 +1,4 @@
-# Funcionalidade de Otimização de Parágrafos
+﻿# Funcionalidade de Otimização de Parágrafos
 
 ## Visão Geral
 

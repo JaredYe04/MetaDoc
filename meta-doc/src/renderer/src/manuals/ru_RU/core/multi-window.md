@@ -1,4 +1,4 @@
-# Управление несколькими окнами
+﻿# Управление несколькими окнами
 
 ## Обзор
 
@@ -180,6 +180,5 @@ graph LR
 
 <MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
 
-<QuickStartPanel mode="demo" />
 
 <LeftMenu mode="demo" />

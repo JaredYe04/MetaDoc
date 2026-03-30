@@ -1,4 +1,4 @@
-# Suporte Multilíngue
+﻿# Suporte Multilíngue
 
 ## Visão Geral
 

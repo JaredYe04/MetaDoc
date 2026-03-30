@@ -1,4 +1,4 @@
-# Sintaxis Markdown
+﻿# Sintaxis Markdown
 
 ## Descripción general
 

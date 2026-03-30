@@ -1,4 +1,4 @@
-# Gestión de la Base de Conocimiento
+﻿# Gestión de la Base de Conocimiento
 
 ## Descripción General
 

@@ -1,4 +1,4 @@
-# Schnellstartanleitung
+﻿# Schnellstartanleitung
 
 ## Übersicht
 
@@ -99,7 +99,6 @@ Der Schnellstart-Assistent von MetaDoc ist eine durchdachte Funktion. Er erstell
 
 Der erste Schritt des Assistenten ist die Auswahl des Dokumentenformats. MetaDoc empfiehlt intelligent passende Optionen basierend auf Ihrem Anwendungsszenario:
 
-<QuickStartPanel mode="demo" />
 
 #### Schnellstart mit Markdown
 
@@ -109,7 +108,6 @@ Nach der Auswahl von Markdown bietet der Assistent:
 -   **Strukturierte Gliederung**: Automatische Generierung eines Dokumentengerüsts, das Ihnen hilft, Ihre Gedanken zu organisieren.
 -   **Echtzeitvorschau**: Schreiben und gleichzeitig sehen, wie das Dokument letztendlich aussieht.
 
-<QuickStartMarkdown mode="demo" />
 
 #### Schnellstart mit LaTeX
 
@@ -119,7 +117,6 @@ Nach der Auswahl von LaTeX bietet der Assistent:
 -   **Strukturhilfe**: Automatische Generierung einer standardmäßigen LaTeX-Dokumentenstruktur.
 -   **Intelligente Vervollständigung**: KI-unterstützte Generierung von LaTeX-Code, um die Einstiegshürde zu senken.
 
-<QuickStartLatex mode="demo" />
 
 #### Der Kernnutzen des Assistenten
 

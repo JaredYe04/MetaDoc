@@ -1,4 +1,4 @@
-# Retour utilisateur
+﻿# Retour utilisateur
 
 ## Vue d'ensemble
 
@@ -110,7 +110,6 @@ Vous pouvez accéder au retour utilisateur via la page des paramètres :
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-<QuickStartPanel mode="demo" />
 
 ```mermaid
 graph TB

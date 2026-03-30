@@ -1,4 +1,4 @@
-# Prise en charge multilingue
+﻿# Prise en charge multilingue
 
 ## Vue d'ensemble
 

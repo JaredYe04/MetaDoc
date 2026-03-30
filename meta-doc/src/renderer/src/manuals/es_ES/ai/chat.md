@@ -1,4 +1,4 @@
-# Diálogo con IA
+﻿# Diálogo con IA
 
 ## Descripción general
 

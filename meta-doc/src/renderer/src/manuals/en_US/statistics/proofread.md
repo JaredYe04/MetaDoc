@@ -1,4 +1,4 @@
-# Proofreading Tool Statistics
+﻿# Proofreading Tool Statistics
 
 ## Overview
 

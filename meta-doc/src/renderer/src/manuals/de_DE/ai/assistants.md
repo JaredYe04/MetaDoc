@@ -1,4 +1,4 @@
-# KI-Assistent-Funktionen
+﻿# KI-Assistent-Funktionen
 
 ## Übersicht
 

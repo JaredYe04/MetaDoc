@@ -1,4 +1,4 @@
-# Atajos globales
+﻿# Atajos globales
 
 ## Resumen
 
@@ -210,4 +210,3 @@ Si un atajo entra en conflicto con el sistema u otro software:
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartPanel mode="demo" />

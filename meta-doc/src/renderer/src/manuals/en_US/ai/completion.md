@@ -1,4 +1,4 @@
-# AI Auto-Completion
+﻿# AI Auto-Completion
 
 ## Overview
 

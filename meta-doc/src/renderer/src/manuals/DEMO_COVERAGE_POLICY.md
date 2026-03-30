@@ -1,4 +1,4 @@
-# Demo 覆盖率强制政策 (Demo Coverage Enforcement Policy)
+﻿# Demo 覆盖率强制政策 (Demo Coverage Enforcement Policy)
 
 ## ⚠️ 不可绕过警告 (NON-BYPASSABLE)
 
@@ -108,7 +108,6 @@ npm run lint:demos
 | 顶部菜单功能  | `<MenuItemsDemo mode="demo" :items='[...]' />`                           |
 | 侧边栏视图    | `<ViewMenuItemsDemo mode="demo" :items='[...]' />`                       |
 | 标签页操作    | `<MainTabs mode="demo" />`                                               |
-| 快速开始面板  | `<QuickStartPanel mode="demo" />`                                        |
 | 查找替换      | `<SearchReplaceMenu mode="demo" ... />`                                  |
 | 标题/段落菜单 | `<TitleMenu mode="demo" ... />` / `<SectionOptimizer mode="demo" ... />` |
 | PDF预览       | `<PdfPreviewPanel mode="demo" pdfUrl="" />`                              |

@@ -1,4 +1,4 @@
-# Markdown Editor Features
+﻿# Markdown Editor Features
 
 ## Overview
 
@@ -197,7 +197,6 @@ After completion suggestions are displayed, you can:
 
 <SectionOptimizer mode="demo" title="Paragraph Optimization Example" path="1" :tree='{}' language="markdown" :adapter='null' />
 
-<QuickStartMarkdown mode="demo" />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
@@ -324,6 +323,5 @@ A: Try enabling knowledge base integration, adjusting the maximum completion tok
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartMarkdown mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "edit", "items": ["find", "replace"]}]' />

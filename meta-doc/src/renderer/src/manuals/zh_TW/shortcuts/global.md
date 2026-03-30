@@ -1,4 +1,4 @@
-# 全域快捷鍵
+﻿# 全域快捷鍵
 
 ## 概述
 
@@ -210,4 +210,3 @@ graph LR
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartPanel mode="demo" />

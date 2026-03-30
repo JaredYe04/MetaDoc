@@ -1,4 +1,4 @@
-# 用户反馈
+﻿# 用户反馈
 
 ## 概述
 
@@ -110,7 +110,6 @@
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-<QuickStartPanel mode="demo" />
 
 ```mermaid
 graph TB

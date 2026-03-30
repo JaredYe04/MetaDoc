@@ -1,4 +1,4 @@
-# Basic Editor Operations
+﻿# Basic Editor Operations
 
 ## Overview
 

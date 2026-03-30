@@ -1,4 +1,4 @@
-# 上传服务设置
+﻿# 上传服务设置
 
 ## 概述
 
@@ -82,7 +82,6 @@ graph TB
 - **macOS**：`~/Library/Application Support/MetaDoc/images`
 - **Linux**：`~/.config/MetaDoc/images`
 
-<QuickStartPanel mode="demo" />
 
 ### 目录管理
 

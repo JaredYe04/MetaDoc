@@ -1,4 +1,4 @@
-# Operações com Arquivos
+﻿# Operações com Arquivos
 
 ## Visão Geral
 

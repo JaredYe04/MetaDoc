@@ -1,4 +1,4 @@
-# Benutzerprofil
+﻿# Benutzerprofil
 
 ## Übersicht
 
@@ -14,7 +14,6 @@ Sie können den Benutzerprofil-Dialog auf folgende Weise öffnen:
 - **Benutzerhandbuch**: Im Benutzerhandbuch können Sie auf die Benutzerprofileinstellungen zugreifen.
 - **Menüoptionen**: In einigen Menüs kann es eine Option für das Benutzerprofil geben.
 
-<QuickStartPanel mode="demo" />
 
 ### Benutzerprofil-Oberfläche
 
@@ -85,7 +84,6 @@ Bewerten Sie Ihre Vertrautheit mit der Markdown-Syntax:
 -   **Mittelstufe**: Vertraut mit gängiger Syntax und erweiterten Funktionen.
 -   **Fortgeschritten**: Beherrscht Markdown, kennt verschiedene erweiterte Syntaxen.
 
-<QuickStartLatex mode="demo" />
 
 ### LaTeX-Kenntnisse
 
@@ -226,7 +224,6 @@ Das Benutzerprofil wird:
 -   [[user.feedback|Benutzerfeedback]]
 -   [[quick-start.guide|Schnellstart-Anleitung]]
 
-<QuickStartPanel mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 

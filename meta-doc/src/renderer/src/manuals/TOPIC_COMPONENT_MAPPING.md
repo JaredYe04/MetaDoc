@@ -107,7 +107,6 @@
 **推荐组合**:
 
 ```markdown
-<QuickStartPanel mode="demo" /> <!-- 主页 -->
 <LaTeXEditor mode="demo" /> <!-- 编辑器 -->
 <Outline mode="demo" /> <!-- 大纲 -->
 <AgentView mode="demo" /> <!-- Agent -->
@@ -335,7 +334,6 @@ ProofreadDisplay          - 校对结果展示
 | `MainTabs`          | 标签页栏 | `core/multi-tab.md`                  |
 | `MenuItemsDemo`     | 顶部菜单 | `shortcuts/global.md`                |
 | `ViewMenuItemsDemo` | 视图菜单 | `views/types.md`                     |
-| `QuickStartPanel`   | 快速开始 | `home/features.md`                   |
 | `LeftMenu`          | 左侧菜单 | `views/types.md`                     |
 | `TitleMenu`         | 标题菜单 | `outline/basics.md`                  |
 | `SectionOptimizer`  | 段落优化 | `features/paragraph-optimization.md` |

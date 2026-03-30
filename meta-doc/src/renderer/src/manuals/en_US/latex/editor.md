@@ -1,4 +1,4 @@
-# LaTeX Editor User Guide
+﻿# LaTeX Editor User Guide
 
 ## Overview
 
@@ -10,7 +10,6 @@ The Monaco Editor is the core editor used by Visual Studio Code, offering powerf
 
 <ConsoleTerminal mode="demo" consoleKey="demo" :history='[{"content": "Compilation complete", "type": "out"}]' />
 
-<QuickStartLatex mode="demo" />
 
 <LaTeXEditor mode="demo" />
 

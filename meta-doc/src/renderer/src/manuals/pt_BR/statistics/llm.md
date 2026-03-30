@@ -1,4 +1,4 @@
-# Estatísticas de LLM
+﻿# Estatísticas de LLM
 
 ## Visão Geral
 

@@ -68,12 +68,12 @@
             <AlertTitle>{{ $t('agent.display.grep.summaryMode') || '概要模式' }}</AlertTitle>
             <AlertDescription>
               <div class="summary-content">
-                <p>
+                <!-- <p>
                   {{
                     $t('agent.display.grep.summaryDescription') ||
                     '搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。'
                   }}
-                </p>
+                </p> -->
                 <ul class="summary-list">
                   <li>
                     {{ $t('agent.display.grep.matchesCount', { count: resultData.totalMatches }) }}

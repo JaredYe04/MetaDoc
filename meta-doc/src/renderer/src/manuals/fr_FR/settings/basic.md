@@ -1,4 +1,4 @@
-# Paramètres de base
+﻿# Paramètres de base
 
 ## Vue d'ensemble
 

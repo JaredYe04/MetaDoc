@@ -86,6 +86,12 @@
         class="context-menu"
         @close="contextMenuVisible = false"
       />
+      <GraphQuickDialog
+        v-model:open="graphQuickDialogOpen"
+        :selection-text="graphQuickSelection"
+        document-kind="md"
+        :document-title="graphQuickDocumentTitle"
+      />
       <AISuggestionGhost
         v-if="vditor"
         format="md"
@@ -167,6 +173,7 @@ import { aiCompletionService } from '../utils/ai-completion-service'
 import { VditorEditorAdapter } from '../utils/editor-adapters'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
+import GraphQuickDialog from '../components/GraphQuickDialog.vue'
 import { useWorkspace } from '../stores/workspace'
 import type { ArticleMetaData, DocumentOutlineNode } from '../../../types'
 import { debounce } from 'lodash'
@@ -237,6 +244,8 @@ const props = withDefaults(
 const isActive = toRef(props, 'active')
 
 const documentRef = computed(() => workspace.ensureDocument(props.tabId))
+
+const graphQuickDocumentTitle = computed(() => documentRef.value.meta?.title?.trim() || '')
 
 const currentMarkdown = computed<string>({
   get: () => documentRef.value.markdown ?? '',
@@ -531,6 +540,8 @@ const currentTitlePath = ref('')
 const contextMenuVisible = ref(false) // 右键菜单可见性
 const menuX = ref(0) // 菜单 X 坐标
 const menuY = ref(0) // 菜单 Y 坐标
+const graphQuickDialogOpen = ref(false)
+const graphQuickSelection = ref('')
 
 const vditorEl = ref<HTMLElement | null>(null)
 const lastAppliedContent = ref('')
@@ -690,11 +701,24 @@ function onCancelSuggestion() {
   //logger.log("补全已取消");
 }
 
+function getMarkdownEditorSelectionText(): string {
+  const root = getEditorRoot()
+  if (!root) return ''
+  const sel = window.getSelection()
+  if (!sel?.rangeCount || sel.isCollapsed) return ''
+  const n = sel.anchorNode
+  if (!n) return ''
+  const el = n.nodeType === Node.TEXT_NODE ? (n.parentElement as Node | null) : n
+  if (!el || !root.contains(el)) return ''
+  return sel.toString()
+}
+
 // 打开右键菜单
-const openContextMenu = (event: MouseEvent) => {
+const openContextMenu = async (event: MouseEvent) => {
   event.preventDefault()
   menuX.value = event.clientX
   menuY.value = event.clientY
+  await refreshContextMenu()
   contextMenuVisible.value = true
 }
 
@@ -816,6 +840,19 @@ const handleMenuClick = async (item: string) => {
     case 'insert-graph':
       await handleInsertGraph()
       break
+    case 'quick-graph-from-selection': {
+      const sel = getMarkdownEditorSelectionText().trim()
+      if (!sel) {
+        eventBus.emit(
+          'show-warning',
+          t('graph.selectTextForIllustration', '请先选中要生成插图的文本')
+        )
+        break
+      }
+      graphQuickSelection.value = sel
+      graphQuickDialogOpen.value = true
+      break
+    }
     case 'cut':
       // 使用 document.execCommand，让 Vditor 自己处理剪切操作
       executeEditorCommand('cut')
@@ -1195,8 +1232,10 @@ const handleInsertGraph = async () => {
     const contextEnd = Math.min(markdown.length, cursorOffset + 200)
     const context = markdown.substring(contextStart, contextEnd)
 
-    // 打开绘图工具窗口，并传递上下文
-    eventBus.emit('graph', { context, insertPosition: cursorOffset })
+    workspace.openToolTab('graph')
+    await nextTick()
+    await nextTick()
+    eventBus.emit('graph-open-insert-mode', { context, insertPosition: cursorOffset })
 
     // 监听绘图完成事件
     const onGraphComplete = (data: { imageUrl: string; imageMarkdown: string }) => {
@@ -1991,7 +2030,8 @@ const handleTab = (event: KeyboardEvent) => {
 }
 
 const refreshContextMenu = async () => {
-  articleContextMenuItems.value = await getArticleContextMenuItems()
+  const hasTextSelection = getMarkdownEditorSelectionText().trim().length > 0
+  articleContextMenuItems.value = await getArticleContextMenuItems({ hasTextSelection })
 }
 
 // 编辑器初始化

@@ -1,4 +1,4 @@
-# Formats de documents pris en charge
+﻿# Formats de documents pris en charge
 
 ## Vue d'ensemble
 
@@ -14,11 +14,8 @@ MetaDoc prend en charge plusieurs formats de documents, notamment Markdown, LaTe
 
 <MainTabs mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
-<QuickStartMarkdown mode="demo" />
 
-<QuickStartLatex mode="demo" />
 
 ## Formats pris en charge
 

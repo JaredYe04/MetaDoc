@@ -1,4 +1,4 @@
-# Guide de démarrage rapide
+﻿# Guide de démarrage rapide
 
 ## Vue d'ensemble
 
@@ -99,7 +99,6 @@ L'assistant de démarrage rapide de MetaDoc est une conception réfléchie. Il n
 
 La première étape de l'assistant consiste à choisir le format du document. MetaDoc recommandera intelligemment les options appropriées en fonction de votre scénario d'utilisation :
 
-<QuickStartPanel mode="demo" />
 
 #### Démarrage rapide Markdown
 
@@ -109,7 +108,6 @@ Après avoir choisi Markdown, l'assistant fournira :
 - **Plan structuré** : Génération automatique d'un cadre de document pour vous aider à organiser vos idées.
 - **Aperçu en temps réel** : Écrivez et voyez immédiatement l'effet de rendu final du document.
 
-<QuickStartMarkdown mode="demo" />
 
 #### Démarrage rapide LaTeX
 
@@ -119,7 +117,6 @@ Après avoir choisi LaTeX, l'assistant fournira :
 - **Guide de structure** : Génération automatique d'une structure de document LaTeX standard.
 - **Complétion intelligente** : Assistance IA pour générer du code LaTeX, réduisant la courbe d'apprentissage.
 
-<QuickStartLatex mode="demo" />
 
 #### Valeur centrale de l'assistant
 

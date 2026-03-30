@@ -1,4 +1,4 @@
-# Markdown編輯器功能
+﻿# Markdown編輯器功能
 
 ## 概述
 
@@ -197,7 +197,6 @@ Token數越大，補全的內容越多，但產生時間也會更長。
 
 <SectionOptimizer mode="demo" title="段落優化範例" path="1" :tree='{}' language="markdown" :adapter='null' />
 
-<QuickStartMarkdown mode="demo" />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
@@ -324,6 +323,5 @@ A: 嘗試啟用知識庫整合，調整補全最大Token數，或使用手動觸
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartMarkdown mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "edit", "items": ["find", "replace"]}]' />

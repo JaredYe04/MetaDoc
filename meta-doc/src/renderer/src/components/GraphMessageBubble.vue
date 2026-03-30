@@ -83,10 +83,6 @@ const content = computed(() => {
   return props.message.content
 })
 
-const roleClass = computed(() => {
-  return props.message.role === 'user' ? 'user-role' : 'ai-role'
-})
-
 const hasChart = computed(() => {
   return props.message.role === 'assistant' && (props.message.chartMarkdown || props.message.code)
 })
@@ -345,157 +341,152 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    :class="['message-bubble', roleClass]"
+    class="graph-message"
+    :class="role === 'user' ? 'graph-message--user' : 'graph-message--assistant'"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
-    <Avatar class="avatar-with-mask" v-if="role !== 'user'">
-      <AvatarImage :src="(themeState.currentTheme as any).AiLogo" />
-      <AvatarFallback>AI</AvatarFallback>
-    </Avatar>
-    <!-- 用户消息的操作按钮（在左侧） -->
-    <transition name="fade">
-      <DropdownMenu
-        v-if="role === 'user' && showActions"
-        @click.stop
-        @update:open="handleDropdownVisibleChange"
-        class="side-button"
+    <!-- 助手：与 Agent 一致，无头像、无气泡，操作在正文下方 -->
+    <template v-if="role === 'assistant'">
+      <div
+        class="graph-message__body graph-message__body--flat response-container"
+        :class="{ 'graph-message__body--has-chart': hasChart }"
       >
-        <DropdownMenuTrigger
-          as-child
+        <div v-if="hasChart && !isStreaming" class="chart-container-wrapper">
+          <div ref="chartContainerRef" class="chart-container"></div>
+        </div>
+        <div v-else-if="isStreaming" class="streaming-content graph-md-preview-wrap">
+          <MdPreview
+            :modelValue="content"
+            previewTheme="github"
+            codeStyleReverse
+            style="text-align: left; color: v-bind('themeState.currentTheme.textColor')"
+            :class="themeState.currentTheme.mdeditorClass"
+            :codeFold="false"
+            :autoFoldThreshold="300"
+          />
+        </div>
+        <div v-else class="text-content graph-md-preview-wrap">
+          <MdPreview
+            :modelValue="content"
+            previewTheme="github"
+            codeStyleReverse
+            style="text-align: left; color: v-bind('themeState.currentTheme.textColor')"
+            :class="themeState.currentTheme.mdeditorClass"
+            :codeFold="false"
+            :autoFoldThreshold="300"
+          />
+        </div>
+      </div>
+      <transition name="fade">
+        <div
+          v-show="showActions"
+          class="ai-message-actions"
           @mouseenter="handleActionsMouseEnter"
           @mouseleave="handleActionsMouseLeave"
         >
-          <Button circle size="small"><MoreVertical class="w-4 h-4" /></Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          @mouseenter="handleDropdownMouseEnter"
-          @mouseleave="handleDropdownMouseLeave"
-        >
-          <DropdownMenuItem @click="handleActionCommand('copy')">
-            <Copy class="w-4 h-4 mr-2" />
-            {{ t('common.copy', '复制') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
-            <FilePlus class="w-4 h-4 mr-2" />
-            {{ t('aiChat.insertToDocument', '插入到文档') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('export-to-document')">
-            <FolderPlus class="w-4 h-4 mr-2" />
-            {{ t('aiChat.exportToDocument', '导出到新文档') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('edit')">
-            <Pencil class="w-4 h-4 mr-2" />
-            {{ t('messageBubble.edit', '编辑') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('regenerate')">
-            <RefreshCw class="w-4 h-4 mr-2" />
-            {{ t('messageBubble.regenerate', '重新生成') }}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem @click="handleActionCommand('delete')">
-            <Trash2 class="w-4 h-4 mr-2" />
-            {{ t('common.delete', '删除') }}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </transition>
-    <div
-      class="bubble-content response-container"
-      :class="{ 'has-chart': hasChart && role === 'assistant' }"
-      style="max-height: none"
-    >
-      <!-- 如果是助手消息且有图表，优先显示图表 -->
-      <div v-if="role === 'assistant' && hasChart && !isStreaming" class="chart-container-wrapper">
-        <div ref="chartContainerRef" class="chart-container"></div>
+          <DropdownMenu @click.stop @update:open="handleDropdownVisibleChange">
+            <DropdownMenuTrigger as-child>
+              <Button variant="ghost" size="sm" class="ai-action-btn">
+                <MoreVertical class="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              @mouseenter="handleDropdownMouseEnter"
+              @mouseleave="handleDropdownMouseLeave"
+            >
+              <DropdownMenuItem v-if="hasChart" @click="handleActionCommand('export')">
+                <FilePlus class="w-4 h-4 mr-2" />
+                {{ t('graph.export', '导出图表') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="handleActionCommand('copy')">
+                <Copy class="w-4 h-4 mr-2" />
+                {{ t('common.copy', '复制') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
+                <FilePlus class="w-4 h-4 mr-2" />
+                {{ t('aiChat.insertToDocument', '插入到文档') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="handleActionCommand('export-to-document')">
+                <FolderPlus class="w-4 h-4 mr-2" />
+                {{ t('aiChat.exportToDocument', '导出到新文档') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="handleActionCommand('edit')">
+                <Pencil class="w-4 h-4 mr-2" />
+                {{ t('messageBubble.edit', '编辑') }}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem @click="handleActionCommand('delete')">
+                <Trash2 class="w-4 h-4 mr-2" />
+                {{ t('common.delete', '删除') }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </transition>
+    </template>
+
+    <!-- 用户：气泡 + 右侧头像，操作在气泡行下方（与 Agent 底部操作栏一致） -->
+    <template v-else>
+      <div class="graph-message__user-stack">
+        <div class="graph-message__user-row">
+          <div class="graph-message__body graph-message__body--user response-container">
+            <div class="text-content text-content--user">
+              <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0">{{ content }}</pre>
+            </div>
+          </div>
+          <Avatar class="graph-message__avatar">
+            <AvatarFallback><User class="w-6 h-6" /></AvatarFallback>
+          </Avatar>
+        </div>
+        <transition name="fade">
+          <div
+            v-show="showActions"
+            class="user-message-actions graph-message__user-actions"
+            @mouseenter="handleActionsMouseEnter"
+            @mouseleave="handleActionsMouseLeave"
+          >
+            <DropdownMenu @click.stop @update:open="handleDropdownVisibleChange">
+              <DropdownMenuTrigger as-child>
+                <Button variant="ghost" size="sm" class="ai-action-btn">
+                  <MoreVertical class="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                @mouseenter="handleDropdownMouseEnter"
+                @mouseleave="handleDropdownMouseLeave"
+              >
+                <DropdownMenuItem @click="handleActionCommand('copy')">
+                  <Copy class="w-4 h-4 mr-2" />
+                  {{ t('common.copy', '复制') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
+                  <FilePlus class="w-4 h-4 mr-2" />
+                  {{ t('aiChat.insertToDocument', '插入到文档') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleActionCommand('export-to-document')">
+                  <FolderPlus class="w-4 h-4 mr-2" />
+                  {{ t('aiChat.exportToDocument', '导出到新文档') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleActionCommand('edit')">
+                  <Pencil class="w-4 h-4 mr-2" />
+                  {{ t('messageBubble.edit', '编辑') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleActionCommand('regenerate')">
+                  <RefreshCw class="w-4 h-4 mr-2" />
+                  {{ t('messageBubble.regenerate', '重新生成') }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="handleActionCommand('delete')">
+                  <Trash2 class="w-4 h-4 mr-2" />
+                  {{ t('common.delete', '删除') }}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </transition>
       </div>
-      <!-- 如果正在流式输出，显示流式内容 -->
-      <div v-else-if="role === 'assistant' && isStreaming" class="streaming-content">
-        <MdPreview
-          :modelValue="content"
-          previewTheme="github"
-          codeStyleReverse
-          style="
-            text-align: left;
-            margin-top: 20px;
-            color: v-bind('themeState.currentTheme.textColor');
-          "
-          :class="themeState.currentTheme.mdeditorClass"
-          :codeFold="false"
-          :autoFoldThreshold="300"
-        />
-      </div>
-      <!-- 普通文本内容 -->
-      <div v-else-if="role === 'user' || (!hasChart && !isStreaming)" class="text-content">
-        <MdPreview
-          v-if="role === 'assistant'"
-          :modelValue="content"
-          previewTheme="github"
-          codeStyleReverse
-          style="
-            text-align: left;
-            margin-top: 20px;
-            color: v-bind('themeState.currentTheme.textColor');
-          "
-          :class="themeState.currentTheme.mdeditorClass"
-          :codeFold="false"
-          :autoFoldThreshold="300"
-        />
-        <pre v-else style="white-space: pre-wrap; word-wrap: break-word; margin: 0">{{
-          content
-        }}</pre>
-      </div>
-    </div>
-    <!-- AI消息的操作按钮（在右侧） -->
-    <transition name="fade">
-      <DropdownMenu
-        v-if="role !== 'user' && showActions"
-        @click.stop
-        @update:open="handleDropdownVisibleChange"
-        class="side-button"
-      >
-        <DropdownMenuTrigger
-          as-child
-          @mouseenter="handleActionsMouseEnter"
-          @mouseleave="handleActionsMouseLeave"
-        >
-          <Button circle size="small"><MoreVertical class="w-4 h-4" /></Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          @mouseenter="handleDropdownMouseEnter"
-          @mouseleave="handleDropdownMouseLeave"
-        >
-          <DropdownMenuItem v-if="hasChart" @click="handleActionCommand('export')">
-            <FilePlus class="w-4 h-4 mr-2" />
-            {{ t('graph.export', '导出图表') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('copy')">
-            <Copy class="w-4 h-4 mr-2" />
-            {{ t('common.copy', '复制') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
-            <FilePlus class="w-4 h-4 mr-2" />
-            {{ t('aiChat.insertToDocument', '插入到文档') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('export-to-document')">
-            <FolderPlus class="w-4 h-4 mr-2" />
-            {{ t('aiChat.exportToDocument', '导出到新文档') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('edit')">
-            <Pencil class="w-4 h-4 mr-2" />
-            {{ t('messageBubble.edit', '编辑') }}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem @click="handleActionCommand('delete')">
-            <Trash2 class="w-4 h-4 mr-2" />
-            {{ t('common.delete', '删除') }}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </transition>
-    <Avatar class="avatar-fallback" v-if="role === 'user'">
-      <AvatarFallback><User class="w-6 h-6" /></AvatarFallback>
-    </Avatar>
+    </template>
   </div>
   <Dialog v-model:open="editDialogVisible">
     <DialogContent class="sm:max-w-[80%]">
@@ -524,51 +515,114 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.side-button {
-  align-self: flex-end;
-  margin-top: auto;
-  z-index: 10;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.message-bubble {
+/* 与 AgentMessageRenderer：扁平助手正文 + 底部 ai-message-actions / user-message-actions */
+.graph-message {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   position: relative;
-  margin-left: 30px;
-  margin-right: 30px;
+  margin: 0 8px 12px;
+  max-width: 100%;
 }
 
-.bubble-content {
-  min-width: 10px;
-  min-height: 10px;
-  border-radius: 10px;
-  transition:
-    transform 0.3s ease,
-    border-color 0.3s,
-    box-shadow 0.3s;
-  margin: 10px 10px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  padding: 0 25px;
-  max-width: 61.8%;
-  flex-grow: 1;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+.graph-message--user {
+  align-items: flex-end;
+}
+
+.graph-message--assistant {
+  align-items: stretch;
+}
+
+.graph-message__body {
+  box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Segoe UI Symbol';
   font-size: inherit;
 }
 
-/* 图表消息使用更宽的最大宽度，由父容器决定 */
-.bubble-content.has-chart {
-  max-width: min(95%, calc(100% - 100px));
+.graph-message__body--flat {
+  width: 100%;
+  max-width: 100%;
+  border: none !important;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent !important;
+  padding: 8px 4px;
 }
 
-.bubble-content:hover {
-  border-color: rgba(48, 162, 255, 0.42);
-  box-shadow: 0 0 8px rgba(83, 109, 254, 0.46);
+.graph-message__body--has-chart {
+  min-width: 0;
+}
+
+.graph-message__user-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 100%;
+}
+
+.graph-message__user-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.graph-message__body--user {
+  position: relative;
+  width: min(75%, 750px);
+  max-width: calc(100% - 52px);
+  min-width: min(250px, 50%);
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.graph-message__body--user:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.graph-message__avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.graph-message__user-actions {
+  justify-content: flex-end;
+  align-self: stretch;
+  padding-right: 2px;
+}
+
+.ai-message-actions,
+.user-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  margin-bottom: 4px;
+}
+
+.ai-action-btn {
+  padding: 4px 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
+
+.ai-action-btn:hover {
+  color: v-bind('themeState.currentTheme.primaryColor');
+}
+
+.graph-md-preview-wrap :deep(.md-editor-preview),
+.graph-md-preview-wrap :deep(.md-editor-preview-wrapper) {
+  margin-top: 0;
 }
 
 .fade-enter-active,
@@ -581,29 +635,9 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-.user-role {
-  justify-content: flex-end;
-}
-
-.ai-role {
-  justify-content: flex-start;
-}
-
-.avatar-with-mask {
-  width: 40px;
-  height: 40px;
-  background-color: rgba(64, 158, 255, 0.15);
-  border: 2px solid rgba(64, 158, 255, 0.3);
-}
-
-.avatar-fallback {
-  width: 40px;
-  height: 40px;
-}
-
 .chart-container-wrapper {
   width: 100%;
-  padding: 16px 0;
+  padding: 8px 0 16px;
 }
 
 .chart-container {
@@ -617,15 +651,17 @@ onBeforeUnmount(() => {
 
 .text-content {
   width: 100%;
-  padding: 20px 0;
+  padding: 8px 0;
+}
+
+.text-content--user {
+  padding: 0;
 }
 
 .text-content pre {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji',
-    'Segoe UI Emoji', 'Segoe UI Symbol';
+  font-family: inherit;
   white-space: pre-wrap;
   word-wrap: break-word;
   font-size: inherit;

@@ -1,4 +1,4 @@
-# Sintaxis de LaTeX
+﻿# Sintaxis de LaTeX
 
 ## Descripción general
 

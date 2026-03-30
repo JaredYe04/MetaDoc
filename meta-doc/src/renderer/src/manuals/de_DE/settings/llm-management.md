@@ -1,4 +1,4 @@
-# LLM-Konfigurationsverwaltung
+﻿# LLM-Konfigurationsverwaltung
 
 ## Übersicht
 
@@ -104,6 +104,5 @@ Erläuterungen zu den Konfigurationsparametern für verschiedene LLM-Typen finde
 -   [[ai.chat|KI-Chat-Funktion]]
 -   [[agent.introduction|Agent-Konfigurationsverwaltung]]
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />

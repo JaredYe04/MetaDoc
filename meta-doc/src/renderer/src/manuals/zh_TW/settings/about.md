@@ -1,4 +1,4 @@
-# 關於資訊
+﻿# 關於資訊
 
 ## 概述
 
@@ -163,7 +163,6 @@ graph LR
     style F fill:#f3f4f6,stroke:#374151
 ```
 
-<QuickStartPanel mode="demo" />
 
 ## 開源授權條款
 

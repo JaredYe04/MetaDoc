@@ -7,6 +7,7 @@ import { useAgentWorkspaceStore } from './agent-workspace-store'
 import { useWorkspace } from './workspace'
 import { agentSessionManager } from '../utils/agent-framework/agent-session-manager'
 import type { AgentSession } from '../types/agent'
+import type { Reference } from '../types/agent-framework'
 import { notifyError, notifySuccess } from '../utils/notify'
 import { i18n } from '../i18n'
 
@@ -22,6 +23,12 @@ export type AgentManageDialogType =
 export interface PendingAgentDraft {
   draft: string
   sessionTitle: string
+}
+
+/** 主页 Agent 发送：正文 + 需在新建会话中注入的附件引用 */
+export interface PendingHomeAgentPayload {
+  content: string
+  references: Reference[]
 }
 
 const ALLOWED_DIALOG_COMMANDS: Exclude<AgentManageDialogType, null>[] = [
@@ -50,6 +57,8 @@ export const useAgentManageUiStore = defineStore('agent-manage-ui', () => {
   const showManageDialog = ref(false)
   const manageDialogType = ref<AgentManageDialogType>(null)
   const pendingAgentDraft = ref<PendingAgentDraft | null>(null)
+  /** 主页 Agent 输入框发送：打开 Agent 标签后由 AgentView 消费并新建会话提交 */
+  const pendingHomeAgentSubmit = ref<PendingHomeAgentPayload | null>(null)
 
   function closeManageDialog(): void {
     showManageDialog.value = false
@@ -143,14 +152,35 @@ export const useAgentManageUiStore = defineStore('agent-manage-ui', () => {
     return p
   }
 
+  function setPendingHomeAgentSubmit(payload: PendingHomeAgentPayload): void {
+    const content = payload.content ?? ''
+    const refs = Array.isArray(payload.references) ? payload.references : []
+    const textOnly = content.replace(/@\[[^\]]*\]/g, '').trim()
+    const hasAtTokens = /@\[[^\]]+\]/.test(content)
+    if (!textOnly && !hasAtTokens && refs.length === 0) {
+      pendingHomeAgentSubmit.value = null
+      return
+    }
+    pendingHomeAgentSubmit.value = { content, references: refs }
+  }
+
+  function takePendingHomeAgentSubmit(): PendingHomeAgentPayload | null {
+    const v = pendingHomeAgentSubmit.value
+    pendingHomeAgentSubmit.value = null
+    return v
+  }
+
   return {
     showManageDialog,
     manageDialogType,
     pendingAgentDraft,
+    pendingHomeAgentSubmit,
     openManage,
     closeManageDialog,
     importSessionFile,
     requestAgentDraftFromCapabilities,
-    takePendingAgentDraft
+    takePendingAgentDraft,
+    setPendingHomeAgentSubmit,
+    takePendingHomeAgentSubmit
   }
 })

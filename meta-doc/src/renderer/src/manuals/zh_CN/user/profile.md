@@ -1,4 +1,4 @@
-# 用户资料
+﻿# 用户资料
 
 ## 概述
 
@@ -14,7 +14,6 @@
 - **用户手册**：在用户手册中可以访问用户资料设置
 - **菜单选项**：某些菜单中可能有用户资料选项
 
-<QuickStartPanel mode="demo" />
 
 ### 用户资料界面
 
@@ -85,7 +84,6 @@ graph TB
 - **中级**：熟悉常用语法和扩展功能
 - **高级**：精通Markdown，了解各种扩展语法
 
-<QuickStartLatex mode="demo" />
 
 ### LaTeX熟练度
 
@@ -226,7 +224,6 @@ graph TB
 - [[user.feedback|用户反馈]]
 - [[quick-start.guide|快速开始指南]]
 
-<QuickStartPanel mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 

@@ -1,4 +1,4 @@
-# Configuração da Base de Conhecimento
+﻿# Configuração da Base de Conhecimento
 
 ## Visão Geral
 

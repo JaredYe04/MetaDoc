@@ -1,4 +1,4 @@
-# Gestión de Configuración de LLM
+﻿# Gestión de Configuración de LLM
 
 ## Descripción General
 
@@ -104,6 +104,5 @@ Para obtener explicaciones sobre los parámetros de configuración de diferentes
 -   [[ai.chat|Función de Chat de IA]]
 -   [[agent.introduction|Gestión de Configuración de Agentes]]
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />

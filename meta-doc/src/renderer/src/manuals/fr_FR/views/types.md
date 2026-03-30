@@ -1,4 +1,4 @@
-# Types de vues
+﻿# Types de vues
 
 ## Vue d'ensemble
 
@@ -10,7 +10,6 @@ MetaDoc prend en charge plusieurs types de vues, chacune offrant des fonctionnal
 
 La vue d'accueil est l'interface d'entrée de MetaDoc, offrant des fonctionnalités de démarrage rapide et de documents récents.
 
-<QuickStartPanel mode="demo" />
 
 **Fonctionnalités principales** :
 

@@ -1,4 +1,4 @@
-# Tipos de Vista
+﻿# Tipos de Vista
 
 ## Descripción General
 
@@ -10,7 +10,6 @@ MetaDoc admite múltiples tipos de vista, cada uno de los cuales ofrece diferent
 
 La Vista de Inicio es la interfaz de entrada de MetaDoc, que proporciona funciones de inicio rápido y documentos recientes.
 
-<QuickStartPanel mode="demo" />
 
 **Funciones principales**:
 

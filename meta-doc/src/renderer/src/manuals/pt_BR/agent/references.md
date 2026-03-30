@@ -1,4 +1,4 @@
-# Gerenciamento de Materiais de Referência
+﻿# Gerenciamento de Materiais de Referência
 
 ## Visão Geral
 

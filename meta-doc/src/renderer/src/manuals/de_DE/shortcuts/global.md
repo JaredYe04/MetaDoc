@@ -1,4 +1,4 @@
-# Globale Tastenkombinationen
+﻿# Globale Tastenkombinationen
 
 ## Übersicht
 
@@ -210,4 +210,3 @@ Falls Tastenkombinationen mit dem System oder anderer Software kollidieren:
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartPanel mode="demo" />

@@ -1,4 +1,4 @@
-# Fonctionnalité de vue en plan
+﻿# Fonctionnalité de vue en plan
 
 ## Vue d'ensemble
 

@@ -1,4 +1,4 @@
-# Gliederungs-AI-Funktionen
+﻿# Gliederungs-AI-Funktionen
 
 ## Übersicht
 

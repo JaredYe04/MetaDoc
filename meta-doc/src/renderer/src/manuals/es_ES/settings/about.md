@@ -1,4 +1,4 @@
-# Acerca de la información
+﻿# Acerca de la información
 
 ## Resumen
 
@@ -163,7 +163,6 @@ graph LR
     style F fill:#f3f4f6,stroke:#374151
 ```
 
-<QuickStartPanel mode="demo" />
 
 ## Licencia de código abierto
 

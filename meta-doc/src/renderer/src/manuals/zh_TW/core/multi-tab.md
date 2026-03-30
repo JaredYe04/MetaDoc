@@ -1,4 +1,4 @@
-# 多標籤頁管理
+﻿# 多標籤頁管理
 
 ## 概述
 
@@ -14,7 +14,6 @@ MetaDoc 支援多標籤頁管理，允許您同時開啟多個文件，每個文
 
 <ProofreadView mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
 <GraphWindow mode="demo" />
 

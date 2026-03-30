@@ -6,9 +6,6 @@
 import LeftMenu from '../components/LeftMenu.vue'
 import MainTabs from '../components/MainTabs.vue'
 import ViewMenu from '../components/ViewMenu.vue'
-import QuickStartPanel from '../components/home/QuickStartPanel.vue'
-import QuickStartMarkdown from '../components/home/QuickStartMarkdown.vue'
-import QuickStartLatex from '../components/home/QuickStartLatex.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
 import MenuItemsDemo from '../components/manual/MenuItemsDemo.vue'
 import ViewMenuItemsDemo from '../components/manual/ViewMenuItemsDemo.vue'
@@ -51,9 +48,6 @@ import { registerDemoComponent } from './demo-registry'
 registerDemoComponent('LeftMenu', LeftMenu)
 registerDemoComponent('MainTabs', MainTabs)
 registerDemoComponent('ViewMenu', ViewMenu)
-registerDemoComponent('QuickStartPanel', QuickStartPanel)
-registerDemoComponent('QuickStartMarkdown', QuickStartMarkdown)
-registerDemoComponent('QuickStartLatex', QuickStartLatex)
 registerDemoComponent('ResizableDivider', ResizableDivider)
 registerDemoComponent('MenuItemsDemo', MenuItemsDemo)
 registerDemoComponent('ViewMenuItemsDemo', ViewMenuItemsDemo)

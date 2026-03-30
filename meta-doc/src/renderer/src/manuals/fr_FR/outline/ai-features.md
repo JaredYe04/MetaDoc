@@ -1,4 +1,4 @@
-# Fonctionnalités IA de plan
+﻿# Fonctionnalités IA de plan
 
 ## Vue d'ensemble
 

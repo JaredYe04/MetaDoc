@@ -1,4 +1,4 @@
-# Formatos de documento suportados
+﻿# Formatos de documento suportados
 
 ## Visão geral
 
@@ -14,11 +14,8 @@ O MetaDoc suporta vários formatos de documento, incluindo Markdown, LaTeX e tex
 
 <MainTabs mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
-<QuickStartMarkdown mode="demo" />
 
-<QuickStartLatex mode="demo" />
 
 ## Formatos suportados
 

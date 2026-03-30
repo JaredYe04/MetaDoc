@@ -1,4 +1,4 @@
-# Configuration du téléchargement d'images
+﻿# Configuration du téléchargement d'images
 
 ## Vue d'ensemble
 

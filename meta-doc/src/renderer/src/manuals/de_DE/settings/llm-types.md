@@ -1,4 +1,4 @@
-# LLM-Typ-Konfiguration
+﻿# LLM-Typ-Konfiguration
 
 ## Überblick
 
@@ -135,7 +135,6 @@ In den meisten Fällen ist keine Konfiguration erforderlich, Standardwerte könn
 - Nutzung von OpenAI-API-kompatiblen Drittanbieterdiensten
 - Dienste, die benutzerdefinierte API-Pfade erfordern
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />
 

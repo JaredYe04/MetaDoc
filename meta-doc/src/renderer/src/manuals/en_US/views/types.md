@@ -1,4 +1,4 @@
-# View Types
+﻿# View Types
 
 ## Overview
 
@@ -10,7 +10,6 @@ MetaDoc supports multiple view types, each providing different functionalities a
 
 The Home View is the entry interface of MetaDoc, offering quick start and recent document features.
 
-<QuickStartPanel mode="demo" />
 
 **Main Features**:
 

@@ -1,4 +1,4 @@
-# Paramètres de l'éditeur
+﻿# Paramètres de l'éditeur
 
 ## Vue d'ensemble
 

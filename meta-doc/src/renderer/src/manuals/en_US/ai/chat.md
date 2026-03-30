@@ -1,4 +1,4 @@
-# AI Chat
+﻿# AI Chat
 
 ## Overview
 

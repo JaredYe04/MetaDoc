@@ -1,4 +1,4 @@
-# Tipos de Visualização
+﻿# Tipos de Visualização
 
 ## Visão Geral
 
@@ -10,7 +10,6 @@ O MetaDoc suporta vários tipos de visualização, cada um oferecendo funcionali
 
 A visualização da página inicial é a interface de entrada do MetaDoc, fornecendo funcionalidades de início rápido e documentos recentes.
 
-<QuickStartPanel mode="demo" />
 
 **Funcionalidades Principais**:
 

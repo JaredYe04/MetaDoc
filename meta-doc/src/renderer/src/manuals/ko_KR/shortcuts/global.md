@@ -1,4 +1,4 @@
-# 전역 단축키
+﻿# 전역 단축키
 
 ## 개요
 
@@ -210,4 +210,3 @@ graph LR
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartPanel mode="demo" />

@@ -1,4 +1,4 @@
-# Глобальные горячие клавиши
+﻿# Глобальные горячие клавиши
 
 ## Обзор
 
@@ -210,4 +210,3 @@ graph LR
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartPanel mode="demo" />

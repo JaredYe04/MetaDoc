@@ -1,4 +1,4 @@
-# Gestion de la base de connaissances
+﻿# Gestion de la base de connaissances
 
 ## Vue d'ensemble
 

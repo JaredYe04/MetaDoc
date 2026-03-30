@@ -1,4 +1,4 @@
-# LLM Type Configuration
+﻿# LLM Type Configuration
 
 ## Overview
 
@@ -135,7 +135,6 @@ In most cases, configuration is not needed; default values can be used.
 - Using third-party services compatible with the OpenAI API.
 - Services requiring custom API paths.
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />
 

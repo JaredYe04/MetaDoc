@@ -1,28 +1,20 @@
-// articleContextMenuItems.js
 import { getSetting } from '../../utils/settings'
+import type { ContextMenuItem } from './types'
 
-/**
- * 检测是否为 Mac 系统
- */
-function isMac() {
-  return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
+export interface ArticleContextMenuOptions {
+  isLatexEditor?: boolean
+  isPlainTextEditor?: boolean
+  hasTextSelection?: boolean
 }
 
-/**
- * 获取快捷键显示文本
- */
 function getShortcutText() {
   return 'Shift+Tab'
 }
 
-/**
- * @param {Object} options
- * @param {boolean} [options.isLatexEditor] - 是否为LaTeX编辑器
- * @param {boolean} [options.isPlainTextEditor] - 是否为纯文本编辑器
- * @returns {Promise<import("./types").ContextMenuItem[]>}
- */
-export async function getArticleContextMenuItems(options = {}) {
-  const { isLatexEditor = false, isPlainTextEditor = false } = options
+export async function getArticleContextMenuItems(
+  options: ArticleContextMenuOptions = {}
+): Promise<ContextMenuItem[]> {
+  const { isLatexEditor = false, isPlainTextEditor = false, hasTextSelection = false } = options
   const autoCompletion = await getSetting('autoCompletion')
   const knowledgeBase = await getSetting('enableKnowledgeBase')
 
@@ -34,7 +26,7 @@ export async function getArticleContextMenuItems(options = {}) {
     ? { label: 'contextMenu.closeKnowledgeBase', value: 'closeKnowledgeBase' }
     : { label: 'contextMenu.openKnowledgeBase', value: 'openKnowledgeBase' }
 
-  const items = [
+  const items: ContextMenuItem[] = [
     { label: 'contextMenu.cut', value: 'cut' },
     { label: 'contextMenu.copy', value: 'copy' },
     { label: 'contextMenu.paste', value: 'paste' },
@@ -50,18 +42,23 @@ export async function getArticleContextMenuItems(options = {}) {
     }
   ]
 
-  // 纯文本编辑器：只显示基本的文本操作和AI补全，不显示其他功能
   if (!isPlainTextEditor) {
     items.push(
       { type: 'divider' },
       { label: 'contextMenu.aiAnalysis', value: 'ai-assistant' },
       { label: 'contextMenu.sectionOptimizer', value: 'section-optimizer' },
-      { type: 'divider' },
-      { label: 'contextMenu.insertGraph', value: 'insert-graph' }
+      { type: 'divider' }
     )
+    if (hasTextSelection) {
+      items.push({
+        label: 'contextMenu.generateIllustrationFromSelection',
+        value: 'quick-graph-from-selection'
+      })
+    } else {
+      items.push({ label: 'contextMenu.insertGraph', value: 'insert-graph' })
+    }
   }
 
-  // LaTeX编辑器特有：定位到PDF位置
   if (isLatexEditor) {
     items.push({ type: 'divider' }, { label: 'contextMenu.locateToPdf', value: 'locate-to-pdf' })
   }

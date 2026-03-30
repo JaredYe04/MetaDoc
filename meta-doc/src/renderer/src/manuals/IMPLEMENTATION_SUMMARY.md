@@ -19,7 +19,6 @@
 用户手册各篇**初稿已具备**，但需要按照标杆文档的标准**全面完善**：
 
 - **图表**：在合适位置补充 Mermaid / PlantUML 图表（流程、结构、关系等）。
-- **Demo 组件**：文档中**提到了哪些界面控件，就嵌入并展示哪些真实组件**（如顶部菜单栏 → `<LeftMenu mode="demo" />`，标签页栏 → `<MainTabs mode="demo" />`，侧边栏 → `<ViewMenu mode="demo" />`，快速开始向导 → `<QuickStartPanel mode="demo" />`、`<QuickStartMarkdown mode="demo" />`、`<QuickStartLatex mode="demo" />` 等），使用户边看文档边对照真实 UI 操作。**不要在用户可见的文档中写「Demo 模式：仅展示…」等说明性废话。**
 - **内容与结构**：按 `WRITING_GUIDE.md` 与 `USER_MANUAL_INDEX.md` 补全功能点、示例与注意事项。
 
 **完善标准**：含图表、含 Demo 组件（若适用）、内容完整符合索引要求。参考 `quick-start/guide.md` 作为标杆。
@@ -109,14 +108,14 @@
 
 ### 6. 组件 Demo 模式（沙箱）- ✅ 已完全实现
 
-- ✅ **可执行文档**：文档中**描述到哪个界面控件，就嵌入哪个真实 Vue 组件**（如顶部菜单栏 → LeftMenu、标签页栏 → MainTabs、侧边栏 → ViewMenu、快速开始 → QuickStartPanel / QuickStartMarkdown / QuickStartLatex），使用 `mode="demo"` 沙箱运行，用户边看文档边看真实 UI。
+- ✅ **可执行文档**：文档中**描述到哪个界面控件，就嵌入哪个真实 Vue 组件**（如顶部菜单栏 → LeftMenu、标签页栏 → MainTabs、侧边栏 → ViewMenu），使用 `mode="demo"` 沙箱运行，用户边看文档边看真实 UI。（快速开始相关组件已归档，不再嵌入。）
 - ✅ **占位符方案**：`manuals/demo-mode.ts` 将 `<ComponentName mode="demo" />` 替换为占位 div，整篇由 Vditor 渲染（Mermaid 等不破坏），渲染完成后再将占位 div 替换为 Vue 组件注入。
-- ✅ **组件注册**：`manuals/demo-registry.ts` 注册 LeftMenu、MainTabs、ViewMenu、QuickStartPanel、QuickStartMarkdown、QuickStartLatex、ResizableDivider 等；新增组件需支持 `mode?: 'normal' | 'demo'` 并在此注册。
+- ✅ **组件注册**：`manuals/demo-registry.ts` 注册 LeftMenu、MainTabs、ViewMenu、ResizableDivider 等；新增组件需支持 `mode?: 'normal' | 'demo'` 并在此注册。
 - ✅ **ManualContent 注入**：统一用 Vditor 渲染；渲染完成后 `injectDemoComponents()` 在占位 div 上挂载真实组件，使用 `manual-demo-inline` 包装容器。
 - ✅ **样式适配**：所有样式在 `ManualContent.vue` 中统一处理，组件容器自适应大小并居中显示，不修改组件代码。
 - ✅ **交互阻断**：通过 `blockDemoEvents()` 事件拦截和 CSS `pointer-events: none` 防止触发业务逻辑。
 - ✅ **Mermaid 主题适配**：用户手册中的 Mermaid 图表自动适配主题（仅在手册中生效，通过 `applyMermaidThemeToContainer()` 实现）。
-- ✅ **已支持 demo 的组件**：LeftMenu、MainTabs、ViewMenu、QuickStartPanel、QuickStartMarkdown、QuickStartLatex、MenuItemsDemo、ViewMenuItemsDemo、TitleMenu、SectionOptimizer、SearchReplaceMenu、PdfPreviewPanel、ConsoleTerminal、MetaInfoPanel（demo 下不触发真实导航/文件/事件）。
+- ✅ **已支持 demo 的组件**：LeftMenu、MainTabs、ViewMenu、MenuItemsDemo、ViewMenuItemsDemo、TitleMenu、SectionOptimizer、SearchReplaceMenu、PdfPreviewPanel、ConsoleTerminal、MetaInfoPanel（demo 下不触发真实导航/文件/事件）。
 - ✅ **菜单项组件**：创建了MenuItemsDemo和ViewMenuItemsDemo组件，用于只显示文档中提到的特定菜单项，而非完整菜单组件。
 - ✅ **编辑器组件**：注册了TitleMenu、SectionOptimizer、SearchReplaceMenu等编辑器相关组件，用于展示编辑器功能。
 - ✅ **LaTeX组件**：注册了PdfPreviewPanel、ConsoleTerminal组件，用于展示LaTeX编辑器的PDF预览和控制台功能。
@@ -186,7 +185,6 @@ const modules = import.meta.glob('../manuals/**/*.md', { eager: true, as: 'raw' 
 **说明**：各篇用户手册初稿已存在，但内容较简略且不完全符合规范。需**全部重新完善**，包括：
 
 - **图表**：在合适位置加入 Mermaid / PlantUML 图表（流程、结构、关系等）。
-- **Demo 组件**：文档中**提到哪个界面控件就嵌入哪个真实组件**（如顶部菜单栏 → `<LeftMenu mode="demo" />`，标签页 → `<MainTabs mode="demo" />`，侧边栏 → `<ViewMenu mode="demo" />`，快速开始 → `<QuickStartPanel mode="demo" />` 等），不在用户可见文档中写「Demo 模式：仅展示…」等说明。
 - **内容与结构**：按 `USER_MANUAL_INDEX.md` 与 `WRITING_GUIDE.md` 补全功能点、示例与注意事项。
 
 **严格按照 `USER_MANUAL_INDEX.md` 的结构完善文档**，需完善的文档包括（示例，非穷举）：

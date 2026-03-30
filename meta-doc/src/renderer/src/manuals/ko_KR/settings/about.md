@@ -1,4 +1,4 @@
-# 정보
+﻿# 정보
 
 ## 개요
 
@@ -163,7 +163,6 @@ graph LR
     style F fill:#f3f4f6,stroke:#374151
 ```
 
-<QuickStartPanel mode="demo" />
 
 ## 오픈소스 라이선스
 

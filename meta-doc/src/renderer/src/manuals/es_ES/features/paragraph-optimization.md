@@ -1,4 +1,4 @@
-# Función de Optimización de Párrafos
+﻿# Función de Optimización de Párrafos
 
 ## Descripción General
 

@@ -1,4 +1,4 @@
-# 사용자 피드백
+﻿# 사용자 피드백
 
 ## 개요
 
@@ -110,7 +110,6 @@
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-<QuickStartPanel mode="demo" />
 
 ```mermaid
 graph TB

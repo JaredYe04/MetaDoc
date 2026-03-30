@@ -1,69 +1,20 @@
-# Funciones de la página de inicio
+﻿# Funciones de la página de inicio
 
 ## Descripción general
 
 La página de inicio es la interfaz de entrada de MetaDoc, que proporciona funciones como inicio rápido, nuevo documento, abrir archivo, etc. El diseño de la página de inicio es simple y atractivo, ayudándote a comenzar a usar MetaDoc rápidamente.
 
-## Inicio rápido
+## Entrada de Agent e ideas sugeridas
 
-### Asistente de inicio rápido
+Arriba tienes el mismo **cuadro de texto** que en la pestaña **Agent** (referencias @ a archivos/pestañas/carpetas). El texto permanece en inicio hasta que **envías**; entonces se abre **Agent**, se **crea una sesión nueva** y se envía el mensaje.
 
-Haz clic en el botón "Inicio rápido" para iniciar el asistente de inicio rápido:
+Debajo: **ideas sugeridas** (breves, a menudo con emoji):
 
-1. **Seleccionar formato**: Elige el formato del documento (Markdown o LaTeX)
-2. **Configurar metadatos**: Ingresa información como el título del documento, autor, etc.
-3. **Generar contenido con IA**: Usa la IA para ayudar a generar el contenido del documento
-4. **Vista previa del documento**: Previsualiza el contenido del documento generado
-5. **Crear documento**: Confirma y crea el documento
+- **Cambiar** para otra selección aleatoria
+- Cada chip **rota sola cada 10–20 s** con animación
+- Clic = rellenar el campo; **Ctrl+Z** / **⌘Z** deshace el relleno
 
-La interfaz de selección de formato del asistente de inicio rápido es la siguiente:
-
-<QuickStartPanel mode="demo" />
-
-### Inicio rápido con Markdown
-
-Después de seleccionar el formato Markdown:
-
-- **Selección de plantilla**: Puedes elegir una plantilla de Markdown
-- **Generación de contenido**: La IA puede generar contenido en Markdown
-- **Edición rápida**: Comienza a editar inmediatamente después de la creación
-
-La interfaz del asistente a la que se accede después de seleccionar Markdown:
-
-<QuickStartMarkdown mode="demo" />
-
-### Inicio rápido con LaTeX
-
-Después de seleccionar el formato LaTeX:
-
-- **Tipo de documento**: Puedes elegir el tipo de documento (article, book, etc.)
-- **Generación de contenido**: La IA puede generar contenido en LaTeX
-- **Compilar y previsualizar**: Puedes compilar y previsualizar el PDF después de la creación
-
-La interfaz del asistente a la que se accede después de seleccionar LaTeX:
-
-<QuickStartLatex mode="demo" />
-
-```mermaid
-graph LR
-    A[点击快速开始] --> B{选择格式}
-    B -->|Markdown| C[Markdown向导]
-    B -->|LaTeX| D[LaTeX向导]
-    C --> E[设置元信息]
-    D --> E
-    E --> F[AI生成内容]
-    F --> G[预览文档]
-    G --> H[创建文档]
-    style A fill:#f3f4f6,stroke:#374151
-    style B fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style D fill:#f3f4f6,stroke:#374151
-    style E fill:#f3f4f6,stroke:#374151
-    style F fill:#f3f4f6,stroke:#374151
-    style G fill:#f3f4f6,stroke:#374151
-    style H fill:#f3f4f6,stroke:#374151
-```
-
+> El asistente de **inicio rápido** antiguo se ha eliminado. Crea documentos con **Nuevo documento** o el menú izquierdo.
 ## Nuevo documento
 
 ### Crear un documento en blanco

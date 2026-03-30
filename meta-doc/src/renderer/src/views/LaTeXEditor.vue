@@ -51,6 +51,12 @@
         class="context-menu"
         @close="contextMenuVisible = false"
       />
+      <GraphQuickDialog
+        v-model:open="graphQuickDialogOpen"
+        :selection-text="graphQuickSelection"
+        document-kind="tex"
+        :document-title="graphQuickDocumentTitle"
+      />
       <AISuggestionGhost
         :key="editorKey"
         :editorId="editorId"
@@ -301,6 +307,7 @@ import '../assets/ai-suggestion.css'
 import ResizableContainer from '../components/base/ResizableContainer.vue'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
+import GraphQuickDialog from '../components/GraphQuickDialog.vue'
 import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
 import XtermConsoleLatex from '../components/XtermConsoleLatex.vue'
 
@@ -367,6 +374,8 @@ const isActive = computed(() => props.active)
 
 const workspace = useWorkspace()
 const documentRef = computed(() => workspace.ensureDocument(props.tabId))
+
+const graphQuickDocumentTitle = computed(() => documentRef.value.meta?.title?.trim() || '')
 
 const currentTex = computed({
   get: () => documentRef.value.tex ?? '',
@@ -444,6 +453,8 @@ const currentTitlePath = ref('')
 const contextMenuVisible = ref(false) // 右键菜单可见性
 const menuX = ref(0) // 菜单 X 坐标
 const menuY = ref(0) // 菜单 Y 坐标
+const graphQuickDialogOpen = ref(false)
+const graphQuickSelection = ref('')
 
 // PDF右键菜单
 const pdfContextMenuVisible = ref(false)
@@ -2886,11 +2897,26 @@ const toggleConsole = async () => {
   showConsole.value = !showConsole.value
 }
 
+function getLatexEditorSelectionText(): string {
+  const resolvedId = editorId.value
+  const editors = monaco.editor.getEditors()
+  const monacoEditor =
+    editor.value ||
+    (resolvedId ? editors.find((e) => e.getId?.() === resolvedId) : null) ||
+    editors[0]
+  if (!monacoEditor) return ''
+  const model = monacoEditor.getModel()
+  const sel = monacoEditor.getSelection()
+  if (!model || !sel || sel.isEmpty()) return ''
+  return model.getValueInRange(sel)
+}
+
 // 打开右键菜单
-const openContextMenu = (event: MouseEvent) => {
+const openContextMenu = async (event: MouseEvent) => {
   event.preventDefault()
   menuX.value = event.clientX
   menuY.value = event.clientY
+  await refreshContextMenu()
   contextMenuVisible.value = true
 }
 
@@ -3345,6 +3371,22 @@ const handleMenuClick = async (item: string) => {
     case 'section-optimizer':
       await openSectionOptimizerFromContext()
       break
+    case 'insert-graph':
+      await handleInsertGraph()
+      break
+    case 'quick-graph-from-selection': {
+      const sel = getLatexEditorSelectionText().trim()
+      if (!sel) {
+        eventBus.emit(
+          'show-warning',
+          t('graph.selectTextForIllustration', '请先选中要生成插图的文本')
+        )
+        break
+      }
+      graphQuickSelection.value = sel
+      graphQuickDialogOpen.value = true
+      break
+    }
     case 'trigger-auto-completion':
       // 手动触发AI补全
       if (aiCompletionService.getAdapter()) {
@@ -3843,9 +3885,50 @@ function scrollConsoleToBottom() {
 }
 
 const refreshContextMenu = async () => {
+  const hasTextSelection = getLatexEditorSelectionText().trim().length > 0
   articleContextMenuItems.value = (await getArticleContextMenuItems({
-    isLatexEditor: true
+    isLatexEditor: true,
+    hasTextSelection
   })) as any[]
+}
+
+const handleInsertGraph = async () => {
+  if (!props.tabId) {
+    eventBus.emit('show-warning', t('graph.noEditor', '编辑器未就绪'))
+    return
+  }
+  const monacoEditor =
+    editor.value ||
+    monaco.editor.getEditors().find((e) => e.getId?.() === editorId.value) ||
+    null
+  if (!monacoEditor) {
+    eventBus.emit('show-warning', t('graph.noEditor', '编辑器未就绪'))
+    return
+  }
+  try {
+    const model = monacoEditor.getModel()
+    const full = model?.getValue() ?? ''
+    const pos = monacoEditor.getPosition()
+    const offset = model && pos ? model.getOffsetAt(pos) : full.length
+    const contextStart = Math.max(0, offset - 200)
+    const contextEnd = Math.min(full.length, offset + 200)
+    const context = full.substring(contextStart, contextEnd)
+    workspace.openToolTab('graph')
+    await nextTick()
+    await nextTick()
+    eventBus.emit('graph-open-insert-mode', { context, insertPosition: offset })
+
+    const onGraphComplete = (data: { imageUrl: string; imageMarkdown: string }) => {
+      const imageMarkdown = data.imageMarkdown || `![生成的图片](${data.imageUrl})`
+      insertText(imageMarkdown)
+      eventBus.off('graph-complete', onGraphComplete as (payload?: unknown) => void)
+    }
+
+    eventBus.on('graph-complete', onGraphComplete as (payload?: unknown) => void)
+  } catch (error) {
+    logger.error('打开绘图工具失败:', error)
+    eventBus.emit('show-error', error)
+  }
 }
 
 // LaTeX 语言注册已由 registerLatexLanguage() 处理

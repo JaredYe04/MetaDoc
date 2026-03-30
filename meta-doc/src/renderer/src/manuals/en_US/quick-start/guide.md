@@ -1,4 +1,4 @@
-# Quick Start Guide
+﻿# Quick Start Guide
 
 ## Overview
 
@@ -99,7 +99,6 @@ MetaDoc's Quick Start Wizard is a thoughtful design. It doesn't just create a bl
 
 The first step of the wizard is selecting the document format. MetaDoc intelligently recommends suitable options based on your usage scenario:
 
-<QuickStartPanel mode="demo" />
 
 #### Markdown Quick Start
 
@@ -109,7 +108,6 @@ After selecting Markdown, the wizard provides:
 - **Structured Outline**: Automatically generates a document framework to help you organize your thoughts.
 - **Real-time Preview**: Write and see the final presentation effect instantly.
 
-<QuickStartMarkdown mode="demo" />
 
 #### LaTeX Quick Start
 
@@ -119,7 +117,6 @@ After selecting LaTeX, the wizard provides:
 - **Structure Guidance**: Automatically generates standard LaTeX document structures.
 - **Intelligent Completion**: AI-assisted LaTeX code generation to lower the learning barrier.
 
-<QuickStartLatex mode="demo" />
 
 #### The Core Value of the Wizard
 

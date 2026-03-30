@@ -1,4 +1,4 @@
-# Fonctionnalités de l'assistant IA
+﻿# Fonctionnalités de l'assistant IA
 
 ## Vue d'ensemble
 

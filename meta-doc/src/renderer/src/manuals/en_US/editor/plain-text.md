@@ -1,4 +1,4 @@
-# Plain Text Editor
+﻿# Plain Text Editor
 
 ## Overview
 

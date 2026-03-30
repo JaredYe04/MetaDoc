@@ -1,4 +1,4 @@
-# Atalhos do Editor
+﻿# Atalhos do Editor
 
 ## Visão Geral
 

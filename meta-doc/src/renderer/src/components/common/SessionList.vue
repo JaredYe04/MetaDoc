@@ -36,7 +36,7 @@
               </Tooltip>
             </div>
           </header>
-          <ScrollArea class="flex-1 overflow-hidden">
+          <el-scrollbar class="session-list-scrollbar" height="100%">
             <!-- 折叠态：圆角小方块，hover 展开显示标题 -->
             <template v-if="isCollapsed">
               <div class="collapsed-list">
@@ -52,7 +52,12 @@
                     @mouseenter="setHoveredItem(item, $event)"
                     @mouseleave="clearHoveredItem"
                   >
-                    <span class="collapsed-dot">{{ (item.title || ' ')[0] }}</span>
+                    <Loader2
+                      v-if="item.generating"
+                      class="session-list-item-spinner"
+                      aria-hidden="true"
+                    />
+                    <span v-else class="collapsed-dot">{{ (item.title || ' ')[0] }}</span>
                   </div>
                 </template>
               </div>
@@ -90,12 +95,17 @@
                   @contextmenu.prevent="openContextMenu($event, item)"
                 >
                   <div class="menu-item-wrapper">
+                    <Loader2
+                      v-if="item.generating"
+                      class="session-list-item-spinner session-list-item-spinner--inline"
+                      aria-hidden="true"
+                    />
                     <span class="item-title">{{ item.title }}</span>
                   </div>
                 </Button>
               </template>
             </div>
-          </ScrollArea>
+          </el-scrollbar>
           <slot name="sidebar-footer"></slot>
           <!-- 右键菜单（固定定位，展开/折叠态共用） -->
           <transition name="fade">
@@ -173,7 +183,6 @@ import { themeState, mixColors } from '../../utils/themes'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
-import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
@@ -182,6 +191,7 @@ import {
   DialogTitle
 } from '@renderer/components/ui/dialog'
 import { Tooltip } from '@renderer/components/ui/tooltip'
+import { Loader2 } from 'lucide-vue-next'
 
 const { t } = useI18n()
 
@@ -189,6 +199,8 @@ export interface SessionListItem {
   id: string
   title: string
   updatedAt: number | string | Date
+  /** 该会话是否正在执行 Agent（由父组件写入） */
+  generating?: boolean
   [key: string]: any
 }
 
@@ -481,7 +493,17 @@ const finishRename = () => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   border-right: 1px solid v-bind('panelStyle.borderColor');
+}
+
+.session-list-scrollbar {
+  flex: 1;
+  min-height: 0;
+}
+
+.session-list-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 
 .pane-header {
@@ -656,6 +678,25 @@ const finishRename = () => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 14px;
+}
+
+.session-list-item-spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  animation: session-list-spin 0.85s linear infinite;
+  opacity: 0.75;
+  color: v-bind('menuStyle.color');
+}
+
+.session-list-item-spinner--inline {
+  margin-right: 8px;
+}
+
+@keyframes session-list-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .item-menu {

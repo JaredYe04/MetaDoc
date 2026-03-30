@@ -1,4 +1,4 @@
-# Gestion multi-fenêtres
+﻿# Gestion multi-fenêtres
 
 ## Vue d'ensemble
 
@@ -180,6 +180,5 @@ Fonctionnalité d'association de fichiers :
 
 <MenuItemsDemo mode="demo" :items='[{"id": "view"}]' />
 
-<QuickStartPanel mode="demo" />
 
 <LeftMenu mode="demo" />

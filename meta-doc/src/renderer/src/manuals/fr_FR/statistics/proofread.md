@@ -1,4 +1,4 @@
-# Statistiques de l'outil de relecture
+﻿# Statistiques de l'outil de relecture
 
 ## Vue d'ensemble
 

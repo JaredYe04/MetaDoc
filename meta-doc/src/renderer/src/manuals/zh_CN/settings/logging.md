@@ -1,4 +1,4 @@
-# 日志配置
+﻿# 日志配置
 
 ## 概述
 
@@ -266,6 +266,5 @@ YYYY-MM-DD HH-mm-ss.log
 - [[settings.basic|基础设置]]
 - [[settings.about|关于信息]]
 
-<QuickStartPanel mode="demo" />
 
 <ResizableDivider mode="demo" />

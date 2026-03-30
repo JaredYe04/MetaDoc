@@ -1,4 +1,4 @@
-# AI Assistant Features
+﻿# AI Assistant Features
 
 ## Overview
 

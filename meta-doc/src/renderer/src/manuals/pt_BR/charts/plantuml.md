@@ -1,4 +1,4 @@
-# Diagramas PlantUML
+﻿# Diagramas PlantUML
 
 ## Visão Geral
 

@@ -1,4 +1,4 @@
-# Raccourcis globaux
+﻿# Raccourcis globaux
 
 ## Vue d'ensemble
 
@@ -210,4 +210,3 @@ Si un raccourci entre en conflit avec le système ou un autre logiciel :
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartPanel mode="demo" />

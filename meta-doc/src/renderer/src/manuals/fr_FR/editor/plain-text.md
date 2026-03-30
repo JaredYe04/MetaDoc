@@ -1,4 +1,4 @@
-# Éditeur de texte brut
+﻿# Éditeur de texte brut
 
 ## Vue d'ensemble
 

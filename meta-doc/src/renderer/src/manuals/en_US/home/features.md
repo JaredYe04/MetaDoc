@@ -1,69 +1,20 @@
-# Home Page Features
+﻿# Home Page Features
 
 ## Overview
 
 The home page serves as the entry interface for MetaDoc, providing quick start, new document creation, file opening, and other functions. Designed to be clean and aesthetically pleasing, it helps you get started with MetaDoc quickly.
 
-## Quick Start
+## Agent input and suggested prompts
 
-### Quick Start Wizard
+At the top of the home page you get the same **composer** as the full **Agent** tab (with @ references for files, tabs, and folders). Text stays on the home page until you **send**; then MetaDoc switches to the **Agent** tab, **creates a new session**, and submits that message.
 
-Click the "Quick Start" button to launch the quick start wizard:
+Below the composer you will see **suggested prompts** (short ideas, many with emoji):
 
-1.  **Select Format**: Choose the document format (Markdown or LaTeX)
-2.  **Set Metadata**: Enter document title, author, and other information
-3.  **AI-Generated Content**: Use AI assistance to generate document content
-4.  **Preview Document**: Preview the generated document content
-5.  **Create Document**: Confirm to create the document
+- Tap **Shuffle** to pick a new random set
+- Each chip **auto-rotates** about every **10–20 seconds** with a small transition animation
+- Clicking a chip fills the composer; use **Ctrl+Z** (**⌘Z** on macOS) once to restore what you had before the chip click
 
-The format selection interface of the quick start wizard is as follows:
-
-<QuickStartPanel mode="demo" />
-
-### Markdown Quick Start
-
-After selecting the Markdown format:
-
--   **Template Selection**: You can choose a Markdown template
--   **Content Generation**: AI can generate Markdown content
--   **Quick Editing**: Start editing immediately after creation
-
-The wizard interface entered after selecting Markdown:
-
-<QuickStartMarkdown mode="demo" />
-
-### LaTeX Quick Start
-
-After selecting the LaTeX format:
-
--   **Document Type**: You can choose the document type (article, book, etc.)
--   **Content Generation**: AI can generate LaTeX content
--   **Compile & Preview**: Compile and preview PDF after creation
-
-The wizard interface entered after selecting LaTeX:
-
-<QuickStartLatex mode="demo" />
-
-```mermaid
-graph LR
-    A[点击快速开始] --> B{选择格式}
-    B -->|Markdown| C[Markdown向导]
-    B -->|LaTeX| D[LaTeX向导]
-    C --> E[设置元信息]
-    D --> E
-    E --> F[AI生成内容]
-    F --> G[预览文档]
-    G --> H[创建文档]
-    style A fill:#f3f4f6,stroke:#374151
-    style B fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style D fill:#f3f4f6,stroke:#374151
-    style E fill:#f3f4f6,stroke:#374151
-    style F fill:#f3f4f6,stroke:#374151
-    style G fill:#f3f4f6,stroke:#374151
-    style H fill:#f3f4f6,stroke:#374151
-```
-
+> The legacy **Quick Start** wizard has been removed. Create documents with **New document** or the left menu.
 ## New Document
 
 ### Create a Blank Document

@@ -1,4 +1,4 @@
-# Gestion des onglets multiples
+﻿# Gestion des onglets multiples
 
 ## Vue d'ensemble
 
@@ -14,7 +14,6 @@ La gestion des onglets comprend des fonctionnalités telles que la création, la
 
 <ProofreadView mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
 <GraphWindow mode="demo" />
 

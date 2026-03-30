@@ -1,4 +1,4 @@
-# Configurações Básicas
+﻿# Configurações Básicas
 
 ## Visão Geral
 

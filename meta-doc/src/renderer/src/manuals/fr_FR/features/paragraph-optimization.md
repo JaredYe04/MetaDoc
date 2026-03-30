@@ -1,4 +1,4 @@
-# Fonction d'optimisation de paragraphe
+﻿# Fonction d'optimisation de paragraphe
 
 ## Vue d'ensemble
 

@@ -1,4 +1,4 @@
-# Diagramas Mermaid
+﻿# Diagramas Mermaid
 
 ## Descripción general
 

@@ -1,4 +1,4 @@
-# Upload Service Settings
+﻿# Upload Service Settings
 
 ## Overview
 
@@ -82,7 +82,6 @@ If no local image directory is set, the system uses the default directory:
 - **macOS**: `~/Library/Application Support/MetaDoc/images`
 - **Linux**: `~/.config/MetaDoc/images`
 
-<QuickStartPanel mode="demo" />
 
 ### Directory Management
 

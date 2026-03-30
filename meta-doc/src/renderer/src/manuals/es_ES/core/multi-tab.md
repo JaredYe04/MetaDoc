@@ -1,4 +1,4 @@
-# Gestión de múltiples pestañas
+﻿# Gestión de múltiples pestañas
 
 ## Descripción general
 
@@ -14,7 +14,6 @@ La gestión de pestañas incluye funciones como crear, cambiar, cerrar, arrastra
 
 <ProofreadView mode="demo" />
 
-<QuickStartPanel mode="demo" />
 
 <GraphWindow mode="demo" />
 

@@ -1,4 +1,4 @@
-# Функции редактора Markdown
+﻿# Функции редактора Markdown
 
 ## Обзор
 
@@ -197,7 +197,6 @@ graph TB
 
 <SectionOptimizer mode="demo" title="段落优化示例" path="1" :tree='{}' language="markdown" :adapter='null' />
 
-<QuickStartMarkdown mode="demo" />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
@@ -324,6 +323,5 @@ graph TB
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartMarkdown mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "edit", "items": ["find", "replace"]}]' />

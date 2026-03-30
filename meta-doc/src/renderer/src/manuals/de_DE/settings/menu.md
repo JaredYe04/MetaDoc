@@ -1,4 +1,4 @@
-# Menükonfiguration
+﻿# Menükonfiguration
 
 ## Übersicht
 

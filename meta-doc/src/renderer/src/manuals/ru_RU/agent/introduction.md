@@ -1,4 +1,4 @@
-# Обзор фреймворка Agent
+﻿# Обзор фреймворка Agent
 
 ## Обзор
 
@@ -333,4 +333,3 @@ sequenceDiagram
 - [[agent.capabilities|Правила, навыки и управление MCP]]
 - [[ai.llm-config|Конфигурация LLM]]
 
-<QuickStartPanel mode="demo" />

@@ -1,4 +1,4 @@
-# Configurações do Serviço de Upload
+﻿# Configurações do Serviço de Upload
 
 ## Visão Geral
 
@@ -82,7 +82,6 @@ Se nenhum diretório de imagens local for configurado, o sistema usará o diret�
 - **macOS**: `~/Library/Application Support/MetaDoc/images`
 - **Linux**: `~/.config/MetaDoc/images`
 
-<QuickStartPanel mode="demo" />
 
 ### Gerenciamento de Diretório
 

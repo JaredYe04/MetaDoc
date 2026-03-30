@@ -1,4 +1,4 @@
-# Configuración Básica
+﻿# Configuración Básica
 
 ## Resumen
 

@@ -1,4 +1,4 @@
-# Funciones del editor Markdown
+﻿# Funciones del editor Markdown
 
 ## Descripción general
 
@@ -197,7 +197,6 @@ Una vez que se muestra la sugerencia de complemento, puede:
 
 <SectionOptimizer mode="demo" title="段落优化示例" path="1" :tree='{}' language="markdown" :adapter='null' />
 
-<QuickStartMarkdown mode="demo" />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
@@ -324,6 +323,5 @@ R: Intente activar la integración con base de conocimiento, ajustar el número 
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartMarkdown mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "edit", "items": ["find", "replace"]}]' />

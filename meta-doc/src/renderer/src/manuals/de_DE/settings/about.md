@@ -1,4 +1,4 @@
-# Über Informationen
+﻿# Über Informationen
 
 ## Übersicht
 
@@ -163,7 +163,6 @@ graph LR
     style F fill:#f3f4f6,stroke:#374151
 ```
 
-<QuickStartPanel mode="demo" />
 
 ## Open-Source-Lizenzen
 

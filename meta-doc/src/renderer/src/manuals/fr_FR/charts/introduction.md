@@ -1,4 +1,4 @@
-# Fonctionnalités des graphiques
+﻿# Fonctionnalités des graphiques
 
 ## Vue d'ensemble
 

@@ -1,69 +1,20 @@
-# Fonctionnalités de la page d'accueil
+﻿# Fonctionnalités de la page d'accueil
 
 ## Vue d'ensemble
 
 La page d'accueil est l'interface d'entrée de MetaDoc, offrant des fonctionnalités telles que Démarrer rapidement, Nouveau document, Ouvrir un fichier, etc. Conçue pour être simple et esthétique, elle vous aide à commencer à utiliser MetaDoc rapidement.
 
-## Démarrer rapidement
+## Saisie Agent et idées suggérées
 
-### Assistant de démarrage rapide
+En haut de l’accueil : le même **champ** que l’onglet **Agent** (références @ fichiers/onglets/dossiers). Le texte reste sur l’accueil jusqu’à **Envoyer** : l’app ouvre alors l’onglet **Agent**, **crée une session** et envoie le message.
 
-Cliquez sur le bouton "Démarrer rapidement" pour lancer l'assistant de démarrage rapide :
+En dessous : **suggestions** (courtes idées, souvent avec emoji) :
 
-1.  **Choisir le format** : Sélectionnez le format du document (Markdown ou LaTeX)
-2.  **Définir les métadonnées** : Saisissez le titre du document, l'auteur, etc.
-3.  **Générer du contenu avec l'IA** : Utilisez l'assistance IA pour générer le contenu du document
-4.  **Aperçu du document** : Visualisez le contenu généré du document
-5.  **Créer le document** : Confirmez pour créer le document
+- **Mélanger** pour un nouveau tirage
+- Chaque pastille **change toutes les 10–20 s** avec une petite animation
+- Clic = remplir le champ ; **Ctrl+Z** / **⌘Z** pour annuler le remplissage
 
-L'interface de sélection de format de l'assistant de démarrage rapide est la suivante :
-
-<QuickStartPanel mode="demo" />
-
-### Démarrage rapide Markdown
-
-Après avoir sélectionné le format Markdown :
-
--   **Choix du modèle** : Vous pouvez sélectionner un modèle Markdown
--   **Génération de contenu** : L'IA peut générer du contenu Markdown
--   **Édition rapide** : Commencez à éditer immédiatement après la création
-
-L'interface de l'assistant après avoir choisi Markdown :
-
-<QuickStartMarkdown mode="demo" />
-
-### Démarrage rapide LaTeX
-
-Après avoir sélectionné le format LaTeX :
-
--   **Type de document** : Vous pouvez choisir le type de document (article, livre, etc.)
--   **Génération de contenu** : L'IA peut générer du contenu LaTeX
--   **Compilation et aperçu** : Après création, vous pouvez compiler et prévisualiser le PDF
-
-L'interface de l'assistant après avoir choisi LaTeX :
-
-<QuickStartLatex mode="demo" />
-
-```mermaid
-graph LR
-    A[点击快速开始] --> B{选择格式}
-    B -->|Markdown| C[Markdown向导]
-    B -->|LaTeX| D[LaTeX向导]
-    C --> E[设置元信息]
-    D --> E
-    E --> F[AI生成内容]
-    F --> G[预览文档]
-    G --> H[创建文档]
-    style A fill:#f3f4f6,stroke:#374151
-    style B fill:#f3f4f6,stroke:#374151
-    style C fill:#f3f4f6,stroke:#374151
-    style D fill:#f3f4f6,stroke:#374151
-    style E fill:#f3f4f6,stroke:#374151
-    style F fill:#f3f4f6,stroke:#374151
-    style G fill:#f3f4f6,stroke:#374151
-    style H fill:#f3f4f6,stroke:#374151
-```
-
+> L’assistant **Démarrage rapide** a été retiré. Créez des documents via **Nouveau document** ou le menu gauche.
 ## Nouveau document
 
 ### Créer un document vierge

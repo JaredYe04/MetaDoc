@@ -1,4 +1,4 @@
-# Gerenciamento de Temas Personalizados
+﻿# Gerenciamento de Temas Personalizados
 
 ## Visão Geral
 

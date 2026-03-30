@@ -1,4 +1,4 @@
-# Vue d'ensemble du framework Agent
+﻿# Vue d'ensemble du framework Agent
 
 ## Vue d'ensemble
 
@@ -333,4 +333,3 @@ R : Lorsqu'un AgentConfig est associé à plusieurs ensembles d'outils, les outi
 - [[agent.capabilities|Règles, compétences et gestion MCP]]
 - [[ai.llm-config|Configuration LLM]]
 
-<QuickStartPanel mode="demo" />

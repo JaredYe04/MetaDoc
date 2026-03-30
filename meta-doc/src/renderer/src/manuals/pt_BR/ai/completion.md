@@ -1,4 +1,4 @@
-# Preenchimento Automático com IA
+﻿# Preenchimento Automático com IA
 
 ## Visão Geral
 

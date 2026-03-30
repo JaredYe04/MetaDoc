@@ -1,4 +1,4 @@
-# Configuração de Tipos de LLM
+﻿# Configuração de Tipos de LLM
 
 ## Visão Geral
 
@@ -135,7 +135,6 @@ Na maioria dos casos, não é necessário configurar, basta usar os valores padr
 -   Uso de serviços de terceiros compatíveis com a API da OpenAI
 -   Serviços que requerem caminhos de API personalizados
 
-<QuickStartPanel mode="demo" />
 
 <MainTabs mode="demo" />
 

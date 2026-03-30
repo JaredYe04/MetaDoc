@@ -1,4 +1,4 @@
-# Compilação e Visualização LaTeX
+﻿# Compilação e Visualização LaTeX
 
 ## Visão Geral
 

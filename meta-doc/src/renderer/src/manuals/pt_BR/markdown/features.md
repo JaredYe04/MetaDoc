@@ -1,4 +1,4 @@
-# Funcionalidades do Editor Markdown
+﻿# Funcionalidades do Editor Markdown
 
 ## Visão Geral
 
@@ -197,7 +197,6 @@ Após a exibição da sugestão de preenchimento, você pode:
 
 <SectionOptimizer mode="demo" title="段落优化示例" path="1" :tree='{}' language="markdown" :adapter='null' />
 
-<QuickStartMarkdown mode="demo" />
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
@@ -324,6 +323,5 @@ R: Tente ativar a integração com base de conhecimento, ajustar o número máxi
 
 <ViewMenuItemsDemo mode="demo" :items='["editor", "outline", "agent"]' />
 
-<QuickStartMarkdown mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "edit", "items": ["find", "replace"]}]' />

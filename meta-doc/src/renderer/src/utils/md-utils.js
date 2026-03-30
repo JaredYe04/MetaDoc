@@ -8,7 +8,11 @@ import { getLocalVditorCDN, vditorCDN } from './vditor-cdn'
 import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 import { createRendererLogger } from './logger.ts'
 import { preRenderAllCharts } from './chart-pre-renderer.js'
-import { themeState } from './themes'
+import {
+  themeState,
+  resolveVditorContentThemeSettingValue,
+  resolveVditorCodeThemeSettingValue
+} from './themes'
 import messageBridge from '../bridge/message-bridge'
 
 // 懒加载logger，避免初始化顺序问题
@@ -1776,12 +1780,9 @@ export async function renderMarkdownPreview(container, markdown, options = {}) {
   // 获取 CDN
   const cdn = isElectronEnv() ? getLocalVditorCDN() : vditorCDN
 
-  // 获取主题设置
-  let contentTheme = await getSetting('contentTheme')
-  if (contentTheme === 'auto' || !contentTheme) {
-    contentTheme = themeState.currentTheme.vditorTheme
-  }
-  const codeTheme = themeState.currentTheme.codeTheme
+  // 获取主题设置（内容区 theme 须为 dark/light/ant-design/wechat，不可使用工具栏的 classic）
+  const contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
+  const codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
   const lineNumber = (await getSetting('lineNumber')) ?? true
   const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
 
@@ -2003,8 +2004,8 @@ export async function ConvertMarkdownToHtmlVditor(md) {
  * @param docPath - 可选，当前文档路径，用于解析相对图片路径（如 images/xxx.png）
  */
 export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = true, docPath = '') {
-  const contentTheme = await getSetting('contentTheme')
-  const codeTheme = await getSetting('codeTheme')
+  const contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
+  const codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
   const lineNumber = await getSetting('lineNumber')
 
   let cdn = ''
@@ -2553,8 +2554,8 @@ export const ConvertHtmlForPdf = async (md) => {
   // 使用 JSON.stringify 对处理后的 md 进行转义
   const safeMarkdown = JSON.stringify(processedMd)
 
-  const contentTheme = await getSetting('contentTheme')
-  const codeTheme = await getSetting('codeTheme')
+  const contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
+  const codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
   const lineNumber = await getSetting('lineNumber')
   const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
   getLogger().info(

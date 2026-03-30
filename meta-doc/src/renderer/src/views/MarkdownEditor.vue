@@ -152,7 +152,11 @@ import TitleMenu from '../components/TitleMenu.vue'
 import SectionOptimizer from '../components/SectionOptimizer.vue'
 import { MarkdownSectionAdapter } from '../components/section-optimizer/adapters/markdown-adapter'
 import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
-import { themeState } from '../utils/themes'
+import {
+  themeState,
+  resolveVditorContentThemeSettingValue,
+  resolveVditorCodeThemeSettingValue
+} from '../utils/themes'
 import { isSaveInProgress } from '../utils/save-guard'
 import { getSetting, setSetting, settings } from '../utils/settings'
 import { getLocalVditorCDN, vditorCDN } from '../utils/vditor-cdn'
@@ -2092,6 +2096,8 @@ onMounted(async () => {
 
     // 读取数学公式配置
     const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
+    const initialContentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
+    const initialCodeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
 
     // 导入图片上传服务
     const { uploadImage, processImagePath } = await import('../utils/image-upload-service')
@@ -2131,10 +2137,11 @@ onMounted(async () => {
       theme: themeState.currentTheme.vditorTheme as any,
       preview: {
         theme: {
-          current: themeState.currentTheme.vditorTheme
+          // 内容区主题为 dark/light/ant-design/wechat，不能与工具栏 classic 混用（见 Vditor 文档）
+          current: initialContentTheme
         },
         hljs: {
-          style: themeState.currentTheme.codeTheme,
+          style: initialCodeTheme,
           lineNumber: await getSetting('lineNumber')
         },
         markdown: {
@@ -2771,17 +2778,8 @@ const handleSyncEditorTheme = async (payload?: unknown) => {
     }
 
     // 获取主题设置（等待完成，确保获取到正确的值）
-    let contentTheme = await getSetting('contentTheme')
-    if (contentTheme === 'auto') {
-      // contentTheme应该是'light'或'dark'，根据vditorTheme来判断
-      contentTheme = themeState.currentTheme.vditorTheme === 'dark' ? 'dark' : 'light'
-    }
-
-    let codeTheme = await getSetting('codeTheme')
-    if (codeTheme === 'auto') {
-      // codeTheme是代码高亮主题（hljs样式），应该使用themeState中的codeTheme
-      codeTheme = themeState.currentTheme.codeTheme
-    }
+    const contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
+    const codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
 
     try {
       // 应用主题（setTheme的第一个参数是工具栏主题，第二个是内容预览主题，第三个是代码高亮主题）
@@ -3096,10 +3094,11 @@ watch(
   color: var(--editor-text-color, inherit) !important;
 }
 
-.editor :deep(.vditor-reset *),
-.editor :deep(.vditor-ir *),
-.editor :deep(.vditor-wysiwyg *),
-.editor :deep(.vditor-sv *) {
+/* 勿对 pre 内节点强制 inherit：否则会压过 hljs 语法色，暗色主题下易变成「白字 + 浅色 github 代码底」 */
+.editor :deep(.vditor-reset *:not(pre *)),
+.editor :deep(.vditor-ir *:not(pre *)),
+.editor :deep(.vditor-wysiwyg *:not(pre *)),
+.editor :deep(.vditor-sv *:not(pre *)) {
   color: inherit;
 }
 

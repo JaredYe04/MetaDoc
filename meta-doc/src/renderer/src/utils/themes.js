@@ -647,6 +647,39 @@ export const themeState = reactive({
   currentTheme: lightTheme
 })
 
+/**
+ * Vditor 预览内容区样式（dist/css/content-theme/*.css），与工具栏 theme `classic`/`dark` 不是同一套。
+ * 参见 Vditor 文档：https://ld246.com/article/1549638745630
+ */
+export const VDITOR_CONTENT_THEME_IDS = ['dark', 'light', 'ant-design', 'wechat']
+
+/**
+ * 将设置里的 contentTheme（含 auto）解析为有效的 Vditor 内容区主题 id。
+ * 错误地把 `classic` 当作内容主题会导致请求不存在的 classic.css，预览与代码块样式异常。
+ */
+export function resolveVditorContentThemeSettingValue(settingValue) {
+  const ts = themeState.currentTheme
+  if (settingValue === 'auto' || settingValue == null || settingValue === '') {
+    return ts.vditorTheme === 'dark' ? 'dark' : 'light'
+  }
+  if (settingValue === 'classic') {
+    return 'light'
+  }
+  if (VDITOR_CONTENT_THEME_IDS.includes(settingValue)) {
+    return settingValue
+  }
+  return ts.vditorTheme === 'dark' ? 'dark' : 'light'
+}
+
+/** 将设置里的 codeTheme（含 auto）解析为 Vditor hljs 样式名（styles/*.min.css） */
+export function resolveVditorCodeThemeSettingValue(settingValue) {
+  const ts = themeState.currentTheme
+  if (settingValue === 'auto' || settingValue == null || settingValue === '') {
+    return ts.codeTheme
+  }
+  return settingValue
+}
+
 // 获取系统主题信息的辅助函数（通过 messageBridge）
 async function getOsThemeInfo() {
   try {

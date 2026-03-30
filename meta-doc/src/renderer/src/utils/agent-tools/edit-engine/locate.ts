@@ -47,6 +47,31 @@ function buildFullNeedle(target: EditTarget): string {
   return (target.context_before ?? '') + target.anchor + (target.context_after ?? '')
 }
 
+/** 供 TARGET_NOT_FOUND 时打印，便于核对是否与磁盘全文一致 */
+function describeFullNeedleForError(target: EditTarget): string {
+  const raw = buildFullNeedle(target)
+  const preview = raw.length > 160 ? `${raw.slice(0, 160)}…` : raw
+  return `fullNeedle 长度=${raw.length} 预览=${JSON.stringify(preview)}（before+anchor+after 拼接，已做 \\r\\n→\\n 与去 BOM）`
+}
+
+/**
+ * 整段精确查找。若 0 命中且 needle 末尾多写了换行，再试去掉末尾 \\n+（文件常无 EOF 换行，易触发 match_scope:full 的 TARGET_NOT_FOUND）
+ */
+function findFullNeedleLiteralHits(text: string, fullNeedle: string): { hits: number[]; usedLen: number } {
+  let hits = findAllLiteral(text, fullNeedle)
+  const usedLen = fullNeedle.length
+  if (hits.length === 0 && /\n$/.test(fullNeedle)) {
+    const trimmedEnd = fullNeedle.replace(/\n+$/, '')
+    if (trimmedEnd.length > 0) {
+      const h2 = findAllLiteral(text, trimmedEnd)
+      if (h2.length === 1) {
+        return { hits: h2, usedLen: trimmedEnd.length }
+      }
+    }
+  }
+  return { hits, usedLen }
+}
+
 function spanFromExactMatch(
   matchStart: number,
   fullNeedleLen: number,
@@ -86,23 +111,26 @@ export function locateTarget(file: string, target: EditTarget): LocatedSpan {
     if (fullNeedle.length === 0) {
       throw new EditEngineError('空 anchor 且 before/after 均为空时无法定位', 'INVALID_EDIT')
     }
-    const hits = findAllLiteral(text, fullNeedle)
+    const { hits, usedLen } = findFullNeedleLiteralHits(text, fullNeedle)
     if (hits.length === 1) {
       const matchStart = hits[0]
-      return spanFromExactMatch(matchStart, fullNeedle.length, before.length, 0)
+      return spanFromExactMatch(matchStart, usedLen, before.length, 0)
     }
     if (hits.length > 1) {
       throw new EditEngineError('AMBIGUOUS_MATCH', 'AMBIGUOUS_MATCH')
     }
-    throw new EditEngineError('TARGET_NOT_FOUND', 'TARGET_NOT_FOUND')
+    throw new EditEngineError(
+      `TARGET_NOT_FOUND: 未找到空 anchor 对应的 context 衔接段。${describeFullNeedleForError(target)}`,
+      'TARGET_NOT_FOUND'
+    )
   }
 
   // —— 1) 整段精确 ——
   if (fullNeedle.length > 0) {
-    const hits = findAllLiteral(text, fullNeedle)
+    const { hits, usedLen } = findFullNeedleLiteralHits(text, fullNeedle)
     if (hits.length === 1) {
       const matchStart = hits[0]
-      return spanFromExactMatch(matchStart, fullNeedle.length, before.length, anchor.length)
+      return spanFromExactMatch(matchStart, usedLen, before.length, anchor.length)
     }
     if (hits.length > 1) {
       throw new EditEngineError('AMBIGUOUS_MATCH', 'AMBIGUOUS_MATCH')
@@ -161,5 +189,8 @@ export function locateTarget(file: string, target: EditTarget): LocatedSpan {
     }
   }
 
-  throw new EditEngineError('TARGET_NOT_FOUND', 'TARGET_NOT_FOUND')
+  throw new EditEngineError(
+    `TARGET_NOT_FOUND: 未找到唯一匹配（已试：整段精确匹配、整段空白宽松匹配、必要时仅 anchor）。${describeFullNeedleForError(target)}。match_scope:full 仍需先定位到整段；请从文件原样复制含换行，并核对文末是否有额外 \\n、空格或全角标点。`,
+    'TARGET_NOT_FOUND'
+  )
 }

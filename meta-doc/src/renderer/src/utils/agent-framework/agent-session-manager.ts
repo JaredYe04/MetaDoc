@@ -123,6 +123,7 @@ class AgentSessionManager {
       updatedAt: now,
       messages: [greetingMessage],
       messageQueue: [],
+      composerSendQueue: [],
       referenceStore: [],
       publicContext: {
         currentTime: new Date().toISOString()

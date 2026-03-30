@@ -155,7 +155,7 @@ describe('工具调用解析器 parseToolCalls', () => {
   })
 
   describe('Action+Params JSON 格式', () => {
-    it('解析 {"action": "edit", "params": { "file_path", "content" }} 并转为 filePath + diff', () => {
+    it('解析 {"action": "edit", "params": { "file_path", "content" }} 并转为 filePath + V2 edits', () => {
       const input = `
 \`\`\`json
 {
@@ -175,8 +175,10 @@ describe('工具调用解析器 parseToolCalls', () => {
       expect(result![0].parameters!.filePath).toBe(
         'C:\\Users\\tange\\Documents\\metadoc-agent-test\\ai_technology.md'
       )
-      expect(result![0].parameters!.diff).toMatch(/^@@ -0,0 \+1,\d+ @@/)
-      expect((result![0].parameters!.diff as string).includes('+# 人工智能技術發展')).toBe(true)
+      const edits = result![0].parameters!.edits as { type: string; content: string }[]
+      expect(Array.isArray(edits)).toBe(true)
+      expect(edits[0].type).toBe('insert')
+      expect(edits[0].content).toContain('# 人工智能技術發展')
       expect(result![0].parameters!.content).toBeUndefined()
       expect(result![0].parameters!.file_path).toBeUndefined()
     })
@@ -189,7 +191,8 @@ describe('工具调用解析器 parseToolCalls', () => {
       expect(result!.length).toBe(1)
       expect(result![0].tool_id).toBe('edit')
       expect(result![0].parameters!.filePath).toBe('a.md')
-      expect((result![0].parameters!.diff as string).trim()).toMatch(/^@@ -0,0 \+1,2 @@/)
+      const edits = result![0].parameters!.edits as { content: string }[]
+      expect(edits[0].content).toBe('hello\nworld')
     })
 
     it('支持 parameters 替代 params', () => {
@@ -207,7 +210,7 @@ describe('工具调用解析器 parseToolCalls', () => {
       const input = `<tool_call>
 [
   {"name": "grep", "arguments": {"pattern": "a"}},
-  {"name": "edit", "arguments": {"filePath": "x.md", "diff": "@@ -0,0 +1,1 @@\\n+hi"}}
+  {"name": "edit", "arguments": {"filePath": "x.md", "edits": [{"id": "e1", "type": "insert", "target": {"anchor": ""}, "content": "hi"}]}}
 ]
 </tool_call>`
       const result = norm(parseToolCalls(input))
@@ -221,7 +224,7 @@ describe('工具调用解析器 parseToolCalls', () => {
 
     it('裸 JSON 数组（无标签）展开为多个工具调用', () => {
       const input =
-        '[{"name": "grep", "arguments": {"pattern": "test"}}, {"name": "edit", "arguments": {"diff": "@@ -0,0 +1,0 @@"}}]'
+        '[{"name": "grep", "arguments": {"pattern": "test"}}, {"name": "edit", "arguments": {"edits": [{"id": "e1", "type": "insert", "target": {"anchor": ""}, "content": ""}]}}]'
       const result = norm(parseToolCalls(input))
       expect(result).not.toBeNull()
       expect(result!.length).toBe(2)
@@ -239,7 +242,7 @@ describe('工具调用解析器 parseToolCalls', () => {
       expect(result!.length).toBe(2)
       expect(result![0].tool_id).toBe('edit')
       expect(result![0].parameters!.filePath).toBe('a.md')
-      expect(result![0].parameters!.diff).toMatch(/^@@ -0,0 \+1,1 @@/)
+      expect((result![0].parameters!.edits as { content: string }[])[0].content).toBe('x')
       expect(result![1].tool_id).toBe('grep')
       expect(result![1].parameters).toEqual({ pattern: 'p' })
     })

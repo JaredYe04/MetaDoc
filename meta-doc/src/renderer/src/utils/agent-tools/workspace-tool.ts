@@ -12,8 +12,8 @@ import { ref } from 'vue'
 import type { AIDialogMessage } from '@/types'
 import { createDetailedError } from './tool-utils'
 import WorkspaceDisplay from './components/WorkspaceDisplay.vue'
-import eventBus from '../event-bus'
 import messageBridge from '../../bridge/message-bridge'
+import { notifyWorkspaceFilesystemChange } from '../workspace-fs-notify'
 import { ensureDirectoryRecursive as ensureDirectoryRecursiveImpl } from './workspace-directory-helper'
 import {
   pathLooksLikeWorkspaceSkillMd,
@@ -181,7 +181,9 @@ function isInMetaDoc(path: string): boolean {
   return n.includes('/.metadoc/') || n.endsWith('/.metadoc')
 }
 
-async function ensureDirectoryRecursive(fullPath: string): Promise<{ created: boolean; message: string }> {
+async function ensureDirectoryRecursive(
+  fullPath: string
+): Promise<{ created: boolean; message: string; pathsCreated: string[] }> {
   const ipc = messageBridge.getIpc()
   if (!ipc) {
     throw new Error('IPC renderer not available')
@@ -225,7 +227,10 @@ async function createFileWithDirs(
   // 确保上层目录存在
   const dir = normalized.replace(/[/\\][^/\\]+$/, '')
   if (dir && dir !== normalized) {
-    await ensureDirectoryRecursive(dir)
+    const mkdirRes = await ensureDirectoryRecursive(dir)
+    for (const p of mkdirRes.pathsCreated) {
+      notifyWorkspaceFilesystemChange(p, 'addDir')
+    }
   }
 
   // 主进程 create-file 接收 { parentPath, fileName, content }
@@ -239,6 +244,7 @@ async function createFileWithDirs(
     if (pathLooksLikeWorkspaceSkillMd(normalized)) {
       scheduleSkillIndexSyncAfterWrite(normalized)
     }
+    notifyWorkspaceFilesystemChange(normalized, 'add')
     return { created: true, message: `文件已创建: ${normalized}` }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
@@ -657,9 +663,12 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
 
         switch (op.type) {
           case 'createDirectory': {
-            const { created, message } = await ensureDirectoryRecursive(fullPath)
+            const { created, message, pathsCreated } = await ensureDirectoryRecursive(fullPath)
             resMessage = message
             success = true
+            for (const p of pathsCreated) {
+              notifyWorkspaceFilesystemChange(p, 'addDir')
+            }
             if (!created) {
               // 已存在也视为成功，只是提示不同
             }

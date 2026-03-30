@@ -729,6 +729,10 @@ const ensureMetadocInWorkspaceRoot = async (folderPath: string): Promise<void> =
   }
 }
 
+function emitFocusWorkspaceSidebar() {
+  eventBus.emit('focus-workspace-sidebar', { expand: true })
+}
+
 // 添加工作文件夹
 const addWorkspaceFolder = async () => {
   const ipcRenderer = getIpcRenderer()
@@ -751,6 +755,7 @@ const addWorkspaceFolder = async () => {
       // 检查是否已存在
       if (workspaceFolders.value.includes(newFolder)) {
         eventBus.emit('show-warning', { message: t('workspaceExplorer.folderAlreadyAdded') })
+        emitFocusWorkspaceSidebar()
         return
       }
 
@@ -765,6 +770,7 @@ const addWorkspaceFolder = async () => {
 
       // 保存工作文件夹列表
       saveWorkspaceFolders()
+      emitFocusWorkspaceSidebar()
     }
   } catch (err) {
     logger.error('添加工作文件夹失败:', err)
@@ -773,7 +779,10 @@ const addWorkspaceFolder = async () => {
 }
 
 // 移除工作文件夹
-const removeWorkspaceFolder = async (folderPath: string) => {
+const removeWorkspaceFolder = async (
+  folderPath: string,
+  options?: { skipWorkspaceFocus?: boolean }
+) => {
   const index = workspaceFolders.value.indexOf(folderPath)
   if (index === -1) return
 
@@ -790,6 +799,52 @@ const removeWorkspaceFolder = async (folderPath: string) => {
 
   // 保存工作文件夹列表
   saveWorkspaceFolders()
+  if (!options?.skipWorkspaceFocus) {
+    emitFocusWorkspaceSidebar()
+  }
+}
+
+const closeAllWorkspaceFolders = async () => {
+  const folders = [...workspaceFolders.value]
+  for (const p of folders) {
+    await removeWorkspaceFolder(p, { skipWorkspaceFocus: true })
+  }
+  emitFocusWorkspaceSidebar()
+}
+
+/** 文件菜单「打开工作区」：选择文件夹，关闭当前所有工作区根，用新文件夹替换 */
+const openWorkspaceReplace = async () => {
+  const ipcRenderer = getIpcRenderer()
+  if (!ipcRenderer) {
+    error.value = t('workspaceExplorer.ipcNotAvailable')
+    return
+  }
+
+  try {
+    const result = (await ipcRenderer.invoke('show-open-dialog', {
+      title: t('workspaceExplorer.openWorkspaceDialogTitle'),
+      properties: ['openDirectory']
+    })) as { canceled: boolean; filePaths?: string[] }
+
+    if (!result || result.canceled || !result.filePaths?.length) return
+
+    const newFolder = result.filePaths[0]
+    await ensureMetadocInWorkspaceRoot(newFolder)
+
+    const folders = [...workspaceFolders.value]
+    for (const p of folders) {
+      await removeWorkspaceFolder(p, { skipWorkspaceFocus: true })
+    }
+
+    await createWorkspaceRootNode(newFolder)
+    workspaceFolders.value.push(newFolder)
+    startDirectoryWatcher(newFolder)
+    saveWorkspaceFolders()
+    emitFocusWorkspaceSidebar()
+  } catch (err) {
+    logger.error('打开工作区（替换）失败:', err)
+    error.value = err instanceof Error ? err.message : String(err)
+  }
 }
 
 // 创建工作文件夹根节点
@@ -1152,6 +1207,7 @@ const loadWorkspaceFolders = async () => {
 const refreshAllWorkspaceFolders = async () => {
   // 使用 Promise.all 并发处理所有工作文件夹
   await Promise.all(workspaceFolders.value.map((folderPath) => refreshWorkspaceFolder(folderPath)))
+  emitFocusWorkspaceSidebar()
 }
 
 // 加载子目录（懒加载：只加载直接子项，不递归）
@@ -1615,11 +1671,13 @@ const handleContextMenuCommand = async (command: string) => {
       case 'showInFolder':
         if (node) {
           await ipcRenderer.invoke('show-item-in-folder', node.path)
+          emitFocusWorkspaceSidebar()
         }
         break
       case 'openFolder':
         if (node && (node.type === 'directory' || node.isWorkspaceRoot)) {
           await ipcRenderer.invoke('show-item-in-folder', node.path)
+          emitFocusWorkspaceSidebar()
         }
         break
       case 'newFile': {
@@ -1676,6 +1734,7 @@ const handleContextMenuCommand = async (command: string) => {
             await refreshDirectoryNode(node.path)
           }
           eventBus.emit('show-success', { message: t('workspaceExplorer.refreshSuccess') })
+          emitFocusWorkspaceSidebar()
         } else {
           // 空白处右键选择刷新：刷新所有工作区根目录
           await refreshAllWorkspaceFolders()
@@ -1795,6 +1854,7 @@ const handlePaste = async (targetPathParam: string | null) => {
       if (operations) {
         operations.lastSelectedIndex.value = lastIndex >= 0 ? lastIndex : -1
       }
+      emitFocusWorkspaceSidebar()
     }
   } catch (err) {
     logger.error('粘贴失败:', err)
@@ -1983,6 +2043,7 @@ const handleDelete = async (node: FileNode | null) => {
         filePath: item.path
       })
     }
+    emitFocusWorkspaceSidebar()
   }
 }
 
@@ -2026,6 +2087,7 @@ const handleRenameConfirm = async () => {
       })
 
       handleRenameDialogClose()
+      emitFocusWorkspaceSidebar()
     }
   } catch (err) {
     logger.error('重命名失败:', err)
@@ -2070,6 +2132,7 @@ const handleCreatingComplete = async (name: string) => {
       lastSelectedIndex.value = -1
       pendingCreate.value = null
       eventBus.emit('show-success', { message: t('workspaceExplorer.newFileSuccess') })
+      emitFocusWorkspaceSidebar()
       await handleOpenFile(filePath)
     } else {
       const folderName = name.trim()
@@ -2087,6 +2150,7 @@ const handleCreatingComplete = async (name: string) => {
       lastSelectedIndex.value = -1
       pendingCreate.value = null
       eventBus.emit('show-success', { message: t('workspaceExplorer.newFolderSuccess') })
+      emitFocusWorkspaceSidebar()
     }
   } catch (err) {
     logger.error('新建失败:', err)
@@ -2487,6 +2551,7 @@ const performMoveOperation = async (sourceURIs: URI[], targetDirURI: URI) => {
     }
 
     eventBus.emit('show-success', { message: `已移动 ${sourceURIs.length} 项` })
+    emitFocusWorkspaceSidebar()
   } catch (error) {
     logger.error('移动操作失败:', error)
     throw error
@@ -2614,6 +2679,12 @@ const handleSelectAll = async () => {
     }))
   )
 }
+
+defineExpose({
+  addWorkspaceFolder,
+  closeAllWorkspaceFolders,
+  openWorkspaceReplace
+})
 </script>
 
 <style scoped>

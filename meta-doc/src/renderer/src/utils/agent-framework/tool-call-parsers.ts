@@ -179,7 +179,7 @@ class StandardToolCallParser implements ToolCallParser {
               continue
             }
           }
-          // 适配 <tool_call><workspace>{"paths":[]}</workspace></tool_call> 或 <tool_call><edit>{"filePath":...,"diff":...}</edit></tool_call> 等格式：
+          // 适配 <tool_call><workspace>{"paths":[]}</workspace></tool_call> 或 <tool_call><edit>{"filePath":...,"edits":[...]}</edit></tool_call> 等格式：
           // 块内为「标签名即 tool_id、内容即 JSON」的一个或多个闭合标签，与 subagent 等统一支持
           const tagWrappedCalls = this.parseTagWrappedToolCalls(toolCallContent, index, validateToolId, toolIdValidator)
           if (tagWrappedCalls.length > 0) {
@@ -225,7 +225,7 @@ class StandardToolCallParser implements ToolCallParser {
 
   /**
    * 解析「标签名即 tool_id、内容即 JSON」格式，支持一个块内多个标签。
-   * 例如：<tool_call><workspace>{"paths":[]}</workspace><edit>{"filePath":"x","diff":"..."}</edit></tool_call>
+   * 例如：<tool_call><workspace>{"paths":[]}</workspace><edit>{"filePath":"x","edits":[...]}</edit></tool_call>
    */
   private parseTagWrappedToolCalls(
     toolCallContent: string,
@@ -1162,17 +1162,7 @@ class SubagentsBatchParser implements ToolCallParser {
 }
 
 /**
- * 将“完整内容”转为新建文件的 Unified diff（@@ -0,0 +1,N @@ 后跟 +行）
- */
-function newFileDiff(content: string): string {
-  if (content == null) return ''
-  const lines = String(content).split(/\r?\n/)
-  if (lines.length === 0) return '@@ -0,0 +1,0 @@\n'
-  return '@@ -0,0 +1,' + lines.length + ' @@\n' + lines.map((l) => '+' + l).join('\n')
-}
-
-/**
- * 对 action+params 格式的参数做标准化，便于工具消费（如 file_path -> filePath；edit 的 content 转为 diff）
+ * 对 action+params 格式的参数做标准化，便于工具消费（如 file_path -> filePath；edit 的 content 转为 V2 edits，仅适用于新建/空文件体写入）
  */
 function normalizeActionParams(
   toolId: string,
@@ -1184,8 +1174,15 @@ function normalizeActionParams(
     p.filePath = filePath
     delete p.file_path
   }
-  if (toolId === 'edit' && p.content != null && (p.file_path != null || p.filePath != null)) {
-    p.diff = newFileDiff(String(p.content))
+  if (toolId === 'edit' && p.content != null && p.filePath != null && p.edits == null && p.editPlan == null) {
+    p.edits = [
+      {
+        id: 'legacy-action-params-content',
+        type: 'insert',
+        target: { anchor: '', context_before: '', context_after: '' },
+        content: String(p.content)
+      }
+    ]
     delete p.content
   }
   return p
@@ -1194,7 +1191,7 @@ function normalizeActionParams(
 /**
  * Action+Params JSON 格式解析器
  * 格式：AI 在消息中输出 {"action": "edit", "params": { "file_path": "...", "content": "..." } }（或 parameters）
- * 支持代码块 ```json ... ```；将 action 映射为 tool_id，params 标准化后作为 parameters（如 file_path→filePath，edit 的 content→diff）
+ * 支持代码块 ```json ... ```；将 action 映射为 tool_id，params 标准化后作为 parameters（如 file_path→filePath；edit 的 content→V2 edits，仅适合空文件写入）
  */
 class ActionParamsParser implements ToolCallParser {
   name = 'action-params'
@@ -1767,7 +1764,7 @@ export class ToolCallParserManager {
     this.parsers.push(new DeepSeekDSMLParser())
     // 4. Subagents 批调用 JSON 格式（内容中的 {"subagents": [...]}，展开为多个 subagent 工具调用）
     this.parsers.push(new SubagentsBatchParser())
-    // 5. Action+Params JSON 格式（{"action": "edit", "params": { "file_path", "content" }}等，支持 content 转 diff）
+    // 5. Action+Params JSON 格式（{"action": "edit", "params": { "file_path", "content" }}等，content 会规范为 V2 edits）
     this.parsers.push(new ActionParamsParser())
     // 6. OpenAI格式（最宽松，优先级最低，避免误匹配）
     this.parsers.push(new OpenAIFunctionCallParser())
@@ -1980,7 +1977,7 @@ function parseLooseJson(jsonStr: string): any | null {
         //getLogger().debug('[parseLooseJson] 未闭合 JSON 已补全并解析成功')
         return parsed
       } catch {
-        // 字符串值内未转义的双引号（如 diff 中的 "神经元死亡"）导致解析失败时，尝试修复后再解析
+        // 字符串值内未转义的双引号（如长参数中的 "神经元死亡"）导致解析失败时，尝试修复后再解析
         const withQuotes = tryFixUnescapedQuotesInStrings(cleaned)
         if (withQuotes != null) return JSON.parse(withQuotes)
         return null
@@ -2056,7 +2053,7 @@ function extractParameters(obj: any): Record<string, unknown> | null {
 }
 
 /**
- * 尝试修复字符串值内未转义的双引号与原始换行（agent 常在 diff/filePath 等长字符串中写入未转义的 " 或真实换行）
+ * 尝试修复字符串值内未转义的双引号与原始换行（agent 常在长字符串参数中写入未转义的 " 或真实换行）
  * 规则：在字符串内部若遇到 " 且前一字符不是 \，且下一非空字符不是 : , } ]，则视为内容中的引号并转义；
  * 在字符串内部将原始 \r\n / \n / \r 转为 \\n。
  */

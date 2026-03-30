@@ -44,6 +44,7 @@ import { initMonacoGlobalTheme } from './utils/monaco-global-theme'
 import { getRuntimeServerBaseUrl } from './config/runtime-server'
 import { aiCompletionService } from './utils/ai-completion-service'
 import { useWorkspace } from './stores/workspace'
+import { useAgentWorkspaceStore } from './stores/agent-workspace-store'
 import { useGlobalShortcuts } from './composables/useGlobalShortcuts'
 import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
@@ -330,6 +331,31 @@ onMounted(async () => {
 
   // 异步加载非关键设置（不阻塞窗口显示）
   initNonCriticalSettings()
+
+  // 引用存储：按设置中的「早于 N 天」在启动后延迟执行一次自动清理（不弹 Toast）
+  setTimeout(async () => {
+    try {
+      const coercePruneDays = (raw: unknown, def: number) => {
+        if (raw === undefined || raw === null) return def
+        const n = Number(raw)
+        return Number.isFinite(n) && n >= 0 ? n : def
+      }
+      const g = coercePruneDays(await getSetting('referenceGlobalAutoPruneDays'), 7)
+      const a = coercePruneDays(await getSetting('referenceAgentAutoPruneDays'), 7)
+      if (g <= 0 && a <= 0) return
+      const mb = (await import('./bridge/message-bridge')).default
+      if (!mb.getIpc()) return
+      const agentStore = useAgentWorkspaceStore()
+      const roots = a > 0 && agentStore.workspaceRoot ? [agentStore.workspaceRoot] : []
+      await mb.invoke('prune-reference-storage-by-age', {
+        globalDays: g,
+        agentDays: a,
+        workspaceRoots: roots
+      })
+    } catch (e) {
+      logger.debug('reference storage prune on startup skipped', e)
+    }
+  }, 12000)
 })
 
 // 语言切换时重新加载当前语言的文档模板

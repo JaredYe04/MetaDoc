@@ -6,7 +6,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, shallowRef } from 'vue'
 import type { AgentSession } from '../types/agent'
 import messageBridge from '../bridge/message-bridge'
 import { createRendererLogger } from '../utils/logger'
@@ -56,10 +56,28 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
   const _saveTimer = ref<ReturnType<typeof setTimeout> | null>(null)
   const SAVE_DEBOUNCE_MS = 500
 
-  /** 共享 UI 状态：Full 与 Compact 视图同步（仅一个可见时由当前视图更新） */
-  const isGenerating = ref(false)
-  /** 正在执行引擎的会话 ID（切换 tab/视图时 loadFromMetadoc 不覆盖该会话，保证执行不中断） */
-  const generatingSessionId = ref<string | null>(null)
+  /** 正在执行引擎的会话 ID 集合（支持多会话并行；切换 tab 不中断后台会话） */
+  const generatingSessionIds = shallowRef<Set<string>>(new Set())
+  /** 是否有任一会话在生成（用于全局判断；各 UI 控件请用 isSessionGenerating(activeId)） */
+  const isGenerating = computed(() => generatingSessionIds.value.size > 0)
+
+  function addGeneratingSession(sessionId: string): void {
+    const next = new Set(generatingSessionIds.value)
+    next.add(sessionId)
+    generatingSessionIds.value = next
+  }
+
+  function removeGeneratingSession(sessionId: string): void {
+    const next = new Set(generatingSessionIds.value)
+    next.delete(sessionId)
+    generatingSessionIds.value = next
+  }
+
+  function isSessionGenerating(sessionId: string | null | undefined): boolean {
+    if (!sessionId) return false
+    return generatingSessionIds.value.has(sessionId)
+  }
+
   /** 当前会话的提示词输入（与 composerInputBySessionId 按 activeSessionId 同步） */
   const composerInput = ref('')
   /** 各会话的提示词输入框内容（会话级隔离，持久化） */
@@ -68,6 +86,50 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
   /** 共享任务句柄：用于跨视图取消/解锁 */
   const currentAiTaskHandle = ref<string | null>(null)
   const aiTaskHandles = ref<Set<string>>(new Set())
+
+  /** 本轮 Agent 执行注册的 AI 任务 handle（按会话隔离，避免多会话并行时互相清理 handle） */
+  const agentRunHandlesBySession = ref<Record<string, string[]>>({})
+
+  function registerAgentRunHandle(sessionId: string, handle: string): void {
+    const cur = agentRunHandlesBySession.value[sessionId] ?? []
+    if (cur.includes(handle)) {
+      aiTaskHandles.value.add(handle)
+      currentAiTaskHandle.value = handle
+      return
+    }
+    agentRunHandlesBySession.value = {
+      ...agentRunHandlesBySession.value,
+      [sessionId]: [...cur, handle]
+    }
+    aiTaskHandles.value.add(handle)
+    currentAiTaskHandle.value = handle
+  }
+
+  function unregisterAgentRunSession(sessionId: string): void {
+    const handles = agentRunHandlesBySession.value[sessionId] ?? []
+    if (handles.length === 0) {
+      if (currentAiTaskHandle.value) {
+        const anyLeft = Object.values(agentRunHandlesBySession.value).some((arr) =>
+          arr.includes(currentAiTaskHandle.value!)
+        )
+        if (!anyLeft) currentAiTaskHandle.value = null
+      }
+      return
+    }
+    const rest = { ...agentRunHandlesBySession.value }
+    delete rest[sessionId]
+    agentRunHandlesBySession.value = rest
+    for (const h of handles) {
+      aiTaskHandles.value.delete(h)
+    }
+    if (currentAiTaskHandle.value && handles.includes(currentAiTaskHandle.value)) {
+      currentAiTaskHandle.value = null
+    }
+  }
+
+  function getAgentRunHandlesForSession(sessionId: string): string[] {
+    return [...(agentRunHandlesBySession.value[sessionId] ?? [])]
+  }
 
   const activeSession = computed(() => {
     const id = activeSessionId.value
@@ -95,6 +157,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
       activeToolIds: Array.isArray(s.activeToolIds) ? s.activeToolIds : [],
       agentConfigId: typeof s.agentConfigId === 'string' ? s.agentConfigId : undefined,
       messageQueue: Array.isArray(s.messageQueue) ? s.messageQueue : [],
+      composerSendQueue: Array.isArray(s.composerSendQueue) ? s.composerSendQueue : [],
       referenceStore: Array.isArray(s.referenceStore) ? s.referenceStore : [],
       publicContext:
         s.publicContext && typeof s.publicContext === 'object'
@@ -109,27 +172,13 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     normalized.forEach((s) => {
       s.status = 'idle'
     })
-    const genId = generatingSessionId.value
-    if (isGenerating.value && genId && sessions.value.length > 0) {
+    if (generatingSessionIds.value.size === 0 || sessions.value.length === 0) return
+    for (const genId of generatingSessionIds.value) {
       const generatingSession = sessions.value.find((s) => s.id === genId)
-      if (generatingSession) {
-        const idx = normalized.findIndex((s) => s.id === genId)
-        if (idx >= 0) {
-          normalized[idx] = generatingSession
-        }
-      }
-    } else if (isGenerating.value && sessions.value.length > 0) {
-      const currentId = activeSessionId.value
-      const currentSession = currentId ? sessions.value.find((s) => s.id === currentId) : null
-      if (currentSession) {
-        const idx = normalized.findIndex((s) => s.id === currentSession.id)
-        if (idx >= 0) {
-          normalized[idx] = {
-            ...normalized[idx],
-            messages: currentSession.messages,
-            status: currentSession.status
-          }
-        }
+      if (!generatingSession) continue
+      const idx = normalized.findIndex((s) => s.id === genId)
+      if (idx >= 0) {
+        normalized[idx] = generatingSession
       }
     }
   }
@@ -380,7 +429,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
   /** 初始化：刷新工作区根并加载（生成中不重载，避免覆盖正在执行的会话） */
   async function init(): Promise<void> {
     await refreshWorkspaceRoot()
-    if (isGenerating.value) return
+    if (generatingSessionIds.value.size > 0) return
     await loadFromMetadoc()
   }
 
@@ -437,9 +486,16 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
     activeSessionId,
     openTabIds,
     activeSession,
+    generatingSessionIds,
     isGenerating,
-    generatingSessionId,
+    addGeneratingSession,
+    removeGeneratingSession,
+    isSessionGenerating,
+    registerAgentRunHandle,
+    unregisterAgentRunSession,
+    getAgentRunHandlesForSession,
     composerInput,
+    composerInputBySessionId,
     selectedEngineId,
     currentAiTaskHandle,
     aiTaskHandles,

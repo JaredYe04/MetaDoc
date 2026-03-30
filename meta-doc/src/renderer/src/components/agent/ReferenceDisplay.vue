@@ -11,12 +11,21 @@
         class="reference-tag"
         :class="{
           'reference-tag--active': ref.active,
-          'reference-tag--readonly': readonly
+          'reference-tag--readonly': readonly && !removable
         }"
         :style="tagStyle(ref)"
-        @click="!readonly && handleToggle(ref)"
+        @click="!readonly && !removable && handleToggle(ref)"
       >
         <span class="reference-tag__name">{{ ref.name }}</span>
+        <button
+          v-if="removable"
+          type="button"
+          class="reference-tag__remove"
+          :aria-label="removeAriaLabel"
+          @click.stop="emit('remove', ref.id)"
+        >
+          ×
+        </button>
       </div>
     </div>
   </ScrollArea>
@@ -38,15 +47,21 @@ interface Props {
   references: Reference[]
   activeReferenceIds?: string[] // 激活的引用ID列表（可编辑模式）
   readonly?: boolean // 是否只读模式（消息中显示）
+  /** 显示移除按钮（如主页「上传附件」列表，与 @ 引用 chip 分离） */
+  removable?: boolean
+  removeAriaLabel?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   activeReferenceIds: () => [],
-  readonly: false
+  readonly: false,
+  removable: false,
+  removeAriaLabel: 'Remove'
 })
 
 const emit = defineEmits<{
   (e: 'toggle', referenceId: string): void
+  (e: 'remove', referenceId: string): void
 }>()
 
 // 计算要显示的引用
@@ -102,7 +117,7 @@ const tagStyle = (ref: ReferenceDisplayItem) => {
     borderRadius: '6px',
     padding: '4px 12px',
     fontSize: '13px',
-    cursor: props.readonly ? 'default' : 'pointer',
+    cursor: props.readonly && !props.removable ? 'default' : 'pointer',
     transition: 'all 0.2s',
     display: 'inline-flex',
     alignItems: 'center',
@@ -186,5 +201,21 @@ const handleToggle = (ref: ReferenceDisplayItem) => {
 
 .reference-tag__name {
   font-weight: 500;
+}
+
+.reference-tag__remove {
+  margin: 0;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.65;
+}
+
+.reference-tag__remove:hover {
+  opacity: 1;
 }
 </style>

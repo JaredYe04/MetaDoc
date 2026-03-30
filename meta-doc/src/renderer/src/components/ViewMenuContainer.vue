@@ -1,6 +1,7 @@
 <template>
   <div class="view-menu-container-wrapper">
     <ResizableContainer
+      ref="viewSidebarResizableRef"
       v-if="hasVisibleMenus"
       direction="vertical"
       storage-key="view-menu-sidebar"
@@ -112,7 +113,13 @@
           <!-- Tab 内容 -->
           <div class="sidebar-content">
             <AgentViewCompact v-if="activeTab === 'agent' && showAgentInSidebar" />
-            <WorkspaceExplorer v-if="activeTab === 'workspace'" />
+            <!-- 工作区：用 v-show 保持挂载，避免切到其他 Tab 时 ref 丢失导致菜单/快捷键无法调用 -->
+            <div
+              v-show="activeTab === 'workspace'"
+              class="sidebar-workspace-panel"
+            >
+              <WorkspaceExplorer v-if="showWorkspaceExplorer" ref="workspaceExplorerRef" />
+            </div>
             <WorkspaceGrepPanel v-if="activeTab === 'grep'" />
             <MetaInfoPanel
               v-if="activeTab === 'meta' && activeDocument"
@@ -137,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { mixColors, themeState } from '../utils/themes'
 import ResizableContainer from './base/ResizableContainer.vue'
@@ -156,6 +163,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui
 
 const { t } = useI18n()
 const workspace = useWorkspace()
+
+const viewSidebarResizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null)
+const workspaceExplorerRef = ref<InstanceType<typeof WorkspaceExplorer> | null>(null)
+
+/** WorkspaceExplorer defineExpose 的方法（模板 ref 类型上需显式写出） */
+type WorkspaceExplorerExposed = {
+  addWorkspaceFolder: () => Promise<void>
+  closeAllWorkspaceFolders: () => Promise<void>
+  openWorkspaceReplace: () => Promise<void>
+}
 
 const showWorkspaceExplorer = ref(false)
 const showWorkspaceGrep = ref(false)
@@ -334,6 +351,51 @@ const handleToggleAgentSidebarPanel = () => {
   setSetting('agentSidebarPanelVisible', agentSidebarPanelEnabled.value)
 }
 
+/** 显示右侧工作区侧栏、选中「工作区」Tab，并尽量展开可折叠面板（供文件菜单与工作区内操作调用） */
+const handleFocusWorkspaceSidebar = (event?: unknown) => {
+  const payload = event as { expand?: boolean } | undefined
+  showWorkspaceExplorer.value = true
+  activeTab.value = 'workspace'
+  void setSetting('workspaceExplorerVisible', true)
+  if (payload?.expand === false) return
+  void (async () => {
+    await nextTick()
+    await nextTick()
+    viewSidebarResizableRef.value?.setCollapsed?.(false)
+  })()
+}
+
+/** 先聚焦工作区侧栏，再在已挂载的 Explorer 上执行（Explorer 用 v-show 保持挂载，ref 在任意 Tab 下仍有效） */
+function invokeWorkspaceExplorerAction(
+  action: 'addWorkspaceFolder' | 'closeAllWorkspaceFolders' | 'openWorkspaceReplace'
+) {
+  handleFocusWorkspaceSidebar({ expand: true })
+  const run = (): boolean => {
+    const ex = workspaceExplorerRef.value as WorkspaceExplorerExposed | null
+    if (!ex) return false
+    if (action === 'addWorkspaceFolder') {
+      if (typeof ex.addWorkspaceFolder !== 'function') return false
+      void ex.addWorkspaceFolder()
+      return true
+    }
+    if (action === 'closeAllWorkspaceFolders') {
+      if (typeof ex.closeAllWorkspaceFolders !== 'function') return false
+      void ex.closeAllWorkspaceFolders()
+      return true
+    }
+    if (typeof ex.openWorkspaceReplace !== 'function') return false
+    void ex.openWorkspaceReplace()
+    return true
+  }
+  if (run()) return
+  void nextTick(() => {
+    if (run()) return
+    void nextTick(() => {
+      run()
+    })
+  })
+}
+
 // 加载保存的状态
 const loadSavedState = async () => {
   try {
@@ -377,8 +439,25 @@ function onDirectoryChanged(first: unknown, second?: unknown) {
   }
 }
 
+/** 文件菜单：由本容器持有 ref，不依赖子组件上的 mitt 监听 */
+const handleWorkspaceInvokeAddFolder = () => {
+  invokeWorkspaceExplorerAction('addWorkspaceFolder')
+}
+
+const handleWorkspaceInvokeCloseAllFolders = () => {
+  invokeWorkspaceExplorerAction('closeAllWorkspaceFolders')
+}
+
+const handleWorkspaceInvokeOpenWorkspace = () => {
+  invokeWorkspaceExplorerAction('openWorkspaceReplace')
+}
+
 onMounted(async () => {
   await loadSavedState()
+  eventBus.on('focus-workspace-sidebar', handleFocusWorkspaceSidebar)
+  eventBus.on('workspace-invoke-add-folder', handleWorkspaceInvokeAddFolder)
+  eventBus.on('workspace-invoke-close-all-folders', handleWorkspaceInvokeCloseAllFolders)
+  eventBus.on('workspace-invoke-open-workspace', handleWorkspaceInvokeOpenWorkspace)
   eventBus.on('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.on('toggle-workspace-grep', handleToggleWorkspaceGrep)
   eventBus.on('toggle-agent-sidebar-panel', handleToggleAgentSidebarPanel)
@@ -391,6 +470,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  eventBus.off('focus-workspace-sidebar', handleFocusWorkspaceSidebar)
+  eventBus.off('workspace-invoke-add-folder', handleWorkspaceInvokeAddFolder)
+  eventBus.off('workspace-invoke-close-all-folders', handleWorkspaceInvokeCloseAllFolders)
+  eventBus.off('workspace-invoke-open-workspace', handleWorkspaceInvokeOpenWorkspace)
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.off('toggle-workspace-grep', handleToggleWorkspaceGrep)
   eventBus.off('toggle-agent-sidebar-panel', handleToggleAgentSidebarPanel)
@@ -481,6 +564,21 @@ onBeforeUnmount(() => {
   flex: 1;
   overflow: hidden;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 各 Tab 面板等高铺满，与原先单 v-if 面板行为一致 */
+.sidebar-content > * {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sidebar-workspace-panel {
+  display: flex;
+  flex-direction: column;
 }
 
 .view-menu-container-main-only {

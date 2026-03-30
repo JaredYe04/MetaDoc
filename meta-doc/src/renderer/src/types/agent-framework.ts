@@ -213,6 +213,8 @@ export interface AgentSession {
   messages: AgentMessage[]
   /** 消息队列 */
   messageQueue: QueuedMessage[]
+  /** UI 侧用户输入待发送队列（与 messageQueue 无关，见 renderer AgentSession.composerSendQueue） */
+  composerSendQueue?: unknown[]
   /** 引用素材存储 */
   referenceStore: Reference[]
   /** 公共上下文空间 */

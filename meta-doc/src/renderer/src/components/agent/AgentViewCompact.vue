@@ -16,9 +16,13 @@
             type="button"
             class="agent-compact-tab"
             :class="{ active: s.id === activeSessionId }"
-            :disabled="isGenerating"
             @click="agentStore.setActiveSessionId(s.id)"
           >
+            <Loader2
+              v-if="isSessionGenerating(s.id)"
+              class="agent-compact-tab-spinner"
+              aria-hidden="true"
+            />
             <span class="agent-compact-tab-label">{{
               s.title || t('agent.compact.untitled')
             }}</span>
@@ -28,7 +32,6 @@
             variant="ghost"
             size="icon"
             class="agent-compact-tab-close"
-            :disabled="isGenerating"
             :title="t('agent.compact.closeTab')"
             @click.stop="closeTab(s)"
           >
@@ -84,7 +87,6 @@
                   variant="ghost"
                   size="icon"
                   class="agent-compact-header-btn"
-                  :disabled="isGenerating"
                 >
                   <Settings class="h-3.5 w-3.5" />
                 </Button>
@@ -106,7 +108,6 @@
                   variant="ghost"
                   size="icon"
                   class="agent-compact-header-btn"
-                  :disabled="isGenerating"
                 >
                   <Clock class="h-3.5 w-3.5" />
                 </Button>
@@ -213,7 +214,6 @@
               variant="ghost"
               size="icon"
               class="agent-compact-header-btn"
-              :disabled="isGenerating"
               @click="createNewSession"
             >
               <Plus class="h-3.5 w-3.5" />
@@ -365,15 +365,24 @@
           v-if="activeSession"
           class="agent-compact-ref-display"
           :references="activeSession.referenceStore || []"
-          :active-reference-ids="activeReferenceIds"
-          @toggle="handleToggleReference"
+          :active-reference-ids="(activeSession.referenceStore || []).map((r) => r.id)"
+          readonly
+          removable
+          :remove-aria-label="t('agent.reference.removeFromComposer', '移除附件')"
+          @remove="handleRemoveComposerReference"
+        />
+        <AgentComposerSendQueuePanel
+          v-if="activeSession && (activeSession.composerSendQueue?.length ?? 0) > 0"
+          :queue="activeSession.composerSendQueue || []"
+          @update:queue="onComposerSendQueueUpdate"
         />
         <ChatComposer
           :key="activeSessionId || 'no-session'"
           ref="composerRef"
           v-model="composerInput"
-          :loading="isGenerating"
-          :disabled="!activeSession || isGenerating"
+          :loading="isActiveSessionGenerating"
+          :queue-while-loading="true"
+          :disabled="!activeSession"
           :show-attach="false"
           :show-voice="false"
           :show-reset="false"
@@ -392,7 +401,7 @@
             <div class="agent-compact-composer-leading">
               <AgentReferencePicker
                 v-model:open="referencePickerOpen"
-                :disabled="isGenerating"
+                :disabled="!activeSession"
                 compact
                 @select-file="handleReferencePickerFile"
                 @select-tab="handleReferencePickerTab"
@@ -404,7 +413,7 @@
                     variant="ghost"
                     size="icon"
                     class="agent-compact-composer-btn"
-                    :disabled="isGenerating"
+                    :disabled="!activeSession"
                     :title="t('aiChat.attachTooltip')"
                   >
                     <Paperclip class="agent-compact-composer-btn-icon" />
@@ -426,7 +435,7 @@
                     variant="ghost"
                     size="icon"
                     class="agent-context-ring-btn agent-context-ring-wrap"
-                    :disabled="isGenerating"
+                    :disabled="!activeSession"
                     :title="t('agent.contextBreakdown.tooltip')"
                     @click="contextBreakdownDialogOpen = true"
                   >
@@ -580,7 +589,16 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
-import { Clock, ChevronDown, ChevronUp, Paperclip, Plus, Settings, X } from 'lucide-vue-next'
+import {
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Paperclip,
+  Plus,
+  Settings,
+  X
+} from 'lucide-vue-next'
 import { messageBox } from '@renderer/utils/messageBox'
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
@@ -619,14 +637,23 @@ import AgentMessageRenderer from './AgentMessageRenderer.vue'
 import ChatComposer from '../chat/ChatComposer.vue'
 import ReferenceDisplay from './ReferenceDisplay.vue'
 import ReferenceManager from './ReferenceManager.vue'
+import AgentComposerSendQueuePanel from './AgentComposerSendQueuePanel.vue'
 import AgentReferencePicker from './AgentReferencePicker.vue'
 import AgentManageMenuItems from './AgentManageMenuItems.vue'
 import ContextBreakdownDialog from './ContextBreakdownDialog.vue'
-import type { AgentMessage, AgentSession, ChatAgentMessage } from '../../types/agent'
+import type { AgentMessage, AgentSession, ChatAgentMessage, ComposerSendQueueItem } from '../../types/agent'
+import {
+  applyComposerInterruptCleanup,
+  clearComposerQueueDrainRetries,
+  cloneReferenceStoreSnapshot,
+  createComposerSendQueueItem,
+  isAgentSessionReadyForNextLlmTurn,
+  retryComposerQueueDrainLater
+} from '../../utils/agent-composer-send-queue'
 import type { StagingEditRecord } from '../../stores/agent-edit-staging-store'
 import type { Reference } from '../../types/agent-framework'
 import { createRendererLogger } from '../../utils/logger'
-import { notifyError, notifySuccess, notifyWarning } from '../../utils/notify'
+import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '../../utils/notify'
 import {
   agentEngineManager,
   agentConfigManager,
@@ -637,6 +664,7 @@ import type { ContextBreakdown } from '../../utils/agent-framework'
 import { generateConversationTitleByAi } from '../../utils/conversation-title'
 import { cancelAiTask, useAiTasks } from '../../utils/ai_tasks'
 import { processTextReference } from '../../utils/agent-framework/reference-processor'
+import { isLikelyFilesystemReferenceOrigin } from '../../utils/agent-framework/reference-artifact-paths'
 import messageBridge from '../../bridge/message-bridge'
 import { useAgentManageUiStore } from '../../stores/agent-manage-ui-store'
 import {
@@ -658,15 +686,24 @@ const {
   activeSessionId,
   activeSession,
   openTabIds,
-  isGenerating,
-  generatingSessionId,
   composerInput,
   composerInputBySessionId,
   selectedEngineId,
-  currentAiTaskHandle,
-  aiTaskHandles
+  workspaceRoot
 } = storeToRefs(agentStore)
-const { setOpenTabIds } = agentStore
+const {
+  setOpenTabIds,
+  addGeneratingSession,
+  removeGeneratingSession,
+  isSessionGenerating,
+  registerAgentRunHandle,
+  unregisterAgentRunSession,
+  getAgentRunHandlesForSession
+} = agentStore
+
+const isActiveSessionGenerating = computed(() =>
+  isSessionGenerating(agentStore.activeSessionId)
+)
 const stagingStore = useAgentEditStagingStore()
 const stagingPanelOpen = ref(false)
 const stagingEdits = computed(() =>
@@ -736,6 +773,19 @@ async function resolveAtExtraReferences(content: string): Promise<Reference[]> {
     }
   }
   return extraRefs
+}
+
+function composeIntentUserText(session: AgentSession, base: string): string {
+  const last = session.messages
+    .filter((m) => m.role === 'user' && m.type === 'chat')
+    .slice(-1)[0] as ChatAgentMessage | undefined
+  const wa = last?.workspaceAttachments
+  if (!wa?.length) return base
+  return (
+    base +
+    '\n\n[User attachments on disk — read via workspace tool]\n' +
+    wa.map((a) => `- ${a.name} (${a.format}): ${a.absolutePath}`).join('\n')
+  )
 }
 
 // 与 LeftMenu、ViewMenuContainer 及子面板一致：统一用 sidebarPanelBackground
@@ -1222,8 +1272,6 @@ function createNewSession() {
   }
 }
 
-// 当前激活的引用ID（紧凑模式不提供 UI，但默认激活全部引用）
-const activeReferenceIds = ref<string[]>([])
 const referencePickerOpen = ref(false)
 const showReferenceDialog = ref(false)
 const referenceSession = ref<AgentSession | null>(null)
@@ -1232,27 +1280,6 @@ const composerRef = ref<{
   getContentForSubmit?: () => string
 } | null>(null)
 
-watch(
-  () => activeSession.value?.referenceStore,
-  (newStore) => {
-    if (newStore && newStore.length > 0) {
-      activeReferenceIds.value = newStore.map((r: { id: string }) => r.id)
-    } else {
-      activeReferenceIds.value = []
-    }
-  },
-  { immediate: true, deep: true }
-)
-
-function handleToggleReference(referenceId: string) {
-  const index = activeReferenceIds.value.indexOf(referenceId)
-  if (index > -1) {
-    activeReferenceIds.value.splice(index, 1)
-  } else {
-    activeReferenceIds.value.push(referenceId)
-  }
-}
-
 async function handleAttachFile(fileOrFiles?: File | File[]) {
   const session = activeSession.value
   if (!session) return
@@ -1260,10 +1287,26 @@ async function handleAttachFile(fileOrFiles?: File | File[]) {
     const { processFileUpload } = await import('../../utils/agent-framework/reference-processor')
     const files = Array.isArray(fileOrFiles) ? fileOrFiles : fileOrFiles ? [fileOrFiles] : []
     if (files.length === 0) return
+    let root = workspaceRoot.value
+    if (!root) {
+      root = await agentStore.refreshWorkspaceRoot()
+    }
+    if (!root) {
+      notifyError(
+        t(
+          'agent.attachments.needWorkspace',
+          '请先在侧栏打开工作区文件夹，以便将附件保存到 .metadoc/attachments。'
+        )
+      )
+      return
+    }
+    const workspaceAttachmentOpts = { workspaceRoot: root, sessionId: session.id }
     const references: Reference[] = []
     for (const file of files) {
       try {
-        const ref = await processFileUpload(file)
+        const ref = await processFileUpload(file, undefined, undefined, {
+          workspaceAttachment: workspaceAttachmentOpts
+        })
         references.push(ref)
       } catch (e) {
         console.error(`处理文件 ${file.name} 失败:`, e)
@@ -1341,6 +1384,27 @@ function openReferenceDialog() {
     referenceSession.value = activeSession.value
     showReferenceDialog.value = true
   }
+}
+
+const compactLogger = createRendererLogger('AgentViewCompact')
+
+async function handleRemoveComposerReference(referenceId: string) {
+  const session = activeSession.value
+  if (!session?.referenceStore?.length) return
+  const ref = session.referenceStore.find((r) => r.id === referenceId)
+  if (!ref) return
+  if (isLikelyFilesystemReferenceOrigin(ref.origin) && messageBridge.getIpc()) {
+    try {
+      await messageBridge.invoke('delete-reference-artifact-file', {
+        absolutePath: ref.origin,
+        workspaceRoot: workspaceRoot.value || undefined
+      })
+    } catch (err) {
+      compactLogger.warn('[handleRemoveComposerReference] 删除引用文件失败', err)
+    }
+  }
+  session.referenceStore = session.referenceStore.filter((r) => r.id !== referenceId)
+  persistSessions()
 }
 
 async function pathToFile(filePath: string): Promise<File> {
@@ -1483,7 +1547,7 @@ const scrollToBottom = () => {
 // AI 正在输出时，消息列表或最后一条助手消息内容变化则自动滚到底部，始终显示最新内容
 watch(
   () => {
-    if (!isGenerating.value) return null
+    if (!isSessionGenerating(agentStore.activeSessionId)) return null
     const msgs = activeSession.value?.messages
     if (!msgs?.length) return null
     const last = msgs[msgs.length - 1]
@@ -1499,6 +1563,41 @@ watch(
   { deep: true, flush: 'post' }
 )
 
+let runComposerSendPipelineForSessionRef: ((s: AgentSession, c: string) => Promise<void>) | null = null
+
+function onComposerSendQueueUpdate(next: ComposerSendQueueItem[]) {
+  const s = activeSession.value
+  if (!s) return
+  s.composerSendQueue = next
+  touchSession(s)
+  persistSessions()
+}
+
+function scheduleComposerQueueDrain(sessionId: string) {
+  void nextTick(async () => {
+    await flushOneComposerSendQueueItem(sessionId)
+  })
+}
+
+async function flushOneComposerSendQueueItem(sessionId: string): Promise<void> {
+  if (isSessionGenerating(sessionId)) return
+  const idx = sessions.value.findIndex((s) => s.id === sessionId)
+  if (idx === -1) return
+  const session = sessions.value[idx]
+  const q = session.composerSendQueue
+  if (!q?.length) return
+  const item = q.shift()!
+  touchSession(session)
+  persistSessions()
+  session.referenceStore = cloneReferenceStoreSnapshot(item.referenceSnapshot) as AgentSession['referenceStore']
+  if (!runComposerSendPipelineForSessionRef) return
+  try {
+    await runComposerSendPipelineForSessionRef(session, item.markdown)
+  } catch (e) {
+    createRendererLogger('AgentViewCompact').error('[composerSendQueue] flush failed', e)
+  }
+}
+
 const handleComposerReset = () => {
   agentStore.setComposerInput('')
 }
@@ -1508,33 +1607,26 @@ const executeAgentEngine = async (
   actualSession?: AgentSession,
   extraReferences?: Reference[]
 ) => {
-  isGenerating.value = true
-
   const session = actualSession || activeSession.value
   if (!session || !session.agentConfigId) {
     notifyWarning(t('agent.sessions.noAgentConfig'))
-    generatingSessionId.value = null
-    isGenerating.value = false
     return
   }
-  generatingSessionId.value = session.id
 
   const engineId = selectedEngineId.value || 'default-autogpt-engine'
   const engine = agentEngineManager.getEngine(engineId)
   if (!engine) {
     notifyError(t('agent.sessions.engineNotFound'))
-    generatingSessionId.value = null
-    isGenerating.value = false
     return
   }
 
   const agentConfig = agentConfigManager.getConfig(session.agentConfigId)
   if (!agentConfig) {
     notifyError(t('agent.sessions.agentConfigNotFound'))
-    generatingSessionId.value = null
-    isGenerating.value = false
     return
   }
+
+  addGeneratingSession(session.id)
 
   const abortController = new AbortController()
 
@@ -1546,8 +1638,11 @@ const executeAgentEngine = async (
     )
     const lastUserMsg = session.messages
       .filter((m: any) => m.role === 'user' && m.type === 'chat')
-      .slice(-1)[0] as { referenceIds?: string[] } | undefined
-    const refIds = lastUserMsg?.referenceIds ?? activeReferenceIds.value
+      .slice(-1)[0] as ChatAgentMessage | undefined
+    const refIds =
+      lastUserMsg?.referenceIds && lastUserMsg.referenceIds.length > 0
+        ? lastUserMsg.referenceIds
+        : (session.referenceStore || []).map((r) => r.id)
     const executor = AgentEngineExecutorFactory.create(engine, session as any, agentConfig, {
       signal: abortController.signal,
       activeReferenceIds: refIds,
@@ -1557,12 +1652,11 @@ const executeAgentEngine = async (
         // 注意：不要在流式输出期间频繁持久化（可能破坏 reactive 对象）
       },
       onTaskCreated: (handle: string) => {
-        currentAiTaskHandle.value = handle
-        aiTaskHandles.value.add(handle)
+        registerAgentRunHandle(session.id, handle)
       }
     })
 
-    await executor.execute(userMessage)
+    await executor.execute(composeIntentUserText(session, userMessage))
 
     session.status = 'idle'
     persistSessions()
@@ -1577,8 +1671,7 @@ const executeAgentEngine = async (
 
     if (isCancelled) {
       logger.debug('Agent引擎任务已取消')
-      // 取消/中断后移除本轮的未完成 assistant 气泡，确保下次发送时上下文干净、请求完整
-      removeLastIncompleteAssistantMessage(session)
+      applyComposerInterruptCleanup(session, t('agent.task.cancelled'))
       session.status = 'idle'
       persistSessions()
       return
@@ -1589,13 +1682,82 @@ const executeAgentEngine = async (
     persistSessions()
     throw error
   } finally {
-    // 清理 handle
-    if (currentAiTaskHandle.value) {
-      aiTaskHandles.value.delete(currentAiTaskHandle.value)
+    unregisterAgentRunSession(session.id)
+    removeGeneratingSession(session.id)
+    scheduleComposerQueueDrain(session.id)
+  }
+}
+
+runComposerSendPipelineForSessionRef = async (session: AgentSession, content: string) => {
+  const logger = createRendererLogger('AgentViewCompact')
+  const liveSession = sessions.value.find((s) => s.id === session.id)
+  if (!liveSession) {
+    logger.error('[runComposerSendPipeline] 会话不在列表中', session.id)
+    return
+  }
+
+  if (liveSession.activeToolIds) liveSession.activeToolIds = []
+
+  const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
+  const extraRefs = await resolveAtExtraReferences(content)
+
+  const storeRefs = [...(liveSession.referenceStore || [])]
+  const storeIds = new Set(storeRefs.map((r) => r.id))
+  const attachmentIdsInInput = refIdsInInput.filter((id) => storeIds.has(id))
+  const messageRefIds =
+    attachmentIdsInInput.length > 0 ? attachmentIdsInInput : storeRefs.map((r) => r.id)
+  const workspaceAttachments = storeRefs
+    .filter((r) => r.metadata?.attachmentStorage === 'workspace')
+    .map((r) => ({
+      name: r.name,
+      absolutePath: r.origin,
+      relativePath: String(r.metadata?.workspaceRelativePath ?? ''),
+      format: r.format
+    }))
+  const inlineReferenceSnippets = storeRefs
+    .filter(
+      (r) =>
+        r.metadata?.attachmentStorage !== 'workspace' &&
+        typeof r.parsedContent === 'string' &&
+        r.parsedContent.length > 0
+    )
+    .map((r) => ({
+      name: r.name,
+      format: r.format,
+      text: r.parsedContent
+    }))
+  const isFirstUserMessage = liveSession.messages.length === 1
+  const message = createChatMessage('user', content, messageRefIds) as ChatAgentMessage
+  if (workspaceAttachments.length > 0) message.workspaceAttachments = workspaceAttachments
+  if (inlineReferenceSnippets.length > 0) message.inlineReferenceSnippets = inlineReferenceSnippets
+  liveSession.messages.push(message)
+  liveSession.referenceStore = []
+
+  touchSession(liveSession)
+
+  agentStore.setComposerInput('')
+  nextTick(() => agentStore.setComposerInput(''))
+  persistSessions()
+  scrollToBottom()
+
+  try {
+    await executeAgentEngine(content, liveSession, extraRefs)
+    if (isFirstUserMessage && !liveSession.titleUserEdited) {
+      generateConversationTitleByAi(
+        liveSession.messages,
+        liveSession.title || t('agent.sessions.defaultTitle')
+      )
+        .then((newTitle) => {
+          if (newTitle && !liveSession.titleUserEdited) {
+            liveSession.title = newTitle
+            persistSessions()
+          }
+        })
+        .catch(() => {})
     }
-    currentAiTaskHandle.value = null
-    generatingSessionId.value = null
-    isGenerating.value = false
+  } catch (error) {
+    logger.error('[runComposerSendPipeline] 执行失败:', error)
+    notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -1604,58 +1766,41 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
   const session = activeSession.value
   if (!session) return
 
-  // 优先用 submit 事件带来的内容（ChatComposer 从输入框取的最新值），否则再读 store
   const rawContent =
     contentFromEvent ??
     (typeof composerRef.value?.getContentForSubmit === 'function'
       ? composerRef.value.getContentForSubmit()
       : composerInput.value)
-  const content = rawContent.trim()
+  let content = rawContent.trim()
+  const refStoreLen = session.referenceStore?.length ?? 0
+  if (!content && refStoreLen > 0) {
+    content = t(
+      'agent.composer.attachmentsOnlyUserMessage',
+      'Please answer based on the attached references.'
+    )
+  }
   if (!content) return
 
-  if (session.activeToolIds) session.activeToolIds = []
-
-  const refIdsInInput = [...content.matchAll(/@\[([^\]]+)\]/g)].map((m) => m[1])
-  // @ 引用（文件/目录）是临时上下文：不写入 referenceStore，只在本次生成注入
-  const extraRefs = await resolveAtExtraReferences(content)
-
-  // 消息的 referenceIds 仅用于“附件引用”（referenceStore 的 ref-id），避免 @ 引用污染附件菜单
-  const storeIds = new Set((session.referenceStore || []).map((r) => r.id))
-  const attachmentIdsInInput = refIdsInInput.filter((id) => storeIds.has(id))
-  const messageRefIds =
-    attachmentIdsInInput.length > 0 ? attachmentIdsInInput : [...activeReferenceIds.value]
-  const isFirstUserMessage = session.messages.length === 1
-  const message = createChatMessage('user', content, messageRefIds)
-  session.messages.push(message)
-
-  touchSession(session)
-
-  // 立即清空输入并持久化；用 setComposerInput 同步 ref 与 session map，nextTick 再清一次防止子组件异步写回
-  agentStore.setComposerInput('')
-  nextTick(() => agentStore.setComposerInput(''))
-  persistSessions()
-  scrollToBottom()
-
-  try {
-    await executeAgentEngine(content, session, extraRefs)
-    // 第一轮对话完成后，根据整轮会话内容由 AI 生成标题（参考 AIChat.vue）
-    if (isFirstUserMessage && !session.titleUserEdited) {
-      generateConversationTitleByAi(
-        session.messages,
-        session.title || t('agent.sessions.defaultTitle')
-      )
-        .then((newTitle) => {
-          if (newTitle && !session.titleUserEdited) {
-            session.title = newTitle
-            persistSessions()
-          }
-        })
-        .catch(() => {})
-    }
-  } catch (error) {
-    logger.error('[handleComposerSubmit] 执行失败:', error)
-    notifyError(error instanceof Error ? error.message : String(error))
+  if (isSessionGenerating(session.id)) {
+    if (!session.composerSendQueue) session.composerSendQueue = []
+    session.composerSendQueue.push(
+      createComposerSendQueueItem(content, cloneReferenceStoreSnapshot(session.referenceStore))
+    )
+    notifyInfo(t('agent.composer.queuedHint'))
+    touchSession(session)
+    agentStore.setComposerInput('')
+    nextTick(() => agentStore.setComposerInput(''))
+    session.referenceStore = []
+    persistSessions()
+    scrollToBottom()
+    return
   }
+
+  if (!runComposerSendPipelineForSessionRef) {
+    logger.error('[handleComposerSubmit] 发送管线未初始化')
+    return
+  }
+  await runComposerSendPipelineForSessionRef(session, content)
 }
 
 const handleCancelGeneration = () => {
@@ -1674,22 +1819,14 @@ const handleCancelGeneration = () => {
 
   relatedTasks.forEach((task: { handle: string }) => cancelAiTask(task.handle, false))
 
-  if (aiTaskHandles.value.size > 0) {
-    Array.from(aiTaskHandles.value).forEach((handle) => cancelAiTask(handle, false))
-    aiTaskHandles.value.clear()
-  }
+  getAgentRunHandlesForSession(session.id).forEach((handle) => cancelAiTask(handle, false))
+  unregisterAgentRunSession(session.id)
+  removeGeneratingSession(session.id)
 
-  if (currentAiTaskHandle.value) {
-    cancelAiTask(currentAiTaskHandle.value, false)
-    currentAiTaskHandle.value = null
-  }
-
-  generatingSessionId.value = null
-  isGenerating.value = false
   session.status = 'idle'
-  // 中断后立即移除未完成的 assistant 气泡，下次发送时请求上下文完整
-  removeLastIncompleteAssistantMessage(session)
+  applyComposerInterruptCleanup(session, t('agent.task.cancelled'))
   persistSessions()
+  scheduleComposerQueueDrain(session.id)
 }
 
 // 消息编辑
@@ -1746,40 +1883,13 @@ function cleanupUnfinishedToolCalls(session: AgentSession) {
   }
 }
 
-/**
- * 取消/中断后移除最后一条未完成的 assistant 消息（空内容或仅有 tool_calls 无对应 tool 结果），
- * 确保下次发送时 session 末尾是 user，API 请求上下文完整。
- */
-function removeLastIncompleteAssistantMessage(session: AgentSession) {
-  const messages = session.messages
-  if (!messages?.length) return
-  const last = messages[messages.length - 1]
-  if (last.role !== 'assistant' || last.type !== 'chat') return
-  const md = (last as ChatAgentMessage).markdown
-  const toolCalls = (last as any).tool_calls
-  const hasToolCalls = Array.isArray(toolCalls) && toolCalls.length > 0
-  const emptyContent = !md || !String(md).trim()
-  // 若最后一条是空内容 assistant，或带 tool_calls 但后面没有对应 tool 消息（本轮被中断），则移除
-  if (emptyContent) {
-    messages.pop()
-    return
-  }
-  if (!hasToolCalls) return
-  const tcIds = new Set((toolCalls as Array<{ id?: string }>).map((tc) => tc.id).filter(Boolean))
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i]
-    if (m.role === 'tool' && (m as any).tool_call_id && tcIds.has((m as any).tool_call_id)) {
-      tcIds.delete((m as any).tool_call_id)
-    }
-  }
-  if (tcIds.size > 0) {
-    messages.pop()
-  }
-}
-
 async function handleConfirmEditMessage() {
   const session = activeSession.value
   if (!editingMessage.value || !session) return
+  if (isSessionGenerating(session.id)) {
+    notifyWarning(t('agent.sessions.alreadyGenerating'))
+    return
+  }
   const content = editingMessageContent.value.trim()
   if (!content) {
     notifyWarning(t('agent.message.editPlaceholder'))
@@ -1798,7 +1908,8 @@ async function handleConfirmEditMessage() {
   editingMessage.value = null
   editingMessageContent.value = ''
   try {
-    await executeAgentEngine(content, session)
+    const live = sessions.value.find((s) => s.id === session.id) ?? session
+    await executeAgentEngine(content, live)
   } catch (err) {
     notifyError(err instanceof Error ? err.message : String(err))
   }
@@ -1811,6 +1922,11 @@ async function handleMessageRegenerate(message: AgentMessage) {
   if (message.role !== 'user' || message.type !== 'chat') return
   const messageIndex = session.messages.findIndex((m) => m.id === message.id)
   if (messageIndex === -1) return
+
+  if (isSessionGenerating(session.id)) {
+    notifyWarning(t('agent.sessions.alreadyGenerating'))
+    return
+  }
 
   try {
     await messageBox.confirm(
@@ -1835,7 +1951,8 @@ async function handleMessageRegenerate(message: AgentMessage) {
   persistSessions()
 
   try {
-    await executeAgentEngine((message as ChatAgentMessage).markdown, session)
+    const live = sessions.value.find((s) => s.id === session.id) ?? session
+    await executeAgentEngine((message as ChatAgentMessage).markdown, live)
   } catch (err) {
     notifyError(err instanceof Error ? err.message : String(err))
   }
@@ -1962,6 +2079,9 @@ onMounted(async () => {
 .agent-compact-tab {
   flex: 1;
   min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px 6px 2px 8px;
   font-size: 12px;
   line-height: 1.3;
@@ -1974,6 +2094,20 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.agent-compact-tab-spinner {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  animation: agent-compact-tab-spin 0.85s linear infinite;
+}
+
+@keyframes agent-compact-tab-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .agent-compact-tab:hover:not(:disabled) {

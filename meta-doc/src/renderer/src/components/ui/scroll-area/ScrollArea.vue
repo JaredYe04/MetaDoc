@@ -10,10 +10,15 @@ const props = defineProps({
   scrollHideDelay: { type: Number, required: false },
   asChild: { type: Boolean, required: false },
   as: { type: null, required: false },
-  class: { type: null, required: false }
+  class: { type: null, required: false },
+  /**
+   * 为 false 时不挂载横向 ScrollBar。reka-ui 在存在横向条时会给内容根设置内联 min-width: fit-content，
+   * 窄容器下会撑破布局（如 GlobalHome）；仅纵向滚动时应关横条。
+   */
+  showHorizontalScrollbar: { type: Boolean, default: true }
 })
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, 'class', 'showHorizontalScrollbar')
 </script>
 
 <template>
@@ -21,8 +26,8 @@ const delegatedProps = reactiveOmit(props, 'class')
     <ScrollAreaViewport class="h-full w-full rounded-[inherit]">
       <slot />
     </ScrollAreaViewport>
-    <ScrollBar orientation="horizontal" />
+    <ScrollBar v-if="showHorizontalScrollbar" orientation="horizontal" />
     <ScrollBar />
-    <ScrollAreaCorner />
+    <ScrollAreaCorner v-if="showHorizontalScrollbar" />
   </ScrollAreaRoot>
 </template>

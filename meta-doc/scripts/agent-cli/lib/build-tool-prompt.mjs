@@ -7,8 +7,8 @@ const TOOLS = [
     id: 'edit',
     name: 'Document Edit',
     brief:
-      'Edit document with git-style diff (-/+ lines); also supports operations (find-replace, position-based).',
-    schema: { diff: 'string', filePath: 'string', operations: 'array' }
+      'V2 anchor-based edits: `edits` array (id, type, target.anchor, optional context); filePath or tabId.',
+    schema: { edits: 'array', editPlan: 'object', editsJson: 'string', filePath: 'string', tabId: 'string' }
   },
   {
     id: 'outline-tree',
@@ -84,7 +84,7 @@ export function buildToolCallPrompt() {
   prompt +=
     '<tool_call>\n{"name": "outline-tree", "arguments": {"includeText": true}}\n</tool_call>\n\n'
   prompt +=
-    '<tool_call>\n{"name": "edit", "arguments": {"diff": "@@ -1,1 +1,1 @@\\n-old\\n+new"}}\n</tool_call>\n\n'
+    '<tool_call>\n{"name": "edit", "arguments": {"filePath": "a.md", "edits": [{"id": "e1", "type": "replace", "target": {"anchor": "old", "context_before": "", "context_after": ""}, "content": "new"}]}}\n</tool_call>\n\n'
   prompt += '=== Available Tools List ===\n'
   for (const tool of TOOLS) {
     prompt += `\n**${tool.name}** (ID: \`${tool.id}\`)\n`

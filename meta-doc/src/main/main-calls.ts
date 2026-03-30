@@ -1192,6 +1192,164 @@ function bindFileHandlers(): void {
     }
   )
 
+  /** 确保附件目录落在 workspaceRoot 之下（防路径穿越；Windows 下兼容盘符大小写） */
+  const assertAgentAttachmentPathInsideRoot = (resolvedTarget: string, resolvedRoot: string) => {
+    const rootR = path.resolve(resolvedRoot)
+    const targetR = path.resolve(resolvedTarget)
+    if (process.platform === 'win32') {
+      const rl = rootR.toLowerCase()
+      const tl = targetR.toLowerCase()
+      if (tl === rl) {
+        throw new Error('附件路径越界')
+      }
+      const sep = path.sep
+      const prefix = rl.endsWith(sep) ? rl : rl + sep
+      if (!tl.startsWith(prefix)) {
+        throw new Error('附件路径越界')
+      }
+      return
+    }
+    const rel = path.relative(rootR, targetR)
+    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
+      throw new Error('附件路径越界')
+    }
+  }
+
+  const sanitizeAgentAttachmentSessionId = (sessionId: string) => {
+    const s = String(sessionId || '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 128)
+    return s || 'session'
+  }
+
+  // Agent 会话附件：写入工作区 .metadoc/attachments/<sessionId>/（供 workspace 工具按路径读取，不注入全文上下文）
+  ipcBridge.registerHandle(
+    'save-agent-session-attachment',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: {
+        workspaceRoot: string
+        sessionId: string
+        filename: string
+        content: string
+        encoding?: 'base64' | 'utf8'
+      }
+    ): Promise<{ absolutePath: string; relativePath: string }> => {
+      try {
+        const { workspaceRoot, sessionId, filename, content } = payload
+        const encoding = payload.encoding ?? 'base64'
+        if (!workspaceRoot || !sessionId || !filename || content === undefined || content === null) {
+          throw new Error('参数不完整')
+        }
+        const resolvedRoot = path.resolve(workspaceRoot)
+        const safeSession = sanitizeAgentAttachmentSessionId(sessionId)
+        const base = path.basename(String(filename).replace(/[/\\]/g, ''))
+        if (!base || base === '.' || base === '..') {
+          throw new Error('无效文件名')
+        }
+        const attachDir = path.join(resolvedRoot, '.metadoc', 'attachments', safeSession)
+        fs.mkdirSync(attachDir, { recursive: true })
+        const ext = path.extname(base)
+        const stem = path.basename(base, ext) || 'file'
+        const unique = `${stem}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`
+        const abs = path.resolve(path.join(attachDir, unique))
+        assertAgentAttachmentPathInsideRoot(abs, resolvedRoot)
+        const buffer =
+          encoding === 'utf8' ? Buffer.from(content, 'utf8') : Buffer.from(content, 'base64')
+        fs.writeFileSync(abs, buffer)
+        const rel = path.relative(resolvedRoot, abs)
+        return {
+          absolutePath: abs,
+          relativePath: rel.split(path.sep).join('/')
+        }
+      } catch (error) {
+        logger.error('save-agent-session-attachment 失败:', error)
+        throw error
+      }
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'clear-agent-session-attachments',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: { workspaceRoot: string; sessionId: string }
+    ): Promise<void> => {
+      try {
+        const { workspaceRoot, sessionId } = payload
+        if (!workspaceRoot || !sessionId) {
+          return
+        }
+        const resolvedRoot = path.resolve(workspaceRoot)
+        const safeSession = sanitizeAgentAttachmentSessionId(sessionId)
+        const dir = path.resolve(path.join(resolvedRoot, '.metadoc', 'attachments', safeSession))
+        assertAgentAttachmentPathInsideRoot(dir, resolvedRoot)
+        if (fs.existsSync(dir)) {
+          fs.rmSync(dir, { recursive: true, force: true })
+        }
+      } catch (error) {
+        logger.error('clear-agent-session-attachments 失败:', error)
+        throw error
+      }
+    }
+  )
+
+  /** 将主页暂存的 `.metadoc/attachments/_home_pending/` 下文件迁入真实 Agent 会话目录 */
+  ipcBridge.registerHandle(
+    'migrate-home-pending-attachments',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: { workspaceRoot: string; toSessionId: string }
+    ): Promise<Array<{ oldAbsolutePath: string; newAbsolutePath: string; relativePath: string }>> => {
+      try {
+        const { workspaceRoot, toSessionId } = payload
+        if (!workspaceRoot || !toSessionId) {
+          return []
+        }
+        const resolvedRoot = path.resolve(workspaceRoot)
+        const fromSeg = sanitizeAgentAttachmentSessionId('_home_pending')
+        const toSeg = sanitizeAgentAttachmentSessionId(toSessionId)
+        const fromDir = path.resolve(path.join(resolvedRoot, '.metadoc', 'attachments', fromSeg))
+        const toDir = path.resolve(path.join(resolvedRoot, '.metadoc', 'attachments', toSeg))
+        assertAgentAttachmentPathInsideRoot(fromDir, resolvedRoot)
+        assertAgentAttachmentPathInsideRoot(toDir, resolvedRoot)
+        if (!fs.existsSync(fromDir)) {
+          return []
+        }
+        fs.mkdirSync(toDir, { recursive: true })
+        const out: Array<{ oldAbsolutePath: string; newAbsolutePath: string; relativePath: string }> =
+          []
+        for (const name of fs.readdirSync(fromDir)) {
+          const oldAbs = path.resolve(path.join(fromDir, name))
+          const st = fs.statSync(oldAbs)
+          if (!st.isFile()) {
+            continue
+          }
+          const newAbs = path.resolve(path.join(toDir, name))
+          assertAgentAttachmentPathInsideRoot(newAbs, resolvedRoot)
+          try {
+            fs.renameSync(oldAbs, newAbs)
+          } catch {
+            fs.copyFileSync(oldAbs, newAbs)
+            fs.unlinkSync(oldAbs)
+          }
+          out.push({
+            oldAbsolutePath: oldAbs,
+            newAbsolutePath: newAbs,
+            relativePath: path.relative(resolvedRoot, newAbs).split(path.sep).join('/')
+          })
+        }
+        try {
+          fs.rmdirSync(fromDir)
+        } catch {
+          // 非空或其它错误则保留目录
+        }
+        return out
+      } catch (error) {
+        logger.error('migrate-home-pending-attachments 失败:', error)
+        throw error
+      }
+    }
+  )
+
   // 创建文件
   ipcBridge.registerHandle(
     'create-file',
@@ -1561,6 +1719,176 @@ function bindFileHandlers(): void {
     const { shell } = require('electron')
     shell.openPath(referenceDir)
   })
+
+  const isResolvedPathInsideRoot = (filePath: string, rootDir: string): boolean => {
+    const f = path.normalize(path.resolve(filePath))
+    const r = path.normalize(path.resolve(rootDir))
+    const rel = path.relative(r, f)
+    return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel)
+  }
+
+  /** 删除单条引用对应的磁盘文件（仅限 userData/reference 或 workspace/.metadoc/attachments 下） */
+  ipcBridge.registerHandle(
+    'delete-reference-artifact-file',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: { absolutePath: string; workspaceRoot?: string | null }
+    ): Promise<void> => {
+      const absPath = String(payload?.absolutePath || '').trim()
+      if (!absPath) {
+        return
+      }
+      const resolved = path.normalize(path.resolve(absPath))
+      const userDataPath = app.getPath('userData')
+      const referenceDir = path.resolve(path.join(userDataPath, 'reference'))
+      let allowed =
+        isResolvedPathInsideRoot(resolved, referenceDir) || resolved === referenceDir
+      const wr = payload.workspaceRoot
+      if (!allowed && wr) {
+        const root = path.resolve(String(wr))
+        const att = path.resolve(path.join(root, '.metadoc', 'attachments'))
+        allowed = isResolvedPathInsideRoot(resolved, att) || resolved === att
+      }
+      if (!allowed) {
+        throw new Error('禁止删除该路径')
+      }
+      if (fs.existsSync(resolved) && fs.statSync(resolved).isFile()) {
+        fs.unlinkSync(resolved)
+      }
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'get-agent-attachments-dir-size',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: { workspaceRoot: string }
+    ): Promise<number> => {
+      const { workspaceRoot } = payload
+      if (!workspaceRoot) {
+        return 0
+      }
+      const resolvedRoot = path.resolve(workspaceRoot)
+      const base = path.resolve(path.join(resolvedRoot, '.metadoc', 'attachments'))
+      assertAgentAttachmentPathInsideRoot(base, resolvedRoot)
+      if (!fs.existsSync(base)) {
+        return 0
+      }
+      let totalSize = 0
+      const calculateSize = (dir: string): void => {
+        const files = fs.readdirSync(dir)
+        for (const file of files) {
+          const filePath = path.join(dir, file)
+          const stats = fs.statSync(filePath)
+          if (stats.isDirectory()) {
+            calculateSize(filePath)
+          } else {
+            totalSize += stats.size
+          }
+        }
+      }
+      calculateSize(base)
+      return totalSize
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'clear-all-agent-attachments',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: { workspaceRoot: string }
+    ): Promise<void> => {
+      const { workspaceRoot } = payload
+      if (!workspaceRoot) {
+        return
+      }
+      const resolvedRoot = path.resolve(workspaceRoot)
+      const base = path.resolve(path.join(resolvedRoot, '.metadoc', 'attachments'))
+      assertAgentAttachmentPathInsideRoot(base, resolvedRoot)
+      if (fs.existsSync(base)) {
+        fs.rmSync(base, { recursive: true, force: true })
+      }
+      fs.mkdirSync(base, { recursive: true })
+      logger.info('已清空工作区 .metadoc/attachments')
+    }
+  )
+
+  const pruneFilesOlderThan = (dir: string, maxAgeMs: number, now: number): void => {
+    if (!fs.existsSync(dir)) {
+      return
+    }
+    const walk = (d: string): void => {
+      let names: string[]
+      try {
+        names = fs.readdirSync(d)
+      } catch {
+        return
+      }
+      for (const name of names) {
+        const full = path.join(d, name)
+        let st: fs.Stats
+        try {
+          st = fs.statSync(full)
+        } catch {
+          continue
+        }
+        if (st.isDirectory()) {
+          walk(full)
+          try {
+            if (fs.readdirSync(full).length === 0) {
+              fs.rmdirSync(full)
+            }
+          } catch {
+            // ignore
+          }
+        } else if (st.isFile() && now - st.mtimeMs > maxAgeMs) {
+          try {
+            fs.unlinkSync(full)
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+    walk(dir)
+  }
+
+  ipcBridge.registerHandle(
+    'prune-reference-storage-by-age',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: { globalDays: number; agentDays: number; workspaceRoots: string[] }
+    ): Promise<void> => {
+      const userDataPath = app.getPath('userData')
+      const now = Date.now()
+      const g = Math.max(0, Math.floor(Number(payload?.globalDays) || 0))
+      const a = Math.max(0, Math.floor(Number(payload?.agentDays) || 0))
+      const roots = Array.isArray(payload?.workspaceRoots) ? payload.workspaceRoots : []
+
+      if (g > 0) {
+        const referenceDir = path.resolve(path.join(userDataPath, 'reference'))
+        if (fs.existsSync(referenceDir)) {
+          pruneFilesOlderThan(referenceDir, g * 86400000, now)
+        }
+      }
+      if (a > 0) {
+        const maxAgeMs = a * 86400000
+        for (const wr of roots) {
+          if (!wr) {
+            continue
+          }
+          const resolvedRoot = path.resolve(String(wr))
+          const att = path.resolve(path.join(resolvedRoot, '.metadoc', 'attachments'))
+          try {
+            assertAgentAttachmentPathInsideRoot(att, resolvedRoot)
+          } catch {
+            continue
+          }
+          pruneFilesOlderThan(att, maxAgeMs, now)
+        }
+      }
+    }
+  )
 
   // 转换PDF到文本
   ipcBridge.registerHandle(

@@ -1,73 +1,5 @@
 <template>
   <div class="ai-chat-container" :style="containerStyle">
-    <!-- 选择文档对话框 -->
-    <Dialog v-model:open="selectDocumentDialogVisible">
-      <DialogContent class="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{{ t('aiChat.selectDocumentTitle', '选择要插入的文档') }}</DialogTitle>
-        </DialogHeader>
-        <div class="select-document-content">
-          <div class="select-document-header">
-            <span class="selected-count">
-              {{
-                selectedTabIds.length > 0
-                  ? `已选择 ${selectedTabIds.length} 个文档`
-                  : '请选择要插入的文档'
-              }}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              @click="toggleSelectAll"
-              v-if="documentTabs.length > 0"
-            >
-              {{ selectedTabIds.length === documentTabs.length ? '取消全选' : '全选' }}
-            </Button>
-          </div>
-          <ScrollArea class="h-[400px] document-list-scrollbar">
-            <div class="document-list">
-              <div
-                v-for="tab in documentTabs"
-                :key="tab.id"
-                class="document-card"
-                :class="{ selected: selectedTabIds.includes(tab.id) }"
-                @click="toggleTabSelection(tab.id)"
-              >
-                <div class="document-card-checkbox">
-                  <Checkbox
-                    :checked="selectedTabIds.includes(tab.id)"
-                    @update:checked="toggleTabSelection(tab.id)"
-                  />
-                </div>
-                <div class="document-card-content">
-                  <div class="document-card-header">
-                    <FileText class="w-5 h-5 text-primary" />
-                    <span class="document-title">{{ tab.displayName }}</span>
-                  </div>
-                  <div v-if="tab.path" class="document-path">
-                    <Folder class="w-4 h-4" />
-                    <span>{{ tab.path }}</span>
-                  </div>
-                </div>
-              </div>
-              <div v-if="documentTabs.length === 0" class="empty-state">
-                <Empty :description="t('aiChat.noDocuments', '没有打开的文档')" :image-size="80" />
-              </div>
-            </div>
-            <ScrollBar />
-          </ScrollArea>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" @click="selectDocumentDialogVisible = false">{{
-            t('common.cancel')
-          }}</Button>
-          <Button @click="confirmInsertToDocument" :disabled="selectedTabIds.length === 0">
-            {{ t('common.confirm') }} ({{ selectedTabIds.length }})
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
     <div class="main-container">
       <SessionList
         :title="t('aiChat.sessionsTitle', 'AI会话')"
@@ -218,7 +150,6 @@ import {
 } from 'vue'
 import MessageBubble from '../components/MessageBubble.vue'
 //import { bindCode } from "../assets/aichat_legacy/utils";
-import { FileText, Folder } from 'lucide-vue-next'
 import SessionList from '../components/common/SessionList.vue'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
@@ -230,8 +161,6 @@ import {
   DialogHeader,
   DialogTitle
 } from '@renderer/components/ui/dialog'
-import { Checkbox } from '@renderer/components/ui/checkbox'
-import { Empty } from '@renderer/components/ui/empty'
 import { Badge } from '@renderer/components/ui/badge'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
@@ -456,119 +385,6 @@ const deleteDialog = (index: number) => {
 }
 
 // 选择文档对话框相关
-const selectDocumentDialogVisible = ref(false)
-const selectedTabIds = ref<string[]>([])
-const pendingInsertContent = ref<string>('')
-
-// 获取文档tabs列表
-interface DocumentTabItem {
-  id: string
-  displayName: string
-  path: string
-}
-
-const documentTabs = computed<DocumentTabItem[]>(() => {
-  return workspace.tabs
-    .filter((tab) => (tab.kind === 'file' || tab.kind === 'new') && tab.id)
-    .map((tab) => {
-      let displayName = ''
-      if (tab.title && tab.title.trim() && tab.title !== '未命名文档') {
-        displayName = tab.title.trim()
-      } else if (tab.path) {
-        const segments = tab.path.split(/[/\\]+/).filter(Boolean)
-        displayName = segments[segments.length - 1] || tab.path
-      } else {
-        displayName = t('workspace.untitledDocument', '未命名文档')
-      }
-      return {
-        id: String(tab.id),
-        displayName,
-        path: tab.path || ''
-      }
-    })
-})
-
-// 处理插入到文档请求
-const handleRequestInsertToDocument = (payload: unknown) => {
-  const data = payload as { content: string }
-  if (!data || !data.content) return
-
-  // 如果没有文档，直接创建新文档
-  if (documentTabs.value.length === 0) {
-    eventBus.emit('ai-chat-export-to-document', {
-      content: data.content
-    })
-    notifySuccess(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
-    return
-  }
-
-  // 显示选择对话框
-  pendingInsertContent.value = data.content
-  selectedTabIds.value = []
-  selectDocumentDialogVisible.value = true
-}
-
-// 切换文档选择状态
-const toggleTabSelection = (tabId: string) => {
-  const index = selectedTabIds.value.indexOf(tabId)
-  if (index > -1) {
-    selectedTabIds.value.splice(index, 1)
-  } else {
-    selectedTabIds.value.push(tabId)
-  }
-}
-
-// 全选/取消全选
-const toggleSelectAll = () => {
-  if (selectedTabIds.value.length === documentTabs.value.length) {
-    selectedTabIds.value = []
-  } else {
-    selectedTabIds.value = documentTabs.value.map((tab) => tab.id)
-  }
-}
-
-// 确认插入到选中的文档
-const confirmInsertToDocument = () => {
-  if (selectedTabIds.value.length === 0 || !pendingInsertContent.value) return
-
-  const content = pendingInsertContent.value
-  const tabIds = [...selectedTabIds.value] // 复制数组，避免在循环中修改
-
-  // 关闭对话框
-  selectDocumentDialogVisible.value = false
-  pendingInsertContent.value = ''
-  selectedTabIds.value = []
-
-  // 如果只选择了一个文档，直接插入
-  if (tabIds.length === 1) {
-    eventBus.emit('ai-chat-insert-to-document', {
-      content: content,
-      tabId: tabIds[0]
-    })
-    notifySuccess(t('aiChat.insertToDocumentSuccess', '内容已插入到文档'))
-  } else {
-    // 多个文档，依次插入（使用延迟确保每个插入都能被处理）
-    // 先显示一个加载提示
-    const loadingMessage = notifyInfo(`正在插入到 ${tabIds.length} 个文档...`)
-
-    let completedCount = 0
-    tabIds.forEach((tabId, index) => {
-      setTimeout(() => {
-        eventBus.emit('ai-chat-insert-to-document', {
-          content: content,
-          tabId: tabId
-        })
-        completedCount++
-
-        // 所有插入完成后显示成功消息
-        if (completedCount === tabIds.length) {
-          notifySuccess(t('aiChat.insertToDocumentsSuccess', '内容已插入到所选文档'))
-        }
-      }, index * 200) // 每个插入间隔200ms，确保前一个完成
-    })
-  }
-}
-
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor
@@ -1115,13 +931,11 @@ onMounted(() => {
   initCurrentDialog()
   eventBus.on('ai-dialogs-loaded', initCurrentDialog)
   eventBus.on('ai-chat-dialogs-updated', handleExternalDialogsUpdate)
-  eventBus.on('ai-chat-request-insert-to-document', handleRequestInsertToDocument)
 })
 
 onBeforeUnmount(() => {
   eventBus.off('ai-dialogs-loaded', initCurrentDialog)
   eventBus.off('ai-chat-dialogs-updated', handleExternalDialogsUpdate)
-  eventBus.off('ai-chat-request-insert-to-document', handleRequestInsertToDocument)
 })
 
 watch([messages], () => {
@@ -1357,168 +1171,4 @@ const handleSessionDelete = (item: SessionListItem) => {
   box-sizing: border-box;
 }
 
-/* 选择文档对话框样式 */
-.select-document-dialog {
-  .el-dialog__body {
-    padding: 0;
-  }
-}
-
-.select-document-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.select-document-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color-page);
-}
-
-.selected-count {
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-  font-weight: 500;
-}
-
-.document-list-scrollbar {
-  flex: 1;
-  padding: 12px;
-}
-
-.document-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.document-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border: 2px solid var(--el-border-color-light);
-  border-radius: 12px;
-  background: var(--el-bg-color);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.document-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(64, 158, 255, 0.05) 0%, rgba(64, 158, 255, 0.02) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.document-card:hover {
-  border-color: var(--el-color-primary-light-7);
-  background: var(--el-bg-color-page);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.document-card:hover::before {
-  opacity: 1;
-}
-
-.document-card.selected {
-  border-color: var(--el-color-primary);
-  background: linear-gradient(135deg, rgba(64, 158, 255, 0.08) 0%, rgba(64, 158, 255, 0.03) 100%);
-  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
-}
-
-.document-card.selected::before {
-  opacity: 1;
-}
-
-.document-card-checkbox {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.document-card-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.document-card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.document-icon {
-  font-size: 20px;
-  color: var(--el-color-primary);
-  flex-shrink: 0;
-}
-
-.document-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-}
-
-.document-path {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  padding-left: 30px;
-}
-
-.path-icon {
-  font-size: 14px;
-  color: var(--el-text-color-placeholder);
-  flex-shrink: 0;
-}
-
-.document-path span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.empty-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 20px;
-  min-height: 200px;
-}
-
-/* 暗色主题适配 */
-@media (prefers-color-scheme: dark) {
-  .document-card {
-    background: var(--el-bg-color);
-  }
-
-  .document-card:hover {
-    background: var(--el-bg-color-page);
-  }
-
-  .document-card.selected {
-    background: linear-gradient(135deg, rgba(64, 158, 255, 0.12) 0%, rgba(64, 158, 255, 0.05) 100%);
-  }
-}
 </style>

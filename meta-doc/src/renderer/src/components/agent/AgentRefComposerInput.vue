@@ -1,18 +1,32 @@
 <template>
+  <!-- contenteditable 上 ::before 占位在浏览器中极不可靠，用独立层绘制 placeholder -->
   <div
-    ref="rootRef"
-    class="agent-ref-composer-input"
-    :contenteditable="!disabled"
-    :data-placeholder="placeholder"
-    :class="{ 'is-disabled': disabled }"
-    @input="onInput"
-    @paste="onPaste"
-    @keydown="onKeydown"
-  ></div>
+    ref="wrapRef"
+    class="agent-ref-composer-root"
+    @focusin="onWrapFocusIn"
+    @focusout="onWrapFocusOut"
+  >
+    <div
+      v-show="showPlaceholderLayer"
+      class="agent-ref-composer-placeholder-layer"
+      aria-hidden="true"
+    >
+      {{ placeholder }}
+    </div>
+    <div
+      ref="rootRef"
+      class="agent-ref-composer-input"
+      :contenteditable="!disabled"
+      :class="{ 'is-disabled': disabled }"
+      @input="onInput"
+      @paste="onPaste"
+      @keydown="onKeydown"
+    ></div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, watch, nextTick, onMounted, computed } from 'vue'
 import eventBus from '../../utils/event-bus.js'
 import { parseSegments, serializeSegments } from '../../utils/ref-composer-segments'
 import type { Segment } from '../../utils/ref-composer-segments'
@@ -34,10 +48,35 @@ const emit = defineEmits<{
   (e: 'keydown', event: KeyboardEvent): void
 }>()
 
+const wrapRef = ref<HTMLDivElement | null>(null)
 const rootRef = ref<HTMLDivElement | null>(null)
 const lastEmitted = ref(props.modelValue)
 const isInternal = ref(false)
 const savedInsertOffset = ref<number | null>(null)
+const composerFocused = ref(false)
+
+const isLogicallyEmpty = computed(() => !(props.modelValue ?? '').trim().length)
+
+const showPlaceholderLayer = computed(
+  () =>
+    isLogicallyEmpty.value &&
+    !!(props.placeholder ?? '').trim() &&
+    !composerFocused.value &&
+    !props.disabled
+)
+
+function onWrapFocusIn() {
+  composerFocused.value = true
+}
+
+function onWrapFocusOut() {
+  nextTick(() => {
+    const w = wrapRef.value
+    const ae = document.activeElement
+    if (w && ae && w.contains(ae)) return
+    composerFocused.value = false
+  })
+}
 
 function getAtLabel(rawValue: string): string {
   if (props.getAtLabel) return props.getAtLabel(rawValue)
@@ -445,7 +484,34 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.agent-ref-composer-root {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.agent-ref-composer-placeholder-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  font-size: inherit;
+  line-height: 1.5;
+  color: var(--el-text-color-placeholder, rgba(128, 128, 128, 0.88));
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+  user-select: none;
+  /* 叠在输入框之上，否则整块 contenteditable 会盖住下层占位（透明底也会挡） */
+  z-index: 2;
+}
+
 .agent-ref-composer-input {
+  position: relative;
+  z-index: 1;
   width: 100%;
   min-height: 24px;
   padding: 0;
@@ -457,12 +523,6 @@ onMounted(() => {
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-.agent-ref-composer-input:empty::before,
-.agent-ref-composer-input[data-placeholder]:empty::before {
-  content: attr(data-placeholder);
-  color: rgba(128, 128, 128, 0.8);
 }
 
 .agent-ref-composer-input.is-disabled {

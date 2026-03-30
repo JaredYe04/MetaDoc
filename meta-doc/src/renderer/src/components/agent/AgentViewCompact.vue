@@ -127,7 +127,7 @@
                       :key="s.id"
                       class="agent-compact-history-item"
                       @contextmenu.prevent="openHistoryContextMenu($event, s)"
-                      @select="(openSessionFromHistory(s), historyOpen = false)"
+                      @select="openSessionFromHistory(s), (historyOpen = false)"
                     >
                       <span class="agent-compact-history-row">
                         <span class="agent-compact-history-title">{{
@@ -639,6 +639,11 @@ import { cancelAiTask, useAiTasks } from '../../utils/ai_tasks'
 import { processTextReference } from '../../utils/agent-framework/reference-processor'
 import messageBridge from '../../bridge/message-bridge'
 import { useAgentManageUiStore } from '../../stores/agent-manage-ui-store'
+import {
+  getSessionComposerDraft,
+  isAgentSessionPristine,
+  pickLatestSessionIdAmongOpenTabs
+} from '../../utils/agent-session-pristine'
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -656,6 +661,7 @@ const {
   isGenerating,
   generatingSessionId,
   composerInput,
+  composerInputBySessionId,
   selectedEngineId,
   currentAiTaskHandle,
   aiTaskHandles
@@ -666,9 +672,7 @@ const stagingPanelOpen = ref(false)
 const stagingEdits = computed(() =>
   activeSession.value ? stagingStore.getEditsForSession(activeSession.value.id) : []
 )
-const hasPendingEdits = computed(
-  () => stagingEdits.value.some((e) => e.status === 'pending')
-)
+const hasPendingEdits = computed(() => stagingEdits.value.some((e) => e.status === 'pending'))
 
 // 第一次出现 pending 编辑时自动展开暂存区，后续不再自动展开
 watch(
@@ -755,21 +759,30 @@ function emptyLogoClick() {
   }, 1500)
 }
 
-// openTabIds 来自 store（持久化）；仅做校验：移除已删除的会话 id，若为空且有会话则至少保留当前/第一个
+// openTabIds 来自 store（持久化）：校验 id、补全空 tab 列表；若有已打开 tab 但当前未选中任一 tab，则激活其中最近更新的会话
 watch(
-  () => [sessions.value.map((s) => s.id), activeSessionId.value] as const,
-  ([ids, activeId]) => {
-    const set = new Set(ids as string[])
-    let next = openTabIds.value.filter((id) => set.has(id))
-    if (next.length === 0 && (ids as string[]).length > 0) {
-      const fallback = (activeId as string | null) ?? (ids as string[])[0]
-      if (fallback) next = [fallback]
+  () => ({
+    sessionIds: sessions.value.map((s) => s.id),
+    tabIds: [...openTabIds.value],
+    activeId: activeSessionId.value
+  }),
+  ({ sessionIds, tabIds, activeId }) => {
+    const set = new Set(sessionIds)
+    let next = tabIds.filter((id) => set.has(id))
+    if (next.length === 0 && sessionIds.length > 0) {
+      const fallback = (activeId && set.has(activeId) ? activeId : null) ?? sessionIds[0] ?? null
+      next = fallback ? [fallback] : []
     }
     if (
       next.length !== openTabIds.value.length ||
       next.some((id, i) => openTabIds.value[i] !== id)
     ) {
       setOpenTabIds(next)
+    }
+    const aid = activeSessionId.value
+    if (next.length > 0 && (!aid || !next.includes(aid))) {
+      const pick = pickLatestSessionIdAmongOpenTabs(next, sessions.value)
+      if (pick) agentStore.setActiveSessionId(pick)
     }
   },
   { immediate: true }
@@ -1164,6 +1177,19 @@ function handleTabContextDuplicate() {
 }
 
 function createNewSession() {
+  const cur = activeSession.value
+  if (cur) {
+    const draft = getSessionComposerDraft(
+      cur.id,
+      activeSessionId.value,
+      composerInput.value,
+      composerInputBySessionId.value
+    )
+    if (isAgentSessionPristine(cur, draft)) {
+      agentStore.setActiveSessionId(cur.id)
+      return
+    }
+  }
   try {
     const defaultConfigId = agentConfigManager.getDefaultConfigId()
     const session = agentSessionManager.createSession(
@@ -1884,12 +1910,9 @@ async function handleMessageDuplicate(message: AgentMessage) {
 }
 
 onMounted(async () => {
-  // 紧凑面板：确保工作区会话已加载
+  // 紧凑面板：确保工作区会话已加载（openTabIds / active 由上方 watch 与 store 加载逻辑统一校正）
   if (!sessions.value.length) {
     await agentStore.init()
-  }
-  if (!activeSessionId.value && sessions.value[0]) {
-    agentStore.setActiveSessionId(sessions.value[0].id)
   }
   scrollToBottom()
 })

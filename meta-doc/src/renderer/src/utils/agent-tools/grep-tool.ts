@@ -18,7 +18,12 @@ import GrepDisplay from './components/GrepDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
 import { createDetailedError } from './tool-utils'
-import { grepInWorkspaces, type WorkspaceGrepMatch } from '../workspace/workspace-grep'
+import {
+  grepInWorkspaces,
+  tabPathMatchesWithinPaths,
+  type WorkspaceGrepMatch
+} from '../workspace/workspace-grep'
+import { findFuzzyMatchesInText } from '../fuzzy-text-search'
 
 const logger = createRendererLogger('GrepTool')
 const workspace = useWorkspace()
@@ -285,9 +290,16 @@ function searchInText(
   isFuzzy: boolean = false,
   similarityThreshold: number = 0.6
 ): GrepMatch[] {
-  // 如果启用模糊搜索，使用模糊匹配算法
   if (isFuzzy) {
-    return findFuzzyMatches(text, pattern, similarityThreshold, contextLines)
+    return findFuzzyMatchesInText(text, pattern, similarityThreshold, contextLines).map((m) => ({
+      line: m.line,
+      column: m.column,
+      match: m.match,
+      preContext: m.preContext,
+      postContext: m.postContext,
+      context: m.context,
+      similarity: m.similarity
+    }))
   }
 
   // 原有的精确搜索逻辑
@@ -375,9 +387,13 @@ function searchInMetadata(
   for (const field of searchFields) {
     if (!field.value || typeof field.value !== 'string') continue
 
-    // 如果启用模糊搜索，使用模糊匹配
     if (isFuzzy) {
-      const fuzzyMatches = findFuzzyMatches(field.value, pattern, similarityThreshold, contextLines)
+      const fuzzyMatches = findFuzzyMatchesInText(
+        field.value,
+        pattern,
+        similarityThreshold,
+        contextLines
+      )
       for (const match of fuzzyMatches) {
         matches.push({
           ...match,
@@ -558,6 +574,32 @@ function resolvePattern(params: Record<string, unknown>): string {
 /**
  * 从 params 中解析 scope，支持数组或字符串（如 "workspace,document,metadata" 或 "workspace"）
  */
+/**
+ * 限定工作区搜索的子路径：绝对路径或相对各工作区根；未传则搜索整个工作区
+ */
+function resolveWithinPathsParam(params: Record<string, unknown>): string[] | undefined {
+  const multi =
+    params.withinPaths ??
+    params.paths ??
+    params.includePaths ??
+    params.pathRoots ??
+    params.searchPaths
+  let list: string[] = []
+  if (Array.isArray(multi)) {
+    list = multi.filter((x) => typeof x === 'string' && x.trim().length > 0) as string[]
+  } else if (typeof multi === 'string' && multi.trim()) {
+    list = multi
+      .split(/[\n,;|]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }
+  const single = typeof params.path === 'string' && params.path.trim() ? params.path.trim() : ''
+  if (single && !list.includes(single)) {
+    list = [single, ...list]
+  }
+  return list.length > 0 ? list : undefined
+}
+
 function resolveScope(params: Record<string, unknown>): string[] | undefined {
   const raw = params.scope ?? params.scopes ?? params.range
   if (raw === undefined || raw === null) return undefined
@@ -638,6 +680,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     }
   }
   const tabId = (params.tabId ?? params.tab_id) as string | undefined
+  const withinPaths = resolveWithinPathsParam(params)
   const verbose = resolveBoolean(params, 'verbose', false)
 
   // 替换相关参数
@@ -709,85 +752,109 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     )
 
-    // 仅当 scope 包含 document 或 metadata 时才需要解析文档；仅 workspace 时不需要文档上下文
+    const searchWorkspaceScope = scope.includes('workspace') || scope.includes('workspaces')
+    // 仅当 scope 包含 document 或 metadata 时才尝试解析文档；无文档上下文时若含 workspace 则跳过文档/元数据，与工作区面板行为一致
     const needDocument = scope.includes('document') || scope.includes('metadata')
     const windowType = getWindowType()
     let doc: any = null
     let targetTabId: string | null = null
+    let skippedDocumentBecauseNoContext = false
 
     if (needDocument) {
       if (windowType === 'setting') {
         const docInfo = await getActiveDocumentInfoViaBroadcast()
         if (!docInfo) {
-          return {
-            status: 'failed',
-            error: createDetailedError(
-              '没有活动的文档标签页',
-              [
-                '请先打开一个文档，然后再执行搜索操作',
-                '或者指定tabId参数：{"pattern": "搜索文本", "tabId": "文档ID"}'
-              ],
-              ['grep工具可以在文档内容和元数据中搜索文本', '支持正则表达式搜索，设置isRegex: true']
-            )
+          if (searchWorkspaceScope) {
+            skippedDocumentBecauseNoContext = true
+          } else {
+            return {
+              status: 'failed',
+              error: createDetailedError(
+                '没有活动的文档标签页',
+                [
+                  '请先打开一个文档，然后再执行搜索操作',
+                  '或者指定tabId参数：{"pattern": "搜索文本", "tabId": "文档ID"}',
+                  '或加入工作区搜索：{"pattern": "...", "scope": ["workspace", "document", "metadata"]}'
+                ],
+                ['grep工具可以在文档内容和元数据中搜索文本', '支持正则表达式搜索，设置isRegex: true']
+              )
+            }
           }
+        } else {
+          doc = {
+            markdown: docInfo.markdown,
+            tex: docInfo.tex,
+            format: docInfo.format,
+            meta: docInfo.meta,
+            path: docInfo.path
+          }
+          targetTabId = docInfo.tabId
         }
-        doc = {
-          markdown: docInfo.markdown,
-          tex: docInfo.tex,
-          format: docInfo.format,
-          meta: docInfo.meta,
-          path: docInfo.path
-        }
-        targetTabId = docInfo.tabId
       } else {
-        // 主窗口：仅当显式传入 tabId 或当前活动标签页为文档标签页时使用，避免对系统/工具 Tab 调用文档上下文
         if (tabId) {
           targetTabId = tabId
         } else if (workspace.activeDocument.value) {
           targetTabId = workspace.activeTabId.value
         }
         if (!targetTabId) {
-          return {
-            status: 'failed',
-            error: createDetailedError(
-              '当前活动标签页不是文档（例如正在查看 Agent 等系统页）',
-              [
-                '请通过 tabId 参数指定要搜索的文档（系统上下文中会提供当前打开的文档列表）',
-                '或仅使用 scope: ["workspace"] 仅搜索工作区文件'
-              ],
-              ['可通过 scope 指定搜索范围：["workspace"]、["document"]、["metadata"]']
-            )
+          if (searchWorkspaceScope) {
+            skippedDocumentBecauseNoContext = true
+          } else {
+            return {
+              status: 'failed',
+              error: createDetailedError(
+                '当前活动标签页不是文档（例如正在查看 Agent 等系统页）',
+                [
+                  '请通过 tabId 参数指定要搜索的文档（系统上下文中会提供当前打开的文档列表）',
+                  '或仅使用 scope: ["workspace"] 仅搜索工作区文件',
+                  '默认 scope 含 workspace 时会自动改为仅搜索工作区（当前无可用文档上下文）'
+                ],
+                ['可通过 scope 指定搜索范围：["workspace"]、["document"]、["metadata"]']
+              )
+            }
           }
         }
-        try {
-          doc = workspace.ensureDocument(targetTabId)
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e)
-          return {
-            status: 'failed',
-            error: createDetailedError(
-              msg.includes('不应该有文档上下文')
-                ? '指定的 tabId 对应的是系统/工具标签页，无文档上下文。请使用系统上下文中列出的文档 tabId，或使用 scope: ["workspace"]。'
-                : '文档不存在',
-              [
-                '检查 tabId 是否为已打开的文档标签页 id',
-                '或使用 scope: ["workspace"] 仅搜索工作区'
-              ],
-              []
-            )
+        if (!skippedDocumentBecauseNoContext && targetTabId) {
+          try {
+            doc = workspace.ensureDocument(targetTabId)
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e)
+            if (searchWorkspaceScope) {
+              skippedDocumentBecauseNoContext = true
+              doc = null
+              targetTabId = null
+            } else {
+              return {
+                status: 'failed',
+                error: createDetailedError(
+                  msg.includes('不应该有文档上下文')
+                    ? '指定的 tabId 对应的是系统/工具标签页，无文档上下文。请使用系统上下文中列出的文档 tabId，或使用 scope: ["workspace"]。'
+                    : '文档不存在',
+                  [
+                    '检查 tabId 是否为已打开的文档标签页 id',
+                    '或使用 scope: ["workspace"] 仅搜索工作区'
+                  ],
+                  []
+                )
+              }
+            }
           }
         }
-        if (!doc) {
-          return {
-            status: 'failed',
-            error: createDetailedError(
-              '文档不存在',
-              [
-                '请确认文档已正确打开',
-                '检查tabId参数是否正确：{"pattern": "搜索文本", "tabId": "正确的文档ID"}'
-              ],
-              ['可以通过tabId参数指定要搜索的文档', '如果未指定tabId，将使用当前活动的文档']
-            )
+        if (!skippedDocumentBecauseNoContext && !doc) {
+          if (searchWorkspaceScope) {
+            skippedDocumentBecauseNoContext = true
+          } else {
+            return {
+              status: 'failed',
+              error: createDetailedError(
+                '文档不存在',
+                [
+                  '请确认文档已正确打开',
+                  '检查tabId参数是否正确：{"pattern": "搜索文本", "tabId": "正确的文档ID"}'
+                ],
+                ['可以通过tabId参数指定要搜索的文档', '如果未指定tabId，将使用当前活动的文档']
+              )
+            }
           }
         }
       }
@@ -799,7 +866,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     let documentText: string | undefined = undefined
 
     // 在文档中搜索
-    if (scope.includes('document')) {
+    if (scope.includes('document') && !skippedDocumentBecauseNoContext && doc) {
       onUpdate(
         {
           content: {
@@ -841,7 +908,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     }
 
     // 在metadata中搜索
-    if (scope.includes('metadata')) {
+    if (scope.includes('metadata') && !skippedDocumentBecauseNoContext && doc) {
       onUpdate(
         {
           content: {
@@ -875,9 +942,6 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         }))
       )
     }
-
-    // 在工作区中搜索（跨文件）
-    const searchWorkspaceScope = scope.includes('workspace') || scope.includes('workspaces')
 
     if (searchWorkspaceScope) {
       onUpdate(
@@ -923,6 +987,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         // 使用内存中的文档内容进行搜索，避免额外的文件读取
         for (const tab of workspace.tabs) {
           if (tab.kind !== 'file' || !tab.path) continue
+          if (!tabPathMatchesWithinPaths(tab.path, withinPaths, roots)) continue
           const docForTab = workspace.ensureDocument(tab.id)
           const text =
             docForTab.format === 'md' ? (docForTab.markdown as string) : (docForTab.tex as string)
@@ -945,7 +1010,8 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
                   match: m.match,
                   preContext: m.preContext,
                   postContext: m.postContext,
-                  context: m.context
+                  context: m.context,
+                  ...(m.similarity !== undefined ? { similarity: m.similarity } : {})
                 }))
               : []
 
@@ -955,10 +1021,13 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         workspaceMatches = await grepInWorkspaces(roots, {
           pattern,
           isRegex,
+          fuzzy: isFuzzy,
+          similarityThreshold,
           contextLines,
           maxMatchesPerFile: 50,
           maxFiles: 2000,
-          signal
+          signal,
+          ...(withinPaths && withinPaths.length > 0 ? { withinPaths } : {})
         })
       }
 
@@ -970,7 +1039,8 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           preContext: m.preContext,
           postContext: m.postContext,
           context: m.context,
-          filePath: m.filePath
+          filePath: m.filePath,
+          ...(m.similarity !== undefined ? { similarity: m.similarity } : {})
         }))
       )
     }
@@ -1136,6 +1206,12 @@ Search for text patterns in the current document, metadata, and/or **workspace**
 
 **Scope \`workspace\`**: When workspace roots exist, scope defaults to include \`workspace\` (whole workspace directory; excludes .git, node_modules, .metadoc). Use \`scope: ["workspace"]\` to search only workspace files.
 
+**No document context (e.g. Agent tab active)**: If \`scope\` includes \`workspace\`, document and metadata search are **skipped** and workspace search still runs—aligned with the workspace search panel. You do **not** need to add \`tabId\` or change \`scope\` manually in that case. If \`scope\` has only \`document\`/\`metadata\` and there is no open document, the tool still fails (no fallback).
+
+**Fuzzy + workspace**: \`fuzzy: true\` applies the same fuzzy matching algorithm to workspace files as to the current document (not only exact substring).
+
+**Limit workspace search** (\`withinPaths\`): Optional array of paths to restrict \`workspace\` search. Each entry may be an **absolute** path, or **relative to each workspace root** (first root that contains a matching file/folder wins). A **folder** is searched recursively (same skip rules: \`.git\`, \`node_modules\`, \`.metadoc\`). A **file** must use a supported extension (e.g. \`.md\`, \`.tex\`). Omit or use an empty list to search the **entire workspace**. Aliases: \`paths\`, \`includePaths\`, \`searchPaths\`; a single path can also be passed as \`path\` (in addition to array fields).
+
 **⚠️ This tool does NOT return full file content.** It only returns **matching lines and context** (snippets). If you need to **read entire file content or large portions** of a file, use the **\`workspace\` (workspace file reader) tool** with \`paths\` instead; do not use grep for that.
 
 ## ⭐ Recommended for Frequent Use
@@ -1184,6 +1260,7 @@ Use when you don't remember exact keywords, based on similarity matching, **very
   "similarityThreshold": 0.6,    // Optional, fuzzy search similarity threshold (0-1), default 0.6
   "contextLines": 3,             // Optional, context lines, default 3
   "scope": ["workspace", "document", "metadata"],  // Optional; with workspace roots default includes workspace (whole workspace directory)
+  "withinPaths": ["docs/guide", "D:/proj/notes.md"], // Optional; limit workspace search to these files/folders (recursive for dirs); omit = entire workspace
   "tabId": "string",             // Optional, document tab ID
   "replaceText": "string",      // Optional, replacement text (if provided, will perform replace)
   "replaceAll": false,           // Optional, whether to replace all matches, default false
@@ -1243,6 +1320,12 @@ Returns array of matches with line numbers, positions, and context.`
       tabId: {
         type: 'string',
         description: '文档标签页ID（可选，默认使用当前活动标签页）'
+      },
+      withinPaths: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          '仅用于 scope 含 workspace：限定搜索的文件或文件夹路径（文件夹递归子项）。可为绝对路径或相对各工作区根；不传则搜索整个工作区。也支持参数名 paths、includePaths、searchPaths（数组或逗号分隔字符串），或单个 path 字符串'
       },
       replaceText: {
         type: 'string',

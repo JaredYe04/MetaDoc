@@ -113,7 +113,12 @@
             >
             <Badge variant="secondary"
               >{{ $t('agent.display.edit.totalOperations') }}:
-              {{ resultData.operations.length }}</Badge
+              {{
+                resultData.engineEdits?.length ??
+                  resultData.operations?.length ??
+                  resultData.hunks?.length ??
+                  0
+              }}</Badge
             >
           </div>
         </div>
@@ -201,12 +206,16 @@
           </ScrollArea>
         </div>
 
-        <!-- 操作列表（有 operations 时） -->
-        <div v-else-if="resultData && resultData.operations?.length">
+        <!-- 操作列表（V2 engineEdits 或旧 operations） -->
+        <div
+          v-else-if="
+            resultData && (resultData.engineEdits?.length || resultData.operations?.length)
+          "
+        >
           <ScrollArea class="max-h-[500px]">
             <div class="operations-list">
               <div
-                v-for="(operation, index) in resultData.operations"
+                v-for="(operation, index) in resultData.engineEdits || resultData.operations || []"
                 :key="index"
                 class="operation-item"
                 :class="{ 'is-file-clickable': !!editFilePath }"
@@ -218,7 +227,7 @@
                     {{ getOperationTypeLabel(operation.type) }}
                   </Badge>
                   <span class="operation-range" :style="rangeStyle">
-                    {{ formatRange(operation.range) }}
+                    {{ formatOperationTarget(operation) }}
                   </span>
                 </div>
                 <div class="operation-content" :style="contentStyle">
@@ -239,7 +248,7 @@
                       >{{ $t('agent.display.edit.oldContent') }}:</span
                     >
                     <pre class="content-text deleted-text" :style="deletedTextStyle">{{
-                      getOldContent(operation)
+                      getOldContentPreview(operation)
                     }}</pre>
                   </div>
                 </div>
@@ -358,10 +367,13 @@ const resultData = computed((): EditResult | null => {
       raw
 
     if (result && typeof result === 'object') {
-      const hasOps = 'operations' in result && Array.isArray((result as any).operations)
-      const hasHunks = 'hunks' in result && Array.isArray((result as any).hunks)
-      const hasRawDiff = 'rawDiff' in result && typeof (result as any).rawDiff === 'string'
-      if (hasOps || hasHunks || hasRawDiff) {
+      const r = result as Record<string, unknown>
+      const hasOps = Array.isArray(r.operations)
+      const hasEngineEdits = Array.isArray(r.engineEdits)
+      const hasHunks = Array.isArray(r.hunks)
+      const hasRawDiff = typeof r.rawDiff === 'string' && r.rawDiff.trim() !== ''
+      const hasEngineLogs = Array.isArray(r.engineLogs)
+      if (hasOps || hasEngineEdits || hasHunks || hasRawDiff || hasEngineLogs) {
         return result as EditResult
       }
     }
@@ -653,40 +665,58 @@ const getStageMessage = (stage: string) => {
   return t('agent.display.edit.processing')
 }
 
-const formatRange = (range: {
-  start: { line: number; column: number }
-  end: { line: number; column: number }
-}) => {
-  if (range.start.line === range.end.line && range.start.column === range.end.column) {
-    return `行 ${range.start.line}, 列 ${range.start.column}`
+function formatOperationTarget(operation: EditOperation) {
+  const op = operation as EditOperation & {
+    range?: { start: { line: number; column: number }; end: { line: number; column: number } }
+    target?: { anchor?: string; context_before?: string; context_after?: string }
   }
-  return `行 ${range.start.line}:${range.start.column} - ${range.end.line}:${range.end.column}`
+  if (op.target && typeof op.target.anchor === 'string') {
+    const bits = [
+      op.insert_at && op.insert_at !== 'after' ? `insert@${op.insert_at}` : '',
+      op.insert_newline_policy === 'none' ? 'nl:none' : '',
+      op.match_scope && op.match_scope !== 'anchor' ? `scope=${op.match_scope}` : '',
+      op.target.context_before ? `…${op.target.context_before.slice(-24)}` : '',
+      `[${op.target.anchor.slice(0, 120)}${op.target.anchor.length > 120 ? '…' : ''}]`,
+      op.target.context_after ? `${op.target.context_after.slice(0, 24)}…` : ''
+    ].filter(Boolean)
+    return bits.join(' ')
+  }
+  if (op.range?.start && op.range?.end) {
+    const r = op.range
+    if (r.start.line === r.end.line && r.start.column === r.end.column) {
+      return `行 ${r.start.line}, 列 ${r.start.column}`
+    }
+    return `行 ${r.start.line}:${r.start.column} - ${r.end.line}:${r.end.column}`
+  }
+  return ''
 }
 
-const getOldContent = (operation: EditOperation) => {
-  if (!resultData.value?.originalContent) return ''
-
+const getOldContentPreview = (operation: EditOperation) => {
+  const op = operation as EditOperation & {
+    range?: { start: { line: number; column: number }; end: { line: number; column: number } }
+    target?: { anchor?: string }
+  }
+  if (op.target && typeof op.target.anchor === 'string') {
+    return op.target.anchor
+  }
+  if (!resultData.value?.originalContent || !op.range) return ''
   if (operation.type === 'delete' || operation.type === 'replace') {
-    // 从原始内容中提取被删除/替换的部分
     const lines = resultData.value.originalContent.split(/\r?\n/)
-    if (operation.range.start.line > 0 && operation.range.start.line <= lines.length) {
-      const lineIndex = operation.range.start.line - 1
+    if (op.range.start.line > 0 && op.range.start.line <= lines.length) {
+      const lineIndex = op.range.start.line - 1
       const line = lines[lineIndex]
 
-      if (operation.range.start.line === operation.range.end.line) {
-        // 同一行的内容
-        const startCol = operation.range.start.column - 1
-        const endCol = operation.range.end.column - 1
+      if (op.range.start.line === op.range.end.line) {
+        const startCol = op.range.start.column - 1
+        const endCol = op.range.end.column - 1
         return line.substring(startCol, endCol)
-      } else {
-        // 跨行的内容
-        let content = line.substring(operation.range.start.column - 1) + '\n'
-        for (let i = operation.range.start.line; i < operation.range.end.line - 1; i++) {
-          content += lines[i] + '\n'
-        }
-        content += lines[operation.range.end.line - 1].substring(0, operation.range.end.column - 1)
-        return content
       }
+      let content = line.substring(op.range.start.column - 1) + '\n'
+      for (let i = op.range.start.line; i < op.range.end.line - 1; i++) {
+        content += lines[i] + '\n'
+      }
+      content += lines[op.range.end.line - 1].substring(0, op.range.end.column - 1)
+      return content
     }
   }
   return ''
@@ -774,7 +804,7 @@ watch(
     props.compact &&
     (displayData.value?.stage === 'completed' || !!props.paramsDiff?.trim()) &&
     (hunks.value.length > 0 ||
-      (resultData.value?.operations?.length ?? 0) > 0 ||
+      (resultData.value?.engineEdits?.length ?? resultData.value?.operations?.length ?? 0) > 0 ||
       !!resultDataOrFromParams.value?.rawDiff?.trim()),
   (shouldOpen) => {
     if (shouldOpen) compactPanelOpen.value = true

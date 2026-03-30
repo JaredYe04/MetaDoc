@@ -52,6 +52,38 @@
               }}
             </span>
           </div>
+          <div
+            v-if="selectedEdit.hunkOperations?.length && selectedEdit.status === 'pending'"
+            class="agent-review-hunks"
+          >
+            <div class="agent-review-hunks-title">
+              {{ t('agent.staging.rejectByHunk', '按编辑块拒绝（将重算文件）') }}
+            </div>
+            <div
+              v-for="h in selectedEdit.hunkOperations"
+              :key="h.id"
+              class="agent-review-hunk-row"
+            >
+              <span class="agent-review-hunk-meta"
+                >{{ h.operation.type }} · {{ h.editId }}</span
+              >
+              <code class="agent-review-hunk-anchor">{{
+                (h.operation.target?.anchor || '').slice(0, 100)
+              }}</code>
+              <Button
+                v-if="h.status !== 'rejected'"
+                size="sm"
+                variant="outline"
+                type="button"
+                @click="rejectStagingHunk(h)"
+              >
+                {{ t('agent.staging.rejectHunk', '拒绝此块') }}
+              </Button>
+              <span v-else class="agent-review-hunk-rejected">{{
+                t('agent.staging.hunkRejected', '此块已拒绝')
+              }}</span>
+            </div>
+          </div>
           <div class="agent-review-monaco-wrap">
             <div class="editor-panel">
               <div class="editor-panel-label">{{ t('agent.display.diff.oldText', '旧文本') }}</div>
@@ -79,6 +111,7 @@ import { Button } from '@renderer/components/ui/button'
 import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
 import {
   useAgentEditStagingStore,
+  type StagingEditHunk,
   type StagingEditRecord
 } from '../stores/agent-edit-staging-store'
 import * as monaco from 'monaco-editor'
@@ -198,6 +231,22 @@ async function rejectSelected() {
     await stagingStore.rejectEdit(selectedEdit.value)
   } catch (e) {
     console.error(e)
+  }
+}
+
+async function rejectStagingHunk(h: StagingEditHunk) {
+  if (!selectedEdit.value) return
+  const rid = selectedEdit.value.id
+  try {
+    await stagingStore.setHunkStatus(rid, h.id, 'rejected')
+  } catch (e) {
+    console.error(e)
+    return
+  }
+  const fresh = stagingStore.records.find((r) => r.id === rid)
+  if (fresh) {
+    selectedEdit.value = fresh
+    setTimeout(() => ensureMonacoEditors(fresh), 50)
   }
 }
 
@@ -335,6 +384,52 @@ html.dark .agent-review-item.selected,
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.agent-review-hunks {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.agent-review-hunks-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--el-text-color-secondary);
+}
+
+.agent-review-hunk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+  font-size: 12px;
+}
+
+.agent-review-hunk-meta {
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+
+.agent-review-hunk-anchor {
+  flex: 1;
+  min-width: 120px;
+  font-size: 11px;
+  word-break: break-word;
+  white-space: pre-wrap;
+  background: var(--el-fill-color-light);
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.agent-review-hunk-rejected {
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
 }
 
 .agent-review-monaco-wrap {

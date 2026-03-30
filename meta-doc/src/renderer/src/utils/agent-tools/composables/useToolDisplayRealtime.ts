@@ -182,6 +182,8 @@ export function parseToolData(data: unknown): unknown {
       const hasEditResult =
         Array.isArray(dataObj.hunks) ||
         Array.isArray(dataObj.operations) ||
+        Array.isArray(dataObj.engineLogs) ||
+        Array.isArray(dataObj.engineEdits) ||
         (typeof dataObj.rawDiff === 'string' && dataObj.rawDiff.trim() !== '')
       if (hasEditResult) {
         return { stage: 'completed', result: dataObj }

@@ -1,12 +1,21 @@
 /**
- * Agent 编辑暂存：记录每次 AI 对文件的编辑，供用户逐条 review（接受/拒绝）或按消息回滚
+ * Agent 编辑暂存：按「文件」合并 checkpoint，支持按编辑块（hunk）接受/拒绝并重算磁盘内容
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import messageBridge from '../bridge/message-bridge'
+import type { EditOperation } from '../utils/agent-tools/edit-engine/types'
+import { applyEditSequenceRaw, postProcess } from '../utils/agent-tools/edit-engine'
 
 export type StagingEditType = 'edit' | 'create' | 'delete'
+
+export interface StagingEditHunk {
+  id: string
+  editId: string
+  operation: EditOperation
+  status: 'pending' | 'accepted' | 'rejected'
+}
 
 export interface StagingEditRecord {
   id: string
@@ -15,19 +24,47 @@ export interface StagingEditRecord {
   userMessageId: string
   filePath: string
   type: StagingEditType
-  /** 编辑前内容（delete 时为原内容，create 时为 undefined） */
+  /** 该 checkpoint 的基准内容（同一条用户消息内同一文件多次 edit 调用共用） */
   oldContent?: string
-  /** 编辑后内容（create 时为新建内容，delete 时为 undefined） */
+  /** 当前折叠后的内容（与磁盘一致，pending 时随 hunk 拒绝更新） */
   newContent?: string
   addedLines: number
   removedLines: number
-  /** 用户已接受/拒绝；未操作则为 pending */
+  /** 可逐块审阅的编辑意图（顺序与引擎应用顺序一致） */
+  hunkOperations?: StagingEditHunk[]
+  /** 用户已接受/拒绝整条 checkpoint；未操作则为 pending */
   status: 'pending' | 'accepted' | 'rejected'
   createdAt: number
 }
 
 function genId(): string {
   return `staging-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+function genHunkId(): string {
+  return `hunk-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+function normalizePath(p: string): string {
+  return p.replace(/\\/g, '/')
+}
+
+function lineCountDelta(oldS: string, newS: string): { added: number; removed: number } {
+  const ol = oldS ? oldS.split('\n').length : 0
+  const nl = newS ? newS.split('\n').length : 0
+  return {
+    added: Math.max(0, nl - ol),
+    removed: Math.max(0, ol - nl)
+  }
+}
+
+/** 按 hunk 折叠：基准 + 所有未拒绝的 operation 顺序应用，再后处理 */
+export function foldRecordContent(record: StagingEditRecord): string {
+  if (!record.hunkOperations?.length) return record.newContent ?? ''
+  const baseline = record.oldContent ?? ''
+  const ops = record.hunkOperations.filter((h) => h.status !== 'rejected').map((h) => h.operation)
+  if (ops.length === 0) return postProcess(baseline)
+  return postProcess(applyEditSequenceRaw(baseline, ops))
 }
 
 export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => {
@@ -56,7 +93,88 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     )
   }
 
-  /** 由 edit-tool 或 executor 调用：记录一次应用成功的编辑 */
+  /**
+   * 合并同一 session + 用户消息 + 文件路径的 pending「编辑」checkpoint；
+   * create/delete 不合并。
+   */
+  function pushFileCheckpoint(
+    sessionId: string,
+    userMessageId: string,
+    payload: {
+      filePath: string
+      type: StagingEditType
+      oldContent?: string
+      newContent?: string
+      operations: EditOperation[]
+    }
+  ): StagingEditRecord {
+    const fp = normalizePath(payload.filePath)
+
+    if (payload.type === 'edit' && payload.oldContent !== undefined) {
+      const existing = records.value.find(
+        (r) =>
+          r.sessionId === sessionId &&
+          r.userMessageId === userMessageId &&
+          normalizePath(r.filePath) === fp &&
+          r.status === 'pending' &&
+          r.type === 'edit'
+      )
+      if (existing) {
+        const newHunks: StagingEditHunk[] = payload.operations.map((op) => ({
+          id: genHunkId(),
+          editId: op.id,
+          operation: op,
+          status: 'pending'
+        }))
+        const mergedHunks = [...(existing.hunkOperations ?? []), ...newHunks]
+        const newContent = payload.newContent ?? existing.newContent ?? ''
+        const base = existing.oldContent ?? payload.oldContent ?? ''
+        const { added, removed } = lineCountDelta(base, newContent)
+        const updated: StagingEditRecord = {
+          ...existing,
+          newContent,
+          hunkOperations: mergedHunks,
+          addedLines: added,
+          removedLines: removed
+        }
+        records.value = records.value.map((r) => (r.id === existing.id ? updated : r))
+        return updated
+      }
+    }
+
+    const hunkOperations: StagingEditHunk[] | undefined =
+      payload.operations.length > 0
+        ? payload.operations.map((op) => ({
+            id: genHunkId(),
+            editId: op.id,
+            operation: op,
+            status: 'pending'
+          }))
+        : undefined
+
+    const base = payload.oldContent ?? ''
+    const nw = payload.newContent ?? ''
+    const { added, removed } = lineCountDelta(base, nw)
+
+    const record: StagingEditRecord = {
+      id: genId(),
+      sessionId,
+      userMessageId,
+      filePath: payload.filePath,
+      type: payload.type,
+      oldContent: payload.oldContent,
+      newContent: payload.newContent,
+      addedLines: added,
+      removedLines: removed,
+      hunkOperations,
+      status: 'pending',
+      createdAt: Date.now()
+    }
+    records.value = [...records.value, record]
+    return record
+  }
+
+  /** @deprecated 请使用 pushFileCheckpoint；保留兼容旧调用 */
   function pushEdit(
     sessionId: string,
     userMessageId: string,
@@ -69,21 +187,13 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
       removedLines: number
     }
   ): StagingEditRecord {
-    const record: StagingEditRecord = {
-      id: genId(),
-      sessionId,
-      userMessageId,
+    return pushFileCheckpoint(sessionId, userMessageId, {
       filePath: payload.filePath,
       type: payload.type,
       oldContent: payload.oldContent,
       newContent: payload.newContent,
-      addedLines: payload.addedLines ?? 0,
-      removedLines: payload.removedLines ?? 0,
-      status: 'pending',
-      createdAt: Date.now()
-    }
-    records.value = [...records.value, record]
-    return record
+      operations: []
+    })
   }
 
   function setStatus(editId: string, status: 'accepted' | 'rejected') {
@@ -94,7 +204,44 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     records.value = next
   }
 
-  /** 拒绝单条：还原文件（写回 old / 删除新文件 / 恢复被删文件） */
+  async function writeFoldedContent(record: StagingEditRecord): Promise<void> {
+    const text = foldRecordContent(record)
+    await messageBridge.invoke('write-file-content', {
+      filePath: record.filePath,
+      content: text
+    })
+    const base = record.oldContent ?? ''
+    const { added, removed } = lineCountDelta(base, text)
+    records.value = records.value.map((r) =>
+      r.id === record.id ? { ...r, newContent: text, addedLines: added, removedLines: removed } : r
+    )
+  }
+
+  /** 单块 hunk 状态变更后重算并写回磁盘（仅 pending 的 edit） */
+  async function setHunkStatus(
+    recordId: string,
+    hunkId: string,
+    status: 'pending' | 'accepted' | 'rejected'
+  ): Promise<void> {
+    const idx = records.value.findIndex((r) => r.id === recordId)
+    if (idx === -1) return
+    const record = records.value[idx]
+    if (!record.hunkOperations?.length) return
+
+    const hunkOperations = record.hunkOperations.map((h) =>
+      h.id === hunkId ? { ...h, status } : h
+    )
+    const nextRecord: StagingEditRecord = { ...record, hunkOperations }
+    const next = [...records.value]
+    next[idx] = nextRecord
+    records.value = next
+
+    if (nextRecord.status === 'pending' && nextRecord.type === 'edit') {
+      await writeFoldedContent(nextRecord)
+    }
+  }
+
+  /** 拒绝单条 checkpoint：整文件回退到基准 */
   async function rejectEdit(record: StagingEditRecord): Promise<void> {
     if (record.status === 'rejected') return
     try {
@@ -118,12 +265,10 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     }
   }
 
-  /** 接受单条：仅标记为已接受 */
   function acceptEdit(editId: string) {
     setStatus(editId, 'accepted')
   }
 
-  /** 移除单条记录（用于叉掉后不再显示；若为 pending 会先拒绝再移除） */
   async function removeEdit(record: StagingEditRecord): Promise<void> {
     if (record.status === 'pending') {
       await rejectEdit(record)
@@ -131,7 +276,6 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     records.value = records.value.filter((r) => r.id !== record.id)
   }
 
-  /** 回滚某条用户消息触发的所有编辑（还原所有未拒绝的记录） */
   async function rollbackByUserMessage(
     sessionId: string,
     userMessageId: string
@@ -146,7 +290,6 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     return { rolled }
   }
 
-  /** 接受全部 / 拒绝全部（针对某 session 的 pending） */
   function acceptAll(sessionId: string) {
     const list = getEditsForSession(sessionId).filter((r) => r.status === 'pending')
     list.forEach((r) => setStatus(r.id, 'accepted'))
@@ -162,7 +305,6 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     return count
   }
 
-  /** 重新应用一条已拒绝的编辑（Redo） */
   async function redoEdit(record: StagingEditRecord): Promise<void> {
     if (record.status !== 'rejected') return
     try {
@@ -180,10 +322,12 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
         })
       } else if (record.type === 'delete') {
         await messageBridge.invoke('delete-file-or-folder', record.filePath)
-      } else if (record.type === 'edit' && record.newContent != null) {
+      } else if (record.type === 'edit') {
+        const content =
+          record.hunkOperations?.length ? foldRecordContent(record) : (record.newContent ?? '')
         await messageBridge.invoke('write-file-content', {
           filePath: record.filePath,
-          content: record.newContent
+          content
         })
       }
       setStatus(record.id, 'accepted')
@@ -193,7 +337,6 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     }
   }
 
-  /** 对某条用户消息已回退的编辑全部 Redo */
   async function redoByUserMessage(
     sessionId: string,
     userMessageId: string
@@ -215,6 +358,8 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     getEditsForSession,
     getEditsByUserMessage,
     pushEdit,
+    pushFileCheckpoint,
+    setHunkStatus,
     setStatus,
     rejectEdit,
     acceptEdit,
@@ -223,6 +368,7 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     redoByUserMessage,
     redoEdit,
     acceptAll,
-    rejectAll
+    rejectAll,
+    foldRecordContent
   }
 })

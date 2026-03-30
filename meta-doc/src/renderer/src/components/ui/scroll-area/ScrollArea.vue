@@ -21,6 +21,7 @@ const delegatedProps = reactiveOmit(props, 'class')
     <ScrollAreaViewport class="h-full w-full rounded-[inherit]">
       <slot />
     </ScrollAreaViewport>
+    <ScrollBar orientation="horizontal" />
     <ScrollBar />
     <ScrollAreaCorner />
   </ScrollAreaRoot>

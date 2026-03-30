@@ -215,11 +215,6 @@ onMounted(() => {
   height: 100%;
 }
 
-.home-panel-scrollbar :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
 .home-panel-content {
   display: flex;
   flex-direction: column;
@@ -233,14 +228,17 @@ onMounted(() => {
 .document-content-section {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* 不裁剪，便于宽表格把 scrollWidth 传给外层 ScrollArea 显示横向滚动条 */
+  overflow: visible;
 }
 
 .content-preview {
   flex: 1;
   width: 100%;
+  min-width: max-content;
   padding: 24px;
   box-sizing: border-box;
   word-wrap: break-word;

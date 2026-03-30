@@ -176,7 +176,7 @@ type WorkspaceExplorerExposed = {
 
 const showWorkspaceExplorer = ref(false)
 const showWorkspaceGrep = ref(false)
-/** 用户是否在右侧边栏显示紧凑 Agent（与左侧菜单打开 Agent 全页标签无关） */
+/** 用户是否在右侧边栏显示紧凑 Agent（可与全页 Agent 同时打开） */
 const agentSidebarPanelEnabled = ref(true)
 const sidebarSize = ref(250)
 const activeTab = ref<'agent' | 'workspace' | 'grep' | 'meta'>('workspace')
@@ -188,14 +188,8 @@ const maxSidebarSize = computed(() => Math.max(400, Math.floor((windowWidth.valu
 // 获取当前活动的文档
 const activeDocument = computed(() => workspace.activeDocument.value)
 
-// 如果完整 Agent Tab 已打开，则隐藏右侧紧凑 Agent 面板
-const isAgentFullViewOpen = computed(() => {
-  const tab = workspace.activeTab.value
-  return tab?.kind === 'system' && tab?.route === '/agent'
-})
-const showAgentInSidebar = computed(
-  () => agentSidebarPanelEnabled.value && !isAgentFullViewOpen.value
-)
+/** 右侧紧凑 Agent 与全页 Agent 可同时显示，由用户用「侧栏 Agent」开关控制 */
+const showAgentInSidebar = computed(() => agentSidebarPanelEnabled.value)
 
 // 判断是否显示 MetaInfo Tab（当前 tab 是 md 或 tex 文档时显示）
 const showMetaInfoTab = computed(() => {

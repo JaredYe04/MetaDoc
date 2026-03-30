@@ -605,7 +605,7 @@ class AgentSessionManager {
         delete m.tool_config
         return m
       }
-      // edit 工具需保留完整 output（含 rawDiff）供 EditDisplay 的 Monaco 显示，不截断
+      // edit 工具需保留完整 output（含 hunks / engineLogs）供 EditDisplay 等展示，不截断
       if (m.tool?.id === 'edit') {
         delete m.tool_config
         return m

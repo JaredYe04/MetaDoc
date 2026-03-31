@@ -15,7 +15,9 @@ function getWorkspaceRootsFromStorage(): string[] {
     const raw = localStorage.getItem('workspaceFolders')
     if (!raw) return []
     const arr = JSON.parse(raw)
-    return Array.isArray(arr) ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0) : []
+    return Array.isArray(arr)
+      ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0)
+      : []
   } catch {
     return []
   }
@@ -24,7 +26,10 @@ function getWorkspaceRootsFromStorage(): string[] {
 /**
  * 将规则 Markdown 块写入 session，供 AIContextManager.buildSystemPrompt 同步拼接
  */
-export async function prepareAgentTurnContext(session: unknown, _userMessage?: string): Promise<void> {
+export async function prepareAgentTurnContext(
+  session: unknown,
+  _userMessage?: string
+): Promise<void> {
   const s = session as Record<string, unknown>
   try {
     const res = await messageBridge.invoke('agent-capabilities-get-rules-prompt')

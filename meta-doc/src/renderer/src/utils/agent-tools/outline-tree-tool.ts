@@ -354,7 +354,8 @@ export const outlineTreeToolConfig: AgentToolConfig = {
       },
       tabId: {
         type: 'string',
-        description: 'Document tab ID (optional; default current active tab; ignored when filePath is set)'
+        description:
+          'Document tab ID (optional; default current active tab; ignored when filePath is set)'
       }
     }
   },

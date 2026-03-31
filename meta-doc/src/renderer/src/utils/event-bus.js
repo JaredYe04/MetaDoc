@@ -288,7 +288,9 @@ messageBridge.on('agent-cli-run', async (_event, userContent) => {
 // 检查文件是否在当前窗口打开
 messageBridge.on('check-file-exists-in-window', (_event, filePath) => {
   try {
-    const tab = getWorkspace().tabs.find((t) => t.path === filePath && (t.kind === 'file' || t.kind === 'new'))
+    const tab = getWorkspace().tabs.find(
+      (t) => t.path === filePath && (t.kind === 'file' || t.kind === 'new')
+    )
     if (tab) {
       messageBridge.send('file-exists-in-window-response', { tabId: tab.id })
     } else {

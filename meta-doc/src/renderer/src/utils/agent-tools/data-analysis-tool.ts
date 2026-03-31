@@ -2054,5 +2054,5 @@ Returns analysis results including field information, descriptive statistics, an
       aggregations: { type: 'array' },
       summary: { type: 'string' }
     }
-  },
+  }
 }

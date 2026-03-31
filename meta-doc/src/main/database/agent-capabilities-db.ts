@@ -4,14 +4,7 @@
 
 import fs from 'fs'
 import path from 'path'
-import {
-  getDatabase,
-  query,
-  queryOne,
-  execute,
-  transaction,
-  tableExists
-} from './database'
+import { getDatabase, query, queryOne, execute, transaction, tableExists } from './database'
 import { ensureInitialized as ensureKnowledgeInitialized } from './knowledge-db'
 import { createMainLogger } from '../logger'
 
@@ -110,7 +103,10 @@ export function getRulesPromptText(): string {
 export function listRules(): AgentRuleRow[] {
   ensureAgentTables()
   if (!tableExists('agent_rules')) return []
-  return query<AgentRuleRow>('SELECT * FROM agent_rules ORDER BY scope ASC, priority DESC, id ASC', [])
+  return query<AgentRuleRow>(
+    'SELECT * FROM agent_rules ORDER BY scope ASC, priority DESC, id ASC',
+    []
+  )
 }
 
 export function insertDynamicRule(params: {
@@ -124,13 +120,7 @@ export function insertDynamicRule(params: {
   const result = execute(
     `INSERT INTO agent_rules (scope, title, content, priority, enabled, approval_status, source)
      VALUES ('dynamic', ?, ?, ?, 1, ?, ?)`,
-    [
-      params.title,
-      params.content,
-      params.priority ?? 0,
-      approval,
-      params.source
-    ]
+    [params.title, params.content, params.priority ?? 0, approval, params.source]
   )
   return result.lastInsertRowid as number
 }
@@ -153,10 +143,10 @@ export function approveRule(id: number, status: 'approved' | 'rejected'): void {
   const row = queryOne<AgentRuleRow>('SELECT * FROM agent_rules WHERE id = ?', [id])
   if (!row) throw new Error(`Rule ${id} not found`)
   if (row.scope === 'system') throw new Error('Cannot change approval of system rules')
-  execute('UPDATE agent_rules SET approval_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [
-    status,
-    id
-  ])
+  execute(
+    'UPDATE agent_rules SET approval_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [status, id]
+  )
 }
 
 export function updateRuleContent(
@@ -287,10 +277,19 @@ export function deleteSkillById(id: number, deleteFile: boolean): void {
 }
 
 /** 摘要列表（不含全文 SKILL.md） */
-export function listSkillSummaries(status?: SkillStatus): Array<
+export function listSkillSummaries(
+  status?: SkillStatus
+): Array<
   Pick<
     SkillIndexRow,
-    'id' | 'workspace_root' | 'skill_folder' | 'name' | 'description' | 'entry' | 'tags_json' | 'status'
+    | 'id'
+    | 'workspace_root'
+    | 'skill_folder'
+    | 'name'
+    | 'description'
+    | 'entry'
+    | 'tags_json'
+    | 'status'
   >
 > {
   ensureAgentTables()
@@ -313,7 +312,14 @@ export function searchSkillsByVector(
   queryVector: number[],
   topK: number,
   queryText?: string
-): Array<{ id: number; score: number; name: string; description: string; entry: string; tags_json: string | null }> {
+): Array<{
+  id: number
+  score: number
+  name: string
+  description: string
+  entry: string
+  tags_json: string | null
+}> {
   ensureAgentTables()
   if (!tableExists('agent_skill_embeddings')) return []
   const rows = query<{
@@ -541,7 +547,9 @@ export async function upsertSkillFromSkillMdPath(
       skill_md_hash: hashString(content)
     })
     if (status === 'active') {
-      const embedText = [meta.name, meta.description, meta.tags.join(' ')].filter(Boolean).join('\n')
+      const embedText = [meta.name, meta.description, meta.tags.join(' ')]
+        .filter(Boolean)
+        .join('\n')
       const vec = await embedFn(embedText)
       setSkillEmbedding(id, vec)
     } else {
@@ -567,16 +575,16 @@ export interface McpConnectionRow {
 export function listMcpConnections(): McpConnectionRow[] {
   ensureAgentTables()
   if (!tableExists('agent_mcp_connections')) return []
-  return query<McpConnectionRow>(
-    'SELECT * FROM agent_mcp_connections ORDER BY id ASC',
-    []
-  )
+  return query<McpConnectionRow>('SELECT * FROM agent_mcp_connections ORDER BY id ASC', [])
 }
 
 export function getActiveMcpConnection(): McpConnectionRow | undefined {
   ensureAgentTables()
   if (!tableExists('agent_mcp_connections')) return undefined
-  return queryOne<McpConnectionRow>('SELECT * FROM agent_mcp_connections WHERE is_active = 1 LIMIT 1', [])
+  return queryOne<McpConnectionRow>(
+    'SELECT * FROM agent_mcp_connections WHERE is_active = 1 LIMIT 1',
+    []
+  )
 }
 
 export function addMcpConnection(label: string, baseUrl: string): number {
@@ -588,14 +596,18 @@ export function addMcpConnection(label: string, baseUrl: string): number {
   const newId = ins.lastInsertRowid as number
   const cnt = queryOne<{ n: number }>('SELECT COUNT(*) as n FROM agent_mcp_connections', [])
   if (cnt && cnt.n === 1) {
-    execute('UPDATE agent_mcp_connections SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [
-      newId
-    ])
+    execute(
+      'UPDATE agent_mcp_connections SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [newId]
+    )
   }
   return newId
 }
 
-export function updateMcpConnection(id: number, patch: { label?: string; base_url?: string }): void {
+export function updateMcpConnection(
+  id: number,
+  patch: { label?: string; base_url?: string }
+): void {
   ensureAgentTables()
   const row = queryOne<McpConnectionRow>('SELECT * FROM agent_mcp_connections WHERE id = ?', [id])
   if (!row) throw new Error('Connection not found')
@@ -615,11 +627,15 @@ export function deleteMcpConnection(id: number): void {
   )
   execute('DELETE FROM agent_mcp_connections WHERE id = ?', [id])
   if (wasActive?.is_active === 1) {
-    const first = queryOne<McpConnectionRow>('SELECT id FROM agent_mcp_connections ORDER BY id ASC LIMIT 1', [])
+    const first = queryOne<McpConnectionRow>(
+      'SELECT id FROM agent_mcp_connections ORDER BY id ASC LIMIT 1',
+      []
+    )
     if (first) {
-      execute('UPDATE agent_mcp_connections SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [
-        first.id
-      ])
+      execute(
+        'UPDATE agent_mcp_connections SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [first.id]
+      )
     }
   }
 }
@@ -662,7 +678,10 @@ export function parseSkillMd(content: string): {
       if (!m) continue
       const key = m[1].toLowerCase()
       let val = m[2].trim()
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         val = val.slice(1, -1)
       }
       if (key === 'name') result.name = val
@@ -736,7 +755,8 @@ export function syncSkillsFromWorkspaces(
       if (!fs.existsSync(skillsDir)) continue
       let entries: string[] = []
       try {
-        entries = fs.readdirSync(skillsDir, { withFileTypes: true })
+        entries = fs
+          .readdirSync(skillsDir, { withFileTypes: true })
           .filter((d) => d.isDirectory())
           .map((d) => d.name)
       } catch (e) {
@@ -763,7 +783,9 @@ export function syncSkillsFromWorkspaces(
             skill_md_hash: hashString(content)
           })
           if (status === 'active') {
-            const embedText = [meta.name, meta.description, meta.tags.join(' ')].filter(Boolean).join('\n')
+            const embedText = [meta.name, meta.description, meta.tags.join(' ')]
+              .filter(Boolean)
+              .join('\n')
             const vec = await embedFn(embedText)
             setSkillEmbedding(id, vec)
             upserted++

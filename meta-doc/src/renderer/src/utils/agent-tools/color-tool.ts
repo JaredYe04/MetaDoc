@@ -381,5 +381,5 @@ Provides various color processing functions:
       operation: { type: 'string', description: '执行的操作' },
       input: { type: 'object', description: '输入参数' }
     }
-  },
+  }
 }

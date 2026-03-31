@@ -133,13 +133,7 @@ async function readDirectoryTreeForSearch(
       if (acc.length >= maxEntries) return
       acc.push(entry)
       if (entry.isDirectory && !SEARCH_EXCLUDE_DIRS.has(entry.name)) {
-        await readDirectoryTreeForSearch(
-          entry.path,
-          maxDepth,
-          currentDepth + 1,
-          maxEntries,
-          acc
-        )
+        await readDirectoryTreeForSearch(entry.path, maxDepth, currentDepth + 1, maxEntries, acc)
       }
     }
   } catch (error) {
@@ -256,7 +250,9 @@ async function createFileWithDirs(
 /**
  * 删除文件或目录（级联，移动到回收站由主进程负责）
  */
-async function deletePathRecursive(fullPath: string): Promise<{ deleted: boolean; message: string }> {
+async function deletePathRecursive(
+  fullPath: string
+): Promise<{ deleted: boolean; message: string }> {
   if (!messageBridge.getIpc()) {
     throw new Error('IPC renderer not available')
   }
@@ -369,7 +365,11 @@ async function readDirectoryTreeLimited(
 ): Promise<void> {
   if (!messageBridge.getIpc() || currentDepth >= maxDepth || acc.length >= maxEntries) return
   try {
-    const entries = await messageBridge.invoke('read-directory', dirPath) as Array<{ name: string; path: string; isDirectory: boolean }>
+    const entries = (await messageBridge.invoke('read-directory', dirPath)) as Array<{
+      name: string
+      path: string
+      isDirectory: boolean
+    }>
     for (const entry of entries) {
       if (acc.length >= maxEntries) return
       acc.push(entry)
@@ -441,7 +441,11 @@ function truncateTreeResult<T>(
 /**
  * 对单段文本做上下文截断
  */
-function truncateText(text: string, maxChars: number, suffix = '...[内容已截断]'): { text: string; truncated: boolean } {
+function truncateText(
+  text: string,
+  maxChars: number,
+  suffix = '...[内容已截断]'
+): { text: string; truncated: boolean } {
   if (text.length <= maxChars) return { text, truncated: false }
   return {
     text: text.slice(0, maxChars) + suffix,
@@ -824,7 +828,12 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         (e) => fuzzyMatch(searchQuery, e.path) || fuzzyMatch(searchQuery, e.name)
       )
       const sorted = matched.sort((a, b) => a.path.localeCompare(b.path))
-      const { items: treeItems, truncated: treeTruncated, totalCount: matchCount, truncationMessage: treeTruncationMessage } = truncateTreeResult(sorted, MAX_TREE_ENTRIES)
+      const {
+        items: treeItems,
+        truncated: treeTruncated,
+        totalCount: matchCount,
+        truncationMessage: treeTruncationMessage
+      } = truncateTreeResult(sorted, MAX_TREE_ENTRIES)
 
       const primaryFolder = folders[0]
       onUpdate(
@@ -834,7 +843,11 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
             tree: treeItems,
             workspaceFolder: primaryFolder,
             searchQuery,
-            ...(treeTruncated && { treeTruncated: true, treeTotalCount: matchCount, treeTruncationMessage: treeTruncationMessage })
+            ...(treeTruncated && {
+              treeTruncated: true,
+              treeTotalCount: matchCount,
+              treeTruncationMessage: treeTruncationMessage
+            })
           },
           format: 'json',
           componentName: 'WorkspaceDisplay'
@@ -855,7 +868,11 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
             tree: treeItems,
             workspaceFolder: primaryFolder,
             searchQuery,
-            ...(treeTruncated && { treeTruncated: true, treeTotalCount: matchCount, treeTruncationMessage: treeTruncationMessage })
+            ...(treeTruncated && {
+              treeTruncated: true,
+              treeTotalCount: matchCount,
+              treeTruncationMessage: treeTruncationMessage
+            })
           },
           format: 'json',
           componentName: 'WorkspaceDisplay'
@@ -865,7 +882,11 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
           workspaceFolder: primaryFolder,
           searchQuery,
           matchCount,
-          ...(treeTruncated && { truncated: true, totalMatchCount: matchCount, truncationMessage: treeTruncationMessage })
+          ...(treeTruncated && {
+            truncated: true,
+            totalMatchCount: matchCount,
+            truncationMessage: treeTruncationMessage
+          })
         }
       }
     } catch (error) {
@@ -917,7 +938,12 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       }
       const folderPath = folders[0]
       const fullTree = await readDirectoryTree(folderPath)
-      const { items: tree, truncated: treeTruncated, totalCount: treeTotalCount, truncationMessage: treeTruncationMessage } = truncateTreeResult(fullTree, MAX_TREE_ENTRIES)
+      const {
+        items: tree,
+        truncated: treeTruncated,
+        totalCount: treeTotalCount,
+        truncationMessage: treeTruncationMessage
+      } = truncateTreeResult(fullTree, MAX_TREE_ENTRIES)
       onUpdate(
         {
           content: {
@@ -949,7 +975,11 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         result: {
           tree,
           workspaceFolder: folderPath,
-          ...(treeTruncated && { truncated: true, totalCount: treeTotalCount, truncationMessage: treeTruncationMessage })
+          ...(treeTruncated && {
+            truncated: true,
+            totalCount: treeTotalCount,
+            truncationMessage: treeTruncationMessage
+          })
         }
       }
     } catch (error) {
@@ -1105,13 +1135,7 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       if (isDir) {
         // paths 中传入的是目录：递归列举该目录下文件/文件夹（带数量限制）
         const listAcc: Array<{ name: string; path: string; isDirectory: boolean }> = []
-        await readDirectoryTreeLimited(
-          fullPath,
-          12,
-          0,
-          MAX_DIRECTORY_LIST_ENTRIES,
-          listAcc
-        )
+        await readDirectoryTreeLimited(fullPath, 12, 0, MAX_DIRECTORY_LIST_ENTRIES, listAcc)
         const { items, truncated, totalCount, truncationMessage } = truncateTreeResult(
           listAcc,
           MAX_TREE_ENTRIES
@@ -1146,7 +1170,10 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
             totalLines,
             summarized,
             summary,
-            ...(contentTruncated && { truncated: true, truncationMessage: `文件内容过长，仅保留前 ${MAX_FILE_CONTENT_CHARS} 字符` })
+            ...(contentTruncated && {
+              truncated: true,
+              truncationMessage: `文件内容过长，仅保留前 ${MAX_FILE_CONTENT_CHARS} 字符`
+            })
           })
         } catch (error) {
           logger.warn(`读取文件失败: ${fullPath}`, error)
@@ -1222,7 +1249,7 @@ export const workspaceToolConfig: AgentToolConfig = {
   spec: {
     name: 'workspace',
     brief:
-      'Read workspace files, fuzzy-search by path/name (Everything-style), manage directories/files (create/delete), or list root directory. Use \`search\` to find files/folders across the whole workspace without listing root first. Use \`paths\` to read file(s); use \`operations\` to create/delete directories and files. Omit both to get directory tree. Prefer this tool for workspace file operations instead of terminal commands. Supports line ranges, optional AI summarization, recursive directory creation, and safe delete-to-recycle.',
+      'Read workspace files, fuzzy-search by path/name (Everything-style), manage directories/files (create/delete), or list root directory. Use `search` to find files/folders across the whole workspace without listing root first. Use `paths` to read file(s); use `operations` to create/delete directories and files. Omit both to get directory tree. Prefer this tool for workspace file operations instead of terminal commands. Supports line ranges, optional AI summarization, recursive directory creation, and safe delete-to-recycle.',
     fullSpec: `# Workspace File & Workspace Manager Tool
 
 ## Description
@@ -1368,8 +1395,7 @@ Read files from workspace folders, **fuzzy-search** by path/file name across the
           properties: {
             type: {
               type: 'string',
-              description:
-                'createDirectory | deleteDirectory | createFile | deleteFile'
+              description: 'createDirectory | deleteDirectory | createFile | deleteFile'
             },
             path: {
               type: 'string'

@@ -77,12 +77,7 @@ export class MdToMdAdapter extends BaseExportAdapter<'md', 'md', MarkdownExportO
   }> {
     const docPath = context?.doc?.path
     let markdown = filterMetaStep(data.md)
-    markdown = await prepareImagesForTarget(
-      markdown,
-      'md',
-      options.imageProcessing,
-      docPath
-    )
+    markdown = await prepareImagesForTarget(markdown, 'md', options.imageProcessing, docPath)
     const originalImageUrls = collectOriginalImageUrls(data.md)
     const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)
     return {

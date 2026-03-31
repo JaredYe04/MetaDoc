@@ -160,7 +160,8 @@ function normalizeSchema(schema: unknown): Record<string, unknown> {
  * 单条引擎工具转为 AI SDK tool（无 execute，由上层 onToolCallsDetected 执行）
  */
 function toAISDKToolOne(spec: EngineToolSpec): ReturnType<typeof tool> {
-  const description = [spec.brief || spec.description, spec.fullSpec].filter(Boolean).join('\n\n') || spec.description
+  const description =
+    [spec.brief || spec.description, spec.fullSpec].filter(Boolean).join('\n\n') || spec.description
   const schema = normalizeSchema(spec.schema)
   return tool({
     description: description.trim() || spec.name,

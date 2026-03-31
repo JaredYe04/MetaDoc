@@ -26,6 +26,7 @@ import {
   DEFAULT_AGENT_SESSIONS
 } from '../constants/document'
 import { isElectronEnv } from '../utils/event-bus'
+import { extractTitleFromContent, sanitizeTitleForFilename } from '../utils/title-extractor'
 
 export type WorkspaceTabKind = 'new' | 'file' | 'tool' | 'system'
 // WorkspaceTabFormat 现在支持动态格式，但为了向后兼容，保留 'md' | 'tex' 作为基础类型
@@ -673,6 +674,49 @@ export function detectDocumentFormat(content: string, filePath?: string): string
 }
 
 /**
+ * 未选择格式/模板的新建 Tab（kind === 'new'）被 Agent 或其它逻辑写入内容后，
+ * 将 Tab 提升为已初始化文档（与用户在「新建文档」中确认模板后的状态一致），
+ * 避免 Editor 仍挂载在 NewDocumentWorkspace 上、与已有正文不一致。
+ * 标题：若元信息无标题，则复用保存前所用的从正文提取逻辑（title-extractor）。
+ */
+function promoteNewDocumentTabAfterContentWrite(tabId: string): void {
+  const tab = tabs.find((t) => t.id === tabId)
+  if (!tab || tab.kind !== 'new') return
+  const doc = documents[tabId]
+  if (!doc) return
+
+  const hasBody =
+    (doc.markdown && doc.markdown.trim().length > 0) || (doc.tex && doc.tex.trim().length > 0)
+  if (!hasBody) return
+
+  let formatId = doc.format || 'md'
+  if (!findFormatById(formatId)) {
+    const raw = doc.tex && doc.tex.trim().length > 0 ? doc.tex : (doc.markdown ?? '')
+    formatId = detectDocumentFormat(raw, doc.path || undefined)
+    if (!findFormatById(formatId)) {
+      formatId = 'md'
+    }
+    doc.format = formatId
+    tab.format = formatId
+  }
+
+  const metaEmpty = !doc.meta?.title || doc.meta.title.trim().length === 0
+  if (metaEmpty && (formatId === 'md' || formatId === 'tex')) {
+    const content = formatId === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '')
+    const extracted = extractTitleFromContent(content, formatId === 'tex' ? 'tex' : 'md')
+    if (extracted) {
+      const sanitized = sanitizeTitleForFilename(extracted)
+      if (sanitized) {
+        doc.meta = { ...doc.meta, title: sanitized }
+      }
+    }
+  }
+
+  initializeDocumentFromTemplate(tabId, formatId as WorkspaceTabFormat, undefined, 'editor')
+  syncTabMetadataFromDocument(tabId)
+}
+
+/**
  * 更新一个标签页的Markdown内容
  * @param tabId 标签页ID
  * @param markdown 新的Markdown内容
@@ -751,6 +795,8 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
         logger.warn('自动同步大纲树失败:', error)
       }
     }
+
+    promoteNewDocumentTabAfterContentWrite(tabId)
 
     updateDocumentDirty(tabId)
     if (tab?.preview) {
@@ -856,6 +902,8 @@ function updateDocumentTex(tabId: string, tex: string): void {
         logger.warn('自动同步大纲树失败（LaTeX转换）:', error)
       }
     }
+
+    promoteNewDocumentTabAfterContentWrite(tabId)
 
     updateDocumentDirty(tabId)
     if (tab?.preview) {

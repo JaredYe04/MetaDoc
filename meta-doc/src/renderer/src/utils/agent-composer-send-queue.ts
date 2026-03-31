@@ -23,9 +23,7 @@ export function isAgentSessionReadyForNextLlmTurn(session: AgentSession): boolea
     const tcs = m.tool_calls
     if (!Array.isArray(tcs) || tcs.length === 0) continue
     const needed = new Set(
-      tcs
-        .map((tc) => tc?.id)
-        .filter((id): id is string => typeof id === 'string' && id.length > 0)
+      tcs.map((tc) => tc?.id).filter((id): id is string => typeof id === 'string' && id.length > 0)
     )
     let j = i + 1
     while (j < msgs.length && msgs[j].role === 'tool') {

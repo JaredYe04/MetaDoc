@@ -536,7 +536,10 @@ class AgentToolServices {
         }
         const wasDir = await pathIsDirectory(targetPath)
         await messageBridge.invoke('delete-file-or-folder', targetPath)
-        notifyWorkspaceFilesystemChange(targetPath.replace(/\\/g, '/'), wasDir ? 'unlinkDir' : 'unlink')
+        notifyWorkspaceFilesystemChange(
+          targetPath.replace(/\\/g, '/'),
+          wasDir ? 'unlinkDir' : 'unlink'
+        )
       },
 
       renamePath: async (oldPath: string, newName: string) => {
@@ -570,7 +573,10 @@ class AgentToolServices {
         }
         const wasDir = await pathIsDirectory(sourcePath)
         await messageBridge.invoke('move-file-or-folder', { sourcePath, targetPath })
-        notifyWorkspaceFilesystemChange(sourcePath.replace(/\\/g, '/'), wasDir ? 'unlinkDir' : 'unlink')
+        notifyWorkspaceFilesystemChange(
+          sourcePath.replace(/\\/g, '/'),
+          wasDir ? 'unlinkDir' : 'unlink'
+        )
         notifyWorkspaceFilesystemChange(targetPath.replace(/\\/g, '/'), wasDir ? 'addDir' : 'add')
       }
     }

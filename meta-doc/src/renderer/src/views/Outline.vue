@@ -1697,6 +1697,8 @@ const handleViewportWheel = (e: WheelEvent) => {
   }
 }
 
+let handleZoomShortcut: ((payload?: unknown) => void) | null = null
+
 // 节点展开状态管理
 const expandedNodes = ref<Record<string, boolean>>({})
 const lastExpandedNodePath = ref<string | null>(null)
@@ -2178,9 +2180,21 @@ const onNodeContextAction = (action: string) => {
 // 点击其他地方关闭右键菜单
 onMounted(() => {
   document.addEventListener('click', closeNodeContextMenu)
+  handleZoomShortcut = (payload?: unknown) => {
+    const p = payload as { action?: 'zoomIn' | 'zoomOut' | 'zoomReset' } | undefined
+    if (!p?.action) return
+    if (p.action === 'zoomIn') outlineZoomIn()
+    else if (p.action === 'zoomOut') outlineZoomOut()
+    else if (p.action === 'zoomReset') outlineFitToScreen()
+  }
+  eventBus.on('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
 })
 onUnmounted(() => {
   document.removeEventListener('click', closeNodeContextMenu)
+  if (handleZoomShortcut) {
+    eventBus.off('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+    handleZoomShortcut = null
+  }
 })
 
 // 节点相关操作

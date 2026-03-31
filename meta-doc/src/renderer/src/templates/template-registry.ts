@@ -25,7 +25,8 @@ function getTemplateContent(locale: string, formatId: string, file: string): str
   const modules = isTex ? templateTexModules : templateMdModules
   const content = modules[key as keyof typeof modules]
   if (typeof content === 'string') return content
-  if (content && typeof content === 'object' && 'default' in content) return (content as { default: string }).default
+  if (content && typeof content === 'object' && 'default' in content)
+    return (content as { default: string }).default
   return ''
 }
 

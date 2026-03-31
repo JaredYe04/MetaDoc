@@ -1118,7 +1118,10 @@
         "cut": "Ausschneiden",
         "paste": "Einfügen",
         "undo": "Rückgängig",
-        "redo": "Wiederholen"
+        "redo": "Wiederholen",
+        "zoomIn": "Vergrößern",
+        "zoomOut": "Verkleinern",
+        "zoomReset": "Zoom zurücksetzen"
       }
     },
     "chatSuffix": "URL-Suffix für Chat-Vervollständigung (optional)",

@@ -125,7 +125,8 @@ const startupFileArgument = findSupportedFileArgument(process.argv)
 const prelaunchDelegationPromise =
   process.env.METADOC_SINGLE_INSTANCE_CHECK_DONE === '1'
     ? Promise.resolve(false)
-    : (startupProfileMark('prelaunch_check_start'), attemptDelegationToRunningInstance(startupFileArgument))
+    : (startupProfileMark('prelaunch_check_start'),
+      attemptDelegationToRunningInstance(startupFileArgument))
 
 // ============ 全局变量 ============
 

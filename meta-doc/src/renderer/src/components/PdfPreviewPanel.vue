@@ -203,6 +203,7 @@ import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, Refresh } from '@element-plus/i
 import { VuePdf, createLoadingTask } from 'vue3-pdfjs'
 import { themeState } from '../utils/themes'
 import { debounce } from 'lodash'
+import eventBus from '@renderer/utils/event-bus'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import {
   Select,
@@ -380,6 +381,8 @@ function pdfZoomReset() {
   if (props.mode === 'demo' || !isPdfContainerReady()) return
   safeUpdateZoomScale(calculateOptimalScale(1.0))
 }
+
+let handleZoomShortcut: ((payload?: unknown) => void) | null = null
 
 function goPrevPage() {
   if (props.mode === 'demo' || currentPdfPage.value <= 1) return
@@ -694,6 +697,16 @@ onMounted(() => {
     }
     setupScrollListener()
   })
+
+  handleZoomShortcut = (payload?: unknown) => {
+    const p = payload as { action?: 'zoomIn' | 'zoomOut' | 'zoomReset' } | undefined
+    if (!p?.action) return
+    if (!isValidPdfUrl.value) return
+    if (p.action === 'zoomIn') pdfZoomIn()
+    else if (p.action === 'zoomOut') pdfZoomOut()
+    else if (p.action === 'zoomReset') pdfZoomReset()
+  }
+  eventBus.on('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
 })
 
 onBeforeUnmount(() => {
@@ -703,6 +716,10 @@ onBeforeUnmount(() => {
   }
   document.removeEventListener('mousemove', handleHandModeMouseMoveGlobal)
   document.removeEventListener('mouseup', handleHandModeMouseUpGlobal)
+  if (handleZoomShortcut) {
+    eventBus.off('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+    handleZoomShortcut = null
+  }
 })
 
 defineExpose({

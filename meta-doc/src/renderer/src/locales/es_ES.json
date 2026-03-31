@@ -3612,7 +3612,10 @@
         "cut": "Cortar",
         "paste": "Pegar",
         "undo": "Deshacer",
-        "redo": "Rehacer"
+        "redo": "Rehacer",
+        "zoomIn": "Ampliar",
+        "zoomOut": "Reducir",
+        "zoomReset": "Restablecer zoom"
       }
     },
     "cancel": "Cancelar",

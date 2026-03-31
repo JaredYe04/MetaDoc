@@ -315,7 +315,10 @@ class AgentToolManager {
     }
 
     // 获取Tool显示名称（优先使用 locales 中的 toolLabels 以支持界面本地化）
-    const toolName = this.getLocalizedToolName(tool.config.id, String(tool.config.name || tool.config.id))
+    const toolName = this.getLocalizedToolName(
+      tool.config.id,
+      String(tool.config.name || tool.config.id)
+    )
 
     // 创建Tool配置快照（不包含函数和组件）
     const toolConfigSnapshot = {

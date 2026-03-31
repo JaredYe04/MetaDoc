@@ -41,7 +41,14 @@ function useTextGenerationEndpoint(model: string): boolean {
   const m = (model || '').trim().toLowerCase()
   if (!m) return true
   if (TEXT_ONLY_MODELS.has(m)) return true
-  if (m.startsWith('qwen-turbo') || m.startsWith('qwen-plus') || m.startsWith('qwen-max') || m.startsWith('qwen-flash') || m.startsWith('qwen-coder')) return true
+  if (
+    m.startsWith('qwen-turbo') ||
+    m.startsWith('qwen-plus') ||
+    m.startsWith('qwen-max') ||
+    m.startsWith('qwen-flash') ||
+    m.startsWith('qwen-coder')
+  )
+    return true
   return false
 }
 
@@ -51,11 +58,14 @@ function normalizeContentToText(content: unknown): string {
   if (typeof content === 'string') return content
   if (Array.isArray(content)) {
     return content
-      .map((item: any) => (item?.text != null ? String(item.text) : item?.content != null ? String(item.content) : ''))
+      .map((item: any) =>
+        item?.text != null ? String(item.text) : item?.content != null ? String(item.content) : ''
+      )
       .filter(Boolean)
       .join('')
   }
-  if (typeof content === 'object' && (content as any).text != null) return String((content as any).text)
+  if (typeof content === 'object' && (content as any).text != null)
+    return String((content as any).text)
   return String(content)
 }
 
@@ -147,7 +157,9 @@ export class QwenAdapter extends BaseLlmAdapter {
     const rawText =
       output?.choices?.[0]?.message?.content ??
       output?.text ??
-      (response.choices?.[0]?.message?.content ?? response.choices?.[0]?.text ?? '')
+      response.choices?.[0]?.message?.content ??
+      response.choices?.[0]?.text ??
+      ''
     const text = normalizeContentToText(rawText)
     const usageRaw = output?.usage ?? response.usage
     const usage: UsageStats | null = usageRaw

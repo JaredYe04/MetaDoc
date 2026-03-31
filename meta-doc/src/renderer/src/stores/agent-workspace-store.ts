@@ -317,8 +317,7 @@ export const useAgentWorkspaceStore = defineStore('agent-workspace', () => {
             ? legacy.composerInputBySessionId
             : {}
         composerInputBySessionId.value = savedComposer
-        composerInput.value =
-          (activeSessionId.value && savedComposer[activeSessionId.value]) ?? ''
+        composerInput.value = (activeSessionId.value && savedComposer[activeSessionId.value]) ?? ''
 
         try {
           await persistV2FromCurrentState(root)

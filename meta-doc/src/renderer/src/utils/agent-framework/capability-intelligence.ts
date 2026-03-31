@@ -12,13 +12,12 @@ const DEFAULT_BUILTIN_TOOL_TOP_K = 18
 /** 用户消息是否明显与「工作区技能」相关 */
 export function messageTouchesSkills(userMessage: string): boolean {
   const q = (userMessage || '').toLowerCase()
-  if (/技能|skill|skills|skill\.md|\.metadoc\/skills|工作区技能|索引技能|创建技能/.test(userMessage)) {
+  if (
+    /技能|skill|skills|skill\.md|\.metadoc\/skills|工作区技能|索引技能|创建技能/.test(userMessage)
+  ) {
     return true
   }
-  if (
-    /\bskill\b/.test(q) ||
-    q.includes('metadoc') && q.includes('skill')
-  ) {
+  if (/\bskill\b/.test(q) || (q.includes('metadoc') && q.includes('skill'))) {
     return true
   }
   return false
@@ -27,7 +26,11 @@ export function messageTouchesSkills(userMessage: string): boolean {
 /** 用户消息是否明显与「动态规则 / Agent 规则」相关 */
 export function messageTouchesRules(userMessage: string): boolean {
   const q = (userMessage || '').toLowerCase()
-  if (/动态规则|agent\s*规则|系统规则|注入规则|创建规则|添加规则|规则管理|prompt\s*rule|dynamic\s*rule/.test(userMessage)) {
+  if (
+    /动态规则|agent\s*规则|系统规则|注入规则|创建规则|添加规则|规则管理|prompt\s*rule|dynamic\s*rule/.test(
+      userMessage
+    )
+  ) {
     return true
   }
   if (/\brule\b/.test(q) && /(agent|meta|prompt|动态|添加|创建)/i.test(userMessage)) {
@@ -86,7 +89,12 @@ export class RAGRetriever {
    */
   static async retrieveMerged(
     query: string,
-    opts?: { topKSkills?: number; topKMcp?: number; topKnowledge?: number; knowledgeThreshold?: number }
+    opts?: {
+      topKSkills?: number
+      topKMcp?: number
+      topKnowledge?: number
+      knowledgeThreshold?: number
+    }
   ): Promise<MergedRetrievalResult> {
     const q = (query || '').trim()
     if (!q) {

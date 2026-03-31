@@ -157,7 +157,12 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     }
   }
 
-  const sendProgress = (stage: string, pct: number, msg: string, extra?: Record<string, unknown>) => {
+  const sendProgress = (
+    stage: string,
+    pct: number,
+    msg: string,
+    extra?: Record<string, unknown>
+  ) => {
     onUpdate(
       {
         content: { stage, filePath: extra?.filePath, editCount: plan.edits.length, ...extra },
@@ -169,7 +174,11 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 
   try {
-    sendProgress('loading', 10, i18n.global.t('agent.tool.edit.progress.loading', '正在解析编辑计划...'))
+    sendProgress(
+      'loading',
+      10,
+      i18n.global.t('agent.tool.edit.progress.loading', '正在解析编辑计划...')
+    )
 
     // —— 磁盘文件分支 ——
     if (filePathParam) {
@@ -189,9 +198,14 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       const baseline = currentContent ?? ''
       const isNew = currentContent === null || currentContent === undefined
 
-      sendProgress('applying', 40, i18n.global.t('agent.tool.edit.progress.applying', '正在应用编辑...'), {
-        filePath: absPath
-      })
+      sendProgress(
+        'applying',
+        40,
+        i18n.global.t('agent.tool.edit.progress.applying', '正在应用编辑...'),
+        {
+          filePath: absPath
+        }
+      )
 
       let resultText: string
       let logs: ApplyEditLogEntry[]
@@ -220,9 +234,14 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
       if (signal?.aborted) return { status: 'cancelled' }
 
-      sendProgress('updating', 80, i18n.global.t('agent.tool.edit.progress.updating', '正在写入文件...'), {
-        filePath: absPath
-      })
+      sendProgress(
+        'updating',
+        80,
+        i18n.global.t('agent.tool.edit.progress.updating', '正在写入文件...'),
+        {
+          filePath: absPath
+        }
+      )
 
       await messageBridge.invoke('write-file-content', { filePath: absPath, content: resultText })
       scheduleSkillIndexSyncAfterWrite(absPath)
@@ -299,16 +318,14 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         )
       }
     }
-    const tab = (workspace.tabs as { id: string; kind?: string }[]).find((t) => t.id === candidateTabId)
+    const tab = (workspace.tabs as { id: string; kind?: string }[]).find(
+      (t) => t.id === candidateTabId
+    )
     const isDocumentTab = tab && (tab.kind === 'file' || tab.kind === 'new')
     if (!isDocumentTab) {
       return {
         status: 'failed',
-        error: createDetailedError(
-          '当前活动标签页不是文档',
-          ['请先打开文档或传入 filePath'],
-          []
-        )
+        error: createDetailedError('当前活动标签页不是文档', ['请先打开文档或传入 filePath'], [])
       }
     }
 
@@ -339,7 +356,11 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     const docContent = currentFormat === 'md' ? doc.markdown : doc.tex
     const baseline = docContent
 
-    sendProgress('applying', 40, i18n.global.t('agent.tool.edit.progress.applying', '正在应用编辑...'))
+    sendProgress(
+      'applying',
+      40,
+      i18n.global.t('agent.tool.edit.progress.applying', '正在应用编辑...')
+    )
 
     let resultText: string
     let logs: ApplyEditLogEntry[]
@@ -361,7 +382,11 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
     if (signal?.aborted) return { status: 'cancelled' }
 
-    sendProgress('updating', 80, i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...'))
+    sendProgress(
+      'updating',
+      80,
+      i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...')
+    )
 
     if (currentFormat === 'md') {
       workspace.updateDocumentMarkdown(candidateTabId, resultText)

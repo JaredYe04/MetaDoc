@@ -158,27 +158,14 @@ tail`
 
   it('@@ oldCount 与正文旧侧行数不一致时先报校验错误（避免误判为「行号计算错」）', () => {
     const base = 'a\nb\nc\n'
-    const bad = [
-      '@@ -1,2 +1,3 @@',
-      ' a',
-      '-b',
-      '+b2',
-      ' c'
-    ].join('\n')
+    const bad = ['@@ -1,2 +1,3 @@', ' a', '-b', '+b2', ' c'].join('\n')
     expect(() => applyGitUnifiedDiffToContent(base, bad)).toThrow(/oldCount/)
   })
 
   it('内容不匹配时错误信息包含邻近行号便于对照 IDE', () => {
     const base = ['x', 'y', '期望行', 'z'].join('\n')
-    const diff = [
-      '@@ -2,2 +2,2 @@',
-      ' y',
-      '-错行',
-      '+新'
-    ].join('\n')
-    expect(() => applyGitUnifiedDiffToContent(base, diff)).toThrow(
-      /旧文件第 3 行[\s\S]*邻近文件行/
-    )
+    const diff = ['@@ -2,2 +2,2 @@', ' y', '-错行', '+新'].join('\n')
+    expect(() => applyGitUnifiedDiffToContent(base, diff)).toThrow(/旧文件第 3 行[\s\S]*邻近文件行/)
   })
 
   it('UTF-8 BOM：匹配时忽略 BOM，写回仍保留 BOM', () => {

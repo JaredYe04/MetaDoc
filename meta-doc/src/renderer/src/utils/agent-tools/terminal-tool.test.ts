@@ -62,11 +62,7 @@ import {
   clearAllSessions,
   getAllSessionIds
 } from './terminal-tool'
-import {
-  tryParseCdTarget,
-  updateSessionAfterRun,
-  clearSession
-} from './terminal-session-manager'
+import { tryParseCdTarget, updateSessionAfterRun, clearSession } from './terminal-session-manager'
 
 const noop = () => {}
 
@@ -292,7 +288,9 @@ describe('terminal-tool', () => {
       mockInvoke.mockImplementation((channel: string, payload: any) => {
         if (channel === 'execute-terminal-command') {
           setTimeout(() => {
-            closeHandlers.forEach((h) => h(null, { invocationId: payload.invocationId, exitCode: 0 }))
+            closeHandlers.forEach((h) =>
+              h(null, { invocationId: payload.invocationId, exitCode: 0 })
+            )
           }, 100)
           return Promise.resolve({ success: true })
         }
@@ -317,7 +315,9 @@ describe('terminal-tool', () => {
       mockInvoke.mockImplementation((channel: string, payload: any) => {
         if (channel === 'execute-terminal-command') {
           setImmediate(() => {
-            closeHandlers.forEach((h) => h(null, { invocationId: payload.invocationId, exitCode: 0 }))
+            closeHandlers.forEach((h) =>
+              h(null, { invocationId: payload.invocationId, exitCode: 0 })
+            )
           })
           return Promise.resolve({ success: true })
         }
@@ -326,10 +326,7 @@ describe('terminal-tool', () => {
 
       const result = await terminalToolConfig.callback!(
         {
-          commands: [
-            { command: 'echo 1' },
-            { command: 'echo 2' }
-          ],
+          commands: [{ command: 'echo 1' }, { command: 'echo 2' }],
           async: true
         },
         new AbortController().signal,

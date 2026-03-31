@@ -699,25 +699,22 @@ function bindFileHandlers(): void {
   )
 
   // 返回项目 debug 目录下固定验收文档路径（debug/export-test.md），供设置→调试→导出回归测试使用
-  ipcBridge.registerHandle(
-    'get-debug-export-test-path',
-    async (): Promise<string> => {
-      const cwd = process.cwd()
-      const candidates = [
-        path.join(cwd, 'debug', 'export-test.md'),
-        path.join(cwd, '..', 'debug', 'export-test.md'),
-        path.join(cwd, '..', '..', 'debug', 'export-test.md')
-      ]
-      for (const p of candidates) {
-        try {
-          if (fs.existsSync(p)) return path.resolve(p)
-        } catch {
-          /* ignore */
-        }
+  ipcBridge.registerHandle('get-debug-export-test-path', async (): Promise<string> => {
+    const cwd = process.cwd()
+    const candidates = [
+      path.join(cwd, 'debug', 'export-test.md'),
+      path.join(cwd, '..', 'debug', 'export-test.md'),
+      path.join(cwd, '..', '..', 'debug', 'export-test.md')
+    ]
+    for (const p of candidates) {
+      try {
+        if (fs.existsSync(p)) return path.resolve(p)
+      } catch {
+        /* ignore */
       }
-      return path.resolve(candidates[0])
     }
-  )
+    return path.resolve(candidates[0])
+  })
 
   // 读取目录内容
   ipcBridge.registerHandle(
@@ -1216,7 +1213,9 @@ function bindFileHandlers(): void {
   }
 
   const sanitizeAgentAttachmentSessionId = (sessionId: string) => {
-    const s = String(sessionId || '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 128)
+    const s = String(sessionId || '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .slice(0, 128)
     return s || 'session'
   }
 
@@ -1236,7 +1235,13 @@ function bindFileHandlers(): void {
       try {
         const { workspaceRoot, sessionId, filename, content } = payload
         const encoding = payload.encoding ?? 'base64'
-        if (!workspaceRoot || !sessionId || !filename || content === undefined || content === null) {
+        if (
+          !workspaceRoot ||
+          !sessionId ||
+          !filename ||
+          content === undefined ||
+          content === null
+        ) {
           throw new Error('参数不完整')
         }
         const resolvedRoot = path.resolve(workspaceRoot)
@@ -1298,7 +1303,9 @@ function bindFileHandlers(): void {
     async (
       event: IpcMainInvokeEvent,
       payload: { workspaceRoot: string; toSessionId: string }
-    ): Promise<Array<{ oldAbsolutePath: string; newAbsolutePath: string; relativePath: string }>> => {
+    ): Promise<
+      Array<{ oldAbsolutePath: string; newAbsolutePath: string; relativePath: string }>
+    > => {
       try {
         const { workspaceRoot, toSessionId } = payload
         if (!workspaceRoot || !toSessionId) {
@@ -1315,8 +1322,11 @@ function bindFileHandlers(): void {
           return []
         }
         fs.mkdirSync(toDir, { recursive: true })
-        const out: Array<{ oldAbsolutePath: string; newAbsolutePath: string; relativePath: string }> =
-          []
+        const out: Array<{
+          oldAbsolutePath: string
+          newAbsolutePath: string
+          relativePath: string
+        }> = []
         for (const name of fs.readdirSync(fromDir)) {
           const oldAbs = path.resolve(path.join(fromDir, name))
           const st = fs.statSync(oldAbs)
@@ -1381,7 +1391,9 @@ function bindFileHandlers(): void {
         // 检查文件扩展名是否在支持的格式列表中
         const ext = path.extname(fileName).toLowerCase()
         if (!isSupportedFormat(ext)) {
-          throw new Error(`不支持创建 ${ext} 格式的文件。支持的格式包括：.md, .tex, .txt, .json, .py 等`)
+          throw new Error(
+            `不支持创建 ${ext} 格式的文件。支持的格式包括：.md, .tex, .txt, .json, .py 等`
+          )
         }
 
         const newPath = path.join(normalizedParent, fileName)
@@ -1741,8 +1753,7 @@ function bindFileHandlers(): void {
       const resolved = path.normalize(path.resolve(absPath))
       const userDataPath = app.getPath('userData')
       const referenceDir = path.resolve(path.join(userDataPath, 'reference'))
-      let allowed =
-        isResolvedPathInsideRoot(resolved, referenceDir) || resolved === referenceDir
+      let allowed = isResolvedPathInsideRoot(resolved, referenceDir) || resolved === referenceDir
       const wr = payload.workspaceRoot
       if (!allowed && wr) {
         const root = path.resolve(String(wr))
@@ -1760,10 +1771,7 @@ function bindFileHandlers(): void {
 
   ipcBridge.registerHandle(
     'get-agent-attachments-dir-size',
-    async (
-      event: IpcMainInvokeEvent,
-      payload: { workspaceRoot: string }
-    ): Promise<number> => {
+    async (event: IpcMainInvokeEvent, payload: { workspaceRoot: string }): Promise<number> => {
       const { workspaceRoot } = payload
       if (!workspaceRoot) {
         return 0
@@ -1794,10 +1802,7 @@ function bindFileHandlers(): void {
 
   ipcBridge.registerHandle(
     'clear-all-agent-attachments',
-    async (
-      event: IpcMainInvokeEvent,
-      payload: { workspaceRoot: string }
-    ): Promise<void> => {
+    async (event: IpcMainInvokeEvent, payload: { workspaceRoot: string }): Promise<void> => {
       const { workspaceRoot } = payload
       if (!workspaceRoot) {
         return
@@ -2445,7 +2450,11 @@ function bindFileHandlers(): void {
   ipcBridge.registerHandle(
     'download-image-to-data-url',
     async (_event: IpcMainInvokeEvent, url: string): Promise<string> => {
-      if (!url || (typeof url !== 'string') || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+      if (
+        !url ||
+        typeof url !== 'string' ||
+        (!url.startsWith('http://') && !url.startsWith('https://'))
+      ) {
         throw new Error('无效的图片 URL')
       }
       return downloadImageAsDataUrl(url)
@@ -2545,11 +2554,7 @@ function bindExportHandlers(): void {
 
   ipcBridge.registerHandle(
     'perform-export-to-path',
-    async (
-      event: IpcMainInvokeEvent,
-      payload: RendererExportPayload,
-      targetPath: string
-    ) => {
+    async (event: IpcMainInvokeEvent, payload: RendererExportPayload, targetPath: string) => {
       const result = await performExportRequest(payload, mainWindow, targetPath)
       if (result.success && result.path) {
         event.sender.send('export-success', result.path)
@@ -4512,7 +4517,10 @@ export function getInitialThemeClass(): 'light' | 'dark' {
 
 /** 骨架屏主题色查询串（theme=light|dark&side=...&top=...），供 loadURL(skeleton.html?...) 使用；逻辑内联避免构建后 require 单文件找不到模块 */
 export function getSkeletonThemeQueryString(): string {
-  const tinycolor = require('tinycolor2') as { (c: string): { getLuminance(): number; toHsl(): number[]; toHexString(): string }; mix(c1: any, c2: any, amount: number): any }
+  const tinycolor = require('tinycolor2') as {
+    (c: string): { getLuminance(): number; toHsl(): number[]; toHexString(): string }
+    mix(c1: any, c2: any, amount: number): any
+  }
   const mixColors = (hex1: string, hex2: string, w: number) =>
     tinycolor.mix(tinycolor(hex1), tinycolor(hex2), w * 100).toHexString()
   const getLuminance = (hex: string) => tinycolor(hex).getLuminance() * 255

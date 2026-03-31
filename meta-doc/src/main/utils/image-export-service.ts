@@ -197,10 +197,7 @@ export async function saveImageToFolder(
     // 冷门格式（avif/webp）转为 PNG，便于 LaTeX/html-to-docx 等使用
     let targetPath = path.join(targetFolder, fileName)
     const mime = inferImageMimeType(imageUrl, undefined)
-    if (
-      options?.convertToPng &&
-      (mime === 'image/avif' || mime === 'image/webp')
-    ) {
+    if (options?.convertToPng && (mime === 'image/avif' || mime === 'image/webp')) {
       try {
         imageBuffer = await options.convertToPng(imageBuffer, mime)
         fileName = fileName.replace(/\.[^.]+$/, '') + '.png'

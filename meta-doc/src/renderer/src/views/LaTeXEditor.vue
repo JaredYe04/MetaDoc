@@ -685,6 +685,13 @@ const zoomOut = () => {
   const currentFontSize = editor.value.getOption(monaco.editor.EditorOption.fontSize)
   editor.value.updateOptions({ fontSize: currentFontSize - 1 })
 }
+
+function zoomReset() {
+  if (!editor.value) return
+  editor.value.updateOptions({ fontSize: 14 })
+}
+
+let handleZoomShortcut: ((payload?: unknown) => void) | null = null
 let enableMinimap = true
 let enableRowNumber = true
 const toggleMinimap = () => {
@@ -4215,6 +4222,26 @@ onMounted(async () => {
     eventBus.on('sync-active-editor', handleSyncActiveEditorLaTeX as (payload?: unknown) => void)
     eventBus.on('editor-command', handleEditorCommand as (payload?: unknown) => void)
 
+    handleZoomShortcut = (payload?: unknown) => {
+      const p = payload as { action?: 'zoomIn' | 'zoomOut' | 'zoomReset' } | undefined
+      if (!p?.action) return
+      if (!isActive.value) return
+
+      // 当 PDF 面板可见时：优先缩放 PDF（体验更符合“预览缩放”）
+      if (showPdfPanel.value && pdfPreviewPanelRef.value) {
+        if (p.action === 'zoomIn') pdfPreviewPanelRef.value.pdfZoomIn()
+        else if (p.action === 'zoomOut') pdfPreviewPanelRef.value.pdfZoomOut()
+        else if (p.action === 'zoomReset') pdfPreviewPanelRef.value.pdfZoomReset()
+        return
+      }
+
+      // 否则缩放编辑器字体
+      if (p.action === 'zoomIn') zoomIn()
+      else if (p.action === 'zoomOut') zoomOut()
+      else if (p.action === 'zoomReset') zoomReset()
+    }
+    eventBus.on('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+
     initPdfJs()
     await nextTick()
 
@@ -4380,6 +4407,11 @@ onUnmounted(() => {
   if (handleFontSettingsChanged) {
     eventBus.off('font-settings-changed', handleFontSettingsChanged)
     handleFontSettingsChanged = null
+  }
+
+  if (handleZoomShortcut) {
+    eventBus.off('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+    handleZoomShortcut = null
   }
 
   // 清理PDF加载状态

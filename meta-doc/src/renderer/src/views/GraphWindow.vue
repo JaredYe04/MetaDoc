@@ -41,6 +41,9 @@
                 :streaming-content="
                   index === messages.length - 1 && isStreaming ? streamingContent : ''
                 "
+                :streaming-reasoning="
+                  index === messages.length - 1 && isStreaming ? streamingReasoning : ''
+                "
                 @delete="onMsgDelete"
                 @edit="onMsgEdit"
                 @regenerate="regenerate"
@@ -137,6 +140,7 @@ const {
   messages,
   lastGeneratedChartCode,
   streamingContent,
+  streamingReasoning,
   isStreaming,
   handleGenerate,
   handleCancel,

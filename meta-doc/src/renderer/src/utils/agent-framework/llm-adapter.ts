@@ -665,7 +665,7 @@ export class LlmAdapter {
       signal?: AbortSignal
       taskName?: string
       originKey?: string
-      reactiveMessage?: { markdown?: string; content?: string } // 可选的响应式消息对象，用于实时更新
+      reactiveMessage?: { markdown?: string; content?: string; reasoning?: string } // 可选的响应式消息对象，用于实时更新（reasoning 为模型思考过程，与正文分离）
       onTaskCreated?: (handle: string) => void // 任务创建时的回调，用于保存handle
       /** 引擎工具列表（与 getAvailableTools() 一致）；与 onToolCallsDetected 同时提供时走 AI SDK 原生 tools 路径 */
       tools?: EngineToolSpec[]
@@ -790,6 +790,8 @@ export class LlmAdapter {
 
     // 创建一个ref来存储结果
     const resultRef = ref('')
+    /** 与正文分离的 reasoning 流（AI SDK reasoning-delta；无则保持空串） */
+    const reasoningRef = ref('')
 
     // 生成唯一的originKey（如果没有提供）
     const uniqueOriginKey =
@@ -944,8 +946,19 @@ export class LlmAdapter {
 
     // 如果提供了reactiveMessage且是流式输出，设置watch实时更新
     let stopWatcher: (() => void) | null = null
+    let stopReasoningWatcher: (() => void) | null = null
     if (reactiveMessage && stream) {
       getLogger().debug('[callChatViaTask] 设置watch监听resultRef变化，准备检测工具调用')
+
+      if ('reasoning' in reactiveMessage) {
+        stopReasoningWatcher = watch(
+          reasoningRef,
+          (v) => {
+            reactiveMessage.reasoning = v
+          },
+          { immediate: true }
+        )
+      }
 
       stopWatcher = watch(
         resultRef,
@@ -1153,6 +1166,7 @@ export class LlmAdapter {
           temperature,
           maxTokens: effectiveMaxTokens,
           customLlmConfig,
+          reasoningRef,
           ...(useNativeTools && {
             tools: optionsTools,
             onToolCallsDetected,
@@ -1174,6 +1188,9 @@ export class LlmAdapter {
           if (stopWatcher) {
             stopWatcher()
           }
+          if (stopReasoningWatcher) {
+            stopReasoningWatcher()
+          }
         })
       }
 
@@ -1184,6 +1201,9 @@ export class LlmAdapter {
       if (stopWatcher) {
         stopWatcher()
       }
+      if (stopReasoningWatcher) {
+        stopReasoningWatcher()
+      }
 
       // 兜底：确保 reactiveMessage 与 resultRef 最终一致（避免 watch 漏更新导致界面不显示流式内容）
       if (reactiveMessage) {
@@ -1191,6 +1211,9 @@ export class LlmAdapter {
           reactiveMessage.markdown = resultRef.value
         } else if ('content' in reactiveMessage) {
           reactiveMessage.content = resultRef.value
+        }
+        if ('reasoning' in reactiveMessage) {
+          reactiveMessage.reasoning = reasoningRef.value
         }
       }
 

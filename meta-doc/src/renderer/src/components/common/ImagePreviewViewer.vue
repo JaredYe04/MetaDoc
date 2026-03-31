@@ -50,11 +50,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ZoomIn, ZoomOut } from '@element-plus/icons-vue'
 import { themeState } from '../../utils/themes'
 import { Button } from '@renderer/components/ui/button'
+import eventBus from '@renderer/utils/event-bus'
 import {
   NumberField,
   NumberFieldInput,
@@ -128,6 +129,26 @@ onMounted(() => {
 })
 
 const resetLabel = computed(() => props.resetLabel ?? t('ocr.resetZoom') ?? '重置')
+
+let handleZoomShortcut: ((payload?: unknown) => void) | null = null
+
+onMounted(() => {
+  handleZoomShortcut = (payload?: unknown) => {
+    const p = payload as { action?: 'zoomIn' | 'zoomOut' | 'zoomReset' } | undefined
+    if (!p?.action) return
+    if (p.action === 'zoomIn') zoomIn()
+    else if (p.action === 'zoomOut') zoomOut()
+    else if (p.action === 'zoomReset') resetZoom()
+  }
+  eventBus.on('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+})
+
+onUnmounted(() => {
+  if (handleZoomShortcut) {
+    eventBus.off('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+    handleZoomShortcut = null
+  }
+})
 </script>
 
 <style scoped>

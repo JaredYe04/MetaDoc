@@ -57,7 +57,10 @@ function describeFullNeedleForError(target: EditTarget): string {
 /**
  * 整段精确查找。若 0 命中且 needle 末尾多写了换行，再试去掉末尾 \\n+（文件常无 EOF 换行，易触发 match_scope:full 的 TARGET_NOT_FOUND）
  */
-function findFullNeedleLiteralHits(text: string, fullNeedle: string): { hits: number[]; usedLen: number } {
+function findFullNeedleLiteralHits(
+  text: string,
+  fullNeedle: string
+): { hits: number[]; usedLen: number } {
   let hits = findAllLiteral(text, fullNeedle)
   const usedLen = fullNeedle.length
   if (hits.length === 0 && /\n$/.test(fullNeedle)) {

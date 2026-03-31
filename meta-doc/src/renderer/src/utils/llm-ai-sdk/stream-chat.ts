@@ -21,9 +21,14 @@ export interface StreamChatOptions {
   abortSignal?: AbortSignal
 }
 
+/** 与 AI SDK fullStream 对齐：正文与 reasoning 分流（模型支持时才有 reasoning） */
+export type StreamPartDelta = { text?: string; reasoning?: string }
+
 export interface StreamChatResult {
-  /** 逐 chunk 写入的文本（由调用方更新 ref） */
-  consumeStream: (onDelta: (delta: string) => void) => Promise<UsageStats | null>
+  /** 逐 chunk 写入（由调用方更新 ref）；reasoning 与正文分离，便于 UI 单独展示 */
+  consumeStream: (
+    onDelta: (delta: StreamPartDelta) => void | Promise<void>
+  ) => Promise<UsageStats | null>
 }
 
 /**
@@ -33,31 +38,40 @@ export async function streamChat(options: StreamChatOptions): Promise<StreamChat
   const { config, temperature, maxTokens, abortSignal } = options
   const model = getModelFromConfig(config)
 
-  const streamOptions: Parameters<typeof streamText>[0] = {
+  const base = {
     model,
     temperature: temperature ?? config.temperature,
-    maxTokens: maxTokens ?? (config.enableMaxTokens ? config.maxTokens : undefined),
+    maxOutputTokens: maxTokens ?? (config.enableMaxTokens ? config.maxTokens : undefined),
     abortSignal
   }
 
-  if (options.prompt !== undefined) {
-    streamOptions.prompt = options.prompt
-  } else if (options.messages !== undefined && options.messages.length > 0) {
-    streamOptions.messages = toAISDKMessages(options.messages)
-  } else {
-    throw new Error('streamChat: 需要提供 prompt 或 messages')
-  }
-
-  const result = streamText(streamOptions)
+  const result =
+    options.prompt !== undefined
+      ? streamText({ ...base, prompt: options.prompt })
+      : options.messages !== undefined && options.messages.length > 0
+        ? streamText({ ...base, messages: toAISDKMessages(options.messages) })
+        : (() => {
+            throw new Error('streamChat: 需要提供 prompt 或 messages')
+          })()
 
   return {
-    async consumeStream(onDelta: (delta: string) => void): Promise<UsageStats | null> {
+    async consumeStream(
+      onDelta: (delta: StreamPartDelta) => void | Promise<void>
+    ): Promise<UsageStats | null> {
       let receivedAnyText = false
       try {
-        for await (const chunk of result.textStream) {
-          if (chunk) {
-            receivedAnyText = true
-            onDelta(chunk)
+        for await (const part of result.fullStream) {
+          if (part.type === 'text-delta') {
+            const chunk = part.text ?? ''
+            if (chunk) {
+              receivedAnyText = true
+              await onDelta({ text: chunk })
+            }
+          } else if (part.type === 'reasoning-delta') {
+            const chunk = part.text ?? ''
+            if (chunk) {
+              await onDelta({ reasoning: chunk })
+            }
           }
         }
         const totalUsage = await result.totalUsage

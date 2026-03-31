@@ -136,7 +136,11 @@ export function initializeDefaultToolSet(): void {
 /**
  * 初始化默认Agent配置
  */
-import { agentConfigManager, initializeSubagentPresets, refreshMcpToolsInAgentToolManager } from '../agent-framework'
+import {
+  agentConfigManager,
+  initializeSubagentPresets,
+  refreshMcpToolsInAgentToolManager
+} from '../agent-framework'
 export function initializeDefaultAgentConfig(): void {
   // 默认工具集ID
   const defaultToolCollectionId = 'default-tool-set'

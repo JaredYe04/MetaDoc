@@ -24,10 +24,13 @@ const searchSkillCallback: ToolCallback = async (params, _signal, onUpdate) => {
       )
     }
   }
-  onUpdate({ content: { stage: 'searching', query }, format: 'json' } as ToolCallbackData, {
-    percentage: 20,
-    message: 'Searching skills...'
-  } as ToolProgress)
+  onUpdate(
+    { content: { stage: 'searching', query }, format: 'json' } as ToolCallbackData,
+    {
+      percentage: 20,
+      message: 'Searching skills...'
+    } as ToolProgress
+  )
   const res = await messageBridge.invoke('agent-capabilities-search-skills', {
     query,
     topK: typeof params.topK === 'number' ? params.topK : 8
@@ -66,10 +69,13 @@ const loadSkillCallback: ToolCallback = async (params, _signal, onUpdate) => {
   if (Number.isNaN(id)) {
     return { status: 'failed', error: 'Invalid skillId' }
   }
-  onUpdate({ content: { stage: 'loading', skillId: id }, format: 'json' } as ToolCallbackData, {
-    percentage: 30,
-    message: 'Loading SKILL.md...'
-  } as ToolProgress)
+  onUpdate(
+    { content: { stage: 'loading', skillId: id }, format: 'json' } as ToolCallbackData,
+    {
+      percentage: 30,
+      message: 'Loading SKILL.md...'
+    } as ToolProgress
+  )
   const res = await messageBridge.invoke('agent-capabilities-get-skill', { id })
   if (!res?.success || !res.skill) {
     return { status: 'failed', error: res?.message || 'Skill not found' }
@@ -111,7 +117,9 @@ function getWorkspaceRoots(): string[] {
     const raw = localStorage.getItem('workspaceFolders')
     if (!raw) return []
     const arr = JSON.parse(raw)
-    return Array.isArray(arr) ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0) : []
+    return Array.isArray(arr)
+      ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0)
+      : []
   } catch {
     return []
   }
@@ -139,11 +147,16 @@ const syncWorkspaceSkillsCallback: ToolCallback = async (params, _signal, onUpda
       )
     }
   }
-  onUpdate({ content: { stage: 'syncing', roots }, format: 'json' } as ToolCallbackData, {
-    percentage: 30,
-    message: 'Syncing skills index...'
-  } as ToolProgress)
-  const res = await messageBridge.invoke('agent-capabilities-sync-skills', { workspaceRoots: roots })
+  onUpdate(
+    { content: { stage: 'syncing', roots }, format: 'json' } as ToolCallbackData,
+    {
+      percentage: 30,
+      message: 'Syncing skills index...'
+    } as ToolProgress
+  )
+  const res = await messageBridge.invoke('agent-capabilities-sync-skills', {
+    workspaceRoots: roots
+  })
   if (!res?.success) {
     return { status: 'failed', error: res?.message || 'sync-skills failed' }
   }
@@ -190,10 +203,13 @@ const createWorkspaceSkillCallback: ToolCallback = async (params, _signal, onUpd
     }
   }
   const fullPath = joinUnderWorkspace(root, '.metadoc', 'skills', folder, 'SKILL.md')
-  onUpdate({ content: { stage: 'writing', path: fullPath }, format: 'json' } as ToolCallbackData, {
-    percentage: 40,
-    message: 'Writing SKILL.md...'
-  } as ToolProgress)
+  onUpdate(
+    { content: { stage: 'writing', path: fullPath }, format: 'json' } as ToolCallbackData,
+    {
+      percentage: 40,
+      message: 'Writing SKILL.md...'
+    } as ToolProgress
+  )
   try {
     await messageBridge.invoke('write-file-content', { filePath: fullPath, content: markdown })
   } catch (e) {
@@ -202,7 +218,9 @@ const createWorkspaceSkillCallback: ToolCallback = async (params, _signal, onUpd
       error: e instanceof Error ? e.message : String(e)
     }
   }
-  const upsert = await messageBridge.invoke('agent-capabilities-upsert-skill-path', { path: fullPath })
+  const upsert = await messageBridge.invoke('agent-capabilities-upsert-skill-path', {
+    path: fullPath
+  })
   if (!upsert?.success) {
     return {
       status: 'failed',

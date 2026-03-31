@@ -42,11 +42,7 @@ export function isPathNotExistError(err: unknown): boolean {
       : err instanceof Error
         ? err.message
         : String(err)
-  return (
-    msg.includes('不存在') ||
-    msg.includes('not found') ||
-    msg.includes('ENOENT')
-  )
+  return msg.includes('不存在') || msg.includes('not found') || msg.includes('ENOENT')
 }
 
 /** 目录在前、文件在后，同类型按名称排序 */
@@ -69,11 +65,7 @@ function extname(filePath: string): string {
   return m ? m[0] : ''
 }
 
-export function registerNode(
-  nodeMap: NodeMap,
-  node: FileNode,
-  parent: FileNode | null
-): void {
+export function registerNode(nodeMap: NodeMap, node: FileNode, parent: FileNode | null): void {
   node.parent = parent ?? undefined
   nodeMap.set(normalizePathForCompare(node.path), node)
 }

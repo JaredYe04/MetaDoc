@@ -71,6 +71,8 @@ export interface AIDialogMessage {
   role: 'user' | 'assistant' | 'system'
   /** 消息内容 */
   content: string
+  /** 模型 reasoning 思考文本（与 content 分离；流式由适配层写入） */
+  reasoning?: string
   /** 时间戳 */
   timestamp?: number
 }

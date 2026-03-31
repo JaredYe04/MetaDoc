@@ -44,9 +44,7 @@ function getTargetAction(e: KeyboardEvent, isMac: boolean): ShortcutActionId | n
  */
 function isNativeTextInputOutsideEditor(target: HTMLElement): boolean {
   const isInInput =
-    target.tagName === 'INPUT' ||
-    target.tagName === 'TEXTAREA' ||
-    target.isContentEditable
+    target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
   if (!isInInput) return false
   return !target.closest('.vditor, .monaco-editor, .editor, [data-editor]')
 }
@@ -55,12 +53,11 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
   const { workspace, t } = options
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
 
-  function handleGlobalKeyDown(e: KeyboardEvent): void {
-    const target = e.target as HTMLElement
-    const action = getTargetAction(e, isMac)
-
-    if (!action) return
-
+  function dispatchAction(
+    action: ShortcutActionId,
+    target: HTMLElement,
+    e: KeyboardEvent | MouseEvent | WheelEvent
+  ): void {
     const inDialog = target.closest('[role="dialog"]')
     const activeId = workspace.activeTabId.value
     const activeTab = workspace.tabs.find((tab) => tab.id === activeId)
@@ -69,6 +66,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
     switch (action) {
       case 'openManual':
         e.preventDefault()
+        ;(e as any).stopPropagation?.()
         eventBus.emit('open-system-tab', {
           route: '/user-manual',
           title: t('userManual.title') || '用户手册'
@@ -77,18 +75,19 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
 
       case 'copy':
       case 'cut':
-      case 'paste':
+      case 'paste': {
         // 焦点在 Xterm 终端内时，不拦截：Ctrl+C 发 SIGINT，Ctrl+V 粘贴，Ctrl+Z 发 SIGTSTP
         const inTerminal = target.closest('.xterm, .xterm-instance')
         if (inTerminal) return
         if (isNativeTextInputOutsideEditor(target)) return
         if (!inDialog && inEditor) {
           e.preventDefault()
-          e.stopPropagation()
+          ;(e as any).stopPropagation?.()
           const command = action
           eventBus.emit('editor-command', { command, tabId: activeId })
         }
         return
+      }
 
       case 'undo':
       case 'redo':
@@ -96,7 +95,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
         if (isNativeTextInputOutsideEditor(target)) return
         if (!inDialog && inEditor) {
           e.preventDefault()
-          e.stopPropagation()
+          ;(e as any).stopPropagation?.()
           eventBus.emit('editor-command', { command: action, tabId: activeId })
         }
         return
@@ -105,7 +104,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
       case 'saveAs':
         if (!inDialog && inEditor) {
           e.preventDefault()
-          e.stopPropagation()
+          ;(e as any).stopPropagation?.()
           if (action === 'saveAs') {
             eventBus.emit('save-as', { tabId: activeId })
           } else {
@@ -117,7 +116,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
       case 'find': {
         if (isNativeTextInputOutsideEditor(target)) return
         e.preventDefault()
-        e.stopPropagation()
+        ;(e as any).stopPropagation?.()
         eventBus.emit('search-replace')
         return
       }
@@ -125,8 +124,17 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
       case 'replace': {
         if (isNativeTextInputOutsideEditor(target)) return
         e.preventDefault()
-        e.stopPropagation()
+        ;(e as any).stopPropagation?.()
         eventBus.emit('search-replace', { expandReplace: true })
+        return
+      }
+
+      case 'zoomIn':
+      case 'zoomOut':
+      case 'zoomReset': {
+        e.preventDefault()
+        ;(e as any).stopPropagation?.()
+        eventBus.emit('zoom-shortcut', { action })
         return
       }
 
@@ -135,15 +143,84 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
     }
   }
 
+  function handleGlobalKeyDown(e: KeyboardEvent): void {
+    const target = e.target as HTMLElement
+    const action = getTargetAction(e, isMac)
+
+    if (!action) return
+
+    dispatchAction(action, target, e)
+  }
+
+  function handleGlobalMouseDown(e: MouseEvent): void {
+    const target = e.target as HTMLElement
+    // 将鼠标点击映射为伪 KeyboardEvent，主键为 LeftClick / RightClick / MiddleClick ...
+    let key = ''
+    if (e.button === 0) key = 'LeftClick'
+    else if (e.button === 1) key = 'MiddleClick'
+    else if (e.button === 2) key = 'RightClick'
+    else if (e.button === 3) key = 'Button4'
+    else if (e.button === 4) key = 'Button5'
+    if (!key) return
+
+    const pseudo = {
+      key,
+      ctrlKey: e.ctrlKey,
+      shiftKey: e.shiftKey,
+      altKey: e.altKey,
+      metaKey: e.metaKey
+    } as unknown as KeyboardEvent
+    const action = getTargetAction(pseudo, isMac)
+    if (!action) return
+    dispatchAction(action, target, e)
+  }
+
+  function handleGlobalDblClick(e: MouseEvent): void {
+    const target = e.target as HTMLElement
+    const pseudo = {
+      key: 'DoubleClick',
+      ctrlKey: e.ctrlKey,
+      shiftKey: e.shiftKey,
+      altKey: e.altKey,
+      metaKey: e.metaKey
+    } as unknown as KeyboardEvent
+    const action = getTargetAction(pseudo, isMac)
+    if (!action) return
+    dispatchAction(action, target, e)
+  }
+
+  function handleGlobalWheel(e: WheelEvent): void {
+    const target = e.target as HTMLElement
+    const key = e.deltaY < 0 ? 'WheelUp' : e.deltaY > 0 ? 'WheelDown' : ''
+    if (!key) return
+    const pseudo = {
+      key,
+      ctrlKey: e.ctrlKey,
+      shiftKey: e.shiftKey,
+      altKey: e.altKey,
+      metaKey: e.metaKey
+    } as unknown as KeyboardEvent
+    const action = getTargetAction(pseudo, isMac)
+    if (!action) return
+    // 只有匹配到绑定时才拦截滚轮，避免破坏默认滚动
+    dispatchAction(action, target, e)
+  }
+
   async function register(): Promise<void> {
     await refreshShortcutBindings()
     eventBus.on('shortcut-scheme-updated', refreshShortcutBindings)
     window.addEventListener('keydown', handleGlobalKeyDown, true)
+    window.addEventListener('mousedown', handleGlobalMouseDown, true)
+    window.addEventListener('dblclick', handleGlobalDblClick, true)
+    window.addEventListener('wheel', handleGlobalWheel, { capture: true, passive: false })
   }
 
   function unregister(): void {
     eventBus.off('shortcut-scheme-updated', refreshShortcutBindings)
     window.removeEventListener('keydown', handleGlobalKeyDown, true)
+    window.removeEventListener('mousedown', handleGlobalMouseDown, true)
+    window.removeEventListener('dblclick', handleGlobalDblClick, true)
+    window.removeEventListener('wheel', handleGlobalWheel as any, true)
   }
 
   return { register, unregister, handleGlobalKeyDown }

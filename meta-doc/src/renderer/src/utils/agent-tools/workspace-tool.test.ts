@@ -4,10 +4,7 @@
  * @vitest-environment node
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  ensureDirectoryRecursive,
-  normalizePath
-} from './workspace-directory-helper'
+import { ensureDirectoryRecursive, normalizePath } from './workspace-directory-helper'
 
 describe('workspace-directory-helper', () => {
   describe('normalizePath', () => {
@@ -28,8 +25,10 @@ describe('workspace-directory-helper', () => {
       mockInvoke.mockImplementation((channel: string, arg: unknown) => {
         if (channel === 'file-exists') {
           const path = arg as string
-          if (path === 'C:/Users/tange/Documents/metadoc-agent-test/图表测试') return Promise.resolve(false)
-          if (path === 'C:/Users/tange/Documents/metadoc-agent-test/图表测试/images') return Promise.resolve(false)
+          if (path === 'C:/Users/tange/Documents/metadoc-agent-test/图表测试')
+            return Promise.resolve(false)
+          if (path === 'C:/Users/tange/Documents/metadoc-agent-test/图表测试/images')
+            return Promise.resolve(false)
           return Promise.resolve(true)
         }
         if (channel === 'create-directory') {
@@ -52,9 +51,15 @@ describe('workspace-directory-helper', () => {
       expect(r.message).toContain('目录已创建')
       expect(r.pathsCreated.length).toBeGreaterThanOrEqual(1)
       expect(r.pathsCreated).toContain('C:/Users/tange/Documents/metadoc-agent-test/图表测试')
-      const createCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'create-directory')
+      const createCalls = mockInvoke.mock.calls.filter(
+        (c: unknown[]) => c[0] === 'create-directory'
+      )
       expect(createCalls.length).toBeGreaterThanOrEqual(1)
-      expect(createCalls.some((c: unknown[]) => (c[1] as { folderName: string }).folderName === '图表测试')).toBe(true)
+      expect(
+        createCalls.some(
+          (c: unknown[]) => (c[1] as { folderName: string }).folderName === '图表测试'
+        )
+      ).toBe(true)
       expect(createCalls[0][1]).toEqual({
         parentPath: 'C:/Users/tange/Documents/metadoc-agent-test',
         folderName: '图表测试'
@@ -79,11 +84,16 @@ describe('workspace-directory-helper', () => {
         'C:/base/中文测试文件夹/images'
       ])
 
-      const createCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'create-directory')
+      const createCalls = mockInvoke.mock.calls.filter(
+        (c: unknown[]) => c[0] === 'create-directory'
+      )
       expect(createCalls).toHaveLength(3)
       expect(createCalls[0][1]).toEqual({ parentPath: 'C:', folderName: 'base' })
       expect(createCalls[1][1]).toEqual({ parentPath: 'C:/base', folderName: '中文测试文件夹' })
-      expect(createCalls[2][1]).toEqual({ parentPath: 'C:/base/中文测试文件夹', folderName: 'images' })
+      expect(createCalls[2][1]).toEqual({
+        parentPath: 'C:/base/中文测试文件夹',
+        folderName: 'images'
+      })
     })
 
     it('从未传入单个字符串给 create-directory', async () => {
@@ -101,11 +111,16 @@ describe('workspace-directory-helper', () => {
       const ipc = { invoke: mockInvoke }
       await ensureDirectoryRecursive('C:/test/图表测试', ipc)
 
-      expect(mockInvoke).toHaveBeenCalledWith('create-directory', expect.objectContaining({
-        parentPath: 'C:/test',
-        folderName: '图表测试'
-      }))
-      const badCalls = mockInvoke.mock.calls.filter((c: unknown[]) => c[0] === 'create-directory' && typeof c[1] === 'string')
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'create-directory',
+        expect.objectContaining({
+          parentPath: 'C:/test',
+          folderName: '图表测试'
+        })
+      )
+      const badCalls = mockInvoke.mock.calls.filter(
+        (c: unknown[]) => c[0] === 'create-directory' && typeof c[1] === 'string'
+      )
       expect(badCalls).toHaveLength(0)
     })
 

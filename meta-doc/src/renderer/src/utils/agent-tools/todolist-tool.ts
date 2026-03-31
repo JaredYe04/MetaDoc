@@ -388,9 +388,7 @@ async function generateTodoListWithLLM(
 ): Promise<TodoList> {
   // 从 locale_prompts 读取提示词模板
   const retryBlock =
-    retryCount > 0 && lastError
-      ? getPromptByKey('tools.todolist.retryBlock', { lastError })
-      : ''
+    retryCount > 0 && lastError ? getPromptByKey('tools.todolist.retryBlock', { lastError }) : ''
   const contextStr = context ? `上下文信息：${context}` : ''
   const systemPrompt = getPromptByKey('tools.todolist.systemPrompt', {
     input,
@@ -408,7 +406,9 @@ async function generateTodoListWithLLM(
     }
   ]
   const { handle, done } = createAiTask(
-    retryCount > 0 ? `Regenerate task list (retry ${retryCount}/${maxRetries})` : 'Generate task list',
+    retryCount > 0
+      ? `Regenerate task list (retry ${retryCount}/${maxRetries})`
+      : 'Generate task list',
     messages,
     target,
     'chat',
@@ -471,7 +471,9 @@ async function generateTodoListWithLLM(
   }
 
   if (!target.value || target.value.trim() === '') {
-    throw new Error(i18n.global.t('agent.tool.todolist.error.emptyResult', 'LLM returned empty result'))
+    throw new Error(
+      i18n.global.t('agent.tool.todolist.error.emptyResult', 'LLM returned empty result')
+    )
   }
 
   // 尝试解析JSON（带清理）
@@ -521,10 +523,13 @@ function normalizeTodoItem(item: FlexibleTodoItem, index: number): TodoItem {
     if (item.priority != null) base.priority = item.priority
     if (item.dueDate != null && item.dueDate !== '') base.dueDate = item.dueDate
     if (item.tags != null && item.tags.length > 0) base.tags = item.tags
-    if (item.dependencies != null && item.dependencies.length > 0) base.dependencies = item.dependencies
-    if (item.estimatedTime != null && item.estimatedTime !== '') base.estimatedTime = item.estimatedTime
+    if (item.dependencies != null && item.dependencies.length > 0)
+      base.dependencies = item.dependencies
+    if (item.estimatedTime != null && item.estimatedTime !== '')
+      base.estimatedTime = item.estimatedTime
     if (item.assignee != null && item.assignee !== '') base.assignee = item.assignee
-    if (item.metadata != null && Object.keys(item.metadata).length > 0) base.metadata = item.metadata
+    if (item.metadata != null && Object.keys(item.metadata).length > 0)
+      base.metadata = item.metadata
     return base
   }
   return { id: `task-${index + 1}`, title: `Task ${index + 1}`, status: 'pending' }
@@ -584,7 +589,10 @@ function buildShortResultForLlm(todoList: TodoList | null): string {
   }
   const n = todoList.items.length
   const completed = todoList.items.filter((i) => i.status === 'completed').length
-  const preview = todoList.items.slice(0, 3).map((i) => i.title).join(', ')
+  const preview = todoList.items
+    .slice(0, 3)
+    .map((i) => i.title)
+    .join(', ')
   const suffix = n > 3 ? ` ... (${n} total, ${completed} completed)` : ` (${completed} completed)`
   return `TodoList updated: ${preview}${suffix}. Do not call this tool again in this turn unless the user asks to change the plan or you have just finished a task and need to mark it complete.`
 }
@@ -1015,18 +1023,18 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         getTodoListKey(session),
         ')'
       )
-    return {
-      status: 'succeeded',
-      data: {
-        content: {
-          stage: 'completed',
-          todoList: existingTodoList
+      return {
+        status: 'succeeded',
+        data: {
+          content: {
+            stage: 'completed',
+            todoList: existingTodoList
+          },
+          format: 'json',
+          componentName: 'TodoListDisplay'
         },
-        format: 'json',
-        componentName: 'TodoListDisplay'
-      },
-      result: buildShortResultForLlm(existingTodoList)
-    }
+        result: buildShortResultForLlm(existingTodoList)
+      }
     }
     // 如果没有todolist，返回友好的提示信息（而不是错误）
     // 说明当前tab和session下还没有任务列表，需要先创建
@@ -1067,7 +1075,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     }
     return {
       status: 'failed',
-        error: createDetailedError(
+      error: createDetailedError(
         'Missing required parameter: provide one of input (for LLM-generated list), items (string array), or todoList (manual object)',
         [
           '{"input": "Write an article about AI"}  // Mode 1: auto-generate',

@@ -1161,7 +1161,10 @@
         "cut": "Cut",
         "paste": "Paste",
         "undo": "Undo",
-        "redo": "Redo"
+        "redo": "Redo",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "zoomReset": "Reset zoom"
       }
     },
     "llm": "LLM Settings",
@@ -3654,7 +3657,8 @@
       "intentRecognition": "Intent Recognition",
       "selectedTools": "Selected tools:",
       "noToolsNeeded": "No tools needed for this request.",
-      "reasoning": "Reasoning:"
+      "reasoning": "Reasoning:",
+      "reasoningBlock": "Reasoning"
     },
     "welcomeTitle": "Hello! I'm MetaDoc AI Assistant!",
     "welcomeDescription": "I'm your intelligent document writing assistant. I can help you write, edit, and polish your documents with AI-powered suggestions and corrections.",

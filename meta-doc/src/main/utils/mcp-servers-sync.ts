@@ -101,10 +101,7 @@ export async function probeMcpServersFromConfig(
     const client = new Client({ name: 'metadoc-mcp-probe', version: '1.0.0' })
     try {
       await connectClientForEntry(client, name, entry)
-      const lt = await client.listTools(
-        {},
-        { signal: AbortSignal.timeout(LIST_TOOLS_TIMEOUT_MS) }
-      )
+      const lt = await client.listTools({}, { signal: AbortSignal.timeout(LIST_TOOLS_TIMEOUT_MS) })
       const tools = lt?.tools ?? []
       results.push({ server: name, ok: true, toolCount: tools.length })
     } catch (e) {
@@ -133,7 +130,9 @@ export interface McpSyncSummary {
 /**
  * 同步：移除配置中已删除的服务工具；对每个服务连接成功后替换该服务在库中的工具列表。
  */
-export async function syncMcpToolsFromConfig(config: McpServersConfigFile): Promise<McpSyncSummary> {
+export async function syncMcpToolsFromConfig(
+  config: McpServersConfigFile
+): Promise<McpSyncSummary> {
   const names = Object.keys(config.mcpServers || {})
   deleteMcpToolsNotMatchingServerNames(names)
 
@@ -145,10 +144,7 @@ export async function syncMcpToolsFromConfig(config: McpServersConfigFile): Prom
     const client = new Client({ name: 'metadoc-mcp-sync', version: '1.0.0' })
     try {
       await connectClientForEntry(client, name, entry)
-      const lt = await client.listTools(
-        {},
-        { signal: AbortSignal.timeout(LIST_TOOLS_TIMEOUT_MS) }
-      )
+      const lt = await client.listTools({}, { signal: AbortSignal.timeout(LIST_TOOLS_TIMEOUT_MS) })
       const tools = lt?.tools ?? []
 
       deleteMcpToolsByServerName(name)

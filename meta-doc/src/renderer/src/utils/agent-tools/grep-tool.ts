@@ -776,7 +776,10 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
                   '或者指定tabId参数：{"pattern": "搜索文本", "tabId": "文档ID"}',
                   '或加入工作区搜索：{"pattern": "...", "scope": ["workspace", "document", "metadata"]}'
                 ],
-                ['grep工具可以在文档内容和元数据中搜索文本', '支持正则表达式搜索，设置isRegex: true']
+                [
+                  'grep工具可以在文档内容和元数据中搜索文本',
+                  '支持正则表达式搜索，设置isRegex: true'
+                ]
               )
             }
           }

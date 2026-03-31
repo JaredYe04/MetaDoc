@@ -41,5 +41,10 @@ export async function prepareImagesForTarget(
   if (!TARGETS_WITH_IMAGE_PROCESSING.includes(targetFormat) || !imageProcessing) {
     return markdown
   }
-  return await processMarkdownImages(markdown, imageProcessing, targetFormat as 'html' | 'md' | 'tex', docPath)
+  return await processMarkdownImages(
+    markdown,
+    imageProcessing,
+    targetFormat as 'html' | 'md' | 'tex',
+    docPath
+  )
 }

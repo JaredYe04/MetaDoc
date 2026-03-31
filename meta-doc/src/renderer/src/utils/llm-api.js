@@ -415,7 +415,7 @@ async function answerQuestionNonStream(
   const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
 
   try {
-    const { text, usage } = await generateChat({
+    const { text, reasoning, usage } = await generateChat({
       config,
       prompt,
       temperature: meta.temperature ?? config.temperature,
@@ -424,6 +424,8 @@ async function answerQuestionNonStream(
     })
     const processedText = await processThinkTag(text)
     ref.value = processedText
+    const reasoningRef = meta?.reasoningRef
+    if (reasoningRef && reasoning) reasoningRef.value = reasoning
     if (usage) {
       try {
         await recordLlmRequest(usage, selectedModel, 'completion')
@@ -459,6 +461,8 @@ async function answerQuestionStream(
 
   try {
     ref.value = ''
+    const reasoningRef = meta?.reasoningRef
+    if (reasoningRef) reasoningRef.value = ''
     const { consumeStream } = await streamChat({
       config,
       prompt,
@@ -468,7 +472,8 @@ async function answerQuestionStream(
     })
     const usage = await consumeStream(async (delta) => {
       if (delta) {
-        ref.value += delta
+        if (delta.text) ref.value += delta.text
+        if (delta.reasoning && reasoningRef) reasoningRef.value += delta.reasoning
         // 流式过程中不把 processThinkTag 结果写回 ref，避免吞字；流结束后再统一处理
       }
     })
@@ -658,7 +663,7 @@ async function continueConversationNonStream(
     sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger)
     const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
 
-    const { text, usage } = await generateChat({
+    const { text, reasoning, usage } = await generateChat({
       config,
       messages: sanitizedMsgs,
       temperature: meta.temperature ?? config.temperature,
@@ -667,6 +672,8 @@ async function continueConversationNonStream(
     })
     const processedContent = await processThinkTag(text)
     ref.value = processedContent
+    const reasoningRef = meta?.reasoningRef
+    if (reasoningRef && reasoning) reasoningRef.value = reasoning
 
     if (usage) {
       try {
@@ -717,6 +724,8 @@ async function continueConversationStream(
     const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
 
     ref.value = ''
+    const reasoningRef = meta?.reasoningRef
+    if (reasoningRef) reasoningRef.value = ''
     const { consumeStream } = await streamChat({
       config,
       messages: sanitizedMsgs,
@@ -726,7 +735,8 @@ async function continueConversationStream(
     })
     const usage = await consumeStream(async (delta) => {
       if (delta) {
-        ref.value += delta
+        if (delta.text) ref.value += delta.text
+        if (delta.reasoning && reasoningRef) reasoningRef.value += delta.reasoning
         // 流式过程中不把 processThinkTag 结果写回 ref，避免吞字；流结束后再统一处理
       }
     })
@@ -818,7 +828,9 @@ async function continueConversationWithTools(
   const onToolCallsDetected = meta?.onToolCallsDetected
 
   if (!Array.isArray(tools) || tools.length === 0 || typeof onToolCallsDetected !== 'function') {
-    logger.warn('[continueConversationWithTools] 缺少 meta.tools 或 meta.onToolCallsDetected，回退到普通流式对话')
+    logger.warn(
+      '[continueConversationWithTools] 缺少 meta.tools 或 meta.onToolCallsDetected，回退到普通流式对话'
+    )
     return continueConversationStream(conversation, ref, meta, signal, effectiveCustomConfig)
   }
 
@@ -836,6 +848,8 @@ async function continueConversationWithTools(
     const effectiveMaxTokens = getEffectiveMaxTokens(config, meta)
 
     ref.value = ''
+    const reasoningRef = meta?.reasoningRef
+    if (reasoningRef) reasoningRef.value = ''
     const reactiveMessage = meta?.reactiveMessage
     const { consumeStream } = await streamChatWithTools({
       config,
@@ -852,7 +866,13 @@ async function continueConversationWithTools(
     const FLUSH_INTERVAL_MS = 32 // ~30fps，在流式观感与性能间折中
     const streamResult = await consumeStream(async (delta) => {
       if (delta) {
-        ref.value += delta
+        if (delta.reasoning && reasoningRef) {
+          reasoningRef.value += delta.reasoning
+        }
+        if (!delta.text) {
+          return
+        }
+        ref.value += delta.text
         // 展示用 processThinkTag 结果，但不要用 processed 覆盖 ref，否则流式中途会“吞字”（ref 被缩短后下一段 delta 是追加到缩短后的串上，导致前文丢失）
         const processed = await processThinkTag(ref.value)
         if (reactiveMessage) {

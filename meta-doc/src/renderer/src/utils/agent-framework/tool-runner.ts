@@ -81,8 +81,7 @@ export class ToolRunner {
                 ? tool.config.name
                 : tool.config.name['en_us']?.name || toolId,
             status: 'failed',
-            error:
-              `MCP 工具 [${level}] 需用户确认执行：请在调用参数中加入 _mcpExecutionConfirmed: true（或由界面预注入）。`,
+            error: `MCP 工具 [${level}] 需用户确认执行：请在调用参数中加入 _mcpExecutionConfirmed: true（或由界面预注入）。`,
             params
           }
         }
@@ -138,7 +137,10 @@ export class ToolRunner {
         toolName:
           typeof tool.config.name === 'string'
             ? tool.config.name
-            : tool.config.name['en_us']?.name || tool.config.name['en_US']?.name || (tool.config.name as any)['zh_cn']?.name || toolId,
+            : tool.config.name['en_us']?.name ||
+              tool.config.name['en_US']?.name ||
+              (tool.config.name as any)['zh_cn']?.name ||
+              toolId,
         status: result.status === 'succeeded' ? 'succeeded' : 'failed',
         result: observationResult,
         error: result.error,

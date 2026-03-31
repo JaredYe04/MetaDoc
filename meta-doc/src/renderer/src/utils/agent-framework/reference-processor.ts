@@ -755,7 +755,23 @@ export function getFileTypeCategories(): FileTypeCategory[] {
 
 /** 可作为目录引用内容读取的文本类扩展名 */
 const TEXT_EXT_FOR_DIR = new Set([
-  'txt', 'md', 'markdown', 'json', 'csv', 'html', 'htm', 'xml', 'yml', 'yaml', 'js', 'ts', 'mjs', 'cjs', 'vue', 'css', 'scss'
+  'txt',
+  'md',
+  'markdown',
+  'json',
+  'csv',
+  'html',
+  'htm',
+  'xml',
+  'yml',
+  'yaml',
+  'js',
+  'ts',
+  'mjs',
+  'cjs',
+  'vue',
+  'css',
+  'scss'
 ])
 
 /**
@@ -799,7 +815,9 @@ export async function resolveDirectoryToReference(
           const ext = e.name.replace(/^.*\./, '').toLowerCase()
           if (!TEXT_EXT_FOR_DIR.has(ext)) continue
           try {
-            const content = (await messageBridge.invoke('read-file-content', e.path)) as string | null
+            const content = (await messageBridge.invoke('read-file-content', e.path)) as
+              | string
+              | null
             if (content && content.length > 0) {
               const take = Math.min(content.length, maxTotalChars - totalChars)
               parts.push(`### ${e.name}\n\n${content.slice(0, take)}`)

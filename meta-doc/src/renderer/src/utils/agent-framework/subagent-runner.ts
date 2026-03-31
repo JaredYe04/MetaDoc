@@ -63,7 +63,9 @@ export async function runSubagent(
   let publicContext: AgentSession['publicContext']
   if (parentSession.publicContext && typeof parentSession.publicContext === 'object') {
     try {
-      publicContext = JSON.parse(JSON.stringify(parentSession.publicContext)) as AgentSession['publicContext']
+      publicContext = JSON.parse(
+        JSON.stringify(parentSession.publicContext)
+      ) as AgentSession['publicContext']
     } catch {
       publicContext = { ...parentSession.publicContext, currentTime: new Date().toISOString() }
     }
@@ -95,18 +97,16 @@ export async function runSubagent(
     status: 'idle'
   }
 
-  const engine = agentEngineManager.getEngine('default-autogpt-engine') || agentEngineManager.getDefaultEngine()
+  const engine =
+    agentEngineManager.getEngine('default-autogpt-engine') || agentEngineManager.getDefaultEngine()
   if (!engine) {
     const err = '未找到可用的 Agent 引擎'
     return { subagentMessages: [], resultText: err, status: 'failed', error: err }
   }
 
-  const executor = AgentEngineExecutorFactory.create(
-    engine,
-    tempSession,
-    config as AgentConfig,
-    { signal }
-  )
+  const executor = AgentEngineExecutorFactory.create(engine, tempSession, config as AgentConfig, {
+    signal
+  })
 
   let pollTimer: ReturnType<typeof setInterval> | null = null
   if (parentInvocationId) {

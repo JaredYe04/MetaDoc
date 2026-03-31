@@ -3613,7 +3613,10 @@
         "cut": "Recortar",
         "paste": "Colar",
         "undo": "Desfazer",
-        "redo": "Refazer"
+        "redo": "Refazer",
+        "zoomIn": "Ampliar",
+        "zoomOut": "Reduzir",
+        "zoomReset": "Redefinir zoom"
       }
     },
     "cancel": "Cancelar",

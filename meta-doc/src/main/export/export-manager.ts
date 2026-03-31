@@ -1689,7 +1689,17 @@ function getErrorPlaceholderDataUrl(): string {
       const buf = fs.readFileSync(candidate)
       return `data:image/png;base64,${buf.toString('base64')}`
     }
-    const fromOut = path.join(__dirname, '..', '..', '..', 'src', 'renderer', 'src', 'assets', 'error-fallback.png')
+    const fromOut = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'src',
+      'renderer',
+      'src',
+      'assets',
+      'error-fallback.png'
+    )
     if (fs.existsSync(fromOut)) {
       const buf = fs.readFileSync(fromOut)
       return `data:image/png;base64,${buf.toString('base64')}`
@@ -1922,8 +1932,12 @@ const convertMarkdownToDocxBuffer = async (
       })
     }
 
-    const markdownBlockCount = Array.from(markdownPlaceholders.values()).filter((v) => v.display).length
-    const markdownInlineCount = Array.from(markdownPlaceholders.values()).filter((v) => !v.display).length
+    const markdownBlockCount = Array.from(markdownPlaceholders.values()).filter(
+      (v) => v.display
+    ).length
+    const markdownInlineCount = Array.from(markdownPlaceholders.values()).filter(
+      (v) => !v.display
+    ).length
 
     logger.info(
       `在 HTML 中找到 ${htmlFormulaMatches.length} 个可替换的 .language-math 元素，Markdown 中有 ${markdownPlaceholders.size} 个公式（块级：${markdownBlockCount}，行内：${markdownInlineCount}）`
@@ -1954,9 +1968,7 @@ const convertMarkdownToDocxBuffer = async (
     for (let i = orderedPlaceholderIndices.length; i < assignableAsc.length; i++) {
       const m = assignableAsc[i]
       const newIndex =
-        markdownPlaceholders.size === 0
-          ? 0
-          : Math.max(...markdownPlaceholders.keys()) + 1
+        markdownPlaceholders.size === 0 ? 0 : Math.max(...markdownPlaceholders.keys()) + 1
       markdownPlaceholders.set(newIndex, {
         latex: m.latexContent,
         display: m.isHtmlBlockTag
@@ -2556,10 +2568,7 @@ const saveMarkdownImagesToFolderStep = async (
 }
 
 /** 通用步骤：将 HTML 中的图片保存到指定文件夹并更新链接（使用相对路径 xxx.images/filename） */
-const saveHtmlImagesToFolderStep = async (
-  html: string,
-  imagesFolder: string
-): Promise<string> => {
+const saveHtmlImagesToFolderStep = async (html: string, imagesFolder: string): Promise<string> => {
   const imageUrls: string[] = []
   const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
   const matches = Array.from(html.matchAll(imgRegex))
@@ -2948,9 +2957,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
       let match
       const texDir = path.dirname(targetPath) // TEX 文件所在目录
       // 相对路径（如 ./images/a.png）以源文档目录为基准解析，以便找到真实文件并保存到 xxx.tex.images；无 sourcePath 时退化为 TEX 所在目录
-      const relativePathBaseDir = payload.sourcePath
-        ? path.dirname(payload.sourcePath)
-        : texDir
+      const relativePathBaseDir = payload.sourcePath ? path.dirname(payload.sourcePath) : texDir
 
       while ((match = graphicsRegex.exec(finalTex)) !== null) {
         const braceStart = match.index + match[0].length - 1 // 大括号 { 的位置
@@ -3012,7 +3019,9 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
                 // 相对路径（如 ./images/a.png）相对于源文档目录解析，以便找到文件并保存到 xxx.tex.images 后引用新路径
                 const absolutePath = path.resolve(relativePathBaseDir, resolvedPath)
                 imageUrlPairs.push({ original: originalPath, resolved: absolutePath })
-                logger.debug(`解析相对路径: ${resolvedPath} -> ${absolutePath} (base: ${relativePathBaseDir})`)
+                logger.debug(
+                  `解析相对路径: ${resolvedPath} -> ${absolutePath} (base: ${relativePathBaseDir})`
+                )
               }
             } catch (error) {
               // 如果解析失败，使用原始路径
@@ -3085,7 +3094,9 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
 
           imageMappings.set(result.originalUrl, relativePath)
           const pair = imageUrlPairs.find((p) => {
-            const cleaned = p.resolved.replace(/\\detokenize\{([^}]+)\}/g, '$1').replace(/\\([#%&{}_$])/g, '$1')
+            const cleaned = p.resolved
+              .replace(/\\detokenize\{([^}]+)\}/g, '$1')
+              .replace(/\\([#%&{}_$])/g, '$1')
             return cleaned === result.originalUrl
           })
           if (pair) {
@@ -3106,10 +3117,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         let fallbackIndex = 0
         for (const pair of imageUrlPairs) {
           if (imageMappings.has(pair.original)) continue
-          if (
-            !pair.resolved.startsWith('http://') &&
-            !pair.resolved.startsWith('https://')
-          )
+          if (!pair.resolved.startsWith('http://') && !pair.resolved.startsWith('https://'))
             continue
           try {
             const fallbackFileName = `error_fallback_${fallbackIndex++}.png`
@@ -3201,7 +3209,8 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       if (imageUrls.length > 0) {
         const texDir = path.dirname(targetPath)
         const texBaseName = path.basename(targetPath, path.extname(targetPath))
-        const texBaseNameSafe = texBaseName.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_') || 'images'
+        const texBaseNameSafe =
+          texBaseName.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_') || 'images'
         const imagesFolder = path.join(texDir, `${texBaseNameSafe}.tex.images`)
 
         const convertToPng =

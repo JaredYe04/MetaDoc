@@ -1620,7 +1620,10 @@ export class OMMLInsertionProcessor implements DocxProcessor {
    * 块级占位符所在 w:p 内除占位符外是否还有可见文本（或其它 w:r）。
    * 用于区分「独占一段的公式」与「列表项内：前文 + 占位符」。
    */
-  private blockParagraphSharesContentWithPlaceholder(wp: Element, placeholderRun: Element): boolean {
+  private blockParagraphSharesContentWithPlaceholder(
+    wp: Element,
+    placeholderRun: Element
+  ): boolean {
     for (let i = 0; i < wp.childNodes.length; i++) {
       const n = wp.childNodes[i]
       if (n.nodeType !== 1) continue
@@ -1951,7 +1954,10 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     // 占位符格式由本管道独占，按索引删除是确定性的，不依赖启发式。
     const serializer = new XMLSerializer()
     let serialized = serializer.serializeToString(xmlDoc)
-    const cleaned = this.stripKnownFormulaPlaceholdersFromDocumentXml(serialized, formulaPlaceholders)
+    const cleaned = this.stripKnownFormulaPlaceholdersFromDocumentXml(
+      serialized,
+      formulaPlaceholders
+    )
     context.documentXml = cleaned
     if (cleaned !== serialized) {
       modified = true
@@ -2322,17 +2328,17 @@ export class DocumentXmlFixProcessor implements DocxProcessor {
     for (let i = paragraphsToFix.length - 1; i >= 0; i--) {
       const para = paragraphsToFix[i]
       if (!para.hasAlign) {
-        const pPrMatch = updatedXml.substring(para.contentStart).match(/<w:pPr([^>]*)>([\s\S]*?)<\/w:pPr>/)
+        const pPrMatch = updatedXml
+          .substring(para.contentStart)
+          .match(/<w:pPr([^>]*)>([\s\S]*?)<\/w:pPr>/)
         if (pPrMatch) {
           const pPrStart = para.contentStart + pPrMatch.index!
           const pPrEnd = pPrStart + pPrMatch[0].length
           const pPrAttrs = pPrMatch[1]
           const pPrContent = pPrMatch[2]
           const paraEnd = updatedXml.indexOf('</w:p>', para.contentStart)
-          const paraContent =
-            paraEnd > 0 ? updatedXml.substring(para.paraStart, paraEnd + 6) : ''
-          const isImagePara =
-            paraContent.includes('<w:drawing') || paraContent.includes('<w:pict')
+          const paraContent = paraEnd > 0 ? updatedXml.substring(para.paraStart, paraEnd + 6) : ''
+          const isImagePara = paraContent.includes('<w:drawing') || paraContent.includes('<w:pict')
           const jcVal = isImagePara ? 'center' : 'left'
           const newPPrContent = `<w:jc w:val="${jcVal}"/>${pPrContent}`
           updatedXml =
@@ -2358,10 +2364,7 @@ export class DocumentXmlFixProcessor implements DocxProcessor {
     }
     for (let i = noPPrImageParas.length - 1; i >= 0; i--) {
       const { index, full } = noPPrImageParas[i]
-      const newP = full.replace(
-        /^(<w:p)([^>]*>)/,
-        `$1$2<w:pPr><w:jc w:val="center"/></w:pPr>`
-      )
+      const newP = full.replace(/^(<w:p)([^>]*>)/, `$1$2<w:pPr><w:jc w:val="center"/></w:pPr>`)
       updatedXml = updatedXml.substring(0, index) + newP + updatedXml.substring(index + full.length)
       modified = true
     }

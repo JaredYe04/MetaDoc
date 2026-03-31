@@ -51,6 +51,11 @@
                 :key="index"
                 :message="message"
                 :session-references="referenceStore"
+                :is-assistant-streaming="
+                  responding &&
+                  message.role === 'assistant' &&
+                  index === messages.filter((item) => item.role !== 'system').length - 1
+                "
                 @delete="onMsgDelete"
                 @edit="onMsgEdit"
                 @regenerate="regenerate"
@@ -235,12 +240,14 @@ const createDefaultDialog = (title: string): AIDialog => {
 
 const messages = ref<AIDialogMessage[]>(createDefaultMessages())
 const cur_resp = ref('')
+const cur_reasoning = ref('')
 const promptInput = ref('')
 const currentAiTaskHandle = ref<string | null>(null)
 const createAssistantPlaceholder = (): AIDialogMessage =>
   reactive({
     role: 'assistant',
-    content: ''
+    content: '',
+    reasoning: ''
   }) as AIDialogMessage
 const defaultTitle = t('aiChat.defaultTitle')
 
@@ -635,6 +642,7 @@ async function generateNextResponse(
 ) {
   responding.value = true
   await Promise.resolve(beforeGeneration())
+  cur_reasoning.value = ''
   //logger.log(messages.value)
   const messageCopy: AIDialogMessage[] = JSON.parse(JSON.stringify(messages.value)) // 深拷贝消息列表，因为Proxy不能直接拷贝
 
@@ -669,7 +677,7 @@ async function generateNextResponse(
     cur_resp,
     ai_types.chat,
     'ai-chat',
-    { stream: true, enableKnowledgeBase: shouldQueryKnowledgeBase }
+    { stream: true, enableKnowledgeBase: shouldQueryKnowledgeBase, reasoningRef: cur_reasoning }
   )
   currentAiTaskHandle.value = handle
   let wasCancelled = false
@@ -700,6 +708,7 @@ const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
   //logger.log(messages.value);
   promptInput.value = ''
   cur_resp.value = ''
+  cur_reasoning.value = ''
 
   // 使用传入的参数或当前状态
   const shouldQueryKnowledgeBase =
@@ -708,6 +717,7 @@ const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
       : enableKnowledgeBaseQuery.value
 
   let stopStream: WatchStopHandle | undefined
+  let stopReasoning: WatchStopHandle | undefined
   await generateNextResponse(
     () => {
       const placeholder = createAssistantPlaceholder()
@@ -719,17 +729,26 @@ const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
         },
         { immediate: true }
       )
+      stopReasoning = watch(
+        cur_reasoning,
+        (value) => {
+          placeholder.reasoning = value
+        },
+        { immediate: true }
+      )
     },
     cur_resp,
     async () => {
       stopStream?.()
+      stopReasoning?.()
       // 如果最后一个消息是placeholder（空内容），用实际内容替换它
       if (messages.value.length > 0) {
         const lastMessage = messages.value[messages.value.length - 1]
         if (lastMessage.role === 'assistant' && lastMessage.content === '') {
           // 这是一个placeholder，用cur_resp的内容替换它
           lastMessage.content = cur_resp.value
-          if (!cur_resp.value.trim()) {
+          lastMessage.reasoning = cur_reasoning.value
+          if (!cur_resp.value.trim() && !cur_reasoning.value.trim()) {
             // 如果没有内容，移除placeholder消息
             messages.value.pop()
           }
@@ -738,7 +757,8 @@ const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
           messages.value.pop()
           const assistantMessage: AIDialogMessage = {
             role: 'assistant',
-            content: cur_resp.value
+            content: cur_resp.value,
+            reasoning: cur_reasoning.value || undefined
           }
           messages.value.push(assistantMessage)
         }
@@ -746,7 +766,7 @@ const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
 
       //bindCode(false);
       //logger.log(messages.value);
-      if (cur_resp.value.trim()) {
+      if (cur_resp.value.trim() || cur_reasoning.value.trim()) {
         updateCurrentDialog(null, true) // AI生成新回复时，移到最前面
         updateTitle()
       }
@@ -962,7 +982,9 @@ const onMsgDelete = (index: number) => {
 const regenerate = async (index: number) => {
   messages.value.splice(index + 1)
   cur_resp.value = ''
+  cur_reasoning.value = ''
   let stopStream: WatchStopHandle | undefined
+  let stopReasoning: WatchStopHandle | undefined
   await generateNextResponse(
     () => {
       const placeholder = createAssistantPlaceholder()
@@ -974,17 +996,26 @@ const regenerate = async (index: number) => {
         },
         { immediate: true }
       )
+      stopReasoning = watch(
+        cur_reasoning,
+        (value) => {
+          placeholder.reasoning = value
+        },
+        { immediate: true }
+      )
     },
     cur_resp,
     () => {
       stopStream?.()
+      stopReasoning?.()
       // 如果最后一个消息是placeholder（空内容），用实际内容替换它
       if (messages.value.length > 0) {
         const lastMessage = messages.value[messages.value.length - 1]
         if (lastMessage.role === 'assistant' && lastMessage.content === '') {
           // 这是一个placeholder，用cur_resp的内容替换它
           lastMessage.content = cur_resp.value
-          if (!cur_resp.value.trim()) {
+          lastMessage.reasoning = cur_reasoning.value
+          if (!cur_resp.value.trim() && !cur_reasoning.value.trim()) {
             // 如果没有内容，移除placeholder消息
             messages.value.pop()
           }
@@ -994,6 +1025,7 @@ const regenerate = async (index: number) => {
           const assistantMessage: AIDialogMessage = {
             role: 'assistant',
             content: cur_resp.value,
+            reasoning: cur_reasoning.value || undefined,
             timestamp: Date.now() // 记录AI回复时间
           }
           messages.value.push(assistantMessage)

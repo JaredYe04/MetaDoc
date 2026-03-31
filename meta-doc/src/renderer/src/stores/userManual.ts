@@ -137,7 +137,9 @@ async function loadArticleContent(articleId: string, locale: string): Promise<st
     if (moduleKey && manualModules[moduleKey]) {
       console.log('[userManual store] Found module:', moduleKey)
       const content = manualModules[moduleKey]
-      return typeof content === 'string' ? content : (content && (content as { default?: string }).default) ?? ''
+      return typeof content === 'string'
+        ? content
+        : ((content && (content as { default?: string }).default) ?? '')
     }
 
     console.warn(`[userManual store] 未找到文档: ${filePath}`, {

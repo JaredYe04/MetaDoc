@@ -131,7 +131,10 @@ describe('工具调用解析器 parseToolCalls', () => {
         output_file: '科技趨勢.md'
       })
       expect(result![1].tool_id).toBe('subagent-doc-writer')
-      expect(result![1].parameters).toEqual({ prompt: "創建 '健康生活.md'", output_file: '健康生活.md' })
+      expect(result![1].parameters).toEqual({
+        prompt: "創建 '健康生活.md'",
+        output_file: '健康生活.md'
+      })
     })
 
     it('裸 JSON 含 subagents 数组（无代码块）', () => {
@@ -144,8 +147,7 @@ describe('工具调用解析器 parseToolCalls', () => {
     })
 
     it('支持 item 中 tool_id / subagent 指定 subagent', () => {
-      const input =
-        '{"subagents": [{"task": "读工作区", "tool_id": "subagent-workspace-reader"}]}'
+      const input = '{"subagents": [{"task": "读工作区", "tool_id": "subagent-workspace-reader"}]}'
       const result = norm(parseToolCalls(input))
       expect(result).not.toBeNull()
       expect(result!.length).toBe(1)

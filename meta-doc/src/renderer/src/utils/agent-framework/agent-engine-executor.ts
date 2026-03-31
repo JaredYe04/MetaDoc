@@ -188,10 +188,13 @@ export abstract class BaseEngineExecutor {
 
       if (fullSpec) {
         session.activeToolSpecs.set(toolId, fullSpec)
-        getLogger().debug(`[processIntentAndUpdateSpecs] 已注入工具/Subagent ${toolId} 的fullSpec`, {
-          toolId,
-          fullSpecLength: fullSpec.length
-        })
+        getLogger().debug(
+          `[processIntentAndUpdateSpecs] 已注入工具/Subagent ${toolId} 的fullSpec`,
+          {
+            toolId,
+            fullSpecLength: fullSpec.length
+          }
+        )
       } else {
         getLogger().warn(`[processIntentAndUpdateSpecs] 工具 ${toolId} 没有找到fullSpec`)
       }
@@ -454,10 +457,8 @@ export abstract class BaseEngineExecutor {
     if (!useNativeTools) {
       prompt +=
         '- **Important**: When calling tools, the parameter content in the marker format will not be displayed to users, it will only be processed internally by the system\n'
-      prompt +=
-        '\n## ⚠️ Strict tool-call format (text fallback only)\n'
-      prompt +=
-        '- **You MUST use only this format** when tools are invoked via text:\n'
+      prompt += '\n## ⚠️ Strict tool-call format (text fallback only)\n'
+      prompt += '- **You MUST use only this format** when tools are invoked via text:\n'
       prompt +=
         '  `<tool_call>\n{"name": "<tool_id>", "arguments": {"param": "value"}}\n</tool_call>`\n'
       prompt +=
@@ -554,11 +555,9 @@ export abstract class BaseEngineExecutor {
           })
         } else {
           // 无效块（如正文中举例导致误匹配）：仅打日志，不加入列表，避免误执行并报错
-          getLogger().debug(
-            '[parseMarkedToolCalls] 跳过无效块（不当作工具调用）:',
-            parsed.error,
-            { rawPreview: (parsed.rawContent || '').slice(0, 80) }
-          )
+          getLogger().debug('[parseMarkedToolCalls] 跳过无效块（不当作工具调用）:', parsed.error, {
+            rawPreview: (parsed.rawContent || '').slice(0, 80)
+          })
         }
       }
 
@@ -646,7 +645,9 @@ export abstract class BaseEngineExecutor {
           return `${tc.tool_id}:${canonical}`
         }
         const existingSignatures = new Set(
-          existingToolCalls.map((tc: any) => getSignature({ tool_id: tc.tool_id, parameters: tc.parameters || {} }))
+          existingToolCalls.map((tc: any) =>
+            getSignature({ tool_id: tc.tool_id, parameters: tc.parameters || {} })
+          )
         )
 
         // 过滤出新的工具调用（按 id 与 签名 双重去重）
@@ -889,7 +890,8 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         role: 'assistant' as const,
         type: 'chat' as const,
         timestamp: new Date().toISOString(),
-        markdown: ''
+        markdown: '',
+        reasoning: ''
       }) as ChatAgentMessage
 
       // 立即添加到消息列表，这样消息气泡就会立即显示
@@ -1014,7 +1016,8 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           role: 'assistant' as const,
           type: 'chat' as const,
           timestamp: new Date().toISOString(),
-          markdown: ''
+          markdown: '',
+          reasoning: ''
         }) as ChatAgentMessage
 
         // 立即添加到消息列表
@@ -1201,7 +1204,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         role: 'assistant' as const,
         type: 'chat' as const,
         timestamp: new Date().toISOString(),
-        markdown: ''
+        markdown: '',
+        reasoning: ''
       }) as ChatAgentMessage
 
       // 立即添加到消息列表，这样消息气泡就会立即显示
@@ -1263,7 +1267,10 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
 
       const existingToolCallsInMessage = (assistantMessage as any).tool_calls || []
       const existingToolCallIds = new Set(existingToolCallsInMessage.map((tc: any) => tc.id))
-      const getSignatureForDedup = (tc: { tool_id: string; parameters: Record<string, unknown> }) => {
+      const getSignatureForDedup = (tc: {
+        tool_id: string
+        parameters: Record<string, unknown>
+      }) => {
         const canonical =
           typeof tc.parameters === 'object' && tc.parameters !== null
             ? JSON.stringify(tc.parameters, Object.keys(tc.parameters).sort())
@@ -1286,14 +1293,20 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         getLogger().debug('[AutoGPT] 使用 assistantMessage.tool_calls（原生 tools 或流式已写入）', {
           toolCallsCount: toolCalls.length
         })
-      } else if (toolCallsDetectedDuringStream && detectedToolCalls !== null && detectedToolCalls.length > 0) {
+      } else if (
+        toolCallsDetectedDuringStream &&
+        detectedToolCalls !== null &&
+        detectedToolCalls.length > 0
+      ) {
         // 流式过程中检测到但 message 尚未写入的兜底（如旧路径）
         toolCalls = detectedToolCalls.map((tc) => ({
           id: tc.id,
           tool_id: tc.tool_id,
           parameters: tc.parameters
         }))
-        getLogger().debug('[AutoGPT] 使用流式检测到的 toolCalls（兜底）', { toolCallsCount: toolCalls.length })
+        getLogger().debug('[AutoGPT] 使用流式检测到的 toolCalls（兜底）', {
+          toolCallsCount: toolCalls.length
+        })
       }
 
       if (toolCalls === null || toolCalls.length === 0) {
@@ -1309,7 +1322,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           // 过滤出新的工具调用（按 id 与 签名 双重去重，避免同一逻辑调用执行多次）
           const newToolCalls = parsedToolCalls.filter(
             (tc) =>
-              !existingToolCallIds.has(tc.id) && !existingSignaturesInMessage.has(getSignatureForDedup(tc))
+              !existingToolCallIds.has(tc.id) &&
+              !existingSignaturesInMessage.has(getSignatureForDedup(tc))
           )
 
           if (newToolCalls.length > 0) {
@@ -1565,11 +1579,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
             for (let i = currentMessageIndex + 1; i < this.session.messages.length; i++) {
               const msg = this.session.messages[i]
               const matchId = (msg as any).tool_call_id ?? (msg as any).invocationId
-              if (
-                msg.type === 'tool' &&
-                msg.role === 'tool' &&
-                matchId === toolCall.id
-              ) {
+              if (msg.type === 'tool' && msg.role === 'tool' && matchId === toolCall.id) {
                 const toolMsg = msg as any
                 const toolName = toolMsg.tool?.name || toolCall.tool_id
                 const status = toolMsg.status === 'succeeded' ? '成功' : '失败'
@@ -1779,7 +1789,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           role: 'assistant' as const,
           type: 'chat' as const,
           timestamp: new Date().toISOString(),
-          markdown: ''
+          markdown: '',
+          reasoning: ''
         }) as ChatAgentMessage
 
         // 立即添加到消息列表
@@ -1885,7 +1896,8 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
       role: 'assistant' as const,
       type: 'chat' as const,
       timestamp: new Date().toISOString(),
-      markdown: ''
+      markdown: '',
+      reasoning: ''
     }) as ChatAgentMessage
 
     // 立即添加到消息列表，这样消息气泡就会立即显示
@@ -2044,7 +2056,8 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       role: 'assistant' as const,
       type: 'chat' as const,
       timestamp: new Date().toISOString(),
-      markdown: ''
+      markdown: '',
+      reasoning: ''
     }) as ChatAgentMessage
 
     // 立即添加到消息列表

@@ -5,7 +5,12 @@
 
 import type { AgentMessage, ChatAgentMessage } from '../../types/agent'
 import type { AgentSession as LegacyAgentSession } from '../../types/agent'
-import type { AgentSession, Reference, PublicContext, AgentEngine } from '../../types/agent-framework'
+import type {
+  AgentSession,
+  Reference,
+  PublicContext,
+  AgentEngine
+} from '../../types/agent-framework'
 import type { AgentConfig } from '../../types/agent-framework'
 import { createRendererLogger } from '../logger'
 import { LlmAdapter } from './llm-adapter'
@@ -20,9 +25,11 @@ function resolveToolDisplayNameForSynthetic(toolId: string): string {
     const n = tool?.config?.name
     if (typeof n === 'string') return n
     if (n && typeof n === 'object') {
-      return (n as { zh_cn?: { name?: string }; en_us?: { name?: string } }).zh_cn?.name ||
+      return (
+        (n as { zh_cn?: { name?: string }; en_us?: { name?: string } }).zh_cn?.name ||
         (n as { en_us?: { name?: string } }).en_us?.name ||
         toolId
+      )
     }
   } catch {
     /* ignore */
@@ -58,12 +65,7 @@ export interface LlmMessage {
 }
 
 /** 上下文组成部分 ID（用于 i18n 与 UI） */
-export const CONTEXT_PART_IDS = [
-  'systemPrompt',
-  'references',
-  'summary',
-  'history'
-] as const
+export const CONTEXT_PART_IDS = ['systemPrompt', 'references', 'summary', 'history'] as const
 
 export type ContextPartId = (typeof CONTEXT_PART_IDS)[number]
 
@@ -377,10 +379,7 @@ export class AIContextManager {
     if (!sessionAny.contextState) {
       sessionAny.contextState = {}
     }
-    const endIndex = Math.max(
-      0,
-      session.messages.length - CONTEXT_CONFIG.recentMessagesDefault
-    )
+    const endIndex = Math.max(0, session.messages.length - CONTEXT_CONFIG.recentMessagesDefault)
     if (endIndex <= 0) return
 
     const lastSummaryIndex = sessionAny.contextState.lastSummaryIndex ?? 0
@@ -400,7 +399,8 @@ export class AIContextManager {
       } else if (msg.role === 'tool' && msg.type === 'tool') {
         const name = (msg as any).tool?.name || (msg as any).tool?.id || 'tool'
         const t = (msg as any).markdown || (msg as any).summary || ''
-        line = 'Tool (' + name + '): ' + (t.length > maxLineLen ? t.slice(0, maxLineLen) + '...' : t)
+        line =
+          'Tool (' + name + '): ' + (t.length > maxLineLen ? t.slice(0, maxLineLen) + '...' : t)
       }
       if (line) historyLines.push(line)
     }
@@ -413,7 +413,10 @@ export class AIContextManager {
       const summary = await LlmAdapter.callChat(
         llmConfig,
         [
-          { role: 'system', content: 'You summarize conversation history. Output only the summary, no preamble.' },
+          {
+            role: 'system',
+            content: 'You summarize conversation history. Output only the summary, no preamble.'
+          },
           { role: 'user', content: prompt }
         ],
         { temperature: 0.3, maxTokens: 800, stream: false, signal }
@@ -554,8 +557,7 @@ export class AIContextManager {
 
     // AgentConfig 的系统提示词：优先从 locale_prompts 的 systemPromptKey 解析，否则用内联 systemPrompt
     const systemPromptKey = agentConfig.llmConfig?.systemPromptKey
-    const systemPromptFromLocale =
-      systemPromptKey ? getPromptByKey(systemPromptKey) : ''
+    const systemPromptFromLocale = systemPromptKey ? getPromptByKey(systemPromptKey) : ''
     const baseSystemPrompt =
       (systemPromptFromLocale && systemPromptFromLocale.trim()) ||
       agentConfig.llmConfig?.systemPrompt ||
@@ -785,10 +787,7 @@ export class AIContextManager {
           // 发送给 AI 时把闭合 tag @[path] 转成 @path，便于模型理解
           const rawContent = msg.markdown || ''
           let contentForLlm = rawContent.replace(/@\[([^\]]+)\]/g, '@$1')
-          contentForLlm = this.appendUserChatAttachmentHints(
-            contentForLlm,
-            msg as ChatAgentMessage
-          )
+          contentForLlm = this.appendUserChatAttachmentHints(contentForLlm, msg as ChatAgentMessage)
           llmMessages.push({
             role: msg.role,
             content: contentForLlm
@@ -1051,8 +1050,7 @@ export class AIContextManager {
       const last = llmMessages[llmMessages.length - 1] as any
       if (last.role === 'assistant') {
         const content = last.content
-        const isEmpty =
-          content == null || (typeof content === 'string' && !String(content).trim())
+        const isEmpty = content == null || (typeof content === 'string' && !String(content).trim())
         const noToolCalls = !Array.isArray(last.tool_calls) || last.tool_calls.length === 0
         if (isEmpty && noToolCalls) {
           llmMessages.pop()
@@ -1363,9 +1361,7 @@ export class AIContextManager {
         const id = tc?.id
         if (!id || typeof id !== 'string') continue
         const toolId =
-          tc.tool_id ||
-          (typeof tc.function?.name === 'string' ? tc.function.name : '') ||
-          'unknown'
+          tc.tool_id || (typeof tc.function?.name === 'string' ? tc.function.name : '') || 'unknown'
         needed.set(id, { toolId })
       }
       let insertAt = i + 1
@@ -1474,7 +1470,13 @@ export class AIContextManager {
       outputs.push({
         id: 'result',
         label: '结果',
-        format: (callbackData.format || 'json') as 'text' | 'json' | 'markdown' | 'html' | 'table' | 'custom',
+        format: (callbackData.format || 'json') as
+          | 'text'
+          | 'json'
+          | 'markdown'
+          | 'html'
+          | 'table'
+          | 'custom',
         data: callbackData.content,
         renderer: rendererName
       })

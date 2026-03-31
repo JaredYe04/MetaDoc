@@ -319,12 +319,12 @@ class AgentConfigManager {
       return []
     }
 
-    const fromCollections = toolCollectionManager.getToolIdsFromCollections(config.toolCollectionIds)
+    const fromCollections = toolCollectionManager.getToolIdsFromCollections(
+      config.toolCollectionIds
+    )
     const mcpIds = agentToolManager
       .getAllTools()
-      .filter(
-        (t) => t.config.origin === 'mcp' && t.config.id.startsWith(MCP_AGENT_TOOL_ID_PREFIX)
-      )
+      .filter((t) => t.config.origin === 'mcp' && t.config.id.startsWith(MCP_AGENT_TOOL_ID_PREFIX))
       .map((t) => t.config.id)
     return Array.from(new Set([...fromCollections, ...mcpIds]))
   }

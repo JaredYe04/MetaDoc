@@ -213,10 +213,7 @@ export function bindAgentCapabilitiesHandlers(): void {
         const mcpTools = searchMcpToolsByVector(vector, topKMcp, q)
         let knowledgeSnippets: string[] = []
         if (topKnowledge > 0) {
-          const snippets = await ragService.queryKnowledgeBase(
-            q,
-            params.knowledgeThreshold ?? 0.45
-          )
+          const snippets = await ragService.queryKnowledgeBase(q, params.knowledgeThreshold ?? 0.45)
           knowledgeSnippets = snippets.slice(0, topKnowledge)
         }
         return { success: true, skills, mcpTools, knowledgeSnippets }
@@ -257,14 +254,21 @@ export function bindAgentCapabilitiesHandlers(): void {
     }
   })
 
-  ipcBridge.registerHandle('agent-capabilities-list-skill-summaries', async (_e, params?: { status?: 'draft' | 'active' }) => {
-    try {
-      const summaries = listSkillSummaries(params?.status)
-      return { success: true, summaries }
-    } catch (e) {
-      return { success: false, message: e instanceof Error ? e.message : String(e), summaries: [] }
+  ipcBridge.registerHandle(
+    'agent-capabilities-list-skill-summaries',
+    async (_e, params?: { status?: 'draft' | 'active' }) => {
+      try {
+        const summaries = listSkillSummaries(params?.status)
+        return { success: true, summaries }
+      } catch (e) {
+        return {
+          success: false,
+          message: e instanceof Error ? e.message : String(e),
+          summaries: []
+        }
+      }
     }
-  })
+  )
 
   ipcBridge.registerHandle('agent-capabilities-list-mcp-tools', async () => {
     try {
@@ -286,30 +290,37 @@ export function bindAgentCapabilitiesHandlers(): void {
     }
   )
 
-  ipcBridge.registerHandle('agent-capabilities-upsert-skill-path', async (_e, params: { path: string }) => {
-    try {
-      const r = await upsertSkillFromSkillMdPath(params.path, async (text) => {
-        const e = await ragService.embedForAgentCapabilities(text)
-        return e.vector
-      })
-      return {
-        success: r.ok,
-        skillIndexId: r.skillIndexId,
-        message: r.error
-      }
-    } catch (e) {
-      return {
-        success: false,
-        message: e instanceof Error ? e.message : String(e)
+  ipcBridge.registerHandle(
+    'agent-capabilities-upsert-skill-path',
+    async (_e, params: { path: string }) => {
+      try {
+        const r = await upsertSkillFromSkillMdPath(params.path, async (text) => {
+          const e = await ragService.embedForAgentCapabilities(text)
+          return e.vector
+        })
+        return {
+          success: r.ok,
+          skillIndexId: r.skillIndexId,
+          message: r.error
+        }
+      } catch (e) {
+        return {
+          success: false,
+          message: e instanceof Error ? e.message : String(e)
+        }
       }
     }
-  })
+  )
 
   ipcBridge.registerHandle('agent-capabilities-list-mcp-connections', async () => {
     try {
       return { success: true, connections: listMcpConnections(), active: getActiveMcpConnection() }
     } catch (e) {
-      return { success: false, message: e instanceof Error ? e.message : String(e), connections: [] }
+      return {
+        success: false,
+        message: e instanceof Error ? e.message : String(e),
+        connections: []
+      }
     }
   })
 
@@ -337,23 +348,29 @@ export function bindAgentCapabilitiesHandlers(): void {
     }
   )
 
-  ipcBridge.registerHandle('agent-capabilities-delete-mcp-connection', async (_e, params: { id: number }) => {
-    try {
-      deleteMcpConnection(params.id)
-      return { success: true }
-    } catch (e) {
-      return { success: false, message: e instanceof Error ? e.message : String(e) }
+  ipcBridge.registerHandle(
+    'agent-capabilities-delete-mcp-connection',
+    async (_e, params: { id: number }) => {
+      try {
+        deleteMcpConnection(params.id)
+        return { success: true }
+      } catch (e) {
+        return { success: false, message: e instanceof Error ? e.message : String(e) }
+      }
     }
-  })
+  )
 
-  ipcBridge.registerHandle('agent-capabilities-set-active-mcp-connection', async (_e, params: { id: number }) => {
-    try {
-      setActiveMcpConnection(params.id)
-      return { success: true, active: getActiveMcpConnection() }
-    } catch (e) {
-      return { success: false, message: e instanceof Error ? e.message : String(e) }
+  ipcBridge.registerHandle(
+    'agent-capabilities-set-active-mcp-connection',
+    async (_e, params: { id: number }) => {
+      try {
+        setActiveMcpConnection(params.id)
+        return { success: true, active: getActiveMcpConnection() }
+      } catch (e) {
+        return { success: false, message: e instanceof Error ? e.message : String(e) }
+      }
     }
-  })
+  )
 
   ipcBridge.registerHandle('agent-mcp-get-config', async () => {
     try {
@@ -406,24 +423,27 @@ export function bindAgentCapabilitiesHandlers(): void {
     }
   })
 
-  ipcBridge.registerHandle('agent-mcp-sync-tools-from-config', async (_e, params: { content: string }) => {
-    try {
-      const v = validateMcpServersConfigText(params.content || '')
-      if (!v.ok || !v.parsed) {
-        return { success: false, errors: v.errors, servers: [], registeredTotal: 0 }
-      }
-      const summary = await syncMcpToolsFromConfig(v.parsed)
-      return { success: true, ...summary }
-    } catch (e) {
-      logger.error('agent-mcp-sync-tools-from-config failed', e as Error)
-      return {
-        success: false,
-        message: e instanceof Error ? e.message : String(e),
-        servers: [],
-        registeredTotal: 0
+  ipcBridge.registerHandle(
+    'agent-mcp-sync-tools-from-config',
+    async (_e, params: { content: string }) => {
+      try {
+        const v = validateMcpServersConfigText(params.content || '')
+        if (!v.ok || !v.parsed) {
+          return { success: false, errors: v.errors, servers: [], registeredTotal: 0 }
+        }
+        const summary = await syncMcpToolsFromConfig(v.parsed)
+        return { success: true, ...summary }
+      } catch (e) {
+        logger.error('agent-mcp-sync-tools-from-config failed', e as Error)
+        return {
+          success: false,
+          message: e instanceof Error ? e.message : String(e),
+          servers: [],
+          registeredTotal: 0
+        }
       }
     }
-  })
+  )
 
   /** Agent 运行时：按已保存的 mcp-servers.json 调用 MCP 工具（与同步使用的配置源一致） */
   ipcBridge.registerHandle(
@@ -456,24 +476,29 @@ export function bindAgentCapabilitiesHandlers(): void {
   )
 
   /** 用户确认后将草稿技能激活并重建向量 */
-  ipcBridge.registerHandle('agent-capabilities-activate-skill', async (_e, params: { id: number }) => {
-    try {
-      const row = getSkillById(params.id)
-      if (!row) throw new Error('Skill not found')
-      execute(
-        `UPDATE agent_skills_index SET status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        [params.id]
-      )
-      if (fs.existsSync(row.full_path)) {
-        const content = fs.readFileSync(row.full_path, 'utf-8')
-        const meta = parseSkillMd(content)
-        const embedText = [meta.name, meta.description, meta.tags.join(' ')].filter(Boolean).join('\n')
-        const { vector } = await ragService.embedForAgentCapabilities(embedText)
-        setSkillEmbedding(params.id, vector)
+  ipcBridge.registerHandle(
+    'agent-capabilities-activate-skill',
+    async (_e, params: { id: number }) => {
+      try {
+        const row = getSkillById(params.id)
+        if (!row) throw new Error('Skill not found')
+        execute(
+          `UPDATE agent_skills_index SET status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [params.id]
+        )
+        if (fs.existsSync(row.full_path)) {
+          const content = fs.readFileSync(row.full_path, 'utf-8')
+          const meta = parseSkillMd(content)
+          const embedText = [meta.name, meta.description, meta.tags.join(' ')]
+            .filter(Boolean)
+            .join('\n')
+          const { vector } = await ragService.embedForAgentCapabilities(embedText)
+          setSkillEmbedding(params.id, vector)
+        }
+        return { success: true }
+      } catch (e) {
+        return { success: false, message: e instanceof Error ? e.message : String(e) }
       }
-      return { success: true }
-    } catch (e) {
-      return { success: false, message: e instanceof Error ? e.message : String(e) }
     }
-  })
+  )
 }

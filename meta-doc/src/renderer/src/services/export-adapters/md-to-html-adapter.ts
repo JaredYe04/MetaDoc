@@ -98,12 +98,7 @@ export class MdToHtmlAdapter extends BaseExportAdapter<'md', 'html', HtmlExportO
     markdown = await preRenderCharts(markdown, { format: 'svg', progressCallback })
     markdown = await prepareMathForTarget(markdown, 'html')
     markdown = await ensureLocal2HttpForTarget(markdown, 'html', docPath)
-    markdown = await prepareImagesForTarget(
-      markdown,
-      'html',
-      options.imageProcessing,
-      docPath
-    )
+    markdown = await prepareImagesForTarget(markdown, 'html', options.imageProcessing, docPath)
 
     const convertToBase64 = options.imageProcessing === 'base64'
     let html = await ConvertMarkdownToHtmlManually(markdown, convertToBase64)

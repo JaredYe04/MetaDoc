@@ -243,6 +243,8 @@ const props = withDefaults(
 
 const isActive = toRef(props, 'active')
 
+let handleZoomShortcut: ((payload?: unknown) => void) | null = null
+
 const documentRef = computed(() => workspace.ensureDocument(props.tabId))
 
 const graphQuickDocumentTitle = computed(() => documentRef.value.meta?.title?.trim() || '')
@@ -2755,6 +2757,33 @@ onMounted(async () => {
       },
       getTitleIndex: () => titleIndex.value as TitleIndex | null
     })
+
+    handleZoomShortcut = (payload?: unknown) => {
+      const p = payload as { action?: 'zoomIn' | 'zoomOut' | 'zoomReset' } | undefined
+      if (!p?.action) return
+      if (!isActive.value) return
+      const inst = vditor.value as any
+      const ed = inst?.vditor
+      if (!ed) return
+
+      // vditor 内部维护 fontSize（部分版本支持 setFontSize；没有则降级到 options.fontSize）
+      const getFontSize = () => {
+        const cur = Number(ed?.options?.fontSize)
+        return Number.isFinite(cur) && cur > 0 ? cur : 16
+      }
+      const setFontSize = (size: number) => {
+        if (typeof inst?.setFontSize === 'function') inst.setFontSize(size)
+        else if (ed?.options) ed.options.fontSize = size
+      }
+
+      if (p.action === 'zoomReset') {
+        setFontSize(16)
+      } else {
+        const delta = p.action === 'zoomIn' ? 1 : -1
+        setFontSize(Math.max(10, Math.min(32, getFontSize() + delta)))
+      }
+    }
+    eventBus.on('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
   } catch (e) {
     logger.error(e)
     eventBus.emit('show-error', t('article.vditor_init_failed') + e)
@@ -2785,6 +2814,10 @@ onBeforeUnmount(() => {
   eventBus.off('refresh', handleRefresh)
   eventBus.off('sync-active-editor')
   eventBus.off('editor-command', handleEditorCommand as (payload?: unknown) => void)
+  if (handleZoomShortcut) {
+    eventBus.off('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+    handleZoomShortcut = null
+  }
   eventBus.off('search-replace')
   eventBus.off('vditor-sync-with-html', handleSyncWithHtml)
   eventBus.off('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)

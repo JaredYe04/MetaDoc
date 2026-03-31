@@ -21,6 +21,8 @@ export interface GenerateChatOptions {
 
 export interface GenerateChatResult {
   text: string
+  /** 模型在 reasoning 通道输出的思考文本（非流式；仅部分模型有） */
+  reasoning: string
   usage: UsageStats | null
 }
 
@@ -31,22 +33,22 @@ export async function generateChat(options: GenerateChatOptions): Promise<Genera
   const { config, temperature, maxTokens, abortSignal } = options
   const model = getModelFromConfig(config)
 
-  const genOptions: Parameters<typeof generateText>[0] = {
+  const base = {
     model,
     temperature: temperature ?? config.temperature,
-    maxTokens: maxTokens ?? (config.enableMaxTokens ? config.maxTokens : undefined),
+    maxOutputTokens: maxTokens ?? (config.enableMaxTokens ? config.maxTokens : undefined),
     abortSignal
   }
 
-  if (options.prompt !== undefined) {
-    genOptions.prompt = options.prompt
-  } else if (options.messages !== undefined && options.messages.length > 0) {
-    genOptions.messages = toAISDKMessages(options.messages)
-  } else {
-    throw new Error('generateChat: 需要提供 prompt 或 messages')
-  }
-
-  const result = await generateText(genOptions)
+  const result = await generateText(
+    options.prompt !== undefined
+      ? { ...base, prompt: options.prompt }
+      : options.messages !== undefined && options.messages.length > 0
+        ? { ...base, messages: toAISDKMessages(options.messages) }
+        : (() => {
+            throw new Error('generateChat: 需要提供 prompt 或 messages')
+          })()
+  )
 
   const usage: UsageStats | null = result.usage
     ? {
@@ -58,6 +60,7 @@ export async function generateChat(options: GenerateChatOptions): Promise<Genera
 
   return {
     text: result.text ?? '',
+    reasoning: result.reasoningText?.trim() ? result.reasoningText : '',
     usage
   }
 }

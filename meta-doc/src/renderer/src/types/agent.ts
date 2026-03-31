@@ -40,6 +40,8 @@ export interface UserMessageInlineReferenceSnippet {
 export interface ChatAgentMessage extends AgentMessageBase {
   type: 'chat'
   markdown: string
+  /** 模型 reasoning 通道的思考文本（与 markdown 正文分离；由 LLM 适配层流式填充） */
+  reasoning?: string
   tool_calls?: Array<{
     id: string
     tool_id: string
@@ -56,6 +58,8 @@ export interface ChatAgentMessage extends AgentMessageBase {
 export interface ThoughtAgentMessage extends AgentMessageBase {
   type: 'thought'
   markdown: string
+  /** 与 chat 一致：reasoning 与正文分离展示 */
+  reasoning?: string
 }
 
 export interface ToolAgentMessage extends AgentMessageBase {

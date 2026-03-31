@@ -2003,7 +2003,11 @@ export async function ConvertMarkdownToHtmlVditor(md) {
  * @param convertImagesToBase64 - 是否将图片转为 base64
  * @param docPath - 可选，当前文档路径，用于解析相对图片路径（如 images/xxx.png）
  */
-export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = true, docPath = '') {
+export async function ConvertMarkdownToHtmlManually(
+  md,
+  convertImagesToBase64 = true,
+  docPath = ''
+) {
   const contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
   const codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
   const lineNumber = await getSetting('lineNumber')
@@ -2056,7 +2060,10 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
             // 本地路径：先转换为HTTP URL（传入 docPath 以便解析相对路径如 images/xxx.png）
             try {
               const { local2httpProtocol } = await import('./md-utils')
-              const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, docPath || '')
+              const converted = await local2httpProtocol(
+                `![${altText}](${imageUrl})`,
+                docPath || ''
+              )
               const match = converted.match(/!\[.*?\]\((.*?)\)/)
               if (match && match[1] && match[1].startsWith(getRuntimeServerBaseUrlSync() + '/')) {
                 actualImageUrl = match[1]
@@ -2097,7 +2104,12 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
               }
             }
             // 相对路径（如 images/purple.png）必须结合文档路径解析为绝对路径，否则主进程读取会报「文件不存在」
-            if (docPath && localPath && !/^[A-Za-z]:[\\/]/.test(localPath) && !localPath.startsWith('/')) {
+            if (
+              docPath &&
+              localPath &&
+              !/^[A-Za-z]:[\\/]/.test(localPath) &&
+              !localPath.startsWith('/')
+            ) {
               const { resolvePathWithLinkBase } = await import('./path-resolver')
               const { getLinkBase } = await import('../stores/workspace')
               const linkBase = getLinkBase(docPath)
@@ -2211,7 +2223,10 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
             ) {
               try {
                 const { local2httpProtocol } = await import('./md-utils')
-                const converted = await local2httpProtocol(`![${altText}](${imageUrl})`, docPath || '')
+                const converted = await local2httpProtocol(
+                  `![${altText}](${imageUrl})`,
+                  docPath || ''
+                )
                 const match = converted.match(/!\[.*?\]\((.*?)\)/)
                 if (match && match[1] && match[1].startsWith(getRuntimeServerBaseUrlSync() + '/')) {
                   // 如果转换成功，尝试 fetch 这个 HTTP URL

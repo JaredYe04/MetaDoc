@@ -48,6 +48,7 @@ export function useGraphSessionFlow(options: UseGraphSessionFlowOptions) {
   const detectedType = ref<string | null>(null)
   const detectedSpecialPrompt = ref<string>('')
   const streamingContent = ref<string>('')
+  const streamingReasoning = ref<string>('')
   const streamingDonePromise = ref<Promise<unknown> | null | undefined>(null)
   const isStreaming = computed(
     () => streamingDonePromise.value !== null && streamingDonePromise.value !== undefined
@@ -127,7 +128,11 @@ ${enginesList}
 
     let jsonStr = extractOuterJsonString(intentTarget.value)
     if (!jsonStr) {
-      jsonStr = intentTarget.value.trim().replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+      jsonStr = intentTarget.value
+        .trim()
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim()
     }
 
     try {
@@ -199,7 +204,9 @@ ${enginesList}
     isOptimize = false,
     previousChartCode?: string | null
   ): string => {
-    const engineConfig = graphEngineConfig.find((e) => e.name.toLowerCase() === engine.toLowerCase())
+    const engineConfig = graphEngineConfig.find(
+      (e) => e.name.toLowerCase() === engine.toLowerCase()
+    )
     const engineDisplayName = engineConfig?.name || engine
 
     let prompt = ''
@@ -295,7 +302,7 @@ ${notes ? `注意事项：${notes}\n` : ''}
       const userMessage: GraphMessage = { role: 'user', content: userPrompt }
       messages.value.push(userMessage)
 
-      const assistantPlaceholder: GraphMessage = { role: 'assistant', content: '' }
+      const assistantPlaceholder: GraphMessage = { role: 'assistant', content: '', reasoning: '' }
       messages.value.push(assistantPlaceholder)
 
       let intentResult
@@ -338,6 +345,7 @@ ${notes ? `注意事项：${notes}\n` : ''}
       )
 
       const codeTarget = vueRef('')
+      const reasoningTarget = vueRef('')
       const originKey = `graph-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
       const currentMessages = messages.value.slice(0, -1)
@@ -363,12 +371,13 @@ ${notes ? `注意事项：${notes}\n` : ''}
         codeTarget,
         'chat',
         originKey,
-        { stream: true }
+        { stream: true, reasoningRef: reasoningTarget }
       )
 
       currentAiTaskHandle.value = handle
 
       streamingContent.value = ''
+      streamingReasoning.value = ''
       streamingDonePromise.value = done
 
       const syncWatcher = watch(
@@ -376,6 +385,14 @@ ${notes ? `注意事项：${notes}\n` : ''}
         (newValue) => {
           streamingContent.value = newValue
           assistantPlaceholder.content = newValue
+        },
+        { immediate: true }
+      )
+      const syncReasoningWatcher = watch(
+        () => reasoningTarget.value,
+        (newValue) => {
+          streamingReasoning.value = newValue
+          assistantPlaceholder.reasoning = newValue
         },
         { immediate: true }
       )
@@ -392,9 +409,12 @@ ${notes ? `注意事项：${notes}\n` : ''}
         if (!isCancelled) throw error
       } finally {
         syncWatcher()
+        syncReasoningWatcher()
         streamingDonePromise.value = null
         currentAiTaskHandle.value = null
       }
+
+      assistantPlaceholder.reasoning = reasoningTarget.value
 
       let chartCode = codeTarget.value.trim()
       let chartMarkdown = chartCode
@@ -750,7 +770,11 @@ ${notes ? `注意事项：${notes}\n` : ''}
         ]
       })
 
-      if (!result || (result as { canceled?: boolean }).canceled || !(result as { filePath?: string }).filePath) {
+      if (
+        !result ||
+        (result as { canceled?: boolean }).canceled ||
+        !(result as { filePath?: string }).filePath
+      ) {
         return
       }
 
@@ -1027,6 +1051,7 @@ ${notes ? `注意事项：${notes}\n` : ''}
     detectedType,
     detectedSpecialPrompt,
     streamingContent,
+    streamingReasoning,
     streamingDonePromise,
     isStreaming,
     handleGenerate,

@@ -12,14 +12,227 @@
   overflow: hidden;
 }
 
-/* 顶栏：全宽，覆盖在左侧菜单上方（与真实 navbar 一致） */
-.metadoc-skeleton__top {
+/* 顶栏：LogoTab(左) + 标签区(中) + 窗口按钮(右)，与 Main.vue / MainTabs 一致 */
+.metadoc-skeleton__navbar {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
   height: 40px;
   min-height: 40px;
+  max-height: 40px;
   flex-shrink: 0;
-  background: var(--md-skeleton-top, #e8e8e8);
+  box-sizing: border-box;
+  background: var(--md-skeleton-top, #f5f5f5);
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+}
+
+/* macOS：与 MainTabs .macos-traffic-lights-spacer 一致；非 mac 下隐藏 */
+.metadoc-skeleton__macos-traffic-spacer {
+  display: none;
+  width: 78px;
+  min-width: 78px;
+  flex-shrink: 0;
+  height: 40px;
+  box-sizing: border-box;
   -webkit-app-region: drag;
   app-region: drag;
+}
+
+/* Main.vue：is-mac 时 交通灯|MainTabs|LogoTab；flex order 重排子项 */
+.metadoc-skeleton__navbar.is-mac .metadoc-skeleton__macos-traffic-spacer {
+  display: block;
+  order: 0;
+}
+
+.metadoc-skeleton__navbar.is-mac .metadoc-skeleton__tab-strip {
+  order: 1;
+}
+
+.metadoc-skeleton__navbar.is-mac .metadoc-skeleton__logo-tab {
+  order: 2;
+}
+
+.metadoc-skeleton__navbar.is-mac .metadoc-skeleton__window-controls {
+  display: none;
+}
+
+/* LogoTab.vue：64px 宽、左右 padding 8px、与 tabs 条同色底 */
+.metadoc-skeleton__logo-tab {
+  display: flex;
+  align-items: center;
+  width: 64px;
+  min-width: 64px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  height: 40px;
+  box-sizing: border-box;
+  background: var(--md-skeleton-top, #f5f5f5);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.metadoc-skeleton__logo-tab-inner {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: default;
+  transition: background-color 0.2s ease;
+}
+
+.metadoc-skeleton__logo-tab-inner:hover {
+  background-color: rgba(128, 128, 128, 0.1);
+}
+
+.metadoc-skeleton__logo-svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.metadoc-skeleton__tab-strip {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+/* MainTabs .window-controls / .window-control-btn */
+.metadoc-skeleton__window-controls {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  margin: 0;
+  padding: 0 4px;
+  border: none;
+  border-left: 1px solid color-mix(in srgb, var(--md-skeleton-wc-border-mix, #888888) 12%, transparent);
+  gap: 4px;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  line-height: 0;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.metadoc-skeleton__window-control-btn {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: none !important;
+  color: #303133;
+  background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  box-sizing: border-box;
+  line-height: 0;
+  position: relative;
+}
+
+html.dark .metadoc-skeleton__window-control-btn {
+  color: #bbbbbb;
+}
+
+.metadoc-skeleton__window-control-btn:hover {
+  background-color: rgba(128, 128, 128, 0.1);
+  border: 1px solid transparent;
+}
+
+html.dark .metadoc-skeleton__window-control-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.metadoc-skeleton__window-control-btn:active {
+  border: 1px solid transparent !important;
+  background-color: rgba(128, 128, 128, 0.18) !important;
+  color: #409eff !important;
+  box-shadow: none !important;
+}
+
+html.dark .metadoc-skeleton__window-control-btn:active {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: #409eff !important;
+}
+
+.metadoc-skeleton__window-control-btn--close:hover {
+  background-color: #f56c6c;
+  border: 1px solid transparent;
+  color: #ffffff;
+}
+
+.metadoc-skeleton__window-control-btn--close:active {
+  background-color: #fde2e2 !important;
+  border: 1px solid transparent !important;
+  color: #f56c6c !important;
+  box-shadow: none !important;
+}
+
+html.dark .metadoc-skeleton__window-control-btn--close:active {
+  background-color: rgba(239, 68, 68, 0.35) !important;
+  color: #fecaca !important;
+}
+
+.metadoc-skeleton__wc-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+html:not(.dark) .metadoc-skeleton__wc-icon--dark {
+  display: none !important;
+}
+
+html.dark .metadoc-skeleton__wc-icon--light {
+  display: none !important;
+}
+
+.metadoc-skeleton__wc-maximize-pair,
+.metadoc-skeleton__wc-restore-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  position: relative;
+}
+
+.metadoc-skeleton__wc-restore-pair {
+  display: none;
+}
+
+.metadoc-skeleton__window-control-btn--max.is-maximized .metadoc-skeleton__wc-maximize-pair {
+  display: none;
+}
+
+.metadoc-skeleton__window-control-btn--max.is-maximized .metadoc-skeleton__wc-restore-pair {
+  display: flex;
+}
+
+.metadoc-skeleton__wc-close-svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 /* 顶栏下方：左侧菜单 + 主区域 */
@@ -31,8 +244,8 @@
 }
 
 .metadoc-skeleton__side {
-  width: 56px;
-  min-width: 56px;
+  width: 64px;
+  min-width: 64px;
   background: var(--md-skeleton-side, #f0f0f0);
 }
 
@@ -78,6 +291,11 @@
   -webkit-user-select: none;
 }
 
+.metadoc-skeleton__logo-tab-inner.shake .metadoc-skeleton__logo-svg {
+  animation: metadoc-skeleton-shake 1.5s ease-in-out;
+}
+
+/* 内容区大号装饰 Logo：与 LogoIcon 同色，交互与旧版骨架屏一致 */
 .metadoc-skeleton__logo-wrap {
   display: inline-block;
   cursor: pointer;
@@ -90,15 +308,17 @@
 .metadoc-skeleton__logo-wrap.shake .metadoc-skeleton__logo-inner {
   animation: metadoc-skeleton-shake 1.5s ease-in-out;
 }
+.metadoc-skeleton__logo-inner {
+  display: block;
+}
+.metadoc-skeleton__logo-svg--hero {
+  display: block;
+}
 
 @keyframes metadoc-skeleton-shake {
   0%, 100% { transform: translateX(0) rotate(0deg); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-8px) rotate(-4deg); }
   20%, 40%, 60%, 80% { transform: translateX(8px) rotate(4deg); }
-}
-
-.metadoc-skeleton__logo-inner {
-  display: block;
 }
 
 .metadoc-skeleton__tips {

@@ -111,7 +111,9 @@ export async function loadIndexV2(root: string): Promise<AgentSessionIndexFileV2
   }
 }
 
-export async function loadLegacySessionsJson(root: string): Promise<LegacyAgentSessionsJson | null> {
+export async function loadLegacySessionsJson(
+  root: string
+): Promise<LegacyAgentSessionsJson | null> {
   const path = joinUnderWorkspaceRoot(root, REL_LEGACY_SESSIONS_JSON)
   const text = await messageBridge.invoke('read-file-content', path)
   if (!text || typeof text !== 'string') return null

@@ -39,7 +39,10 @@ export function initializeSubagentPresets(): void {
   toolCollectionManager.getOrCreateCollection(
     SUBAGENT_COLLECTION_IDS.workspaceReader,
     loc('Subagent 工作区读取工具集', 'Subagent workspace reader tool set'),
-    loc('仅包含工作区文件读取与 grep 搜索，用于从工作区获取信息并返回', 'Workspace read and grep only'),
+    loc(
+      '仅包含工作区文件读取与 grep 搜索，用于从工作区获取信息并返回',
+      'Workspace read and grep only'
+    ),
     ['workspace', 'grep']
   )
 
@@ -55,7 +58,10 @@ export function initializeSubagentPresets(): void {
   toolCollectionManager.getOrCreateCollection(
     SUBAGENT_COLLECTION_IDS.search,
     loc('Subagent 检索工具集', 'Subagent search tool set'),
-    loc('工作区读文件与 grep、知识库 RAG、联网爬取，可多轮组合完成复杂检索', 'Workspace read + grep, RAG, web crawl; multi-turn combined search'),
+    loc(
+      '工作区读文件与 grep、知识库 RAG、联网爬取，可多轮组合完成复杂检索',
+      'Workspace read + grep, RAG, web crawl; multi-turn combined search'
+    ),
     ['workspace', 'grep', 'rag', 'web-crawler']
   )
 
@@ -63,14 +69,20 @@ export function initializeSubagentPresets(): void {
   toolCollectionManager.getOrCreateCollection(
     SUBAGENT_COLLECTION_IDS.chart,
     loc('Subagent 绘图工具集', 'Subagent chart/drawing tool set'),
-    loc('工作区读取、grep 与图表生成；可指定 savePath（目录+文件名，支持工作区相对路径）；Markdown 优先以代码块插入，LaTeX 须 PDF + figure 环境', 'Workspace, grep and chart generation; set savePath (dir+filename, workspace-relative); Markdown: prefer code blocks; LaTeX: PDF + figure env'),
+    loc(
+      '工作区读取、grep 与图表生成；可指定 savePath（目录+文件名，支持工作区相对路径）；Markdown 优先以代码块插入，LaTeX 须 PDF + figure 环境',
+      'Workspace, grep and chart generation; set savePath (dir+filename, workspace-relative); Markdown: prefer code blocks; LaTeX: PDF + figure env'
+    ),
     ['workspace', 'grep', 'chart-generation']
   )
 
   agentConfigManager.getOrCreateConfig(
     SUBAGENT_CONFIG_IDS.workspaceReader,
     loc('Subagent：工作区读取', 'Subagent: Workspace Reader'),
-    loc('从工作区读取若干文件或执行 grep，返回所需信息', 'Read workspace files or grep and return requested info'),
+    loc(
+      '从工作区读取若干文件或执行 grep，返回所需信息',
+      'Read workspace files or grep and return requested info'
+    ),
     [SUBAGENT_COLLECTION_IDS.workspaceReader],
     { systemPromptKey: 'agent.subagent.workspaceReader.systemPrompt', injectTimestamp: true }
   )
@@ -78,7 +90,10 @@ export function initializeSubagentPresets(): void {
   agentConfigManager.getOrCreateConfig(
     SUBAGENT_CONFIG_IDS.docWriter,
     loc('Subagent：文档编写', 'Subagent: Doc Writer'),
-    loc('根据系统提示与主 Agent 的指示进行文档编辑与撰写', 'Edit and write document per system prompt and main agent instructions'),
+    loc(
+      '根据系统提示与主 Agent 的指示进行文档编辑与撰写',
+      'Edit and write document per system prompt and main agent instructions'
+    ),
     [SUBAGENT_COLLECTION_IDS.docWriter],
     { systemPromptKey: 'agent.subagent.docWriter.systemPrompt', injectTimestamp: true }
   )
@@ -86,7 +101,10 @@ export function initializeSubagentPresets(): void {
   agentConfigManager.getOrCreateConfig(
     SUBAGENT_CONFIG_IDS.search,
     loc('Subagent：检索（工作区+联网+RAG）', 'Subagent: Search (workspace + web + RAG)'),
-    loc('多轮检索：读工作区文件、grep、RAG、联网爬取，可组合使用，完成如「论文进度」「撰写某主题文档所需资料」等任务', 'Multi-turn search: read workspace, grep, RAG, web; combine as needed for e.g. paper progress or gathering materials to write a doc'),
+    loc(
+      '多轮检索：读工作区文件、grep、RAG、联网爬取，可组合使用，完成如「论文进度」「撰写某主题文档所需资料」等任务',
+      'Multi-turn search: read workspace, grep, RAG, web; combine as needed for e.g. paper progress or gathering materials to write a doc'
+    ),
     [SUBAGENT_COLLECTION_IDS.search],
     { systemPromptKey: 'agent.subagent.search.systemPrompt', injectTimestamp: true }
   )
@@ -94,7 +112,10 @@ export function initializeSubagentPresets(): void {
   agentConfigManager.getOrCreateConfig(
     SUBAGENT_CONFIG_IDS.chart,
     loc('Subagent：绘图/图表', 'Subagent: Chart/Drawing'),
-    loc('根据主 Agent 的提示生成图表；可自选 savePath（目录+文件名，支持工作区相对路径）；Markdown 优先以代码块插入，LaTeX 须 PDF 并用 figure 环境插入', 'Generate charts per main agent; set savePath (dir+filename, workspace-relative); Markdown: prefer code blocks; LaTeX: PDF + figure env'),
+    loc(
+      '根据主 Agent 的提示生成图表；可自选 savePath（目录+文件名，支持工作区相对路径）；Markdown 优先以代码块插入，LaTeX 须 PDF 并用 figure 环境插入',
+      'Generate charts per main agent; set savePath (dir+filename, workspace-relative); Markdown: prefer code blocks; LaTeX: PDF + figure env'
+    ),
     [SUBAGENT_COLLECTION_IDS.chart],
     { systemPromptKey: 'agent.subagent.chart.systemPrompt', injectTimestamp: true }
   )

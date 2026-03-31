@@ -56,7 +56,11 @@ function applyInsertAfterNewlinePolicy(
 }
 
 /** insert_at: before — 锚点不在行首时，避免与左侧同行粘连 */
-function applyInsertBeforeNewlinePolicy(text: string, pos: number, ins: string): { pos: number; ins: string } {
+function applyInsertBeforeNewlinePolicy(
+  text: string,
+  pos: number,
+  ins: string
+): { pos: number; ins: string } {
   let s = ins
   if (s.length === 0) {
     return { pos, ins: s }

@@ -16,6 +16,10 @@ export type ShortcutActionId =
   | 'paste'
   | 'undo'
   | 'redo'
+  /** 通用缩放：用于编辑器 / 预览 / 大纲等 */
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'zoomReset'
 
 /** 所有可配置动作的列表（用于遍历与默认值） */
 export const SHORTCUT_ACTION_IDS: ShortcutActionId[] = [
@@ -29,7 +33,10 @@ export const SHORTCUT_ACTION_IDS: ShortcutActionId[] = [
   'cut',
   'paste',
   'undo',
-  'redo'
+  'redo',
+  'zoomIn',
+  'zoomOut',
+  'zoomReset'
 ]
 
 /** 单个快捷键的存储格式：修饰键 + 主键，如 "Ctrl+Shift+S"、"F1" */
@@ -56,7 +63,10 @@ export function normalizeBindings(b: ShortcutBindings | undefined): ShortcutBind
 }
 
 /** 比较两个 bindings 是否一致（用于未保存变更检测） */
-export function bindingsEqual(a: ShortcutBindings | undefined, b: ShortcutBindings | undefined): boolean {
+export function bindingsEqual(
+  a: ShortcutBindings | undefined,
+  b: ShortcutBindings | undefined
+): boolean {
   const na = normalizeBindings(a)
   const nb = normalizeBindings(b)
   const keys = new Set([...Object.keys(na), ...Object.keys(nb)])

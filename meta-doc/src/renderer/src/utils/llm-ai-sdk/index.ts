@@ -5,7 +5,16 @@
 
 export { getModelFromConfig } from './model-from-config'
 export { toAISDKMessages } from './messages'
-export { streamChat, type StreamChatOptions, type StreamChatResult } from './stream-chat'
-export { streamChatWithTools, type StreamChatWithToolsOptions, type StreamChatWithToolsResult } from './stream-chat-with-tools'
+export {
+  streamChat,
+  type StreamChatOptions,
+  type StreamChatResult,
+  type StreamPartDelta
+} from './stream-chat'
+export {
+  streamChatWithTools,
+  type StreamChatWithToolsOptions,
+  type StreamChatWithToolsResult
+} from './stream-chat-with-tools'
 export { generateChat, type GenerateChatOptions, type GenerateChatResult } from './generate-chat'
 export { toAISDKTools, type EngineToolSpec } from './tools-to-ai-sdk'

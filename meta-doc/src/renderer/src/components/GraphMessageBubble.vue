@@ -13,6 +13,12 @@ import {
 } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
+} from '@renderer/components/ui/collapsible'
+import { ChevronDown } from 'lucide-vue-next'
+import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -50,6 +56,8 @@ interface Props {
   index: number
   isStreaming?: boolean
   streamingContent?: string
+  /** 流式 reasoning 文本（与 streamingContent 并行） */
+  streamingReasoning?: string
 }
 
 interface MessageEditPayload {
@@ -59,7 +67,8 @@ interface MessageEditPayload {
 
 const props = withDefaults(defineProps<Props>(), {
   isStreaming: false,
-  streamingContent: ''
+  streamingContent: '',
+  streamingReasoning: ''
 })
 
 const emit = defineEmits<{
@@ -70,6 +79,24 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const reasoningDisplay = computed(() => {
+  if (props.isStreaming && props.streamingReasoning) return props.streamingReasoning
+  return (props.message.reasoning || '').trim()
+})
+
+const isReasoningOpen = ref(true)
+watch(
+  () => props.isStreaming,
+  (streaming) => {
+    if (streaming) {
+      isReasoningOpen.value = true
+    } else if (reasoningDisplay.value) {
+      isReasoningOpen.value = false
+    }
+  },
+  { immediate: true }
+)
 
 const role = computed(() => {
   return props.message.role
@@ -352,6 +379,20 @@ onBeforeUnmount(() => {
         class="graph-message__body graph-message__body--flat response-container"
         :class="{ 'graph-message__body--has-chart': hasChart }"
       >
+        <Collapsible
+          v-if="reasoningDisplay"
+          v-model:open="isReasoningOpen"
+          class="graph-assistant-reasoning-wrap"
+          :class="{ 'graph-assistant-reasoning-wrap--open': isReasoningOpen }"
+        >
+          <CollapsibleTrigger class="graph-assistant-reasoning-trigger">
+            <ChevronDown class="graph-assistant-reasoning-chevron" />
+            <span>{{ t('agent.message.reasoningBlock') }}</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent class="graph-assistant-reasoning-body">
+            <div class="graph-assistant-reasoning-text">{{ reasoningDisplay }}</div>
+          </CollapsibleContent>
+        </Collapsible>
         <div v-if="hasChart && !isStreaming" class="chart-container-wrapper">
           <div ref="chartContainerRef" class="chart-container"></div>
         </div>
@@ -666,5 +707,50 @@ onBeforeUnmount(() => {
   word-wrap: break-word;
   font-size: inherit;
   line-height: inherit;
+}
+
+.graph-assistant-reasoning-wrap {
+  margin-bottom: 8px;
+}
+
+.graph-assistant-reasoning-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor2');
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  border: none;
+  padding: 0 0 4px;
+}
+
+.graph-assistant-reasoning-chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.graph-assistant-reasoning-wrap--open .graph-assistant-reasoning-chevron {
+  transform: rotate(0deg);
+}
+
+.graph-assistant-reasoning-wrap:not(.graph-assistant-reasoning-wrap--open) .graph-assistant-reasoning-chevron {
+  transform: rotate(-90deg);
+}
+
+.graph-assistant-reasoning-body {
+  padding: 0 0 6px 2px;
+}
+
+.graph-assistant-reasoning-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: v-bind('themeState.currentTheme.textColor2');
+  opacity: 0.92;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

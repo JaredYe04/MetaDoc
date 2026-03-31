@@ -100,6 +100,12 @@
                   :message="message"
                   :messages="activeSession.messages"
                   :message-index="index"
+                  :is-assistant-streaming="
+                    index === activeSession.messages.length - 1 &&
+                    message.role === 'assistant' &&
+                    message.type === 'chat' &&
+                    (activeSession.status === 'generating' || activeSession.status === 'thinking')
+                  "
                   :user-name="t('agent.userLabel')"
                   :session-references="activeSession.referenceStore || []"
                   @edit="handleMessageEdit"
@@ -1647,7 +1653,8 @@ const executeAgentEngine = async (
           role: 'assistant',
           type: 'chat',
           timestamp: new Date().toISOString(),
-          markdown: ''
+          markdown: '',
+          reasoning: ''
         }) as ChatAgentMessage
         session.messages.push(assistantMessage)
         // 注意：不要在流式输出期间持久化，会破坏reactive对象的响应式
@@ -2066,7 +2073,8 @@ runComposerSendPipelineForSessionRef = async (session: AgentSession, content: st
         role: 'assistant',
         type: 'chat',
         timestamp: new Date().toISOString(),
-        markdown: ''
+        markdown: '',
+        reasoning: ''
       }) as ChatAgentMessage
 
       liveSession.messages.push(assistantMessage)

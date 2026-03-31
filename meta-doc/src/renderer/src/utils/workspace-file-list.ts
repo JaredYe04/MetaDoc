@@ -55,7 +55,10 @@ export async function listWorkspaceFiles(
   const dirsResult: WorkspaceFileItem[] = []
   const queue: Array<{ path: string; depth: number }> = roots.map((r) => ({ path: r, depth: 0 }))
 
-  while (queue.length > 0 && (result.length < maxEntries || (includeDirectories && dirsResult.length < maxDirEntries))) {
+  while (
+    queue.length > 0 &&
+    (result.length < maxEntries || (includeDirectories && dirsResult.length < maxDirEntries))
+  ) {
     const { path: dirPath, depth } = queue.shift()!
     if (depth >= maxDepth) continue
 

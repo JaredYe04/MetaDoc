@@ -128,7 +128,10 @@ export const latexCompileToolCallback: ToolCallback = async (params, signal, onU
           format: 'json',
           componentName: 'LaTeXCompileDisplay'
         },
-        { percentage: 50, message: i18n.global.t('agent.tool.latexCompile.progress.compiling', '正在编译 LaTeX...') }
+        {
+          percentage: 50,
+          message: i18n.global.t('agent.tool.latexCompile.progress.compiling', '正在编译 LaTeX...')
+        }
       )
     }
   }
@@ -147,7 +150,10 @@ export const latexCompileToolCallback: ToolCallback = async (params, signal, onU
           format: 'json',
           componentName: 'LaTeXCompileDisplay'
         },
-        { percentage: 50, message: i18n.global.t('agent.tool.latexCompile.progress.compiling', '正在编译 LaTeX...') }
+        {
+          percentage: 50,
+          message: i18n.global.t('agent.tool.latexCompile.progress.compiling', '正在编译 LaTeX...')
+        }
       )
     }
   }
@@ -161,7 +167,10 @@ export const latexCompileToolCallback: ToolCallback = async (params, signal, onU
       format: 'json',
       componentName: 'LaTeXCompileDisplay'
     },
-    { percentage: 10, message: i18n.global.t('agent.tool.latexCompile.progress.compiling', '正在编译 LaTeX...') }
+    {
+      percentage: 10,
+      message: i18n.global.t('agent.tool.latexCompile.progress.compiling', '正在编译 LaTeX...')
+    }
   )
 
   try {
@@ -221,7 +230,10 @@ export const latexCompileToolCallback: ToolCallback = async (params, signal, onU
         format: 'json',
         componentName: 'LaTeXCompileDisplay'
       },
-      { percentage: 100, message: i18n.global.t('agent.tool.latexCompile.progress.completed', '编译完成') }
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.latexCompile.progress.completed', '编译完成')
+      }
     )
 
     return {

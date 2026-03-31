@@ -145,8 +145,7 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
     const doc = context?.doc
     const handle = context?.handle
     const docPath = doc?.path
-    const willRegenerateFromOutline =
-      options.removeTitlePrefixes !== false && !!doc?.outline
+    const willRegenerateFromOutline = options.removeTitlePrefixes !== false && !!doc?.outline
 
     const progressCallback = handle
       ? (p: any) => {
@@ -167,22 +166,12 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         progressCallback
       })
     }
-    markdown = await prepareImagesForTarget(
-      markdown,
-      'tex',
-      options.imageProcessing,
-      docPath
-    )
+    markdown = await prepareImagesForTarget(markdown, 'tex', options.imageProcessing, docPath)
 
     if (!doc) {
       throw new Error('MdToTexAdapter.prepareExportData requires context.doc')
     }
-    const tex = await convertMarkdownToLatexWithOptions(
-      markdown,
-      doc,
-      data.json,
-      options
-    )
+    const tex = await convertMarkdownToLatexWithOptions(markdown, doc, data.json, options)
 
     const originalImageUrls = collectOriginalImageUrls(data.md)
     const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)

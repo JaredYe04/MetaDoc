@@ -304,6 +304,10 @@ const zoomOut = () => {
   const currentFontSize = editor.value.getOption(monaco.editor.EditorOption.fontSize)
   editor.value.updateOptions({ fontSize: currentFontSize - 1 })
 }
+const zoomReset = () => {
+  if (!editor.value) return
+  editor.value.updateOptions({ fontSize: 14 })
+}
 let enableMinimap = true
 let enableRowNumber = true
 
@@ -421,6 +425,8 @@ const toggleConsole = async () => {
 }
 
 const editorDomId = computed(() => props.editorDomId || 'plaintext-editor')
+
+let handleZoomShortcut: ((payload?: unknown) => void) | null = null
 
 /** 从 CSS 变量读取当前编辑器字体（与设置页「编辑器字体」一致） */
 function getEditorFontFamily(): string {
@@ -808,6 +814,15 @@ onMounted(async () => {
     eventBus.on('font-settings-changed', handleFontSettingsChanged)
     eventBus.on('editor-goto-position', handleEditorGotoPosition)
     eventBus.on('editor-command', handleEditorCommand as (payload?: unknown) => void)
+    // zoom-shortcut 由 useGlobalShortcuts 统一派发
+    handleZoomShortcut = (payload?: unknown) => {
+      const p = payload as { action?: 'zoomIn' | 'zoomOut' | 'zoomReset' } | undefined
+      if (!p?.action) return
+      if (p.action === 'zoomIn') zoomIn()
+      else if (p.action === 'zoomOut') zoomOut()
+      else if (p.action === 'zoomReset') zoomReset()
+    }
+    eventBus.on('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
   } catch (e) {
     logger.error(e)
     eventBus.emit('show-error', t('plaintextEditor.init_failed') + e)
@@ -820,6 +835,10 @@ onUnmounted(() => {
   aiCompletionService.removeAdapter()
   eventBus.off('editor-goto-position', handleEditorGotoPosition)
   eventBus.off('editor-command', handleEditorCommand as (payload?: unknown) => void)
+  if (handleZoomShortcut) {
+    eventBus.off('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+    handleZoomShortcut = null
+  }
 
   if (handleFontSettingsChanged) {
     eventBus.off('font-settings-changed', handleFontSettingsChanged)

@@ -203,8 +203,7 @@ export async function createAdapterFromSettings(
       case 'qwen': {
         config.apiKey = (await getSetting('qwenApiKey')) as string | undefined
         // 使用 DashScope 原生 API（华北2 北京），不再使用 compatible-mode
-        config.apiUrl =
-          (await getSetting('qwenApiUrl')) || 'https://dashscope.aliyuncs.com'
+        config.apiUrl = (await getSetting('qwenApiUrl')) || 'https://dashscope.aliyuncs.com'
         config.selectedModel = ((await getSetting('qwenSelectedModel')) as string) || 'qwen-plus'
         config.completionSuffix = ''
         config.chatSuffix = ''

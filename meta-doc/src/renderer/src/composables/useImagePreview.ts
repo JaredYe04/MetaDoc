@@ -20,7 +20,8 @@ export function useImagePreview(options: UseImagePreviewOptions) {
   const {
     imageUrl,
     containerRef,
-    getImageElement = () => document.querySelector('.image-preview-viewer-img') as HTMLImageElement | null,
+    getImageElement = () =>
+      document.querySelector('.image-preview-viewer-img') as HTMLImageElement | null,
     containerPadding = 24
   } = options
 
@@ -186,6 +187,10 @@ export function useImagePreview(options: UseImagePreviewOptions) {
   }
 
   const handleWheelZoom = (e: WheelEvent) => {
+    // 默认使用 Ctrl/Cmd + 滚轮进行缩放，避免影响普通滚动
+    const isZoomModifier = e.ctrlKey || e.metaKey
+    if (!isZoomModifier) return
+
     e.preventDefault()
     e.stopPropagation()
     const container = e.currentTarget as HTMLElement

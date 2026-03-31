@@ -438,8 +438,7 @@ const diffToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 }
 
 const DIFF_TOOL_NAME = 'Text Diff'
-const DIFF_TOOL_DESCRIPTION =
-  'Compare two texts, URLs or files and return detailed diff results'
+const DIFF_TOOL_DESCRIPTION = 'Compare two texts, URLs or files and return detailed diff results'
 
 export const diffToolConfig: AgentToolConfig = {
   id: 'diff',

@@ -3,9 +3,17 @@
  */
 
 import { getSetting, setSetting } from './settings.js'
-import { getDefaultSchemes, getDefaultSchemeIdForPlatform, BUILTIN_SCHEME_IDS } from './keyboard-scheme-defaults'
+import {
+  getDefaultSchemes,
+  getDefaultSchemeIdForPlatform,
+  BUILTIN_SCHEME_IDS
+} from './keyboard-scheme-defaults'
 import type { KeyScheme, ShortcutBindings, ShortcutActionId } from './keyboard-scheme-types'
-import { SHORTCUT_ACTION_IDS, normalizeBindings, normalizeBindingValue } from './keyboard-scheme-types'
+import {
+  SHORTCUT_ACTION_IDS,
+  normalizeBindings,
+  normalizeBindingValue
+} from './keyboard-scheme-types'
 
 const STORAGE_KEY_ACTIVE = 'activeKeySchemeId'
 const STORAGE_KEY_SCHEMES = 'customKeySchemes'
@@ -44,7 +52,10 @@ async function setBuiltinOverrides(overrides: Record<string, ShortcutBindings>):
 }
 
 /** 合并默认绑定与覆盖（覆盖优先） */
-function mergeBindings(base: ShortcutBindings, overrides: ShortcutBindings | undefined): ShortcutBindings {
+function mergeBindings(
+  base: ShortcutBindings,
+  overrides: ShortcutBindings | undefined
+): ShortcutBindings {
   if (!overrides || !Object.keys(overrides).length) return { ...base }
   const out = { ...base }
   for (const [actionId, arr] of Object.entries(overrides)) {
@@ -139,7 +150,11 @@ export async function getEffectiveBindings(): Promise<ShortcutBindings> {
   const { detectPlatform } = await import('./keyboard-scheme-defaults')
   const platform = detectPlatform()
   const defaultId =
-    platform === 'mac' ? BUILTIN_SCHEME_IDS.mac : platform === 'linux' ? BUILTIN_SCHEME_IDS.linux : BUILTIN_SCHEME_IDS.win
+    platform === 'mac'
+      ? BUILTIN_SCHEME_IDS.mac
+      : platform === 'linux'
+        ? BUILTIN_SCHEME_IDS.linux
+        : BUILTIN_SCHEME_IDS.win
   const defaultScheme = getBuiltinScheme(defaultId)
   return defaultScheme ? normalizeBindings(defaultScheme.bindings) : {}
 }
@@ -182,7 +197,8 @@ export async function updateKeyScheme(
   const idx = custom.findIndex((s) => s.id === id)
   if (idx < 0) return false
   if (updates.name !== undefined) custom[idx].name = updates.name.trim() || custom[idx].name
-  if (updates.bindings !== undefined) custom[idx].bindings = { ...custom[idx].bindings, ...normalizeBindings(updates.bindings) }
+  if (updates.bindings !== undefined)
+    custom[idx].bindings = { ...custom[idx].bindings, ...normalizeBindings(updates.bindings) }
   custom[idx].updatedAt = Date.now()
   await persistCustomSchemes(custom)
   return true
@@ -218,7 +234,9 @@ export function exportKeyScheme(scheme: KeyScheme): string {
 }
 
 /** 从 JSON 导入为自定义方案（生成新 id） */
-export async function importKeyScheme(jsonString: string): Promise<{ scheme: KeyScheme; errors?: string[] }> {
+export async function importKeyScheme(
+  jsonString: string
+): Promise<{ scheme: KeyScheme; errors?: string[] }> {
   try {
     const data = JSON.parse(jsonString)
     if (!data || typeof data.name !== 'string') {
@@ -229,10 +247,14 @@ export async function importKeyScheme(jsonString: string): Promise<{ scheme: Key
       for (const actionId of SHORTCUT_ACTION_IDS) {
         const v = data.bindings[actionId]
         if (typeof v === 'string') bindings[actionId as ShortcutActionId] = [v]
-        else if (Array.isArray(v)) bindings[actionId as ShortcutActionId] = v.filter((s) => typeof s === 'string')
+        else if (Array.isArray(v))
+          bindings[actionId as ShortcutActionId] = v.filter((s) => typeof s === 'string')
       }
     }
-    const scheme = await addKeyScheme(data.name, Object.keys(bindings).length > 0 ? bindings : undefined)
+    const scheme = await addKeyScheme(
+      data.name,
+      Object.keys(bindings).length > 0 ? bindings : undefined
+    )
     return { scheme }
   } catch (e) {
     return {

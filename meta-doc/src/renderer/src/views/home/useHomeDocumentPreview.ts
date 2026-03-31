@@ -39,7 +39,8 @@ export function useHomeDocumentPreview(options?: { windowTypeProvider?: () => st
     if (!currentFilePath.value) return ''
     const lastDotIndex = currentFilePath.value.lastIndexOf('.')
     const ext = lastDotIndex >= 0 ? currentFilePath.value.substring(lastDotIndex).toLowerCase() : ''
-    const formatId = activeDocument.value?.format || formatRegistry.getFormatByExtension(ext) || 'txt'
+    const formatId =
+      activeDocument.value?.format || formatRegistry.getFormatByExtension(ext) || 'txt'
     const formatConfig = formatRegistry.getFormat(formatId)
     if (formatConfig) {
       if (ext) return ext.toUpperCase().substring(1)

@@ -237,6 +237,12 @@
           :message="message"
           :messages="activeSession.messages"
           :message-index="index"
+          :is-assistant-streaming="
+            index === activeSession.messages.length - 1 &&
+            message.role === 'assistant' &&
+            message.type === 'chat' &&
+            (activeSession.status === 'generating' || activeSession.status === 'thinking')
+          "
           :user-name="t('agentViewCompact.user')"
           :session-references="activeSession.referenceStore || []"
           :session-id="activeSession.id"

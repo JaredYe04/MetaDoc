@@ -5,10 +5,7 @@
 
 import type { AgentToolConfig } from '../../types/agent-tool'
 import LaTeXCompileDisplay from './components/LaTeXCompileDisplay.vue'
-import {
-  latexCompileToolCallback,
-  type LaTeXCompileToolResult
-} from './latex-compile-tool-impl'
+import { latexCompileToolCallback, type LaTeXCompileToolResult } from './latex-compile-tool-impl'
 
 export type { LaTeXCompileToolResult }
 
@@ -80,7 +77,10 @@ Compile LaTeX source to PDF. Input: exactly one of texFilePath or tex; required 
   inputSchema: {
     type: 'object',
     properties: {
-      texFilePath: { type: 'string', description: '.tex file path (use one of texFilePath or tex)' },
+      texFilePath: {
+        type: 'string',
+        description: '.tex file path (use one of texFilePath or tex)'
+      },
       tex: { type: 'string', description: 'Raw LaTeX text (use one of texFilePath or tex)' },
       outputPdfPath: { type: 'string', description: 'Output PDF path, e.g. path/to/file.pdf' }
     },

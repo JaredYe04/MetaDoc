@@ -128,8 +128,7 @@ export async function refreshMcpToolsInAgentToolManager(): Promise<void> {
 
     const displayName = `[MCP:${row.server_name}] ${row.tool_name}`
     const desc =
-      row.description?.trim() ||
-      `MCP tool "${row.tool_name}" on server "${row.server_name}"`
+      row.description?.trim() || `MCP tool "${row.tool_name}" on server "${row.server_name}"`
 
     const serverName = row.server_name
     const toolName = row.tool_name

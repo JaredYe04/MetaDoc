@@ -71,7 +71,8 @@ async function getTerminalEnvironmentSpec(): Promise<string> {
       shellLabel: string
     }
     const tipsZh = '下方 Shell 即主进程实际执行命令所用的终端，请仅使用该终端的语法。'
-    const tipsEn = 'The shell below is the one actually used to run your command; use only that shell’s syntax.'
+    const tipsEn =
+      'The shell below is the one actually used to run your command; use only that shell’s syntax.'
     return `
 ## 当前执行环境 / Current execution environment
 - **OS / 操作系统**: ${platformLabel}
@@ -401,7 +402,13 @@ export function normalizeCommands(params: Record<string, unknown>): CommandItem[
   }
   const cmd = params.command as string | undefined
   if (cmd && typeof cmd === 'string' && cmd.trim()) {
-    return [{ command: cmd.trim(), cwd: params.cwd as string | undefined, sessionId: params.sessionId as string | undefined }]
+    return [
+      {
+        command: cmd.trim(),
+        cwd: params.cwd as string | undefined,
+        sessionId: params.sessionId as string | undefined
+      }
+    ]
   }
   return null
 }
@@ -504,7 +511,10 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             format: 'json',
             componentName: 'TerminalExecutionDisplay'
           },
-          { percentage: 10, message: i18n.global.t('agent.tool.terminal.progress.approving', '等待用户批准...') }
+          {
+            percentage: 10,
+            message: i18n.global.t('agent.tool.terminal.progress.approving', '等待用户批准...')
+          }
         )
         try {
           approved = await requestApproval(command)
@@ -515,9 +525,15 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
               format: 'json',
               componentName: 'TerminalExecutionDisplay'
             },
-            { percentage: 0, message: i18n.global.t('agent.tool.terminal.progress.rejected', '命令执行已被拒绝') }
+            {
+              percentage: 0,
+              message: i18n.global.t('agent.tool.terminal.progress.rejected', '命令执行已被拒绝')
+            }
           )
-          return { status: 'failed', error: i18n.global.t('agent.tool.terminal.error.rejected', '用户拒绝了命令执行') }
+          return {
+            status: 'failed',
+            error: i18n.global.t('agent.tool.terminal.error.rejected', '用户拒绝了命令执行')
+          }
         }
       }
 
@@ -530,20 +546,44 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         else accumulatedStderr += data
         onUpdate(
           {
-            content: { stage: 'executing', command, approved, stdout: accumulatedStdout, stderr: accumulatedStderr },
+            content: {
+              stage: 'executing',
+              command,
+              approved,
+              stdout: accumulatedStdout,
+              stderr: accumulatedStderr
+            },
             format: 'json',
             componentName: 'TerminalExecutionDisplay'
           },
-          { percentage: 20 + Math.min(50, ((accumulatedStdout.length + accumulatedStderr.length) / 1000) * 30), message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...') }
+          {
+            percentage:
+              20 +
+              Math.min(50, ((accumulatedStdout.length + accumulatedStderr.length) / 1000) * 30),
+            message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
+          }
         )
       }
 
       onUpdate(
-        { content: { stage: 'executing', command, approved, stdout: '', stderr: '' }, format: 'json', componentName: 'TerminalExecutionDisplay' },
-        { percentage: 20, message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...') }
+        {
+          content: { stage: 'executing', command, approved, stdout: '', stderr: '' },
+          format: 'json',
+          componentName: 'TerminalExecutionDisplay'
+        },
+        {
+          percentage: 20,
+          message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
+        }
       )
 
-      const { exitCode, stdout, stderr } = await executeCommand(command, cwd, timeout, invocationId, handleStreamUpdate)
+      const { exitCode, stdout, stderr } = await executeCommand(
+        command,
+        cwd,
+        timeout,
+        invocationId,
+        handleStreamUpdate
+      )
       let finalStdout = accumulatedStdout || stdout
       let finalStderr = accumulatedStderr || stderr
 
@@ -581,7 +621,14 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       let summary: string | undefined
       if (analyze && batch.length === 1) {
         try {
-          summary = await analyzeOutput(command, finalStdout, finalStderr, exitCode, signal, onUpdate)
+          summary = await analyzeOutput(
+            command,
+            finalStdout,
+            finalStderr,
+            exitCode,
+            signal,
+            onUpdate
+          )
         } catch (error) {
           logger.warn('LLM分析输出失败:', error)
         }
@@ -602,17 +649,28 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     const lastResult = results[results.length - 1]!
     onUpdate(
       {
-        content: { stage: 'completed', ...lastResult, batchResults: batch.length > 1 ? results : undefined },
+        content: {
+          stage: 'completed',
+          ...lastResult,
+          batchResults: batch.length > 1 ? results : undefined
+        },
         format: 'json',
         componentName: 'TerminalExecutionDisplay'
       },
-      { percentage: 100, message: i18n.global.t('agent.tool.terminal.progress.completed', '命令执行完成') }
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.terminal.progress.completed', '命令执行完成')
+      }
     )
 
     return {
       status: 'succeeded',
       data: {
-        content: { stage: 'completed', ...lastResult, batchResults: batch.length > 1 ? results : undefined },
+        content: {
+          stage: 'completed',
+          ...lastResult,
+          batchResults: batch.length > 1 ? results : undefined
+        },
         format: 'json',
         componentName: 'TerminalExecutionDisplay'
       },
@@ -719,8 +777,16 @@ Commands are run in the **main process** with a specific shell (see the "Current
       sessionId: { type: 'string', description: 'Reuse same terminal context (shared cwd)' },
       cwd: { type: 'string', description: 'Working directory' },
       timeout: { type: 'number', description: 'Timeout in milliseconds', default: 30000 },
-      analyze: { type: 'boolean', description: 'Whether to use LLM to analyze output', default: false },
-      async: { type: 'boolean', description: 'Run without waiting (fire and forget)', default: false }
+      analyze: {
+        type: 'boolean',
+        description: 'Whether to use LLM to analyze output',
+        default: false
+      },
+      async: {
+        type: 'boolean',
+        description: 'Run without waiting (fire and forget)',
+        default: false
+      }
     },
     required: []
   },

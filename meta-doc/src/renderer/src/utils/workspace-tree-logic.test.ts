@@ -94,22 +94,14 @@ describe('workspace-tree-logic', () => {
 
   describe('sortFileNodes', () => {
     it('目录在前文件在后', () => {
-      const nodes: FileNode[] = [
-        makeFile('/a/f.md'),
-        makeDir('/a/b'),
-        makeFile('/a/a.txt')
-      ]
+      const nodes: FileNode[] = [makeFile('/a/f.md'), makeDir('/a/b'), makeFile('/a/a.txt')]
       sortFileNodes(nodes)
       expect(nodes[0]!.type).toBe('directory')
       expect(nodes[1]!.name).toBe('a.txt')
       expect(nodes[2]!.name).toBe('f.md')
     })
     it('同类型按名称排序', () => {
-      const nodes: FileNode[] = [
-        makeDir('/a/z'),
-        makeDir('/a/a'),
-        makeDir('/a/m')
-      ]
+      const nodes: FileNode[] = [makeDir('/a/z'), makeDir('/a/a'), makeDir('/a/m')]
       sortFileNodes(nodes)
       expect(nodes.map((n) => n.name)).toEqual(['a', 'm', 'z'])
     })
@@ -433,20 +425,28 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, oldFile, root)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'unlink',
-        filePath: 'C:/workspace/old.md'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'unlink',
+          filePath: 'C:/workspace/old.md'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'add',
-        filePath: 'C:/workspace/renamed.md'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'add',
+          filePath: 'C:/workspace/renamed.md'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
       expect(root.children![0]!.name).toBe('renamed.md')
     })
@@ -462,12 +462,16 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, f, root)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'add',
-        filePath: 'C:/workspace/exist.md'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'add',
+          filePath: 'C:/workspace/exist.md'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
     })
 
@@ -480,12 +484,16 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, d, root)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'addDir',
-        filePath: 'C:/workspace/sub'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'addDir',
+          filePath: 'C:/workspace/sub'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
     })
   })
@@ -517,21 +525,29 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, oldFile, root)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'unlink',
-        filePath: 'C:/workspace/旧名.md'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'unlink',
+          filePath: 'C:/workspace/旧名.md'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/旧名.md'))).toBe(false)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'add',
-        filePath: 'C:/workspace/新名.md'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'add',
+          filePath: 'C:/workspace/新名.md'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
       expect(root.children![0]!.name).toBe('新名.md')
       expect(root.children![0]!.path).toBe('C:/workspace/新名.md')
@@ -547,21 +563,29 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, oldDir, root)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'unlinkDir',
-        filePath: 'C:/workspace/新建文件夹'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'unlinkDir',
+          filePath: 'C:/workspace/新建文件夹'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/新建文件夹'))).toBe(false)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'addDir',
-        filePath: 'C:/workspace/123123123'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'addDir',
+          filePath: 'C:/workspace/123123123'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
       expect(root.children![0]!.name).toBe('123123123')
       expect(root.children![0]!.path).toBe('C:/workspace/123123123')
@@ -578,23 +602,31 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, oldDir, root)
 
       // 先收到新目录的 addDir（Windows 上有时只收到这个）
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'addDir',
-        filePath: 'C:/workspace/123123123'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'addDir',
+          filePath: 'C:/workspace/123123123'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(2)
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/新建文件夹'))).toBe(true)
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/123123123'))).toBe(true)
 
       // 再收到旧目录的 unlinkDir
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'unlinkDir',
-        filePath: 'C:/workspace/新建文件夹'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'unlinkDir',
+          filePath: 'C:/workspace/新建文件夹'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
       expect(root.children![0]!.name).toBe('123123123')
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/新建文件夹'))).toBe(false)
@@ -610,20 +642,28 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, oldFile, root)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'add',
-        filePath: 'C:/workspace/new.txt'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'add',
+          filePath: 'C:/workspace/new.txt'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(2)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'unlink',
-        filePath: 'C:/workspace/old.txt'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'unlink',
+          filePath: 'C:/workspace/old.txt'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
       expect(root.children![0]!.name).toBe('new.txt')
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/old.txt'))).toBe(false)
@@ -644,21 +684,29 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, sub, root)
       registerNode(nodeMap, fileInSub, sub)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace/123',
-        parentPath: 'C:/workspace/123',
-        eventType: 'unlink',
-        filePath: 'C:/workspace/123/新建 文本文档.txt'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace/123',
+          parentPath: 'C:/workspace/123',
+          eventType: 'unlink',
+          filePath: 'C:/workspace/123/新建 文本文档.txt'
+        },
+        defaultFormatOptions
+      )
       expect(sub.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/123/新建 文本文档.txt'))).toBe(false)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'unlinkDir',
-        filePath: 'C:/workspace/123'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'unlinkDir',
+          filePath: 'C:/workspace/123'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/123'))).toBe(false)
     })
@@ -673,12 +721,16 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, sub, root)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'unlinkDir',
-        filePath: 'C:/workspace/123'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'unlinkDir',
+          filePath: 'C:/workspace/123'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/123'))).toBe(false)
     })
@@ -695,12 +747,16 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, sub, root)
 
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace/123',
-        parentPath: 'C:/workspace/123',
-        eventType: 'add',
-        filePath: 'C:/workspace/123/新建 文本文档.txt'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace/123',
+          parentPath: 'C:/workspace/123',
+          eventType: 'add',
+          filePath: 'C:/workspace/123/新建 文本文档.txt'
+        },
+        defaultFormatOptions
+      )
       expect(sub.children).toHaveLength(1)
       expect(sub.children![0]!.name).toBe('新建 文本文档.txt')
       expect(nodeMap.has(normalizePathForCompare('C:/workspace/123/新建 文本文档.txt'))).toBe(true)
@@ -713,12 +769,16 @@ describe('workspace-tree-logic', () => {
       const nodeMap: NodeMap = new Map()
       const root = makeRoot('D:/ws', 'ws')
       registerNode(nodeMap, root, null)
-      const ok = applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'addDir',
-        filePath: 'D:/ws/新建文件夹'
-      }, defaultFormatOptions)
+      const ok = applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'addDir',
+          filePath: 'D:/ws/新建文件夹'
+        },
+        defaultFormatOptions
+      )
       expect(ok).toBe(true)
       expect(root.children).toHaveLength(1)
       expect(root.children![0]!.name).toBe('新建文件夹')
@@ -730,12 +790,16 @@ describe('workspace-tree-logic', () => {
       const nodeMap: NodeMap = new Map()
       const root = makeRoot('D:/ws', 'ws')
       registerNode(nodeMap, root, null)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'add',
-        filePath: 'D:/ws/readme.md'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'add',
+          filePath: 'D:/ws/readme.md'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
       expect(root.children![0]!.name).toBe('readme.md')
       expect(root.children![0]!.type).toBe('file')
@@ -749,12 +813,16 @@ describe('workspace-tree-logic', () => {
       folder.parent = root
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, folder, root)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'unlinkDir',
-        filePath: 'D:/ws/123'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'unlinkDir',
+          filePath: 'D:/ws/123'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('D:/ws/123'))).toBe(false)
     })
@@ -767,12 +835,16 @@ describe('workspace-tree-logic', () => {
       f.parent = root
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, f, root)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'unlink',
-        filePath: 'D:/ws/a.txt'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'unlink',
+          filePath: 'D:/ws/a.txt'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('D:/ws/a.txt'))).toBe(false)
     })
@@ -785,12 +857,16 @@ describe('workspace-tree-logic', () => {
       sub.parent = root
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, sub, root)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws/sub',
-        eventType: 'add',
-        filePath: 'D:/ws/sub/child.md'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws/sub',
+          eventType: 'add',
+          filePath: 'D:/ws/sub/child.md'
+        },
+        defaultFormatOptions
+      )
       expect(sub.children).toHaveLength(1)
       expect(sub.children![0]!.name).toBe('child.md')
     })
@@ -803,12 +879,16 @@ describe('workspace-tree-logic', () => {
       sub.parent = root
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, sub, root)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws/sub',
-        eventType: 'addDir',
-        filePath: 'D:/ws/sub/inner'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws/sub',
+          eventType: 'addDir',
+          filePath: 'D:/ws/sub/inner'
+        },
+        defaultFormatOptions
+      )
       expect(sub.children).toHaveLength(1)
       expect(sub.children![0]!.name).toBe('inner')
     })
@@ -825,12 +905,16 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, sub, root)
       registerNode(nodeMap, f, sub)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws/sub',
-        eventType: 'unlink',
-        filePath: 'D:/ws/sub/x.txt'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws/sub',
+          eventType: 'unlink',
+          filePath: 'D:/ws/sub/x.txt'
+        },
+        defaultFormatOptions
+      )
       expect(sub.children).toHaveLength(0)
     })
 
@@ -842,12 +926,16 @@ describe('workspace-tree-logic', () => {
       sub.parent = root
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, sub, root)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'unlinkDir',
-        filePath: 'D:/ws/sub'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'unlinkDir',
+          filePath: 'D:/ws/sub'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('D:/ws/sub'))).toBe(false)
     })
@@ -860,18 +948,26 @@ describe('workspace-tree-logic', () => {
       oldDir.parent = root
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, oldDir, root)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'addDir',
-        filePath: 'D:/ws/新文件夹'
-      }, defaultFormatOptions)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'unlinkDir',
-        filePath: 'D:/ws/旧文件夹'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'addDir',
+          filePath: 'D:/ws/新文件夹'
+        },
+        defaultFormatOptions
+      )
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'unlinkDir',
+          filePath: 'D:/ws/旧文件夹'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
       expect(root.children![0]!.name).toBe('新文件夹')
     })
@@ -885,12 +981,16 @@ describe('workspace-tree-logic', () => {
       emptySub.parent = root
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, emptySub, root)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws/空目录',
-        parentPath: 'D:/ws/空目录',
-        eventType: 'add',
-        filePath: 'D:/ws/空目录/新文件.txt'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws/空目录',
+          parentPath: 'D:/ws/空目录',
+          eventType: 'add',
+          filePath: 'D:/ws/空目录/新文件.txt'
+        },
+        defaultFormatOptions
+      )
       expect(emptySub.children).toHaveLength(1)
       expect(emptySub.children![0]!.name).toBe('新文件.txt')
     })
@@ -899,12 +999,16 @@ describe('workspace-tree-logic', () => {
       const nodeMap: NodeMap = new Map()
       const root = makeRoot('D:/ws', 'ws')
       registerNode(nodeMap, root, null)
-      const ok = applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws/未展开子目录',
-        eventType: 'add',
-        filePath: 'D:/ws/未展开子目录/file.md'
-      }, defaultFormatOptions)
+      const ok = applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws/未展开子目录',
+          eventType: 'add',
+          filePath: 'D:/ws/未展开子目录/file.md'
+        },
+        defaultFormatOptions
+      )
       expect(ok).toBe(false)
       expect(root.children).toHaveLength(0)
     })
@@ -921,18 +1025,26 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, sub, root)
       registerNode(nodeMap, f, sub)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws/待删',
-        parentPath: 'D:/ws/待删',
-        eventType: 'unlink',
-        filePath: 'D:/ws/待删/a.md'
-      }, defaultFormatOptions)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'unlinkDir',
-        filePath: 'D:/ws/待删'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws/待删',
+          parentPath: 'D:/ws/待删',
+          eventType: 'unlink',
+          filePath: 'D:/ws/待删/a.md'
+        },
+        defaultFormatOptions
+      )
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'unlinkDir',
+          filePath: 'D:/ws/待删'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('D:/ws/待删'))).toBe(false)
     })
@@ -946,12 +1058,16 @@ describe('workspace-tree-logic', () => {
       sub.parent = root
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, sub, root)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'unlinkDir',
-        filePath: 'D:/ws/空子目录'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'unlinkDir',
+          filePath: 'D:/ws/空子目录'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
     })
 
@@ -967,19 +1083,27 @@ describe('workspace-tree-logic', () => {
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, sub, root)
       registerNode(nodeMap, inner, sub)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws/sub/inner',
-        eventType: 'add',
-        filePath: 'D:/ws/sub/inner/deep.md'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws/sub/inner',
+          eventType: 'add',
+          filePath: 'D:/ws/sub/inner/deep.md'
+        },
+        defaultFormatOptions
+      )
       expect(inner.children).toHaveLength(1)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws/sub',
-        parentPath: 'D:/ws/sub',
-        eventType: 'unlinkDir',
-        filePath: 'D:/ws/sub/inner'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws/sub',
+          parentPath: 'D:/ws/sub',
+          eventType: 'unlinkDir',
+          filePath: 'D:/ws/sub/inner'
+        },
+        defaultFormatOptions
+      )
       expect(sub.children).toHaveLength(0)
       expect(nodeMap.has(normalizePathForCompare('D:/ws/sub/inner'))).toBe(false)
     })
@@ -988,12 +1112,16 @@ describe('workspace-tree-logic', () => {
       const nodeMap: NodeMap = new Map()
       const root = makeRoot('D:/ws', 'ws')
       registerNode(nodeMap, root, null)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'addDir',
-        filePath: 'D:/ws/.metadoc'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'addDir',
+          filePath: 'D:/ws/.metadoc'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(1)
       expect(root.children![0]!.name).toBe('.metadoc')
     })
@@ -1002,12 +1130,16 @@ describe('workspace-tree-logic', () => {
       const nodeMap: NodeMap = new Map()
       const root = makeRoot('D:/ws', 'ws')
       registerNode(nodeMap, root, null)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'add',
-        filePath: 'D:/ws/script.js'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'add',
+          filePath: 'D:/ws/script.js'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
     })
 
@@ -1016,12 +1148,16 @@ describe('workspace-tree-logic', () => {
       const root = makeRoot('D:/ws', 'ws')
       root.children = []
       registerNode(nodeMap, root, null)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'D:/ws',
-        parentPath: 'D:/ws',
-        eventType: 'change',
-        filePath: 'D:/ws/any.md'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'D:/ws',
+          parentPath: 'D:/ws',
+          eventType: 'change',
+          filePath: 'D:/ws/any.md'
+        },
+        defaultFormatOptions
+      )
       expect(root.children).toHaveLength(0)
     })
 
@@ -1040,12 +1176,16 @@ describe('workspace-tree-logic', () => {
       folder.parent = root
       registerNode(nodeMap, root, null)
       registerNode(nodeMap, folder, root)
-      applyFsEvent(nodeMap, {
-        directoryPath: 'C:/workspace',
-        parentPath: 'C:/workspace',
-        eventType: 'unlinkDir',
-        filePath: 'C:/workspace/ 新建文件夹'
-      }, defaultFormatOptions)
+      applyFsEvent(
+        nodeMap,
+        {
+          directoryPath: 'C:/workspace',
+          parentPath: 'C:/workspace',
+          eventType: 'unlinkDir',
+          filePath: 'C:/workspace/ 新建文件夹'
+        },
+        defaultFormatOptions
+      )
       expect(root.children!.map((c) => c.name)).not.toContain(' 新建文件夹')
     })
   })

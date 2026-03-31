@@ -32,8 +32,10 @@ export function getLocalizedText(text: string | ToolLocales): string {
   const values = Object.values(locales)
   for (const v of values) {
     if (v && typeof v === 'object') {
-      const s = (v as { name?: string; description?: string }).name ||
-        (v as { name?: string; description?: string }).description || ''
+      const s =
+        (v as { name?: string; description?: string }).name ||
+        (v as { name?: string; description?: string }).description ||
+        ''
       if (s) return s
     }
   }

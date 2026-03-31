@@ -14,8 +14,14 @@ import messageBridge from '../bridge/message-bridge'
 
 /** 与 fonts.css 中 --font-family-preview 一致，用于编辑器内与 Vditor 预览一致（仅在不用于导出时） */
 function getAppFontStack() {
-  if (typeof getComputedStyle !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
-    const v = getComputedStyle(document.documentElement).getPropertyValue('--font-family-preview').trim()
+  if (
+    typeof getComputedStyle !== 'undefined' &&
+    typeof document !== 'undefined' &&
+    document.documentElement
+  ) {
+    const v = getComputedStyle(document.documentElement)
+      .getPropertyValue('--font-family-preview')
+      .trim()
     if (v) return v
   }
   return "'New York', 'OPPO Sans 4.0', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
@@ -445,15 +451,15 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                   const opacity = computed.getPropertyValue('opacity') || '1'
                   const visibility = computed.getPropertyValue('visibility') || 'visible'
                   const transform = computed.getPropertyValue('transform')
-                  const freeze = [
-                    `opacity:${opacity}`,
-                    `visibility:${visibility}`
-                  ]
+                  const freeze = [`opacity:${opacity}`, `visibility:${visibility}`]
                   if (transform && transform !== 'none') freeze.push(`transform:${transform}`)
                   const display = computed.getPropertyValue('display')
                   if (display && display !== 'inline') freeze.push(`display:${display}`)
                   const existing = (el.getAttribute('style') || '').trim()
-                  el.setAttribute('style', existing ? `${existing}; ${freeze.join('; ')}` : freeze.join('; '))
+                  el.setAttribute(
+                    'style',
+                    existing ? `${existing}; ${freeze.join('; ')}` : freeze.join('; ')
+                  )
                 })
 
                 // 再清理动画（移除后不会丢失视觉）；仅子节点
@@ -476,8 +482,16 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
 
                 // 根 <svg> 强制可见，避免 PDF 打印上下文中根节点被库设为不可见导致整图空白（不依赖 getComputedStyle）
                 const rootStyle = (svgElement.getAttribute('style') || '').trim()
-                const cleanedRoot = rootStyle.replace(/animation[^;]*;?/gi, '').replace(/transition[^;]*;?/gi, '').trim()
-                svgElement.setAttribute('style', cleanedRoot ? `${cleanedRoot}; opacity:1; visibility:visible` : 'opacity:1; visibility:visible')
+                const cleanedRoot = rootStyle
+                  .replace(/animation[^;]*;?/gi, '')
+                  .replace(/transition[^;]*;?/gi, '')
+                  .trim()
+                svgElement.setAttribute(
+                  'style',
+                  cleanedRoot
+                    ? `${cleanedRoot}; opacity:1; visibility:visible`
+                    : 'opacity:1; visibility:visible'
+                )
 
                 // 移除所有动画元素
                 const animations = svgElement.querySelectorAll(
@@ -1215,9 +1229,7 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
           }
 
           // 串行渲染，避免多进程并发导致 Java OOM
-          imageUrl = await runPlantumlSerial(() =>
-            renderPlantUMLViaIpc(cleanCode, targetFormat)
-          )
+          imageUrl = await runPlantumlSerial(() => renderPlantUMLViaIpc(cleanCode, targetFormat))
         } else {
           throw new Error(`不支持的 IPC 渲染类型: ${chartType}`)
         }

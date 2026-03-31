@@ -704,7 +704,8 @@
       "intentRecognition": "意图识别",
       "selectedTools": "已选工具：",
       "noToolsNeeded": "此请求无需工具。",
-      "reasoning": "推理："
+      "reasoning": "推理：",
+      "reasoningBlock": "思考过程"
     },
     "attachment": {
       "untitled": "未命名"
@@ -3857,7 +3858,10 @@
         "cut": "剪切",
         "paste": "粘贴",
         "undo": "撤销",
-        "redo": "重做"
+        "redo": "重做",
+        "zoomIn": "放大",
+        "zoomOut": "缩小",
+        "zoomReset": "重置缩放"
       }
     },
     "cancel": "取消",

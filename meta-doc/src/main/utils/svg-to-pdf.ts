@@ -309,10 +309,7 @@ export async function convertSvgStringToPngFile(
  * 从标签字符串中提取属性值（支持 "val"、'val'、val）
  */
 function getAttr(tag: string, name: string): string | null {
-  const re = new RegExp(
-    `\\s${name}\\s*=\\s*(["'])([^"']*)\\1|\\s${name}\\s*=\\s*([^\\s>]+)`,
-    'i'
-  )
+  const re = new RegExp(`\\s${name}\\s*=\\s*(["'])([^"']*)\\1|\\s${name}\\s*=\\s*([^\\s>]+)`, 'i')
   const m = tag.match(re)
   if (m) return (m[2] !== undefined ? m[2] : m[3]).trim()
   return null

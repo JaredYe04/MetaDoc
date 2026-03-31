@@ -360,5 +360,5 @@ Performs various mathematical calculations including:
         description: '计算步骤'
       }
     }
-  },
+  }
 }

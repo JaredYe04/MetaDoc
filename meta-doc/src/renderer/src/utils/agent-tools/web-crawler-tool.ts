@@ -634,5 +634,5 @@ Sends HTTP request to specified URL and fetches webpage content or API response.
       contentType: { type: 'string' },
       size: { type: 'number' }
     }
-  },
+  }
 }

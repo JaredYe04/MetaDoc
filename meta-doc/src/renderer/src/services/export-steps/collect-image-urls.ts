@@ -35,10 +35,7 @@ export function collectRenderedImageUrls(
   try {
     const imagesPrefix = getRuntimeServerBaseUrlSync() + '/images/'
     const imagesPrefixEscaped = imagesPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const imageRegex = new RegExp(
-      '!\\[.*?\\]\\(' + imagesPrefixEscaped + '([^)\\\\]+)\\)',
-      'g'
-    )
+    const imageRegex = new RegExp('!\\[.*?\\]\\(' + imagesPrefixEscaped + '([^)\\\\]+)\\)', 'g')
     let match
     const baseUrl = imagesPrefix
     while ((match = imageRegex.exec(markdown)) !== null) {

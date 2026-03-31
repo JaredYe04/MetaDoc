@@ -85,7 +85,11 @@ function validateEdit(edit: EditOperation): void {
  * 流水线：规范化 → 逐条定位并应用（顺序执行，后一条在前一条结果上定位）→ 后处理
  * 任一步失败抛出 EditEngineError，不修改调用方传入的原始字符串（内部拷贝）
  */
-export function applyEdits(file: string, edits: EditOperation[], options?: ApplyEditsOptions): ApplyEditsSuccess {
+export function applyEdits(
+  file: string,
+  edits: EditOperation[],
+  options?: ApplyEditsOptions
+): ApplyEditsSuccess {
   const log = options?.onLog
   let current = normalizeNewlines(file)
   const logs: ApplyEditLogEntry[] = []
@@ -105,10 +109,7 @@ export function applyEdits(file: string, edits: EditOperation[], options?: Apply
       })
     } catch (e) {
       if (e instanceof EditEngineError) throw e
-      throw new EditEngineError(
-        e instanceof Error ? e.message : String(e),
-        'APPLY_FAILED'
-      )
+      throw new EditEngineError(e instanceof Error ? e.message : String(e), 'APPLY_FAILED')
     }
   }
 

@@ -11,6 +11,7 @@ import type { LlmConfig } from '../llm-adapters/types'
 import type { Message } from '../llm-adapters/types'
 import type { UsageStats } from '../llm-adapters/types'
 import { createRendererLogger } from '../logger'
+import type { StreamPartDelta } from './stream-chat'
 
 export interface StreamChatWithToolsOptions {
   config: LlmConfig
@@ -29,7 +30,7 @@ export interface StreamChatWithToolsOptions {
 
 export interface StreamChatWithToolsResult {
   consumeStream: (
-    onDelta: (delta: string) => void
+    onDelta: (delta: StreamPartDelta) => void | Promise<void>
   ) => Promise<{ usage: UsageStats | null; fullText?: string }>
 }
 
@@ -49,7 +50,7 @@ export async function streamChatWithTools(
     messages: aiMessages,
     tools: aiTools,
     temperature: temperature ?? config.temperature,
-    maxTokens: maxTokens ?? (config.enableMaxTokens ? config.maxTokens : undefined),
+    maxOutputTokens: maxTokens ?? (config.enableMaxTokens ? config.maxTokens : undefined),
     abortSignal
   })
 
@@ -60,16 +61,24 @@ export async function streamChatWithTools(
   const collectedToolCalls: ToolCallItem[] = []
   return {
     async consumeStream(
-      onDelta: (delta: string) => void
+      onDelta: (delta: StreamPartDelta) => void | Promise<void>
     ): Promise<{ usage: UsageStats | null; fullText?: string }> {
       let receivedTextDelta = false
       try {
         for await (const part of result.fullStream) {
           if (part.type === 'text-delta') {
-            const chunk = (part as { text?: string; delta?: string }).text ?? (part as { delta?: string }).delta ?? ''
+            const chunk =
+              (part as { text?: string; delta?: string }).text ??
+              (part as { delta?: string }).delta ??
+              ''
             if (chunk) {
               receivedTextDelta = true
-              onDelta(chunk)
+              await onDelta({ text: chunk })
+            }
+          } else if (part.type === 'reasoning-delta') {
+            const chunk = (part as { text?: string }).text ?? ''
+            if (chunk) {
+              await onDelta({ reasoning: chunk })
             }
           }
           if (part.type === 'tool-input-available' && onToolCall) {
@@ -100,19 +109,23 @@ export async function streamChatWithTools(
             if (Array.isArray(toolCalls)) {
               for (const tc of toolCalls) {
                 const id = (tc as { toolCallId?: string }).toolCallId ?? (tc as { id?: string }).id
-                const toolName = (tc as { toolName?: string }).toolName ?? (tc as { name?: string }).name
+                const toolName =
+                  (tc as { toolName?: string }).toolName ?? (tc as { name?: string }).name
                 const input = (tc as { input?: unknown }).input
                 const args =
                   typeof input === 'object' && input !== null
                     ? (input as Record<string, unknown>)
-                    : (tc as { args?: Record<string, unknown> }).args ??
+                    : ((tc as { args?: Record<string, unknown> }).args ??
                       (tc as { parameters?: Record<string, unknown> }).parameters ??
-                      {}
+                      {})
                 const params = typeof args === 'object' && args !== null ? args : {}
 
                 const existing = collectedToolCalls.find((c) => c.id === id)
                 if (existing) {
-                  if (Object.keys(existing.parameters).length === 0 && Object.keys(params).length > 0) {
+                  if (
+                    Object.keys(existing.parameters).length === 0 &&
+                    Object.keys(params).length > 0
+                  ) {
                     existing.parameters = params
                   }
                 } else if (id) {
@@ -132,7 +145,10 @@ export async function streamChatWithTools(
           if (toReportAfterStream.length > 0) {
             createRendererLogger('stream-chat-with-tools').debug(
               '[streamChatWithTools] 流结束，上报 tool calls（含补全参数）',
-              { count: toReportAfterStream.length, toolIds: toReportAfterStream.map((t) => t.tool_id) }
+              {
+                count: toReportAfterStream.length,
+                toolIds: toReportAfterStream.map((t) => t.tool_id)
+              }
             )
             for (const tc of toReportAfterStream) {
               await onToolCall(tc)

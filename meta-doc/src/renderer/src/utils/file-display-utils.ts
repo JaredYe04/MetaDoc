@@ -16,15 +16,7 @@ export const RENDERABLE_TEXT_EXTENSIONS = new Set([
 ])
 
 /** 图片格式（二进制，需通过 file:// URL 显示） */
-export const IMAGE_EXTENSIONS = new Set([
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.gif',
-  '.webp',
-  '.bmp',
-  '.ico'
-])
+export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico'])
 
 /** 代码格式扩展名 -> Monaco 语言 ID（与 format-initializer 保持一致） */
 const CODE_EXTENSIONS: Record<string, string> = {

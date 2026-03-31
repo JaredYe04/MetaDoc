@@ -33,10 +33,7 @@ vi.mock('../regex-utils', () => ({
   extractOuterJsonString: (s: string) => s
 }))
 
-import {
-  latexCompileToolCallback,
-  type LaTeXCompileToolResult
-} from './latex-compile-tool-impl'
+import { latexCompileToolCallback, type LaTeXCompileToolResult } from './latex-compile-tool-impl'
 
 function noop() {}
 
@@ -159,7 +156,9 @@ describe('latex-compile-tool', () => {
     it('texFilePath 时先 read-file-content 再 compile-tex，成功则 succeeded', async () => {
       mockInvoke.mockImplementation((channel: string, arg?: unknown) => {
         if (channel === 'read-file-content') {
-          return Promise.resolve('\\documentclass{article}\\begin{document}From file\\end{document}')
+          return Promise.resolve(
+            '\\documentclass{article}\\begin{document}From file\\end{document}'
+          )
         }
         if (channel === 'compile-tex') {
           expect(arg).toMatchObject({

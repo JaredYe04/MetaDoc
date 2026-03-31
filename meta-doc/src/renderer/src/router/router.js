@@ -34,24 +34,64 @@ const pages = {
 }
 
 const routes = [
-  { path: '/global-home', name: 'GlobalHome', component: GlobalHome, meta: { requiresLayout: true } },
+  {
+    path: '/global-home',
+    name: 'GlobalHome',
+    component: GlobalHome,
+    meta: { requiresLayout: true }
+  },
   { path: '/', name: 'Home', alias: '/home', component: Home, meta: { requiresLayout: true } },
   { path: '/outline', name: 'Outline', component: Outline, meta: { requiresLayout: true } },
   { path: '/about', name: 'About', component: About, meta: { requiresLayout: true } },
-  { path: '/markdown-editor', name: 'MarkdownEditor', component: MarkdownEditor, meta: { requiresLayout: true } },
+  {
+    path: '/markdown-editor',
+    name: 'MarkdownEditor',
+    component: MarkdownEditor,
+    meta: { requiresLayout: true }
+  },
   { path: '/editor', name: 'Editor', component: Editor, meta: { requiresLayout: true } },
   { path: '/visualize', name: 'Visualize', component: Visualize, meta: { requiresLayout: true } },
-  { path: '/knowledge-base', name: 'KnowledgeBase', component: KnowledgeBase, meta: { requiresLayout: true } },
+  {
+    path: '/knowledge-base',
+    name: 'KnowledgeBase',
+    component: KnowledgeBase,
+    meta: { requiresLayout: true }
+  },
   { path: '/agent', name: 'Agent', component: AgentView, meta: { requiresLayout: true } },
-  { path: '/proofread', name: 'Proofread', component: ProofreadView, meta: { requiresLayout: true } },
+  {
+    path: '/proofread',
+    name: 'Proofread',
+    component: ProofreadView,
+    meta: { requiresLayout: true }
+  },
   { path: '/debug', name: 'Debug', component: DebugView, meta: { requiresLayout: true } },
   { path: '/dummy', name: 'Dummy', component: DummyView, meta: { requiresLayout: true } },
-  { path: '/llm-statistics', name: 'LlmStatistics', component: LlmStatisticsView, meta: { requiresLayout: true } },
-  { path: '/user-feedback', name: 'UserFeedback', component: UserFeedbackView, meta: { requiresLayout: true } },
-  { path: '/user-manual', name: 'UserManual', component: UserManual, meta: { requiresLayout: true } },
+  {
+    path: '/llm-statistics',
+    name: 'LlmStatistics',
+    component: LlmStatisticsView,
+    meta: { requiresLayout: true }
+  },
+  {
+    path: '/user-feedback',
+    name: 'UserFeedback',
+    component: UserFeedbackView,
+    meta: { requiresLayout: true }
+  },
+  {
+    path: '/user-manual',
+    name: 'UserManual',
+    component: UserManual,
+    meta: { requiresLayout: true }
+  },
   ...Object.entries(pages).flatMap(([name, component]) => [
     { path: `/${name}`, name: `${name}-raw`, component, meta: { requiresLayout: true } },
-    { path: `/single-page/${name}`, name: `${name}-with-layout`, component, meta: { requiresLayout: true } }
+    {
+      path: `/single-page/${name}`,
+      name: `${name}-with-layout`,
+      component,
+      meta: { requiresLayout: true }
+    }
   ])
 ]
 

@@ -3652,7 +3652,10 @@
         "cut": "剪下",
         "paste": "貼上",
         "undo": "復原",
-        "redo": "重做"
+        "redo": "重做",
+        "zoomIn": "放大",
+        "zoomOut": "縮小",
+        "zoomReset": "重置縮放"
       }
     },
     "cancel": "取消",

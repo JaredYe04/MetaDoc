@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '../assets/response-container.css'
-import { ref, computed, onMounted, onBeforeMount, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeMount, nextTick, watch, withDefaults } from 'vue'
 import {
   User,
   MoreVertical,
@@ -29,6 +29,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@renderer/components/ui/dropdown-menu'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
+} from '@renderer/components/ui/collapsible'
+import { ChevronDown } from 'lucide-vue-next'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
   Dialog,
@@ -47,6 +53,8 @@ interface Props {
   message: MessageWithReferences
   index: number
   sessionReferences?: Reference[]
+  /** 当前助手消息是否正在流式输出（用于 reasoning 展开/结束后折叠） */
+  isAssistantStreaming?: boolean
 }
 
 interface MessageEditPayload {
@@ -54,7 +62,9 @@ interface MessageEditPayload {
   message: string
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  isAssistantStreaming: false
+})
 
 const emit = defineEmits<{
   delete: [index: number]
@@ -74,6 +84,21 @@ const role = computed(() => {
 const content = computed(() => {
   return props.message.content
 })
+
+const reasoningText = computed(() => (props.message.reasoning || '').trim())
+
+const isReasoningOpen = ref(true)
+watch(
+  () => props.isAssistantStreaming,
+  (streaming) => {
+    if (streaming) {
+      isReasoningOpen.value = true
+    } else if (reasoningText.value) {
+      isReasoningOpen.value = false
+    }
+  },
+  { immediate: true }
+)
 
 const roleClass = computed(() => {
   return props.message.role === 'user' ? 'user-role' : 'ai-role'
@@ -378,15 +403,29 @@ onBeforeMount(() => {
       :class="['bubble-content', 'response-container', { 'ai-flat-content': role !== 'user' }]"
       style="max-height: none"
     >
+      <Collapsible
+        v-if="role !== 'user' && reasoningText"
+        v-model:open="isReasoningOpen"
+        class="ai-chat-reasoning-wrap"
+        :class="{ 'ai-chat-reasoning-wrap--open': isReasoningOpen }"
+      >
+        <CollapsibleTrigger class="ai-chat-reasoning-trigger">
+          <ChevronDown class="ai-chat-reasoning-chevron" />
+          <span>{{ t('agent.message.reasoningBlock') }}</span>
+        </CollapsibleTrigger>
+        <CollapsibleContent class="ai-chat-reasoning-body">
+          <div class="ai-chat-reasoning-text">{{ reasoningText }}</div>
+        </CollapsibleContent>
+      </Collapsible>
       <MdPreview
         :modelValue="content"
         previewTheme="github"
         codeStyleReverse
-        style="
-          text-align: left;
-          margin-top: 20px;
-          color: v-bind('themeState.currentTheme.textColor');
-        "
+        :style="{
+          textAlign: 'left',
+          marginTop: role !== 'user' && reasoningText ? '8px' : '20px',
+          color: themeState.currentTheme.textColor
+        }"
         :class="themeState.currentTheme.mdeditorClass"
         :codeFold="false"
         :autoFoldThreshold="300"
@@ -609,6 +648,52 @@ onBeforeMount(() => {
   margin-top: 8px;
   margin-left: auto;
   /* 宽度由 JavaScript 动态设置，与消息气泡宽度一致 */
+}
+
+.ai-chat-reasoning-wrap {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.ai-chat-reasoning-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  border: none;
+  padding: 0 0 4px;
+}
+
+.ai-chat-reasoning-chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.ai-chat-reasoning-wrap--open .ai-chat-reasoning-chevron {
+  transform: rotate(0deg);
+}
+
+.ai-chat-reasoning-wrap:not(.ai-chat-reasoning-wrap--open) .ai-chat-reasoning-chevron {
+  transform: rotate(-90deg);
+}
+
+.ai-chat-reasoning-body {
+  padding: 0 0 4px 2px;
+}
+
+.ai-chat-reasoning-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
+  opacity: 0.92;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* AI消息底部操作按钮 */

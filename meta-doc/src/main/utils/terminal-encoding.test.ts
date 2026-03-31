@@ -4,10 +4,7 @@
  * @vitest-environment node
  */
 import { describe, it, expect } from 'vitest'
-import {
-  decodeTerminalBuffer,
-  buildRunCommandForAgent
-} from './terminal-encoding'
+import { decodeTerminalBuffer, buildRunCommandForAgent } from './terminal-encoding'
 
 describe('terminal-encoding', () => {
   describe('decodeTerminalBuffer', () => {

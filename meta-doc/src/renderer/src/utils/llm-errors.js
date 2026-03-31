@@ -82,8 +82,12 @@ export function createLlmError(error, context = {}) {
   // AI SDK 无输出：通常为端点错误或上游返回异常，优先展示 cause
   if (error?.name === 'AI_NoOutputGeneratedError') {
     const cause = error?.cause
-    const message = cause?.message || error?.message || 'No output generated. Check the stream for errors.'
-    return new LlmError(LlmErrorType.UNKNOWN_ERROR, message, error, { ...context, cause: cause ? String(cause) : undefined })
+    const message =
+      cause?.message || error?.message || 'No output generated. Check the stream for errors.'
+    return new LlmError(LlmErrorType.UNKNOWN_ERROR, message, error, {
+      ...context,
+      cause: cause ? String(cause) : undefined
+    })
   }
 
   // AI SDK API 调用错误（如 402 余额不足、4xx/5xx）：统一转为可展示的 LlmError
@@ -91,12 +95,10 @@ export function createLlmError(error, context = {}) {
     const status = error?.statusCode ?? error?.status ?? error?.response?.status
     const rawMessage = error?.message || error?.cause?.message || ''
     if (status === 402 || /insufficient balance|余额不足|quota|余额|欠费/i.test(rawMessage)) {
-      return new LlmError(
-        LlmErrorType.API_ERROR,
-        'API 余额不足，请充值后重试',
-        error,
-        { ...context, status: status || 402 }
-      )
+      return new LlmError(LlmErrorType.API_ERROR, 'API 余额不足，请充值后重试', error, {
+        ...context,
+        status: status || 402
+      })
     }
     if (status === 401 || status === 403) {
       return new LlmError(
@@ -114,12 +116,7 @@ export function createLlmError(error, context = {}) {
         { ...context, status }
       )
     }
-    return new LlmError(
-      LlmErrorType.API_ERROR,
-      rawMessage || 'API 调用失败',
-      error,
-      context
-    )
+    return new LlmError(LlmErrorType.API_ERROR, rawMessage || 'API 调用失败', error, context)
   }
 
   // 处理网络错误

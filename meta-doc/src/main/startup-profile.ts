@@ -25,9 +25,18 @@ export function shouldProfile(): boolean {
 }
 
 function writeProfileToFile(): void {
-  const outPath = process.env[PROFILE_OUTPUT_ENV] || path.join(os.tmpdir(), 'metadoc-startup-profile.json')
+  const outPath =
+    process.env[PROFILE_OUTPUT_ENV] || path.join(os.tmpdir(), 'metadoc-startup-profile.json')
   try {
-    fs.writeFileSync(outPath, JSON.stringify({ timeline, totalMs: timeline.length ? timeline[timeline.length - 1].deltaMs : 0 }, null, 2), 'utf8')
+    fs.writeFileSync(
+      outPath,
+      JSON.stringify(
+        { timeline, totalMs: timeline.length ? timeline[timeline.length - 1].deltaMs : 0 },
+        null,
+        2
+      ),
+      'utf8'
+    )
   } catch (e) {
     // ignore
   }

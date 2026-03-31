@@ -1080,7 +1080,10 @@
         "cut": "Couper",
         "paste": "Coller",
         "undo": "Annuler",
-        "redo": "Rétablir"
+        "redo": "Rétablir",
+        "zoomIn": "Agrandir",
+        "zoomOut": "Rétrécir",
+        "zoomReset": "Réinitialiser le zoom"
       }
     },
     "chatSuffix": "Suffixe d'URL pour la fonction de complétion de dialogue (Chat) (optionnel)",

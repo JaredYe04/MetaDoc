@@ -323,8 +323,9 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
       } else if (record.type === 'delete') {
         await messageBridge.invoke('delete-file-or-folder', record.filePath)
       } else if (record.type === 'edit') {
-        const content =
-          record.hunkOperations?.length ? foldRecordContent(record) : (record.newContent ?? '')
+        const content = record.hunkOperations?.length
+          ? foldRecordContent(record)
+          : (record.newContent ?? '')
         await messageBridge.invoke('write-file-content', {
           filePath: record.filePath,
           content

@@ -1,8 +1,7 @@
 // import './assets/main.css'
 
 // 启动耗时打点（ENABLE_STARTUP_PROFILE=1 时生效，由 preload 注入 window.api.startupProfileEnabled）
-const __startupProfileEnabled =
-  typeof window !== 'undefined' && window.api?.startupProfileEnabled
+const __startupProfileEnabled = typeof window !== 'undefined' && window.api?.startupProfileEnabled
 function __startupMark(phase) {
   if (!__startupProfileEnabled) return
   if (!window.__startupTimings__) {

@@ -14,7 +14,10 @@ const promptsConfig = promptsEn as {
 /**
  * Get nested prompt string by dot path (e.g. sectionChangePrompt.base)
  */
-function getNestedPrompt(promptsObj: Record<string, unknown> | undefined, key: string): string | undefined {
+function getNestedPrompt(
+  promptsObj: Record<string, unknown> | undefined,
+  key: string
+): string | undefined {
   if (!promptsObj || typeof promptsObj !== 'object') return undefined
   const direct = promptsObj[key]
   if (direct !== undefined && typeof direct === 'string') return direct
@@ -31,10 +34,7 @@ function getNestedPrompt(promptsObj: Record<string, unknown> | undefined, key: s
 /**
  * Get prompt template by key with placeholder replacement. English only.
  */
-export function getPromptByKey(
-  key: string,
-  replacements: Record<string, string> = {}
-): string {
+export function getPromptByKey(key: string, replacements: Record<string, string> = {}): string {
   let template = getNestedPrompt(promptsConfig.prompts, key) ?? ''
   template = String(template)
   Object.keys(replacements).forEach((placeholder) => {
@@ -303,16 +303,15 @@ export const sectionChangePrompt = (
       break
     case 2:
       prompt += `The user has an article with one chapter to modify or generate. Full article: "${article}". Chapter title: "${title}". `
-      prompt += !section
-        ? 'Section is empty; generate it.'
-        : `Original section: "${section}". `
+      prompt += !section ? 'Section is empty; generate it.' : `Original section: "${section}". `
       prompt += `User prompt: "${userPrompt}".`
       break
     default:
       break
   }
   prompt += formatRequirement
-  prompt += '\n\n**Output:** Directly output the modified or generated content from the first line; avoid repeating the prompt or extra explanation.'
+  prompt +=
+    '\n\n**Output:** Directly output the modified or generated content from the first line; avoid repeating the prompt or extra explanation.'
   return prompt
 }
 

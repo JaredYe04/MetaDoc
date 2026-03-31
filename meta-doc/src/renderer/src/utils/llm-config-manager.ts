@@ -23,7 +23,15 @@ export interface LlmConfigItem {
   /** 可选描述，用于在卡片上显示或备注 */
   description?: string
   isDefault?: boolean // 是否为默认配置（用于 i18n 显示）
-  type: 'metadoc' | 'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini' | 'qwen' | 'manual'
+  type:
+    | 'metadoc'
+    | 'ollama'
+    | 'openai'
+    | 'openai-official'
+    | 'deepseek'
+    | 'gemini'
+    | 'qwen'
+    | 'manual'
   // Ollama配置
   ollama?: {
     apiUrl: string
@@ -204,14 +212,9 @@ function createDefaultConfigs(): LlmConfigItem[] {
  * 检查并补充缺失的默认配置
  */
 function ensureDefaultConfigs(): void {
-  const defaultTypes: Array<'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini' | 'qwen'> = [
-    'ollama',
-    'openai',
-    'openai-official',
-    'deepseek',
-    'gemini',
-    'qwen'
-  ]
+  const defaultTypes: Array<
+    'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini' | 'qwen'
+  > = ['ollama', 'openai', 'openai-official', 'deepseek', 'gemini', 'qwen']
   const existingTypes = new Set(configs.value.filter((c) => c.isDefault).map((c) => c.type))
 
   // 检查是否有缺失的默认配置
@@ -363,7 +366,8 @@ async function createConfigFromSettings(): Promise<
   } else if (selectedLlm === 'qwen') {
     config.qwen = {
       apiKey: (await getSetting('qwenApiKey')) || '',
-      apiUrl: (await getSetting('qwenApiUrl')) || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      apiUrl:
+        (await getSetting('qwenApiUrl')) || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       selectedModel: (await getSetting('qwenSelectedModel')) || 'qwen-plus',
       enableMaxTokens: (await getSetting('qwenEnableMaxTokens')) ?? false,
       maxTokens: (await getSetting('qwenMaxTokens')) || 4096

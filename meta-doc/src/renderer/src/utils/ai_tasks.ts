@@ -205,7 +205,7 @@ export async function startAiTask(handle: string): Promise<void> {
     if (task.type === ai_types.answer && task.target) {
       const logger = createRendererLogger('AiTasks')
       logger.debug(
-        `[主窗口] 开始执行answer任务: handle=${handle}, prompt长度=${typeof task.prompt === 'string' ? task.prompt.length : (Array.isArray(task.prompt) ? task.prompt.length + ' messages' : 'other')}`
+        `[主窗口] 开始执行answer任务: handle=${handle}, prompt长度=${typeof task.prompt === 'string' ? task.prompt.length : Array.isArray(task.prompt) ? task.prompt.length + ' messages' : 'other'}`
       )
 
       // 仅记录 meta 摘要，避免打印完整 meta（含 tools、reactiveMessage）
@@ -283,13 +283,15 @@ export async function startAiTask(handle: string): Promise<void> {
         finalMeta.tools.length > 0 &&
         typeof finalMeta.onToolCallsDetected === 'function'
       if (useNativeTools) {
-        await (continueConversationWithTools as (
-          conv: AIDialogMessage[],
-          r: Ref<string>,
-          m: any,
-          signal: AbortSignal | undefined,
-          custom: any
-        ) => Promise<void>)(
+        await (
+          continueConversationWithTools as (
+            conv: AIDialogMessage[],
+            r: Ref<string>,
+            m: any,
+            signal: AbortSignal | undefined,
+            custom: any
+          ) => Promise<void>
+        )(
           task.prompt as AIDialogMessage[],
           task.target,
           finalMeta as any,
@@ -575,7 +577,8 @@ messageBridge.on('register-ai-task', (_: any, taskInfo: any) => {
     name,
     type,
     origin_key,
-    promptLength: typeof prompt === 'string' ? prompt.length : Array.isArray(prompt) ? prompt.length : 0,
+    promptLength:
+      typeof prompt === 'string' ? prompt.length : Array.isArray(prompt) ? prompt.length : 0,
     metaKeys: incomingMeta && typeof incomingMeta === 'object' ? Object.keys(incomingMeta) : []
   })
   if (taskMap.has(handle)) return // 防止重复添加

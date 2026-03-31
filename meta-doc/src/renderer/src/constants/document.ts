@@ -91,7 +91,8 @@ export const DEFAULT_AGENT_ASSISTANT_GREETING =
 /** 返回基于当前语言的默认 AI 对话消息（系统提示来自 locale_prompts；助手欢迎语来自 locales i18n） */
 export function getDefaultAiChatMessages(): AIDialogMessage[] {
   const greeting =
-    (typeof i18n?.global?.t === 'function' && (i18n.global.t('document.aiAssistantGreeting') as string)) ||
+    (typeof i18n?.global?.t === 'function' &&
+      (i18n.global.t('document.aiAssistantGreeting') as string)) ||
     DEFAULT_AI_ASSISTANT_GREETING
   return [
     { role: 'system', content: getPromptByKey('chat.documentSystemPrompt') },

@@ -30,7 +30,10 @@ function parseDSMLStyleParameters(content: string): Record<string, unknown> {
     const tagEndPos = startMatch.index + startMatch[0].length
     if (!paramName) continue
     if (startMatch[0].endsWith('/>')) {
-      parameters[paramName] = stringValue !== undefined && stringValue !== '' && stringValue !== 'false' ? stringValue : ''
+      parameters[paramName] =
+        stringValue !== undefined && stringValue !== '' && stringValue !== 'false'
+          ? stringValue
+          : ''
       continue
     }
     const endTagPattern = /<\/[|｜]\s*DSML\s*[|｜]\s*parameter>/gi
@@ -129,8 +132,7 @@ class StandardToolCallParser implements ToolCallParser {
         const preParsed = parseLooseJson(
           extractOuterJsonString(toolCallContent) || toolCallContent.trim()
         )
-        const isArray =
-          preParsed != null && Array.isArray(preParsed) && preParsed.length > 0
+        const isArray = preParsed != null && Array.isArray(preParsed) && preParsed.length > 0
         if (isArray) {
           for (let i = 0; i < preParsed.length; i++) {
             const parsed = this.parseSingleToolCall(
@@ -181,7 +183,12 @@ class StandardToolCallParser implements ToolCallParser {
           }
           // 适配 <tool_call><workspace>{"paths":[]}</workspace></tool_call> 或 <tool_call><edit>{"filePath":...,"edits":[...]}</edit></tool_call> 等格式：
           // 块内为「标签名即 tool_id、内容即 JSON」的一个或多个闭合标签，与 subagent 等统一支持
-          const tagWrappedCalls = this.parseTagWrappedToolCalls(toolCallContent, index, validateToolId, toolIdValidator)
+          const tagWrappedCalls = this.parseTagWrappedToolCalls(
+            toolCallContent,
+            index,
+            validateToolId,
+            toolIdValidator
+          )
           if (tagWrappedCalls.length > 0) {
             for (const parsed of tagWrappedCalls) {
               toolCalls.push(parsed)
@@ -261,10 +268,9 @@ class StandardToolCallParser implements ToolCallParser {
       }
       results.push(call)
       index++
-      getLogger().debug(
-        `[StandardToolCallParser] 解析到标签包装格式: toolId=${toolId}`,
-        { innerLength: inner.length }
-      )
+      getLogger().debug(`[StandardToolCallParser] 解析到标签包装格式: toolId=${toolId}`, {
+        innerLength: inner.length
+      })
     }
     return results
   }
@@ -296,7 +302,10 @@ class StandardToolCallParser implements ToolCallParser {
         const toolId = tagThenJsonMatch[1]
         // 从第一个 { 开始截取，保证 extractOuterJsonString 能解析完整 JSON（match[0] 可能含 {，slice 会丢掉）
         const braceIdx = toolCallContent.indexOf('{', tagThenJsonMatch[0].length - 1)
-        const jsonPart = braceIdx >= 0 ? toolCallContent.slice(braceIdx) : toolCallContent.slice(tagThenJsonMatch[0].length)
+        const jsonPart =
+          braceIdx >= 0
+            ? toolCallContent.slice(braceIdx)
+            : toolCallContent.slice(tagThenJsonMatch[0].length)
         const jsonStr = extractOuterJsonString(jsonPart) || jsonPart.trim()
         if (jsonStr && jsonStr.startsWith('{')) {
           let parameters: Record<string, unknown> | null = null
@@ -467,7 +476,10 @@ class StandardToolCallParser implements ToolCallParser {
                 parsed = JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
               } catch {
                 // JSON 解析失败时，若内容为 DSML 风格参数（如 <edit><｜DSML｜parameter name="filePath">...</｜DSML｜parameter></edit>），按参数解析
-                if (/<[|｜]\s*DSML\s*[|｜]\s*parameter\s+name=/i.test(jsonContent) || /parameter\s+name=["']/i.test(jsonContent)) {
+                if (
+                  /<[|｜]\s*DSML\s*[|｜]\s*parameter\s+name=/i.test(jsonContent) ||
+                  /parameter\s+name=["']/i.test(jsonContent)
+                ) {
                   parameters = parseDSMLStyleParameters(jsonContent)
                   if (Object.keys(parameters).length > 0) {
                     getLogger().debug(
@@ -1122,9 +1134,7 @@ class SubagentsBatchParser implements ToolCallParser {
       }
 
       if (toolCalls.length === 0) return null
-      getLogger().debug(
-        `[SubagentsBatchParser] 解析到 ${toolCalls.length} 个 subagent 批调用`
-      )
+      getLogger().debug(`[SubagentsBatchParser] 解析到 ${toolCalls.length} 个 subagent 批调用`)
       return toolCalls
     } catch (error) {
       getLogger().error('[SubagentsBatchParser] 解析失败:', error)
@@ -1137,7 +1147,10 @@ class SubagentsBatchParser implements ToolCallParser {
     // 移除 ```json ... ``` 或 ``` ... ``` 中包含 "subagents" 的块
     const codeBlockRe = /```(?:json)?\s*([\s\S]*?)```/gi
     cleaned = cleaned.replace(codeBlockRe, (fullMatch, inner) => {
-      const t = inner.trim().replace(/;;;+\s*$/, '').trim()
+      const t = inner
+        .trim()
+        .replace(/;;;+\s*$/, '')
+        .trim()
       if (/["']subagents["']\s*:\s*\[/.test(t)) return ''
       return fullMatch
     })
@@ -1174,7 +1187,13 @@ function normalizeActionParams(
     p.filePath = filePath
     delete p.file_path
   }
-  if (toolId === 'edit' && p.content != null && p.filePath != null && p.edits == null && p.editPlan == null) {
+  if (
+    toolId === 'edit' &&
+    p.content != null &&
+    p.filePath != null &&
+    p.edits == null &&
+    p.editPlan == null
+  ) {
     p.edits = [
       {
         id: 'legacy-action-params-content',
@@ -1270,7 +1289,11 @@ class ActionParamsParser implements ToolCallParser {
     const codeBlockRe = /```(?:json)?\s*([\s\S]*?)```/gi
     cleaned = cleaned.replace(codeBlockRe, (fullMatch, inner) => {
       const t = inner.trim()
-      if (/["']action["']\s*:/.test(t) && (/["']params["']\s*:/.test(t) || /["']parameters["']\s*:/.test(t))) return ''
+      if (
+        /["']action["']\s*:/.test(t) &&
+        (/["']params["']\s*:/.test(t) || /["']parameters["']\s*:/.test(t))
+      )
+        return ''
       return fullMatch
     })
     return cleaned.trim()
@@ -1296,9 +1319,10 @@ class OpenAIFunctionCallParser implements ToolCallParser {
       /<(?:tool[_-]?call|function[_-]?call)>[\s\S]*?<\/(?:tool[_-]?call|function[_-]?call)>/gi,
       ''
     )
-    const hasObjectFormat = /\{\s*["'](?:tool|name|tool_id|toolId|function|function_name)["']\s*:/i.test(
-      withoutToolCallTags
-    )
+    const hasObjectFormat =
+      /\{\s*["'](?:tool|name|tool_id|toolId|function|function_name)["']\s*:/i.test(
+        withoutToolCallTags
+      )
     const hasArrayFormat = /\s*\[\s*\{/.test(withoutToolCallTags.trim())
     return hasObjectFormat || hasArrayFormat
   }

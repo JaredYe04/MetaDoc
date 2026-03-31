@@ -193,6 +193,20 @@
 
         <!-- 文本内容 -->
         <div v-else class="agent-message__content">
+          <Collapsible
+            v-if="assistantReasoningText"
+            v-model:open="isReasoningBlockOpen"
+            class="assistant-reasoning-wrap"
+            :class="{ 'assistant-reasoning-wrap--open': isReasoningBlockOpen }"
+          >
+            <CollapsibleTrigger class="assistant-reasoning-trigger">
+              <ChevronDown class="assistant-reasoning-chevron" />
+              <span>{{ t('agent.message.reasoningBlock') }}</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent class="assistant-reasoning-body">
+              <div class="assistant-reasoning-text">{{ assistantReasoningText }}</div>
+            </CollapsibleContent>
+          </Collapsible>
           <!-- 如果消息包含tool_calls，需要将工具调用标记替换为指示器 -->
           <template v-if="hasToolCalls && processedContentParts.length > 0">
             <template v-for="(part, index) in processedContentParts" :key="index">
@@ -374,6 +388,7 @@ import { Tooltip } from '@renderer/components/ui/tooltip'
 import type {
   AgentMessage,
   ChatAgentMessage,
+  ThoughtAgentMessage,
   ToolAgentMessage,
   IntentRecognitionAgentMessage
 } from '../../types/agent'
@@ -397,8 +412,10 @@ const props = withDefaults(
     compact?: boolean
     /** 当前会话 id，用于显示回滚/恢复按钮（依赖编辑暂存 store） */
     sessionId?: string | null
+    /** 最后一条助手消息是否正在流式生成（用于 reasoning 区块展开；结束后默认折叠） */
+    isAssistantStreaming?: boolean
   }>(),
-  { compact: false, sessionId: null }
+  { compact: false, sessionId: null, isAssistantStreaming: false }
 )
 
 const emit = defineEmits<{
@@ -412,6 +429,30 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const stagingStore = useAgentEditStagingStore()
+
+const assistantReasoningText = computed(() => {
+  if (props.message.role !== 'assistant') return ''
+  if (props.message.type === 'chat') {
+    return ((props.message as ChatAgentMessage).reasoning || '').trim()
+  }
+  if (props.message.type === 'thought') {
+    return ((props.message as ThoughtAgentMessage).reasoning || '').trim()
+  }
+  return ''
+})
+
+const isReasoningBlockOpen = ref(true)
+watch(
+  () => props.isAssistantStreaming,
+  (streaming) => {
+    if (streaming) {
+      isReasoningBlockOpen.value = true
+    } else if (assistantReasoningText.value) {
+      isReasoningBlockOpen.value = false
+    }
+  },
+  { immediate: true }
+)
 
 /** 只保留真实 URL 链接：排除含 % 的 href（编码乱码）、排除主机名为文件名（如 xxx.md） */
 function sanitizePreviewHtml(html: string): string {
@@ -1813,5 +1854,50 @@ onBeforeUnmount(() => {
   font-size: 13px;
   color: v-bind('themeState.currentTheme.textColor');
   line-height: 1.5;
+}
+
+.assistant-reasoning-wrap {
+  margin-bottom: 10px;
+}
+
+.assistant-reasoning-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor2');
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  border: none;
+  padding: 0 0 4px;
+}
+
+.assistant-reasoning-chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.assistant-reasoning-wrap--open .assistant-reasoning-chevron {
+  transform: rotate(0deg);
+}
+
+.assistant-reasoning-wrap:not(.assistant-reasoning-wrap--open) .assistant-reasoning-chevron {
+  transform: rotate(-90deg);
+}
+
+.assistant-reasoning-body {
+  padding: 0 0 8px 2px;
+}
+
+.assistant-reasoning-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: v-bind('themeState.currentTheme.textColor2');
+  opacity: 0.92;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

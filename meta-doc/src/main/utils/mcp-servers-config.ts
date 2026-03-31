@@ -30,7 +30,11 @@ export function getMcpServersConfigPath(): string {
   return path.join(app.getPath('userData'), MCP_SERVERS_CONFIG_FILENAME)
 }
 
-export function readMcpServersConfigRaw(): { content: string; path: string; createdDefault: boolean } {
+export function readMcpServersConfigRaw(): {
+  content: string
+  path: string
+  createdDefault: boolean
+} {
   const cfgPath = getMcpServersConfigPath()
   if (!fs.existsSync(cfgPath)) {
     const initial = DEFAULT_MCP_SERVERS_JSON
@@ -103,7 +107,10 @@ export function validateMcpServersConfigText(text: string): McpConfigValidationR
     } else if (Array.isArray(o.args) && o.args.some((a) => typeof a !== 'string')) {
       errors.push(`Server "${name}": "args" must contain only strings`)
     }
-    if (o.env !== undefined && (typeof o.env !== 'object' || o.env === null || Array.isArray(o.env))) {
+    if (
+      o.env !== undefined &&
+      (typeof o.env !== 'object' || o.env === null || Array.isArray(o.env))
+    ) {
       errors.push(`Server "${name}": "env" must be an object of string values`)
     } else if (o.env && typeof o.env === 'object' && !Array.isArray(o.env)) {
       for (const [ek, ev] of Object.entries(o.env as Record<string, unknown>)) {

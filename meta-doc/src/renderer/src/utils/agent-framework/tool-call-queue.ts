@@ -125,339 +125,358 @@ export class ToolCallQueue {
     try {
       // 处理 dummy-tool（无效的工具调用；正常流程下解析层已不再上报无效块，此处仅兜底）
       if (task.tool_id === 'dummy-tool') {
-          const errorInfo = (task.parameters.error as string) || '工具调用格式错误'
-          const rawContent = (task.parameters.rawContent as string) || ''
-          const parsed = task.parameters.parsed as any
+        const errorInfo = (task.parameters.error as string) || '工具调用格式错误'
+        const rawContent = (task.parameters.rawContent as string) || ''
+        const parsed = task.parameters.parsed as any
 
-          // 若原始内容明显不是 JSON（如正文讨论/举例被误匹配），仅简短提示，避免刷屏
-          const head = rawContent.trim().slice(0, 200)
-          const looksLikeJson = /^\s*\{/.test(rawContent.trim()) || head.includes('"name"') || head.includes('"tool_id"')
-          let errorMessage: string
-          if (!looksLikeJson && rawContent.length > 20) {
-            errorMessage = `工具调用格式错误：${errorInfo}（内容疑似非工具调用，已忽略）`
-          } else {
-            errorMessage = `工具调用格式错误：${errorInfo}\n\n`
-            errorMessage += `**原始内容：**\n\`\`\`\n${rawContent}\n\`\`\`\n\n`
-            if (parsed) {
-              errorMessage += `**解析结果：**\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`\n\n`
-            }
-            errorMessage += `**说明：** 工具调用应通过系统/API 提供的工具调用接口（结构化格式）发起，不要在消息正文中以文本形式输出工具调用。`
+        // 若原始内容明显不是 JSON（如正文讨论/举例被误匹配），仅简短提示，避免刷屏
+        const head = rawContent.trim().slice(0, 200)
+        const looksLikeJson =
+          /^\s*\{/.test(rawContent.trim()) || head.includes('"name"') || head.includes('"tool_id"')
+        let errorMessage: string
+        if (!looksLikeJson && rawContent.length > 20) {
+          errorMessage = `工具调用格式错误：${errorInfo}（内容疑似非工具调用，已忽略）`
+        } else {
+          errorMessage = `工具调用格式错误：${errorInfo}\n\n`
+          errorMessage += `**原始内容：**\n\`\`\`\n${rawContent}\n\`\`\`\n\n`
+          if (parsed) {
+            errorMessage += `**解析结果：**\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`\n\n`
           }
-
-          const failedObservation: ToolObservation = {
-            toolId: 'dummy-tool',
-            toolName: '工具调用错误',
-            status: 'failed',
-            error: errorMessage
-          }
-
-          // 添加tool消息
-          AIContextManager.addToolMessage(
-            this.session,
-            'dummy-tool',
-            '工具调用错误',
-            'failed',
-            undefined,
-            errorMessage,
-            undefined,
-            task.tool_call_id,
-            undefined
-          )
-
-          if (this.onTaskComplete) {
-            this.onTaskComplete(task, failedObservation)
-          }
-          return
+          errorMessage += `**说明：** 工具调用应通过系统/API 提供的工具调用接口（结构化格式）发起，不要在消息正文中以文本形式输出工具调用。`
         }
 
-        // Subagent：不经过 ToolRunner，直接运行 Subagent 并写入带 SubagentDisplay 的 tool 消息
-        const subagentConfig = agentConfigManager.getConfig(task.tool_id)
-        if (subagentConfig && (subagentConfig as any).isSubagent) {
-          const sessionForTool =
-            (this.session as any).entityType === 'agent-session'
-              ? (this.session as AgentSession)
-              : (this.session as any).publicContext
-                ? (this.session as any as AgentSession)
-                : undefined
-          if (!sessionForTool) {
-            AIContextManager.addToolMessage(
-              this.session,
-              task.tool_id,
-              (subagentConfig as any).name?.zh_cn?.name || task.tool_id,
-              'failed',
-              undefined,
-              'Subagent 需要会话上下文',
-              undefined,
-              task.tool_call_id,
-              { displayComponent: 'SubagentDisplay', id: task.tool_id }
-            )
-            if (this.onTaskComplete) {
-              this.onTaskComplete(task, {
-                toolId: task.tool_id,
-                toolName: task.tool_id,
-                status: 'failed',
-                error: 'Subagent 需要会话上下文'
-              })
-            }
-            return
-          }
-          const toolName =
-            typeof subagentConfig.name === 'string'
-              ? subagentConfig.name
-              : (subagentConfig.name as any)?.zh_cn?.name || (subagentConfig.name as any)?.en_us?.name || task.tool_id
-          const toolConfigSub = { displayComponent: 'SubagentDisplay', id: task.tool_id, name: toolName }
-          runningMsg = AIContextManager.addToolMessage(
-            this.session,
-            task.tool_id,
-            toolName,
-            'running',
-            { subagentMessages: [], result: '' },
-            undefined,
-            undefined,
-            task.tool_call_id,
-            toolConfigSub,
-            task.parameters
-          )
-          let result: Awaited<ReturnType<typeof runSubagent>>
-          try {
-            result = await runSubagent(
-              task.tool_id,
-              task.parameters as { prompt: string },
-              sessionForTool,
-              this.signal,
-              task.tool_call_id
-            )
-          } catch (err) {
-            const errMsg = err instanceof Error ? err.message : String(err)
-            const failedObs = { toolId: task.tool_id, toolName, status: 'failed' as const, error: errMsg }
-            AIContextManager.completeToolMessage(this.session, runningMsg.id, failedObs, task.parameters)
-            if (this.onTaskComplete) this.onTaskComplete(task, failedObs)
-            return
-          }
-          const observation: ToolObservation = {
-            toolId: task.tool_id,
-            toolName,
-            status: result.status,
-            result: {
-              result: result.resultText,
-              data: { subagentMessages: result.subagentMessages, result: result.resultText }
-            },
-            error: result.error,
-            summary: result.resultText?.substring(0, 200)
-          }
-          AIContextManager.completeToolMessage(this.session, runningMsg.id, observation, task.parameters)
-          if (this.onTaskComplete) this.onTaskComplete(task, observation)
-          return
+        const failedObservation: ToolObservation = {
+          toolId: 'dummy-tool',
+          toolName: '工具调用错误',
+          status: 'failed',
+          error: errorMessage
         }
 
-        // 验证参数
-        const validation = ToolRunner.validateToolParams(task.tool_id, task.parameters)
-        if (!validation.valid) {
-          const errorMessage = validation.errors.join(', ')
-          const failedObservation: ToolObservation = {
-            toolId: task.tool_id,
-            toolName: task.tool_id,
-            status: 'failed',
-            error: errorMessage
-          }
+        // 添加tool消息
+        AIContextManager.addToolMessage(
+          this.session,
+          'dummy-tool',
+          '工具调用错误',
+          'failed',
+          undefined,
+          errorMessage,
+          undefined,
+          task.tool_call_id,
+          undefined
+        )
 
-          // 获取工具配置
-          const tool = agentToolManager.getTool(task.tool_id)
-          const toolConfig = tool?.config
-
-          AIContextManager.addToolMessage(
-            this.session,
-            task.tool_id,
-            task.tool_id,
-            'failed',
-            undefined,
-            errorMessage,
-            undefined,
-            task.tool_call_id,
-            toolConfig
-          )
-
-          if (this.onTaskComplete) {
-            this.onTaskComplete(task, failedObservation)
-          }
-          return
+        if (this.onTaskComplete) {
+          this.onTaskComplete(task, failedObservation)
         }
+        return
+      }
 
-        // 获取可以传递给工具的session对象：新类型有entityType字段，旧类型有publicContext字段
+      // Subagent：不经过 ToolRunner，直接运行 Subagent 并写入带 SubagentDisplay 的 tool 消息
+      const subagentConfig = agentConfigManager.getConfig(task.tool_id)
+      if (subagentConfig && (subagentConfig as any).isSubagent) {
         const sessionForTool =
           (this.session as any).entityType === 'agent-session'
             ? (this.session as AgentSession)
             : (this.session as any).publicContext
-              ? (this.session as any as AgentSession) // LegacyAgentSession也有publicContext，可以转换
+              ? (this.session as any as AgentSession)
               : undefined
-
-        // 获取工具配置以获取工具名称
-        let tool = agentToolManager.getTool(task.tool_id)
-        let toolConfig = tool?.config
-        const toolName = toolConfig
-          ? typeof toolConfig.name === 'string'
-            ? toolConfig.name
-            : toolConfig.name?.['zh_cn']?.name || toolConfig.name?.['en_us']?.name || task.tool_id
-          : task.tool_id
-
-        // 先插入 running 消息，便于 UI 立即展示该工具正在执行
+        if (!sessionForTool) {
+          AIContextManager.addToolMessage(
+            this.session,
+            task.tool_id,
+            (subagentConfig as any).name?.zh_cn?.name || task.tool_id,
+            'failed',
+            undefined,
+            'Subagent 需要会话上下文',
+            undefined,
+            task.tool_call_id,
+            { displayComponent: 'SubagentDisplay', id: task.tool_id }
+          )
+          if (this.onTaskComplete) {
+            this.onTaskComplete(task, {
+              toolId: task.tool_id,
+              toolName: task.tool_id,
+              status: 'failed',
+              error: 'Subagent 需要会话上下文'
+            })
+          }
+          return
+        }
+        const toolName =
+          typeof subagentConfig.name === 'string'
+            ? subagentConfig.name
+            : (subagentConfig.name as any)?.zh_cn?.name ||
+              (subagentConfig.name as any)?.en_us?.name ||
+              task.tool_id
+        const toolConfigSub = {
+          displayComponent: 'SubagentDisplay',
+          id: task.tool_id,
+          name: toolName
+        }
         runningMsg = AIContextManager.addToolMessage(
           this.session,
           task.tool_id,
           toolName,
           'running',
-          undefined,
+          { subagentMessages: [], result: '' },
           undefined,
           undefined,
           task.tool_call_id,
-          toolConfig,
+          toolConfigSub,
           task.parameters
         )
-
-        // 为工具调用创建AI任务，让用户能在任务队列中看到工具执行过程
-        const taskResultRef = ref('')
-        const originKey = `tool-${task.tool_id}-${task.tool_call_id}-${Date.now()}`
-        const { handle, done } = createAiTask(
-          toolName,
-          task.tool_id, // prompt使用工具ID
-          taskResultRef,
-          ai_types.tool,
-          originKey,
-          {
-            toolId: task.tool_id,
-            parameters: task.parameters,
-            tool_call_id: task.tool_call_id,
-            session: sessionForTool,
-            stream: false // 工具调用不是流式的
-          }
-        )
-        this.onTaskCreated?.(handle)
-
-        getLogger().debug('[ToolCallQueue] 已创建工具调用AI任务:', {
-          handle,
-          toolId: task.tool_id,
-          toolName,
-          originKey
-        })
-
-        // 执行工具（通过AI任务系统）
-        // 注意：createAiTask会自动启动任务（autoStart=true），所以任务会立即开始执行
-        // startAiTask会执行工具并将结果更新到taskResultRef
-        let observation: ToolObservation
+        let result: Awaited<ReturnType<typeof runSubagent>>
         try {
-          // 等待AI任务完成（startAiTask会执行工具）
-          await done
-
-          // 从任务系统中获取保存的observation
-          // 注意：任务可能已经完成但还未删除，我们需要在删除前获取observation
-          const { getTaskMap } = await import('../ai_tasks')
-          const taskMap = getTaskMap()
-          const aiTask = taskMap.get(handle)
-          const savedObservation = aiTask?.meta?.__observation as ToolObservation | undefined
-
-          if (savedObservation) {
-            observation = savedObservation
-            getLogger().debug('[ToolCallQueue] 从AI任务中获取observation:', {
-              toolId: observation.toolId,
-              status: observation.status
-            })
-          } else {
-            // 兜底：从taskResultRef构建简单的observation
-            const resultText = taskResultRef.value
-            getLogger().warn(
-              '[ToolCallQueue] 无法从AI任务获取observation，使用taskResultRef构建:',
-              {
-                resultTextLength: resultText.length,
-                resultTextPreview: resultText.substring(0, 100)
-              }
-            )
-
-            if (resultText.startsWith('工具执行失败:')) {
-              observation = {
-                toolId: task.tool_id,
-                toolName,
-                status: 'failed',
-                error: resultText.replace('工具执行失败: ', '')
-              }
-            } else {
-              observation = {
-                toolId: task.tool_id,
-                toolName,
-                status: 'succeeded',
-                result: resultText,
-                summary: resultText.length > 200 ? resultText.substring(0, 200) + '...' : resultText
-              }
-            }
-          }
-        } catch (error) {
-          // 如果AI任务执行失败，使用ToolRunner直接执行（兜底）
-          getLogger().warn('[ToolCallQueue] AI任务执行失败，使用ToolRunner直接执行:', error)
-          observation = await ToolRunner.runTool(
+          result = await runSubagent(
             task.tool_id,
-            task.parameters,
+            task.parameters as { prompt: string },
+            sessionForTool,
             this.signal,
-            sessionForTool
+            task.tool_call_id
           )
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err)
+          const failedObs = {
+            toolId: task.tool_id,
+            toolName,
+            status: 'failed' as const,
+            error: errMsg
+          }
+          AIContextManager.completeToolMessage(
+            this.session,
+            runningMsg.id,
+            failedObs,
+            task.parameters
+          )
+          if (this.onTaskComplete) this.onTaskComplete(task, failedObs)
+          return
         }
-
-        // 获取工具配置以获取displayComponent（如果之前没有获取）
-        if (!tool) {
-          const toolObj = agentToolManager.getTool(observation.toolId)
-          toolConfig = toolObj?.config
-        }
-
-        // 同步写入会话：必须在 runTask 的 Promise 结束前完成，waitForComplete 才与真实消息状态一致（不依赖 Vue 时序）
-        const session = this.session
-        const msgId = runningMsg.id
-        const obs = observation
-        const params = observation.params || task.parameters
-        AIContextManager.completeToolMessage(session, msgId, obs, params)
-
-        getLogger().debug('[ToolCallQueue] 任务执行完成:', {
+        const observation: ToolObservation = {
           toolId: task.tool_id,
-          status: observation.status,
-          inFlight: this.inFlight
-        })
-
-        if (this.onTaskComplete) {
-          this.onTaskComplete(task, observation)
+          toolName,
+          status: result.status,
+          result: {
+            result: result.resultText,
+            data: { subagentMessages: result.subagentMessages, result: result.resultText }
+          },
+          error: result.error,
+          summary: result.resultText?.substring(0, 200)
         }
-      } catch (error) {
-        getLogger().error('[ToolCallQueue] 任务执行失败:', error)
-        const errorMessage = error instanceof Error ? error.message : String(error)
+        AIContextManager.completeToolMessage(
+          this.session,
+          runningMsg.id,
+          observation,
+          task.parameters
+        )
+        if (this.onTaskComplete) this.onTaskComplete(task, observation)
+        return
+      }
+
+      // 验证参数
+      const validation = ToolRunner.validateToolParams(task.tool_id, task.parameters)
+      if (!validation.valid) {
+        const errorMessage = validation.errors.join(', ')
         const failedObservation: ToolObservation = {
           toolId: task.tool_id,
           toolName: task.tool_id,
           status: 'failed',
           error: errorMessage
         }
-        // 若此前已插入 running 消息（普通工具路径），则原地更新为失败；否则插入一条失败消息
-        if (typeof runningMsg !== 'undefined' && runningMsg != null) {
-          const session = this.session
-          const msgId = runningMsg.id
-          const obs = failedObservation
-          const params = task.parameters
-          AIContextManager.completeToolMessage(session, msgId, obs, params)
-        } else {
-          const tool = agentToolManager.getTool(task.tool_id)
-          const toolConfig = tool?.config
-          AIContextManager.addToolMessage(
-            this.session,
-            task.tool_id,
-            task.tool_id,
-            'failed',
-            undefined,
-            errorMessage,
-            undefined,
-            task.tool_call_id,
-            toolConfig,
-            task.parameters
-          )
-        }
+
+        // 获取工具配置
+        const tool = agentToolManager.getTool(task.tool_id)
+        const toolConfig = tool?.config
+
+        AIContextManager.addToolMessage(
+          this.session,
+          task.tool_id,
+          task.tool_id,
+          'failed',
+          undefined,
+          errorMessage,
+          undefined,
+          task.tool_call_id,
+          toolConfig
+        )
+
         if (this.onTaskComplete) {
           this.onTaskComplete(task, failedObservation)
         }
+        return
       }
+
+      // 获取可以传递给工具的session对象：新类型有entityType字段，旧类型有publicContext字段
+      const sessionForTool =
+        (this.session as any).entityType === 'agent-session'
+          ? (this.session as AgentSession)
+          : (this.session as any).publicContext
+            ? (this.session as any as AgentSession) // LegacyAgentSession也有publicContext，可以转换
+            : undefined
+
+      // 获取工具配置以获取工具名称
+      let tool = agentToolManager.getTool(task.tool_id)
+      let toolConfig = tool?.config
+      const toolName = toolConfig
+        ? typeof toolConfig.name === 'string'
+          ? toolConfig.name
+          : toolConfig.name?.['zh_cn']?.name || toolConfig.name?.['en_us']?.name || task.tool_id
+        : task.tool_id
+
+      // 先插入 running 消息，便于 UI 立即展示该工具正在执行
+      runningMsg = AIContextManager.addToolMessage(
+        this.session,
+        task.tool_id,
+        toolName,
+        'running',
+        undefined,
+        undefined,
+        undefined,
+        task.tool_call_id,
+        toolConfig,
+        task.parameters
+      )
+
+      // 为工具调用创建AI任务，让用户能在任务队列中看到工具执行过程
+      const taskResultRef = ref('')
+      const originKey = `tool-${task.tool_id}-${task.tool_call_id}-${Date.now()}`
+      const { handle, done } = createAiTask(
+        toolName,
+        task.tool_id, // prompt使用工具ID
+        taskResultRef,
+        ai_types.tool,
+        originKey,
+        {
+          toolId: task.tool_id,
+          parameters: task.parameters,
+          tool_call_id: task.tool_call_id,
+          session: sessionForTool,
+          stream: false // 工具调用不是流式的
+        }
+      )
+      this.onTaskCreated?.(handle)
+
+      getLogger().debug('[ToolCallQueue] 已创建工具调用AI任务:', {
+        handle,
+        toolId: task.tool_id,
+        toolName,
+        originKey
+      })
+
+      // 执行工具（通过AI任务系统）
+      // 注意：createAiTask会自动启动任务（autoStart=true），所以任务会立即开始执行
+      // startAiTask会执行工具并将结果更新到taskResultRef
+      let observation: ToolObservation
+      try {
+        // 等待AI任务完成（startAiTask会执行工具）
+        await done
+
+        // 从任务系统中获取保存的observation
+        // 注意：任务可能已经完成但还未删除，我们需要在删除前获取observation
+        const { getTaskMap } = await import('../ai_tasks')
+        const taskMap = getTaskMap()
+        const aiTask = taskMap.get(handle)
+        const savedObservation = aiTask?.meta?.__observation as ToolObservation | undefined
+
+        if (savedObservation) {
+          observation = savedObservation
+          getLogger().debug('[ToolCallQueue] 从AI任务中获取observation:', {
+            toolId: observation.toolId,
+            status: observation.status
+          })
+        } else {
+          // 兜底：从taskResultRef构建简单的observation
+          const resultText = taskResultRef.value
+          getLogger().warn('[ToolCallQueue] 无法从AI任务获取observation，使用taskResultRef构建:', {
+            resultTextLength: resultText.length,
+            resultTextPreview: resultText.substring(0, 100)
+          })
+
+          if (resultText.startsWith('工具执行失败:')) {
+            observation = {
+              toolId: task.tool_id,
+              toolName,
+              status: 'failed',
+              error: resultText.replace('工具执行失败: ', '')
+            }
+          } else {
+            observation = {
+              toolId: task.tool_id,
+              toolName,
+              status: 'succeeded',
+              result: resultText,
+              summary: resultText.length > 200 ? resultText.substring(0, 200) + '...' : resultText
+            }
+          }
+        }
+      } catch (error) {
+        // 如果AI任务执行失败，使用ToolRunner直接执行（兜底）
+        getLogger().warn('[ToolCallQueue] AI任务执行失败，使用ToolRunner直接执行:', error)
+        observation = await ToolRunner.runTool(
+          task.tool_id,
+          task.parameters,
+          this.signal,
+          sessionForTool
+        )
+      }
+
+      // 获取工具配置以获取displayComponent（如果之前没有获取）
+      if (!tool) {
+        const toolObj = agentToolManager.getTool(observation.toolId)
+        toolConfig = toolObj?.config
+      }
+
+      // 同步写入会话：必须在 runTask 的 Promise 结束前完成，waitForComplete 才与真实消息状态一致（不依赖 Vue 时序）
+      const session = this.session
+      const msgId = runningMsg.id
+      const obs = observation
+      const params = observation.params || task.parameters
+      AIContextManager.completeToolMessage(session, msgId, obs, params)
+
+      getLogger().debug('[ToolCallQueue] 任务执行完成:', {
+        toolId: task.tool_id,
+        status: observation.status,
+        inFlight: this.inFlight
+      })
+
+      if (this.onTaskComplete) {
+        this.onTaskComplete(task, observation)
+      }
+    } catch (error) {
+      getLogger().error('[ToolCallQueue] 任务执行失败:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      const failedObservation: ToolObservation = {
+        toolId: task.tool_id,
+        toolName: task.tool_id,
+        status: 'failed',
+        error: errorMessage
+      }
+      // 若此前已插入 running 消息（普通工具路径），则原地更新为失败；否则插入一条失败消息
+      if (typeof runningMsg !== 'undefined' && runningMsg != null) {
+        const session = this.session
+        const msgId = runningMsg.id
+        const obs = failedObservation
+        const params = task.parameters
+        AIContextManager.completeToolMessage(session, msgId, obs, params)
+      } else {
+        const tool = agentToolManager.getTool(task.tool_id)
+        const toolConfig = tool?.config
+        AIContextManager.addToolMessage(
+          this.session,
+          task.tool_id,
+          task.tool_id,
+          'failed',
+          undefined,
+          errorMessage,
+          undefined,
+          task.tool_call_id,
+          toolConfig,
+          task.parameters
+        )
+      }
+      if (this.onTaskComplete) {
+        this.onTaskComplete(task, failedObservation)
+      }
+    }
   }
 
   /**

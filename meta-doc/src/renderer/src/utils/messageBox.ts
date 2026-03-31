@@ -12,11 +12,7 @@ function t(key: string, fallback?: string): string {
 }
 
 export const messageBox = {
-  confirm(
-    message: string,
-    title?: string,
-    options?: MessageBoxOptions
-  ): Promise<void> {
+  confirm(message: string, title?: string, options?: MessageBoxOptions): Promise<void> {
     return new Promise((resolve, reject) => {
       const store = useMessageBoxStore()
       store.show({
@@ -35,7 +31,10 @@ export const messageBox = {
   prompt(
     message: string,
     title?: string,
-    options?: MessageBoxOptions & { inputValue?: string; inputValidator?: (v: string) => boolean | string }
+    options?: MessageBoxOptions & {
+      inputValue?: string
+      inputValidator?: (v: string) => boolean | string
+    }
   ): Promise<{ value: string }> {
     return new Promise((resolve, reject) => {
       const store = useMessageBoxStore()

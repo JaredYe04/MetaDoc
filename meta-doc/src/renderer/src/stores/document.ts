@@ -33,7 +33,10 @@ function getDefaultAiChatMessagesForStore(): AIDialogMessage[] {
   const greeting = i18n.global.t('document.aiAssistantGreeting') as string
   return [
     msgs[0],
-    { role: 'assistant', content: greeting || '### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n' }
+    {
+      role: 'assistant',
+      content: greeting || '### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n'
+    }
   ]
 }
 

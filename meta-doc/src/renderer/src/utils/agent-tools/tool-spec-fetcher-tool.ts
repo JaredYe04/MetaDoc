@@ -79,7 +79,7 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
           const fallbackName =
             typeof tool.config.name === 'string'
               ? tool.config.name
-              : (tool.config.name as any)?.['en_us']?.name ?? toolId
+              : ((tool.config.name as any)?.['en_us']?.name ?? toolId)
           toolName = agentToolManager.getLocalizedToolName(tool.config.id, fallbackName)
 
           if (tool.config.spec?.fullSpec) {
@@ -104,15 +104,13 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
             toolName =
               typeof subagentConfig.name === 'string'
                 ? subagentConfig.name
-                : subagentConfig.name['zh_cn']?.name ||
-                  subagentConfig.name['en_us']?.name ||
-                  toolId
+                : subagentConfig.name['zh_cn']?.name || subagentConfig.name['en_us']?.name || toolId
             const desc =
               typeof subagentConfig.description === 'string'
                 ? subagentConfig.description
                 : subagentConfig.description['zh_cn']?.description ||
                   subagentConfig.description['en_us']?.description ||
-              ''
+                  ''
             fullSpec = `Subagent: ${toolName}\n\n${desc}\n\nParameters: { "prompt": "给此 Subagent 的指示或要完成的任务描述（必填）" }\n\n调用方式：通过系统提供的工具调用接口调用；同一条回复中可发起多个工具/Subagent 调用，系统会并发执行。`
           } else {
             specs.push({
@@ -174,8 +172,7 @@ const toolSpecFetcherCallback: ToolCallback = async (params, signal, onUpdate) =
 }
 
 const TOOL_SPEC_FETCHER_NAME = 'Tool Spec Fetcher'
-const TOOL_SPEC_FETCHER_DESCRIPTION =
-  'Fetch the full specification (fullSpec) of one or more tools'
+const TOOL_SPEC_FETCHER_DESCRIPTION = 'Fetch the full specification (fullSpec) of one or more tools'
 
 export const toolSpecFetcherToolConfig: AgentToolConfig = {
   id: 'tool-spec-fetcher',

@@ -8,9 +8,7 @@ import type { McpServersConfigFile } from './mcp-servers-config'
 
 const CALL_TOOL_TIMEOUT_MS = 180_000
 
-export type CallMcpToolOutcome =
-  | { ok: true; result: unknown }
-  | { ok: false; error: string }
+export type CallMcpToolOutcome = { ok: true; result: unknown } | { ok: false; error: string }
 
 export async function callMcpToolWithConfig(
   config: McpServersConfigFile,
@@ -26,11 +24,9 @@ export async function callMcpToolWithConfig(
   const client = new Client({ name: 'metadoc-mcp-call', version: '1.0.0' })
   try {
     await connectClientForEntry(client, serverName, entry)
-    const result = await client.callTool(
-      { name: toolName, arguments: args },
-      undefined,
-      { signal: AbortSignal.timeout(CALL_TOOL_TIMEOUT_MS) }
-    )
+    const result = await client.callTool({ name: toolName, arguments: args }, undefined, {
+      signal: AbortSignal.timeout(CALL_TOOL_TIMEOUT_MS)
+    })
     return { ok: true, result }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) }

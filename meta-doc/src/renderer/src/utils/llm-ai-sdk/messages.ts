@@ -37,7 +37,10 @@ function convertOneMessage(msg: Message): ModelMessage {
       return { role: 'assistant', content: content || '' }
     }
     // 有 tool_calls 时转为 content 数组（TextPart + ToolCallPart）
-    const parts: Array<{ type: 'text'; text: string } | { type: 'tool-call'; toolCallId: string; toolName: string; input: object }> = []
+    const parts: Array<
+      | { type: 'text'; text: string }
+      | { type: 'tool-call'; toolCallId: string; toolName: string; input: object }
+    > = []
     if (content && String(content).trim()) {
       parts.push({ type: 'text', text: content })
     }

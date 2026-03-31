@@ -14,6 +14,7 @@
           ref="previewContainerRef"
           class="content-preview"
           :class="themeState.currentTheme.mdeditorClass"
+          :style="previewZoomStyle"
         ></div>
       </div>
     </div>
@@ -21,13 +22,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DocumentMetaSection from './DocumentMetaSection.vue'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Skeleton } from '@renderer/components/ui/skeleton'
 import { renderMarkdownPreview, local2fileProtocol, local2httpProtocol } from '../../../utils/md-utils'
 import { themeState } from '../../../utils/themes'
+import eventBus from '@renderer/utils/event-bus'
 
 const { t } = useI18n()
 
@@ -43,6 +45,18 @@ const props = defineProps<{
 
 const previewContainerRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
+
+const zoomScale = ref(1)
+const previewZoomStyle = computed(() => ({
+  transform: `scale(${zoomScale.value})`,
+  transformOrigin: 'top left'
+}))
+
+function clampZoom(v: number) {
+  return Math.max(0.5, Math.min(3, Math.round(v * 10) / 10))
+}
+
+let handleZoomShortcut: ((payload?: unknown) => void) | null = null
 
 const renderPreview = async () => {
   if (!previewContainerRef.value) return
@@ -134,7 +148,8 @@ const renderPreview = async () => {
       await renderMarkdownPreview(container, processedMarkdown, {
         linkBase: props.linkBase,
         renderCode: true,
-        renderMath: true
+        renderMath: true,
+        applyMermaidTheme: true
       })
       await nextTick()
       await new Promise((resolve) => requestAnimationFrame(resolve))
@@ -147,7 +162,8 @@ const renderPreview = async () => {
         await renderMarkdownPreview(finalContainer, processedMarkdown, {
           linkBase: props.linkBase,
           renderCode: true,
-          renderMath: true
+          renderMath: true,
+          applyMermaidTheme: true
         })
         await nextTick()
         await new Promise((resolve) => setTimeout(resolve, 300))
@@ -212,6 +228,22 @@ onMounted(() => {
   nextTick(() => {
     nextTick(() => renderPreview())
   })
+
+  handleZoomShortcut = (payload?: unknown) => {
+    const p = payload as { action?: 'zoomIn' | 'zoomOut' | 'zoomReset' } | undefined
+    if (!p?.action) return
+    if (p.action === 'zoomIn') zoomScale.value = clampZoom(zoomScale.value + 0.1)
+    else if (p.action === 'zoomOut') zoomScale.value = clampZoom(zoomScale.value - 0.1)
+    else if (p.action === 'zoomReset') zoomScale.value = 1
+  }
+  eventBus.on('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+})
+
+onUnmounted(() => {
+  if (handleZoomShortcut) {
+    eventBus.off('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+    handleZoomShortcut = null
+  }
 })
 </script>
 

@@ -32,21 +32,139 @@
   <body style="overflow: hidden; margin: 0; padding: 0">
     <div id="app">
       <div class="metadoc-skeleton" aria-hidden="true">
-        <div class="metadoc-skeleton__top"></div>
+        <!-- 与 Main.vue / MainTabs 一致：非 mac 为 Logo|Tabs|窗口按钮；mac 为 交通灯占位|Tabs|Logo -->
+        <div class="metadoc-skeleton__navbar" id="metadoc-skeleton-navbar">
+          <div class="metadoc-skeleton__macos-traffic-spacer" aria-hidden="true"></div>
+          <div class="metadoc-skeleton__logo-tab">
+            <div class="metadoc-skeleton__logo-tab-inner" id="skeleton-logo" role="button" aria-label="Logo">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 256 256"
+                xmlns="http://www.w3.org/2000/svg"
+                class="metadoc-skeleton__logo-svg"
+                aria-hidden="true"
+              >
+                <path
+                  d="M64 16 H192 C220 16 240 36 240 64 V192 C240 220 220 240 192 240 H64 C36 240 16 220 16 192 V64 C16 36 36 16 64 16 Z"
+                  fill="#e8e8e8"
+                />
+                <g
+                  transform="translate(128, 128) scale(1.15) translate(-128, -128)"
+                  fill="none"
+                  stroke="#333333"
+                  stroke-width="11.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M98 114 L74 128 L98 142" />
+                  <path d="M138 96 L118 160" />
+                  <path d="M158 114 L182 128 L158 142" />
+                </g>
+              </svg>
+            </div>
+          </div>
+          <div class="metadoc-skeleton__tab-strip" aria-hidden="true"></div>
+          <div class="metadoc-skeleton__window-controls">
+            <button type="button" class="metadoc-skeleton__window-control-btn" id="skeleton-wc-min" aria-label="Minimize">
+              <img
+                class="metadoc-skeleton__wc-icon metadoc-skeleton__wc-icon--light"
+                src="./src/assets/icons/minimize-black.svg"
+                alt=""
+                aria-hidden="true"
+              />
+              <img
+                class="metadoc-skeleton__wc-icon metadoc-skeleton__wc-icon--dark"
+                src="./src/assets/icons/minimize-white.svg"
+                alt=""
+                aria-hidden="true"
+              />
+            </button>
+            <button
+              type="button"
+              class="metadoc-skeleton__window-control-btn metadoc-skeleton__window-control-btn--max"
+              id="skeleton-wc-max"
+              aria-label="Maximize"
+            >
+              <span class="metadoc-skeleton__wc-maximize-pair">
+                <img
+                  class="metadoc-skeleton__wc-icon metadoc-skeleton__wc-icon--light"
+                  src="./src/assets/icons/maximize-black.svg"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <img
+                  class="metadoc-skeleton__wc-icon metadoc-skeleton__wc-icon--dark"
+                  src="./src/assets/icons/maximize-white.svg"
+                  alt=""
+                  aria-hidden="true"
+                />
+              </span>
+              <span class="metadoc-skeleton__wc-restore-pair">
+                <img
+                  class="metadoc-skeleton__wc-icon metadoc-skeleton__wc-icon--light"
+                  src="./src/assets/icons/restore-black.svg"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <img
+                  class="metadoc-skeleton__wc-icon metadoc-skeleton__wc-icon--dark"
+                  src="./src/assets/icons/restore-white.svg"
+                  alt=""
+                  aria-hidden="true"
+                />
+              </span>
+            </button>
+            <button
+              type="button"
+              class="metadoc-skeleton__window-control-btn metadoc-skeleton__window-control-btn--close"
+              id="skeleton-wc-close"
+              aria-label="Close"
+            >
+              <svg
+                class="metadoc-skeleton__wc-close-svg"
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M2 2l8 8M10 2L2 10" />
+              </svg>
+            </button>
+          </div>
+        </div>
         <div class="metadoc-skeleton__below">
           <div class="metadoc-skeleton__side"></div>
           <div class="metadoc-skeleton__main">
             <div class="metadoc-skeleton__body">
             <div class="metadoc-skeleton__content">
               <div class="metadoc-skeleton__center">
-                <div class="metadoc-skeleton__logo-wrap" id="skeleton-logo" role="button" aria-label="Logo">
+                <div class="metadoc-skeleton__logo-wrap" id="skeleton-center-logo" aria-hidden="true">
                   <span class="metadoc-skeleton__logo-inner">
-                    <svg width="128" height="128" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" class="metadoc-skeleton__logo-svg">
-                      <path d="M64 16 H192 C220 16 240 36 240 64 V192 C240 220 220 240 192 240 H64 C36 240 16 220 16 192 V64 C16 36 36 16 64 16 Z" fill="#e8e8e8"/>
-                      <g transform="translate(128, 128) scale(1.15) translate(-128, -128)" fill="none" stroke="#333" stroke-width="11.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M98 114 L74 128 L98 142"/>
-                        <path d="M138 96 L118 160"/>
-                        <path d="M158 114 L182 128 L158 142"/>
+                    <svg
+                      width="128"
+                      height="128"
+                      viewBox="0 0 256 256"
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="metadoc-skeleton__logo-svg--hero"
+                    >
+                      <path
+                        d="M64 16 H192 C220 16 240 36 240 64 V192 C240 220 220 240 192 240 H64 C36 240 16 220 16 192 V64 C16 36 36 16 64 16 Z"
+                        fill="#e8e8e8"
+                      />
+                      <g
+                        transform="translate(128, 128) scale(1.15) translate(-128, -128)"
+                        fill="none"
+                        stroke="#333333"
+                        stroke-width="11.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M98 114 L74 128 L98 142" />
+                        <path d="M138 96 L118 160" />
+                        <path d="M158 114 L182 128 L158 142" />
                       </g>
                     </svg>
                   </span>
@@ -107,10 +225,60 @@
             setTimeout(function () { el.classList.remove('shake'); }, 1500);
           });
         }
+        function getIpc() {
+          try {
+            return window.electron && window.electron.ipcRenderer;
+          } catch (e) {
+            return null;
+          }
+        }
+        function sendWindow(channel) {
+          var ipc = getIpc();
+          if (ipc && typeof ipc.send === 'function') ipc.send(channel);
+        }
+        function isMacLayout() {
+          try {
+            var q = new URLSearchParams(window.location.search);
+            var mp = q.get('mac');
+            if (mp === '1' || mp === 'true') return true;
+            if (mp === '0' || mp === 'false') return false;
+          } catch (e) {}
+          return (
+            typeof navigator !== 'undefined' &&
+            /Mac|iPhone|iPod|iPad/i.test(navigator.platform || '')
+          );
+        }
+        function initWindowControls() {
+          var minBtn = document.getElementById('skeleton-wc-min');
+          var maxBtn = document.getElementById('skeleton-wc-max');
+          var closeBtn = document.getElementById('skeleton-wc-close');
+          if (minBtn) minBtn.addEventListener('click', function () { sendWindow('window-minimize'); });
+          if (maxBtn) maxBtn.addEventListener('click', function () { sendWindow('window-maximize'); });
+          if (closeBtn) closeBtn.addEventListener('click', function () { sendWindow('close-window'); });
+          var ipc = getIpc();
+          function setMaximized(m) {
+            if (maxBtn) maxBtn.classList.toggle('is-maximized', !!m);
+            if (maxBtn) maxBtn.setAttribute('aria-label', m ? 'Restore' : 'Maximize');
+          }
+          if (ipc && typeof ipc.invoke === 'function') {
+            ipc.invoke('get-window-maximized').then(setMaximized).catch(function () {});
+          }
+          if (ipc && typeof ipc.on === 'function') {
+            ipc.on('window-maximized-changed', function (_e, maximized) {
+              setMaximized(maximized);
+            });
+          }
+        }
         var tipA = document.getElementById('skeleton-tip-a');
         var tipB = document.getElementById('skeleton-tip-b');
         var logoEl = document.getElementById('skeleton-logo');
+        var centerLogoEl = document.getElementById('skeleton-center-logo');
+        var navEl = document.getElementById('metadoc-skeleton-navbar');
+        var skeletonIsMac = isMacLayout();
+        if (navEl && skeletonIsMac) navEl.classList.add('is-mac');
         initLogo(logoEl);
+        initLogo(centerLogoEl);
+        if (!skeletonIsMac) initWindowControls();
         fetch('./skeleton-tips.json')
           .then(function (r) { return r.json(); })
           .then(function (data) {

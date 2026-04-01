@@ -1,6 +1,6 @@
 <template>
-  <div class="learning-path-list">
-    <div class="list-header">
+  <div class="learning-path-list" :class="{ 'is-compact': compact }">
+    <div v-if="showHeader" class="list-header">
       <span class="list-title">{{ $t('userManual.sidebar.recommendedList') }}</span>
     </div>
     <ScrollArea class="list-scrollbar">
@@ -35,6 +35,19 @@ import { Check } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import tinycolor from 'tinycolor2'
 import { themeState } from '../../utils/themes.js'
+
+const props = withDefaults(
+  defineProps<{
+    /** 是否显示列表头（侧栏里需要，弹出面板里可隐藏） */
+    showHeader?: boolean
+    /** 更紧凑的 item 样式 */
+    compact?: boolean
+  }>(),
+  {
+    showHeader: true,
+    compact: false
+  }
+)
 
 const { locale } = useI18n()
 const { learningPath, articleProgress, currentArticleId, setCurrentArticle, getArticleById } =
@@ -121,6 +134,16 @@ function openItem(articleId: string) {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.learning-path-list.is-compact .path-items {
+  padding: 6px 8px;
+}
+
+.learning-path-list.is-compact .path-item {
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: 8px;
 }
 
 .path-item:hover {

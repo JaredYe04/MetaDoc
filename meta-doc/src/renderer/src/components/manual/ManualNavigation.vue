@@ -2,6 +2,7 @@
   <div class="manual-navigation">
     <ScrollArea class="navigation-scrollbar">
       <Tree
+        ref="treeRef"
         :data="treeData"
         :props="{ children: 'children', label: 'title' }"
         :default-expand-all="false"
@@ -25,15 +26,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useUserManual } from '../../stores/userManual'
 import { Folder, FileText, Check } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tree } from '@renderer/components/ui/tree'
+import eventBus from '../../utils/event-bus'
 
 const { navigationTree, currentArticleId, articleProgress, setCurrentArticle } = useUserManual()
 
 const treeData = computed(() => navigationTree.value)
+const treeRef = ref<InstanceType<typeof Tree> | null>(null)
 
 const isArticleRead = (articleId: string) => {
   const progress = articleProgress.value.get(articleId)
@@ -49,6 +52,37 @@ const handleNodeClick = (data: any) => {
     }
   }
 }
+
+function scrollCurrentNodeIntoView() {
+  nextTick(() => {
+    const el = document.querySelector('.navigation-tree .el-tree-node.is-current') as HTMLElement | null
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'center', inline: 'nearest' })
+    }
+  })
+}
+
+function focusArticle(articleId: string) {
+  if (!articleId) return
+  // 通过 Tree 的公开方法 setCurrentKey 展开父级节点
+  treeRef.value?.setCurrentKey?.(articleId)
+  scrollCurrentNodeIntoView()
+}
+
+const handleFocusEvent = (payload: unknown) => {
+  const { articleId } = (payload as { articleId?: string }) ?? {}
+  if (articleId) {
+    focusArticle(articleId)
+  }
+}
+
+onMounted(() => {
+  eventBus.on('manual-navigation-focus-article', handleFocusEvent)
+})
+
+onBeforeUnmount(() => {
+  eventBus.off('manual-navigation-focus-article', handleFocusEvent)
+})
 </script>
 
 <style scoped>

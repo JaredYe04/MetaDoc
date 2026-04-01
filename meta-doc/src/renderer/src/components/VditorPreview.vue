@@ -35,6 +35,11 @@ const containerRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
 let linkClickHandler: ((e: MouseEvent) => void) | null = null
 
+// 清理 markdown 开头的 BOM/零宽字符，避免首行标题“# ...”被当作普通文本
+const normalizeMarkdownInput = (markdown: string) => {
+  return markdown.replace(/^[\uFEFF\u200B\u2060]+/, '')
+}
+
 // 设置链接点击事件处理器
 const setupLinkClickHandler = (container: HTMLElement | null) => {
   if (!container) return
@@ -105,7 +110,10 @@ const renderMarkdown = async () => {
 
     // 处理 markdown
     console.log('[VditorPreview] Processing markdown...')
-    const processedMarkdown = await local2fileProtocol(props.markdown, props.docPath)
+    const processedMarkdown = await local2fileProtocol(
+      normalizeMarkdownInput(props.markdown),
+      props.docPath
+    )
     console.log('[VditorPreview] Markdown processed, length:', processedMarkdown.length)
 
     // 再次检查容器

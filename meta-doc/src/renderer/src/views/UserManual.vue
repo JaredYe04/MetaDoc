@@ -9,6 +9,10 @@
         <h1 class="manual-title">{{ $t('userManual.title') }}</h1>
       </div>
       <div class="header-actions">
+        <Button v-if="currentArticleId" variant="ghost" @click="exportCurrentArticleAsPureMarkdown">
+          <Download class="mr-2 h-4 w-4" />
+          {{ $t('userManual.exportPureMarkdown') || '导出纯 Markdown' }}
+        </Button>
         <Button
           v-if="learningProgress >= 100"
           variant="ghost"
@@ -32,11 +36,7 @@
           <LayoutDashboard class="w-4 h-4" />
           <span class="overview-label">{{ $t('userManual.overview.title') || '概览' }}</span>
         </div>
-        <template v-if="learningPath.length > 0">
-          <LearningProgress v-model:only-recommended="onlyRecommended" :show-list-switch="true" />
-          <LearningPathList v-if="onlyRecommended" />
-        </template>
-        <ManualNavigation v-if="!onlyRecommended || learningPath.length === 0" />
+        <ManualNavigation />
       </div>
       <ResizableDivider
         direction="vertical"
@@ -69,22 +69,27 @@ import ManualNavigation from '../components/manual/ManualNavigation.vue'
 import ManualContent from '../components/manual/ManualContent.vue'
 import ManualOverview from '../components/manual/ManualOverview.vue'
 import ManualSearch from '../components/manual/ManualSearch.vue'
-import LearningProgress from '../components/manual/LearningProgress.vue'
-import LearningPathList from '../components/manual/LearningPathList.vue'
 import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
-import { User, ArrowLeft, LayoutDashboard, Send } from 'lucide-vue-next'
+import { User, ArrowLeft, LayoutDashboard, Send, Download } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { useUserManual } from '../stores/userManual'
 import CelebrationOverlay from '../components/CelebrationOverlay.vue'
+import { useWorkspace } from '../stores/workspace'
+import { toPureManualMarkdown } from '../manuals/pure-markdown'
 
-const { t } = useI18n()
-const { currentArticleId, learningPath, setCurrentArticle, setUserProfile, learningProgress } =
-  useUserManual()
+const { t, locale } = useI18n()
+const {
+  currentArticleId,
+  currentArticleContent,
+  setCurrentArticle,
+  setUserProfile,
+  learningProgress,
+  getArticleById
+} = useUserManual()
+const workspace = useWorkspace()
 
 const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null)
-/** 仅显示推荐学习列表（否则显示完整目录）；学完 100% 后默认显示普通手册 */
-const onlyRecommended = ref(learningProgress.value < 100)
 /** 是否显示庆祝动画 */
 const showCelebration = ref(false)
 
@@ -92,7 +97,7 @@ const showCelebration = ref(false)
 onMounted(() => {
   console.log('[UserManual] Component mounted:', {
     learningProgress: learningProgress.value,
-    learningPathLength: learningPath.value.length
+    hasLearningProgress: learningProgress.value > 0
   })
 })
 
@@ -130,15 +135,46 @@ const goToOverview = () => {
   setCurrentArticle('', 'navigation')
 }
 
+const exportCurrentArticleAsPureMarkdown = async () => {
+  const articleId = currentArticleId.value
+  if (!articleId) return
+
+  const raw = currentArticleContent.value ?? ''
+  const pure = toPureManualMarkdown(raw)
+
+  const article = await getArticleById(articleId)
+  const currentLocale = locale.value || 'zh_CN'
+  const baseTitle =
+    (article?.title?.[currentLocale] as string | undefined) ||
+    (article?.title?.en_US as string | undefined) ||
+    articleId
+  const title = `${baseTitle}（导出）`
+
+  const snapshot = workspace.createDocumentSnapshotFromTemplate('md', '')
+  snapshot.markdown = pure
+  snapshot.format = 'md'
+  // 导出后默认进入编辑器视图（ViewMenu：Editor），且为正式 tab（非 preview）
+  snapshot.lastView = 'editor'
+  snapshot.meta = { ...snapshot.meta, title }
+
+  const tab = workspace.addDocumentTab(snapshot, {
+    kind: 'file',
+    title,
+    subtitle: '用户手册导出',
+    readonly: false,
+    preview: false
+  })
+  workspace.activateTab(tab.id)
+}
+
 // 学习进度达到 100% 时显示庆祝动画，并切换为普通手册
 watch(
   () => learningProgress.value,
   (newProgress, oldProgress) => {
-    // 只在从非100%变为100%时触发，且要有学习路径
-    if (newProgress >= 100 && oldProgress < 100 && learningPath.value.length > 0) {
+    // 只在从非100%变为100%时触发
+    if (newProgress >= 100 && oldProgress < 100) {
       console.log('[UserManual] Progress reached 100%, triggering celebration!')
       showCelebration.value = true
-      onlyRecommended.value = false // 学完后默认显示普通手册
     }
   }
 )

@@ -2674,6 +2674,8 @@
     "new": "Nuevo",
     "ocr": "Reconocimiento óptico de caracteres (OCR)",
     "open": "Abrir",
+    "workspaceSubmenu": "Espacio de trabajo",
+    "workspaceSubmenuTooltip": "Abrir o administrar las carpetas del espacio de trabajo",
     "recentFiles": "Archivos recientes",
     "recentFilesTooltip": "Archivos recientes",
     "save": "Guardar",

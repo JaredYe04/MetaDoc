@@ -2674,6 +2674,8 @@
     "new": "Novo",
     "ocr": "Reconhecimento de Texto OCR",
     "open": "Abrir",
+    "workspaceSubmenu": "Área de trabalho",
+    "workspaceSubmenuTooltip": "Abrir ou gerenciar pastas da área de trabalho",
     "recentFiles": "Arquivos recentes",
     "recentFilesTooltip": "Arquivos recentes",
     "save": "Salvar",

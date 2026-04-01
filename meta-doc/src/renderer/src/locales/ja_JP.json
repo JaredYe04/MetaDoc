@@ -34,6 +34,8 @@
     "file": "ファイル",
     "new": "新規作成",
     "open": "開く",
+    "workspaceSubmenu": "ワークスペース",
+    "workspaceSubmenuTooltip": "ワークスペースのフォルダーを開く、または管理します",
     "save": "保存",
     "saveAs": "別名で保存",
     "export": "エクスポート",

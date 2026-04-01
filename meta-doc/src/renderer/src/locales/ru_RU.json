@@ -2673,6 +2673,8 @@
     "new": "Создать",
     "ocr": "Распознавание текста (OCR)",
     "open": "Открыть",
+    "workspaceSubmenu": "Рабочая область",
+    "workspaceSubmenuTooltip": "Открыть или управлять папками рабочей области",
     "recentFiles": "Недавние файлы",
     "recentFilesTooltip": "Недавние файлы",
     "save": "Сохранить",

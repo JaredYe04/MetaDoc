@@ -25,6 +25,7 @@ export class TexToPdfAdapter extends BaseExportAdapter<'tex', 'pdf', PdfExportOp
       },
       pageSize: 'A4',
       printBackground: true,
+      pdfThemeMode: 'light',
       colorMode: 'color' // LaTeX编译的PDF可以是彩色或灰度
     }
   }

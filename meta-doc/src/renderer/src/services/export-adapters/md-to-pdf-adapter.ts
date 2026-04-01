@@ -38,6 +38,7 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
       },
       pageSize: 'A4',
       printBackground: true,
+      pdfThemeMode: 'light',
       // 字体设置
       chineseFont: editorChineseFont,
       westernFont: editorWesternFont
@@ -135,6 +136,32 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
         descriptionKey: 'export.options.printBackground.description',
         tab: 'basic'
       },
+      {
+        key: 'pdfThemeMode',
+        label: 'PDF 外观',
+        labelKey: 'export.options.pdfThemeMode.label',
+        type: 'select',
+        default: 'light',
+        descriptionKey: 'export.options.pdfThemeMode.description',
+        tab: 'basic',
+        options: [
+          {
+            label: '浅色',
+            value: 'light',
+            labelKey: 'export.options.pdfThemeMode.light'
+          },
+          {
+            label: '深色',
+            value: 'dark',
+            labelKey: 'export.options.pdfThemeMode.dark'
+          },
+          {
+            label: '跟随主题',
+            value: 'follow',
+            labelKey: 'export.options.pdfThemeMode.follow'
+          }
+        ]
+      },
       // 字体设置（放在单独的 tab）
       {
         key: 'chineseFont',
@@ -207,7 +234,7 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
     markdown = await prepareMathForTarget(markdown, 'pdf')
     markdown = await ensureLocal2HttpForTarget(markdown, 'pdf', docPath)
 
-    const html = await ConvertHtmlForPdf(markdown)
+    const html = await ConvertHtmlForPdf(markdown, options)
     const originalImageUrls = collectOriginalImageUrls(data.md)
     const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)
 

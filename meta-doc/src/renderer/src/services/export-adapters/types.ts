@@ -29,6 +29,13 @@ export interface PdfExportOptions extends BaseExportOptions {
   chineseFont?: string
   // 西文字体
   westernFont?: string
+  /**
+   * Markdown→PDF 专用：控制渲染外观与页面底色，避免「白底 + 深色主题文字」不可读。
+   * light：固定浅色正文与浅色代码高亮，页面白底。
+   * dark：固定深色正文与深色代码高亮，页面暗底。
+   * follow：与当前应用明暗及设置中的内容区/代码主题一致。
+   */
+  pdfThemeMode?: 'light' | 'dark' | 'follow'
 }
 
 /**

@@ -135,80 +135,96 @@ const autoOpenDoc = async () => {
   const queryParams = query ? Object.fromEntries(new URLSearchParams(query)) : {}
   const file = queryParams.file || ''
 
-  let hasExternalFileParam = false
   if (file) {
-    // 如果有文件参数，直接打开该文件（这是外部启动）
+    // 参数启动：只打开目标文件，不执行「启动时主页 / 最近文档」规则
     eventBus.emit('open-doc', file)
     initialLoad.value = false
-    hasExternalFileParam = true
-    // 外部参数启动时，不打开主页
     return
   }
 
-  // 处理启动选项（打开最近文档等）
-  let willOpenDocument = false
-  const enabled = (await getSetting('startupOption')) === 'lastFile'
-  if (enabled) {
+  const normalizeStartupPath = (p: string) => (p || '').replace(/\\/g, '/')
+
+  const startupOption = (await getSetting('startupOption')) as string | undefined
+  const lastFileMode = startupOption === 'lastFile'
+  const autoOpenHomeOnStartup = (await getSetting('autoOpenHomeOnStartup')) === true
+
+  let openedRecentAtStartup = false
+  let expectedRecentPathNorm = ''
+
+  // 处理启动选项：打开最近文档
+  if (lastFileMode) {
     const recentDocs = await getRecentDocs()
-
     if (recentDocs.length > 0 && initialLoad.value) {
-      willOpenDocument = true
-      // 在打开最近文档之前，先删除所有新文档Tab
-      // 这样可以确保只有一个Tab，并且是最近文档
-      const workspace = useWorkspace()
-      const newDocTabs = workspace.tabs.filter(
-        (t) => t.kind === 'new' && (!t.path || t.path === '') && !t.dirty
+      openedRecentAtStartup = true
+      expectedRecentPathNorm = normalizeStartupPath(recentDocs[0])
+      const ws = useWorkspace()
+      const newDocTabs = ws.tabs.filter(
+        (tb) => tb.kind === 'new' && (!tb.path || tb.path === '') && !tb.dirty
       )
-      // 删除所有新文档Tab
       newDocTabs.forEach((newTab) => {
-        workspace.removeTab(newTab.id)
+        ws.removeTab(newTab.id)
       })
-
-      // 然后打开最近文档
       eventBus.emit('open-doc', recentDocs[0])
       initialLoad.value = false
     }
   }
 
-  // 检查是否需要自动打开主页
-  // 由 Tab 拖出创建的新窗口（skipAutoHome=1）不执行，避免多出主页 Tab
+  // Tab 拖出创建的新窗口（skipAutoHome=1）不执行启动主页逻辑
   const skipAutoHome = route.query.skipAutoHome === '1'
-  if (!hasExternalFileParam && !skipAutoHome) {
-    const autoOpenHomeOnStartup = await getSetting('autoOpenHomeOnStartup')
-    if (autoOpenHomeOnStartup) {
-      const workspace = useWorkspace()
+  if (skipAutoHome) return
 
-      // 如果本次启动会打开最近文档：等文档打开完成后再打开主页并 focus
-      if (willOpenDocument) {
-        const openHomeAfterDocOpen = () => {
-          const existingHomeTab = workspace.tabs.find(
-            (tab) => tab.kind === 'system' && tab.route === '/global-home'
-          )
-          if (existingHomeTab) {
-            workspace.activateTab(existingHomeTab.id)
-          } else {
-            workspace.openSystemTab('/global-home', t('leftMenu.home', '主页'))
-          }
-        }
-        const handler = () => {
-          eventBus.off('open-doc-success', handler)
-          nextTick(() => openHomeAfterDocOpen())
-        }
-        eventBus.on('open-doc-success', handler)
-      } else {
-        // 没有打开文档时，直接打开主页
-        nextTick(() => {
-          const existingHomeTab = workspace.tabs.find(
-            (tab) => tab.kind === 'system' && tab.route === '/global-home'
-          )
-          if (existingHomeTab) {
-            workspace.activateTab(existingHomeTab.id)
-          } else {
-            workspace.openSystemTab('/global-home', t('leftMenu.home', '主页'))
-          }
-        })
-      }
+  // 是否在启动流程中打开 GlobalHome 并 focus：
+  // - 未选「打开最近文件」：始终打开主页（初始着陆）
+  // - 选了「打开最近」但本次没有可打开的最近项：打开主页
+  // - 选了「打开最近」且已发起打开 +「启动时自动打开主页」：最近打开成功后再开主页（仅匹配本次路径，避免误用后续任意 open-doc-success）
+  const shouldOpenGlobalHome =
+    startupOption !== 'lastFile' ||
+    (lastFileMode && !openedRecentAtStartup) ||
+    (openedRecentAtStartup && autoOpenHomeOnStartup)
+
+  if (!shouldOpenGlobalHome) return
+
+  const openGlobalHomeTab = () => {
+    const ws = useWorkspace()
+    const existingHomeTab = ws.tabs.find(
+      (tab) => tab.kind === 'system' && tab.route === '/global-home'
+    )
+    if (existingHomeTab) {
+      ws.activateTab(existingHomeTab.id)
+    } else {
+      ws.openSystemTab('/global-home', t('leftMenu.home', '主页'))
     }
+  }
+
+  const deferHomeUntilRecentDocSuccess = openedRecentAtStartup && autoOpenHomeOnStartup
+
+  if (deferHomeUntilRecentDocSuccess && expectedRecentPathNorm) {
+    const HOME_DEFER_TIMEOUT_MS = 60000
+    let deferTimer: ReturnType<typeof setTimeout> | null = null
+    const handler = (payload: unknown) => {
+      const rawPath =
+        payload &&
+        typeof payload === 'object' &&
+        'path' in payload &&
+        typeof (payload as { path?: unknown }).path === 'string'
+          ? (payload as { path: string }).path
+          : ''
+      if (normalizeStartupPath(rawPath) !== expectedRecentPathNorm) return
+      if (deferTimer !== null) {
+        clearTimeout(deferTimer)
+        deferTimer = null
+      }
+      eventBus.off('open-doc-success', handler)
+      nextTick(() => openGlobalHomeTab())
+    }
+    eventBus.on('open-doc-success', handler)
+    deferTimer = setTimeout(() => {
+      deferTimer = null
+      eventBus.off('open-doc-success', handler)
+      nextTick(() => openGlobalHomeTab())
+    }, HOME_DEFER_TIMEOUT_MS)
+  } else {
+    nextTick(() => openGlobalHomeTab())
   }
 }
 

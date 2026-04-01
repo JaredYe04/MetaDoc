@@ -70,7 +70,7 @@
 
             <!-- 解析内容 -->
             <div v-if="activeAttachment" class="parsed-section">
-              <Tabs v-model="activeTab">
+              <Tabs v-model="activeTab" class="attachment-tabs">
                 <TabsList>
                   <TabsTrigger value="parsed">
                     {{ t('attachment.tabs.parsed', '解析内容') }}
@@ -162,6 +162,7 @@ const aiAnalysisContainerRef = ref<HTMLElement | null>(null)
 const textEditorRef = ref<HTMLElement | null>(null)
 let textEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let textEditorId: string | null = null
+let textEditorResizeObserver: ResizeObserver | null = null
 
 // 流式显示相关的refs
 const aiAnalysisStreamingRef = ref<string>('')
@@ -199,6 +200,10 @@ const initTextEditor = async () => {
     textEditor = null
     textEditorId = null
   }
+  if (textEditorResizeObserver) {
+    textEditorResizeObserver.disconnect()
+    textEditorResizeObserver = null
+  }
 
   // 等待DOM更新，确保容器有正确的高度
   await nextTick()
@@ -227,7 +232,12 @@ const initTextEditor = async () => {
       wordWrap: 'on',
       minimap: { enabled: true },
       scrollBeyondLastLine: false,
-      fontFamily: "'JetBrains Mono', 'Consolas', monospace"
+      fontFamily: "'JetBrains Mono', 'Consolas', monospace",
+      scrollbar: {
+        verticalScrollbarSize: 10,
+        horizontalScrollbarSize: 10,
+        useShadows: false
+      }
     })
 
     // 保存 editor ID，而不是 editor 对象本身
@@ -239,6 +249,18 @@ const initTextEditor = async () => {
         textEditor.layout()
       }
     }, 0)
+
+    // 跟随容器尺寸变化，确保宽高匹配（避免布局未及时刷新导致的错位/滚动异常）
+    if (typeof ResizeObserver !== 'undefined') {
+      textEditorResizeObserver = new ResizeObserver(() => {
+        try {
+          textEditor?.layout()
+        } catch {
+          // ignore
+        }
+      })
+      textEditorResizeObserver.observe(container)
+    }
 
     // 监听主题变化（通过 editor ID 从全局获取 editor）
     watch(
@@ -265,6 +287,10 @@ const disposeTextEditor = () => {
     textEditor.dispose()
     textEditor = null
     textEditorId = null
+  }
+  if (textEditorResizeObserver) {
+    textEditorResizeObserver.disconnect()
+    textEditorResizeObserver = null
   }
 }
 
@@ -298,6 +324,14 @@ watch(
     if (newTab === 'parsed' && parsedContent.value && textEditorRef.value) {
       await nextTick()
       initTextEditor()
+      // 双保险：切回标签时再 layout 一次，避免 Tabs 动画/隐藏导致的 0 尺寸
+      requestAnimationFrame(() => {
+        try {
+          textEditor?.layout()
+        } catch {
+          // ignore
+        }
+      })
     }
   }
 )
@@ -769,21 +803,26 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* shadcn-vue Tabs styling */
-.parsed-section :deep([role='tablist']) {
+/* Tabs 必须本身成为纵向 flex，内容才能撑满高度 */
+.attachment-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.attachment-tabs :deep([role='tablist']) {
   flex-shrink: 0;
 }
 
-.parsed-section :deep([role='tabpanel']) {
+/* radix-vue TabsContent 实际是 data-state/role=tabpanel 的元素 */
+.attachment-tabs :deep([role='tabpanel']) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-.parsed-section :deep([role='tabpanel'][data-state='active']) {
-  height: 100%;
 }
 
 .content-display {
@@ -802,6 +841,25 @@ onMounted(() => {
   min-height: 0;
   width: 100%;
   position: relative;
+  height: 100%;
+  overflow: hidden;
+  user-select: text;
+}
+
+.text-editor-container :deep(.monaco-editor),
+.text-editor-container :deep(.monaco-editor .overflow-guard) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.text-editor-container :deep(.monaco-editor *),
+.text-editor-container :deep(.monaco-editor .view-lines),
+.text-editor-container :deep(.monaco-editor .view-line) {
+  user-select: text !important;
+}
+
+.text-editor-container :deep(.monaco-editor .scrollbar .slider) {
+  pointer-events: auto;
 }
 
 .analysis-display {

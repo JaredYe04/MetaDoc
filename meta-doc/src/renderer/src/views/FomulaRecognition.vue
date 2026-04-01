@@ -39,10 +39,20 @@
                     :value="option.value"
                     class="formula-tool-item"
                   >
-                    <div class="flex items-center gap-2 flex-col">
-                      <img :src="option.icon" alt="" class="formula-tool-icon" />
-                      <div>{{ $t(option.label) }}</div>
-                    </div>
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <div
+                          class="formula-tool-item-inner"
+                          role="button"
+                          :aria-label="$t(option.label)"
+                        >
+                          <img :src="option.icon" alt="" class="formula-tool-icon" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {{ $t(option.label) }}
+                      </TooltipContent>
+                    </Tooltip>
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
@@ -210,7 +220,10 @@
                   <div class="fomula-toolbar">
                     <Tooltip>
                       <TooltipTrigger as-child>
-                        <Button type="primary" :icon="Edit" circle @click="openEditDialog" />
+                        <Button type="primary" class="formula-action-btn" @click="openEditDialog">
+                          <el-icon class="formula-action-icon"><Edit /></el-icon>
+                          <span>{{ $t('formulaRecognition.edit_formula') }}</span>
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top">
                         {{ $t('formulaRecognition.edit_formula') }}
@@ -218,7 +231,10 @@
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger as-child>
-                        <Button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
+                        <Button type="primary" class="formula-action-btn" @click="copyResult">
+                          <el-icon class="formula-action-icon"><DocumentCopy /></el-icon>
+                          <span>{{ $t('formulaRecognition.copy_formula') }}</span>
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top">
                         {{ $t('formulaRecognition.copy_formula') }}
@@ -226,7 +242,10 @@
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger as-child>
-                        <Button type="primary" :icon="Picture" circle @click="openExportDialog" />
+                        <Button type="primary" class="formula-action-btn" @click="openExportDialog">
+                          <el-icon class="formula-action-icon"><Picture /></el-icon>
+                          <span>{{ $t('aigraph.exportImage') }}</span>
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top">
                         {{ $t('aigraph.exportImage') }}
@@ -1477,6 +1496,14 @@ const toolbarGroupStyle = computed(() => ({
   transition: all 0.2s ease;
 }
 
+.formula-tool-item-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
 .formula-tool-item[data-state='on'] {
   background: v-bind('themeState.currentTheme.primary || "#409eff"');
   color: white;
@@ -1641,6 +1668,20 @@ const toolbarGroupStyle = computed(() => ({
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.formula-action-btn {
+  border-radius: 10px;
+  padding: 0 10px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.formula-action-icon {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .undo-redo-group {

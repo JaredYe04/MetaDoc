@@ -55,15 +55,31 @@
           {{ $t('leftMenu.open') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderTree" @click="openWorkspaceFromMenu">
-          {{ $t('leftMenu.openWorkspace') }}
-        </UISubMenuItem>
-        <UISubMenuItem :icon="FolderPlus" @click="addFolderToWorkspaceFromMenu">
-          {{ $t('leftMenu.addFolderToWorkspace') }}
-        </UISubMenuItem>
-        <UISubMenuItem :icon="FolderX" @click="closeWorkspaceFoldersFromMenu">
-          {{ $t('leftMenu.closeWorkspace') }}
-        </UISubMenuItem>
+        <UISubMenu
+          :icon="FolderTree"
+          :title="$t('leftMenu.workspaceSubmenu', '工作区')"
+          trigger="hover"
+          :level="2"
+        >
+          <template #title>
+            <span>{{ $t('leftMenu.workspaceSubmenu', '工作区') }}</span>
+          </template>
+          <UISubMenuItem :is-title="true" :disabled="true">
+            <template #icon>
+              <FolderTree class="w-4 h-4" />
+            </template>
+            {{ $t('leftMenu.workspaceSubmenuTooltip', '打开或管理工作区文件夹') }}
+          </UISubMenuItem>
+          <UISubMenuItem :icon="FolderTree" @click="openWorkspaceFromMenu">
+            {{ $t('leftMenu.openWorkspace') }}
+          </UISubMenuItem>
+          <UISubMenuItem :icon="FolderPlus" @click="addFolderToWorkspaceFromMenu">
+            {{ $t('leftMenu.addFolderToWorkspace') }}
+          </UISubMenuItem>
+          <UISubMenuItem :icon="FolderX" @click="closeWorkspaceFoldersFromMenu">
+            {{ $t('leftMenu.closeWorkspace') }}
+          </UISubMenuItem>
+        </UISubMenu>
 
         <UISubMenuItem :icon="FolderCheck" @click="saveAll">
           {{ $t('leftMenu.saveAll') }}
@@ -294,7 +310,11 @@
 
       <!-- 用户资料 -->
       <UIMenuItem
-        v-if="menuId === 'user-profile' && isMenuItemVisible('user-profile')"
+        v-if="
+          menuId === 'user-profile' &&
+          SHOW_LEFT_MENU_USER_PROFILE &&
+          isMenuItemVisible('user-profile')
+        "
         class="bottom-menu"
         @click="toggleUserProfile"
       >
@@ -475,15 +495,31 @@
           {{ $t('leftMenu.open') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="FolderTree" @click="openWorkspaceFromMenu">
-          {{ $t('leftMenu.openWorkspace') }}
-        </UISubMenuItem>
-        <UISubMenuItem :icon="FolderPlus" @click="addFolderToWorkspaceFromMenu">
-          {{ $t('leftMenu.addFolderToWorkspace') }}
-        </UISubMenuItem>
-        <UISubMenuItem :icon="FolderX" @click="closeWorkspaceFoldersFromMenu">
-          {{ $t('leftMenu.closeWorkspace') }}
-        </UISubMenuItem>
+        <UISubMenu
+          :icon="FolderTree"
+          :title="$t('leftMenu.workspaceSubmenu', '工作区')"
+          trigger="hover"
+          :level="2"
+        >
+          <template #title>
+            <span>{{ $t('leftMenu.workspaceSubmenu', '工作区') }}</span>
+          </template>
+          <UISubMenuItem :is-title="true" :disabled="true">
+            <template #icon>
+              <FolderTree class="w-4 h-4" />
+            </template>
+            {{ $t('leftMenu.workspaceSubmenuTooltip', '打开或管理工作区文件夹') }}
+          </UISubMenuItem>
+          <UISubMenuItem :icon="FolderTree" @click="openWorkspaceFromMenu">
+            {{ $t('leftMenu.openWorkspace') }}
+          </UISubMenuItem>
+          <UISubMenuItem :icon="FolderPlus" @click="addFolderToWorkspaceFromMenu">
+            {{ $t('leftMenu.addFolderToWorkspace') }}
+          </UISubMenuItem>
+          <UISubMenuItem :icon="FolderX" @click="closeWorkspaceFoldersFromMenu">
+            {{ $t('leftMenu.closeWorkspace') }}
+          </UISubMenuItem>
+        </UISubMenu>
 
         <UISubMenuItem :icon="FolderCheck" @click="saveAll">
           {{ $t('leftMenu.saveAll') }}
@@ -714,7 +750,11 @@
 
       <!-- 用户资料 -->
       <UIMenuItem
-        v-if="menuId === 'user-profile' && isMenuItemVisible('user-profile')"
+        v-if="
+          menuId === 'user-profile' &&
+          SHOW_LEFT_MENU_USER_PROFILE &&
+          isMenuItemVisible('user-profile')
+        "
         class="bottom-menu"
         @click="toggleUserProfile"
       >
@@ -1099,6 +1139,9 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
 
 // 强制核心菜单项始终可见（主页、文件、设置、更多功能、退出）
 const CORE_MENU_IDS = ['home', 'file', 'settings', 'more-features', 'exit']
+
+/** 侧栏「用户资料」入口（登录/账号等）。未部署服务端时暂隐；恢复账号功能时改为 `true`。 */
+const SHOW_LEFT_MENU_USER_PROFILE = false
 
 /** 已从侧栏移除的菜单 id：最近文件并入文件；语言进设置；工作目录/搜索并入视图 */
 const DEPRECATED_LEFT_MENU_IDS = new Set(['recent-files', 'language', 'workspace-explorer'])

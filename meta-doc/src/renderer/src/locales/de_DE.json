@@ -671,6 +671,8 @@
     "metaDocTooltip": "MetaDoc;-)",
     "new": "Neu",
     "open": "Öffnen",
+    "workspaceSubmenu": "Arbeitsbereich",
+    "workspaceSubmenuTooltip": "Arbeitsbereichsordner öffnen oder verwalten",
     "recentFiles": "Aktuelle Dokumente",
     "recentFilesTooltip": "Aktuelle Dokumente",
     "save": "Speichern",

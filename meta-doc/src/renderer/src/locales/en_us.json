@@ -84,6 +84,8 @@
     "openWorkspace": "Open Workspace",
     "addFolderToWorkspace": "Add Folder to Workspace",
     "closeWorkspace": "Close Workspace",
+    "workspaceSubmenu": "Workspace",
+    "workspaceSubmenuTooltip": "Open or manage workspace folders",
     "recentFiles": "Recent Files",
     "recentFilesTooltip": "Recent Files",
     "save": "Save",
@@ -412,6 +414,7 @@
     "insertToLatexMessage": "Please select insert method:",
     "insertToLatexTitle": "Insert into LaTeX document",
     "knowledgeBaseTooltip": "Query knowledge base",
+    "reasoningToggleTooltip": "Deep reasoning",
     "lastMonth": "Last month",
     "lastWeek": "Last week",
     "noActiveDocument": "No active document",
@@ -1729,8 +1732,14 @@
     "defaultConfigManual": "Manual (Default)",
     "defaultConfigMetadoc": "MetaDoc (Default)",
     "defaultConfigOllama": "Ollama (Default)",
+    "defaultConfigBuiltinFree": "Free Model (Built-in)",
     "defaultConfigOpenai": "OpenAI Compatible (Default)",
     "defaultConfigOpenaiOfficial": "OpenAI Official (Default)",
+    "llmApiErrorDialog": "LLM Error Dialog",
+    "llmApiErrorDialogHint": "Show a global dialog when LLM API calls fail, with current config details and a link to the manual.",
+    "builtinFreeConfigCannotCopy": "Built-in free config cannot be copied",
+    "builtinFreeConfigCannotExport": "Built-in free config cannot be exported",
+    "builtinFreeApiKeyHint": "The built-in free config includes a default key (not copyable) with very limited quota. We recommend using your own LLM API key.",
     "delete": "Delete",
     "deleteSuccess": "Successfully deleted",
     "deleteTheme": "Delete Theme",
@@ -3865,6 +3874,13 @@
         "label": "Print Background",
         "description": "Whether to include background colors and images in PDF"
       },
+      "pdfThemeMode": {
+        "label": "PDF appearance",
+        "description": "Light: white background with light body and code styles. Dark: dark background (aligned with the default dark editor canvas) and dark-toned styles. Follow: background matches the Markdown editor canvas color from your theme; content/code themes follow settings. Default: Light.",
+        "light": "Light",
+        "dark": "Dark",
+        "follow": "Follow theme"
+      },
       "tabs": {
         "basic": "Basic Settings",
         "style": "Style Settings"
@@ -5329,5 +5345,24 @@
     "setting": {
       "readFileFailed": "Failed to read file"
     }
+  },
+  "llmErrorDialog": {
+    "title": "LLM request failed",
+    "titleBuiltinFree": "Built-in free model unavailable",
+    "builtinFreeIntro": "You are currently using MetaDoc's built-in free model configuration.",
+    "builtinFreeQuotaHint": "The free quota is very small and may be rate-limited or exhausted at any time. We recommend configuring your own LLM API key.",
+    "currentConfig": "Current LLM configuration",
+    "configType": "Type",
+    "baseUrl": "Base URL",
+    "model": "Model",
+    "apiKey": "API Key",
+    "apiKeyEmpty": "(empty)",
+    "apiKeyBuiltinHidden": "(built-in key hidden)",
+    "errorDetails": "Error details",
+    "errorType": "Error type",
+    "message": "Message",
+    "originalException": "Original exception (expand)",
+    "dontShowAgain": "Don't show again",
+    "learnHowToConfigure": "Open configuration tutorial"
   }
 }

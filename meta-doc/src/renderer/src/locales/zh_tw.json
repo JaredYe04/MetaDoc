@@ -1724,6 +1724,13 @@
         "label": "列印背景",
         "description": "是否在PDF中包含背景顏色和圖片"
       },
+      "pdfThemeMode": {
+        "label": "PDF 外觀",
+        "description": "淺色：白底與淺色正文、程式碼高亮；深色：暗底與深色樣式；跟隨：與目前應用明暗及設定中的內容區、程式碼主題一致。預設淺色。",
+        "light": "淺色",
+        "dark": "深色",
+        "follow": "跟隨主題"
+      },
       "objectTypeField": "物件類型欄位",
       "tabs": {
         "basic": "基本設定",
@@ -2715,6 +2722,8 @@
     "openWorkspace": "開啟工作區",
     "addFolderToWorkspace": "新增資料夾至工作區",
     "closeWorkspace": "關閉目前工作區",
+    "workspaceSubmenu": "工作區",
+    "workspaceSubmenuTooltip": "開啟或管理工作區資料夾",
     "recentFiles": "最近檔案",
     "recentFilesTooltip": "最近檔案",
     "save": "儲存",

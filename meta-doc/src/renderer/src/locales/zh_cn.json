@@ -1188,6 +1188,7 @@
     "insertToLatexMessage": "请选择插入方式：",
     "insertToLatexTitle": "插入到LaTeX文档",
     "knowledgeBaseTooltip": "查询知识库",
+    "reasoningToggleTooltip": "深度思考",
     "lastMonth": "上月",
     "lastWeek": "上周",
     "newDialog": "新建对话",
@@ -1880,6 +1881,13 @@
       "printBackground": {
         "label": "打印背景",
         "description": "是否在PDF中包含背景颜色和图片"
+      },
+      "pdfThemeMode": {
+        "label": "PDF 外观",
+        "description": "浅色：白底与浅色正文、代码高亮。深色：暗底（与默认深色编辑区一致）与深色样式。跟随：背景与 Markdown 编辑区底色（主题色）一致，内容与代码主题同设置。默认浅色。",
+        "light": "浅色",
+        "dark": "深色",
+        "follow": "跟随主题"
       },
       "objectTypeField": "对象类型字段",
       "tabs": {
@@ -2872,6 +2880,8 @@
     "openWorkspace": "打开工作区",
     "addFolderToWorkspace": "添加文件夹到工作区",
     "closeWorkspace": "关闭当前工作区",
+    "workspaceSubmenu": "工作区",
+    "workspaceSubmenuTooltip": "打开或管理工作区文件夹",
     "recentFiles": "最近文件",
     "recentFilesTooltip": "最近文件",
     "save": "保存",
@@ -4196,6 +4206,7 @@
     "defaultConfigManual": "手动 (默认)",
     "defaultConfigMetadoc": "MetaDoc (默认)",
     "defaultConfigOllama": "Ollama (默认)",
+    "defaultConfigBuiltinFree": "免费模型（内置）",
     "defaultConfigOpenai": "OpenAI兼容 (默认)",
     "defaultConfigOpenaiOfficial": "OpenAI官方 (默认)",
     "defaultEditorMode": "默认 Markdown 编辑模式",
@@ -4227,6 +4238,11 @@
     "embeddingModeTooltip": "选择使用外部 API 或本地模型生成文本嵌入向量。",
     "enableKnowledgeBase": "启用知识库",
     "enableLlm": "启用LLM",
+    "llmApiErrorDialog": "LLM 报错弹窗",
+    "llmApiErrorDialogHint": "当 LLM API 调用失败时，弹出对话框展示当前配置并引导查看手册。",
+    "builtinFreeConfigCannotCopy": "内置免费模型配置不允许复制",
+    "builtinFreeConfigCannotExport": "内置免费模型配置不允许导出",
+    "builtinFreeApiKeyHint": "内置免费模型的默认 Key 不支持复制，仅用于极少量的免费额度。建议配置你自己的 LLM API Key。",
     "enableMaxTokens": "启用 max_tokens 限制",
     "enabled": "启用",
     "enterConfigName": "请输入配置名称",
@@ -5197,5 +5213,24 @@
       "据说多写文档能涨经验值。",
       "本提示会消失，但 F1 手册不会。"
     ]
+  },
+  "llmErrorDialog": {
+    "title": "LLM 调用失败",
+    "titleBuiltinFree": "免费模型暂时不可用",
+    "builtinFreeIntro": "你当前使用的是 MetaDoc 内置的免费模型配置。",
+    "builtinFreeQuotaHint": "该免费额度非常少，且可能随时被限流或用尽。建议尽快配置你自己的 LLM API Key。",
+    "currentConfig": "当前 LLM 配置",
+    "configType": "类型",
+    "baseUrl": "Base URL",
+    "model": "模型",
+    "apiKey": "API Key",
+    "apiKeyEmpty": "（未填写）",
+    "apiKeyBuiltinHidden": "（内置 Key 已隐藏）",
+    "errorDetails": "错误信息",
+    "errorType": "错误类型",
+    "message": "提示",
+    "originalException": "原始异常（展开查看）",
+    "dontShowAgain": "不再提示",
+    "learnHowToConfigure": "查看配置教程"
   }
 }

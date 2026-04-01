@@ -13,6 +13,8 @@
       <router-view v-else />
       <!-- Element Plus 输入框全局右键菜单（剪切/复制/粘贴/全选） -->
       <InputContextMenu />
+      <!-- 全局可选文字右键菜单（复制/全选） -->
+      <SelectionContextMenu />
       <!-- 自定义 Toast 堆叠系统 - 接管 Sonner -->
       <NotificationStack />
       <!-- 全局终端执行确认弹窗（不依赖 Agent 是否渲染 Display 组件） -->
@@ -27,6 +29,7 @@ import { useRoute } from 'vue-router'
 import { TooltipProvider } from './components/ui/tooltip'
 import Main from './views/Main.vue'
 import InputContextMenu from './components/common/InputContextMenu.vue'
+import SelectionContextMenu from './components/common/SelectionContextMenu.vue'
 
 import eventBus, { getWindowType, initWindowType } from './utils/event-bus'
 import {

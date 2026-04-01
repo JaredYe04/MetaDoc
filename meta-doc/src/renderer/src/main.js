@@ -40,6 +40,7 @@ import './assets/interactive-text.css'
 import './assets/wordcloud-text.css'
 import './assets/editor-search.css'
 import { initInputContextMenuHandler } from './utils/input-context-menu-handler'
+import { initSelectionContextMenuHandler } from './utils/selection-context-menu-handler'
 import { themeState, applyTheme, lightTheme, darkTheme } from './utils/themes.js'
 import { syncShadcnTheme } from './utils/shadcn-theme-bridge.js'
 import { initServiceStatusWatcher } from './utils/service-status'
@@ -97,6 +98,7 @@ app.use(router)
   // 挂载后再跑非关键初始化
   function runAfterMount() {
     initInputContextMenuHandler()
+    initSelectionContextMenuHandler()
     initServiceStatusWatcher()
     registerAllAdapters()
     initializeAgentTools()

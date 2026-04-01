@@ -1,7 +1,14 @@
 <template>
   <Teleport to="body">
     <transition name="fade">
-      <div v-if="visible && position" class="input-context-menu" :style="menuStyle" @click.stop>
+      <div
+        v-if="visible && position"
+        ref="menuRef"
+        class="input-context-menu"
+        :style="menuStyle"
+        @click.stop
+        @contextmenu.prevent
+      >
         <button
           type="button"
           class="input-context-menu__item"
@@ -51,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
 
@@ -59,7 +66,8 @@ const { t } = useI18n()
 
 const visible = ref(false)
 const position = ref<{ x: number; y: number } | null>(null)
-const targetElement = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
+const targetElement = ref<HTMLElement | null>(null)
+const menuRef = ref<HTMLElement | null>(null)
 
 const menuStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
@@ -77,40 +85,84 @@ const menuStyle = computed(() => ({
 
 const canCut = computed(() => {
   const el = targetElement.value
-  if (!el || el.readOnly || el.disabled) return false
-  const hasSelection = el.selectionStart !== el.selectionEnd
-  return hasSelection
+  if (!el) return false
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.readOnly || el.disabled) return false
+    return el.selectionStart !== el.selectionEnd
+  }
+  // contenteditable / role=textbox
+  if (el.getAttribute('contenteditable') === 'true' || el.getAttribute('role') === 'textbox') {
+    if ((el as HTMLDivElement).isContentEditable === false) return false
+    const sel = window.getSelection()
+    return !!sel && !sel.isCollapsed && sel.toString().length > 0
+  }
+  return false
 })
 
 const canCopy = computed(() => {
   const el = targetElement.value
   if (!el) return false
-  const hasSelection = el.selectionStart !== el.selectionEnd
-  return hasSelection
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    return el.selectionStart !== el.selectionEnd
+  }
+  const sel = window.getSelection()
+  return !!sel && !sel.isCollapsed && sel.toString().length > 0
 })
 
 const canPaste = computed(() => {
   const el = targetElement.value
-  if (!el || el.readOnly || el.disabled) return false
-  return true
+  if (!el) return false
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.readOnly || el.disabled) return false
+    return true
+  }
+  // contenteditable / role=textbox
+  if (el.getAttribute('contenteditable') === 'true' || el.getAttribute('role') === 'textbox') {
+    // 禁用状态：我们用 aria-disabled 约定
+    if (el.getAttribute('aria-disabled') === 'true') return false
+    return true
+  }
+  return false
 })
 
 // undo/redo 在 input/textarea 上通过 document.execCommand 实现
 const canUndo = computed(() => {
   const el = targetElement.value
-  if (!el || el.readOnly || el.disabled) return false
-  return true
+  if (!el) return false
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.readOnly || el.disabled) return false
+    return true
+  }
+  if (el.getAttribute('contenteditable') === 'true' || el.getAttribute('role') === 'textbox') {
+    if (el.getAttribute('aria-disabled') === 'true') return false
+    return true
+  }
+  return false
 })
 
 const canRedo = computed(() => {
   const el = targetElement.value
-  if (!el || el.readOnly || el.disabled) return false
-  return true
+  if (!el) return false
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.readOnly || el.disabled) return false
+    return true
+  }
+  if (el.getAttribute('contenteditable') === 'true' || el.getAttribute('role') === 'textbox') {
+    if (el.getAttribute('aria-disabled') === 'true') return false
+    return true
+  }
+  return false
 })
 
 function handleCut() {
   const el = targetElement.value
-  if (!el || el.readOnly || el.disabled) return
+  if (!el) return
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.readOnly || el.disabled) return
+  } else {
+    if (el.getAttribute('aria-disabled') === 'true') return
+  }
+  el.focus?.()
   document.execCommand('cut')
   close()
 }
@@ -118,23 +170,34 @@ function handleCut() {
 function handleCopy() {
   const el = targetElement.value
   if (!el) return
+  el.focus?.()
   document.execCommand('copy')
   close()
 }
 
 async function handlePaste() {
   const el = targetElement.value
-  if (!el || el.readOnly || el.disabled) return
+  if (!el) return
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.readOnly || el.disabled) return
+  } else {
+    if (el.getAttribute('aria-disabled') === 'true') return
+  }
   try {
     const text = await navigator.clipboard.readText()
-    el.focus()
-    const start = el.selectionStart ?? 0
-    const end = el.selectionEnd ?? 0
-    const value = el.value
-    const newValue = value.slice(0, start) + text + value.slice(end)
-    el.value = newValue
-    el.selectionStart = el.selectionEnd = start + text.length
-    el.dispatchEvent(new Event('input', { bubbles: true }))
+    el.focus?.()
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      const start = el.selectionStart ?? 0
+      const end = el.selectionEnd ?? 0
+      const value = el.value
+      const newValue = value.slice(0, start) + text + value.slice(end)
+      el.value = newValue
+      el.selectionStart = el.selectionEnd = start + text.length
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    } else {
+      document.execCommand('insertText', false, text)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    }
   } catch {
     document.execCommand('paste')
   }
@@ -144,23 +207,38 @@ async function handlePaste() {
 function handleSelectAll() {
   const el = targetElement.value
   if (!el) return
-  el.select()
-  el.focus()
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    el.select()
+    el.focus()
+  } else {
+    el.focus?.()
+    document.execCommand('selectAll')
+  }
   close()
 }
 
 function handleUndo() {
   const el = targetElement.value
-  if (!el || el.readOnly || el.disabled) return
-  el.focus()
+  if (!el) return
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.readOnly || el.disabled) return
+  } else {
+    if (el.getAttribute('aria-disabled') === 'true') return
+  }
+  el.focus?.()
   document.execCommand('undo')
   close()
 }
 
 function handleRedo() {
   const el = targetElement.value
-  if (!el || el.readOnly || el.disabled) return
-  el.focus()
+  if (!el) return
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    if (el.readOnly || el.disabled) return
+  } else {
+    if (el.getAttribute('aria-disabled') === 'true') return
+  }
+  el.focus?.()
   document.execCommand('redo')
   close()
 }
@@ -171,14 +249,36 @@ function close() {
   targetElement.value = null
 }
 
+function clampMenuToViewport() {
+  const p = position.value
+  const el = menuRef.value
+  if (!p || !el) return
+  const rect = el.getBoundingClientRect()
+  const margin = 8
+  const vw = window.innerWidth || document.documentElement.clientWidth || 0
+  const vh = window.innerHeight || document.documentElement.clientHeight || 0
+  if (vw <= 0 || vh <= 0) return
+
+  let x = p.x
+  let y = p.y
+  if (x + rect.width + margin > vw) x = Math.max(margin, vw - rect.width - margin)
+  if (y + rect.height + margin > vh) y = Math.max(margin, vh - rect.height - margin)
+  if (x < margin) x = margin
+  if (y < margin) y = margin
+  position.value = { x, y }
+}
+
 function handleContextMenuShow(
-  e: CustomEvent<{ target: HTMLInputElement | HTMLTextAreaElement; x: number; y: number }>
+  e: CustomEvent<{ target: HTMLElement; x: number; y: number }>
 ) {
   const { target, x, y } = e.detail || {}
   if (!target) return
+  // 互斥：显示输入菜单时，主动关闭只读选择菜单（如果有）
+  window.dispatchEvent(new CustomEvent('selection-context-menu-close'))
   targetElement.value = target
   position.value = { x, y }
   visible.value = true
+  nextTick(() => clampMenuToViewport())
 }
 
 function handleClickOutside(e: MouseEvent) {
@@ -188,14 +288,30 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
+function handleAnyContextMenu(e: MouseEvent) {
+  // 右键新的位置时，也应关闭旧菜单（避免两个菜单共存/悬挂）
+  const target = e.target as HTMLElement
+  if (!visible.value) return
+  if (target.closest('.input-context-menu')) return
+  close()
+}
+
+function handleForceClose() {
+  if (visible.value) close()
+}
+
 onMounted(() => {
   window.addEventListener('input-context-menu-show', handleContextMenuShow as EventListener)
+  window.addEventListener('input-context-menu-close', handleForceClose as EventListener)
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('contextmenu', handleAnyContextMenu, { capture: true })
 })
 
 onUnmounted(() => {
   window.removeEventListener('input-context-menu-show', handleContextMenuShow as EventListener)
+  window.removeEventListener('input-context-menu-close', handleForceClose as EventListener)
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('contextmenu', handleAnyContextMenu, true)
 })
 </script>
 

@@ -764,16 +764,31 @@ const executeEditorCommand = (command: string) => {
       return
     }
 
-    const success = document.execCommand(command)
-    if (!success && command === 'paste') {
-      // 如果 execCommand 失败，尝试使用 Vditor 的 API
-      // Vditor 会自动处理粘贴事件，包括图片上传
-      const pasteEvent = new ClipboardEvent('paste', {
-        bubbles: true,
-        cancelable: true
-      })
-      editableElement.dispatchEvent(pasteEvent)
+    if (command === 'paste') {
+      // 全局快捷键已 preventDefault，原生粘贴不会执行；Electron/Chromium 下
+      // document.execCommand('paste') 常无法像浏览器默认行为那样替换选区（选区不被顶掉）。
+      // 与上方 cut 的 workaround 一致：先删掉选区，再在折叠光标处 paste（含图片仍走 execCommand）。
+      const sel = window.getSelection()
+      if (sel?.rangeCount) {
+        const r = sel.getRangeAt(0)
+        if (!r.collapsed) {
+          if (!document.execCommand('delete')) {
+            r.deleteContents()
+          }
+        }
+      }
+      const success = document.execCommand('paste')
+      if (!success) {
+        const pasteEvent = new ClipboardEvent('paste', {
+          bubbles: true,
+          cancelable: true
+        })
+        editableElement.dispatchEvent(pasteEvent)
+      }
+      return
     }
+
+    const success = document.execCommand(command)
   } catch (error) {
     logger.warn('执行编辑器命令失败', { command, error })
   }

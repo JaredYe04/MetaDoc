@@ -29,6 +29,7 @@
           <div class="search-input-container">
             <div class="search-input-wrapper">
               <input
+                ref="patternInputRef"
                 v-model="pattern"
                 type="text"
                 class="search-input"
@@ -376,6 +377,7 @@ const getMatchContextHtml = (m: WorkspaceGrepMatch): string => {
 }
 
 const panelRef = ref<HTMLElement | null>(null)
+const patternInputRef = ref<HTMLInputElement | null>(null)
 const resultListRef = ref<HTMLElement | null>(null)
 
 onMounted(() => {
@@ -778,6 +780,15 @@ watch(
     triggerSearch(false)
   }
 )
+
+function focusPatternInput() {
+  const el = patternInputRef.value
+  if (!el) return
+  el.focus()
+  el.select()
+}
+
+defineExpose({ focusPatternInput })
 </script>
 
 <style scoped>

@@ -3657,6 +3657,7 @@
         "saveAll": "儲存全部",
         "find": "尋找",
         "replace": "取代",
+        "workspaceGrep": "工作區尋找與取代",
         "copy": "複製",
         "cut": "剪下",
         "paste": "貼上",

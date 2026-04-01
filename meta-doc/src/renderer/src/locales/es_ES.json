@@ -3610,6 +3610,7 @@
         "saveAll": "Guardar todo",
         "find": "Buscar",
         "replace": "Reemplazar",
+        "workspaceGrep": "Buscar y reemplazar en el área de trabajo",
         "copy": "Copiar",
         "cut": "Cortar",
         "paste": "Pegar",

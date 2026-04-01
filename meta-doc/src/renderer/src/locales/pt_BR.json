@@ -3611,6 +3611,7 @@
         "saveAll": "Salvar tudo",
         "find": "Localizar",
         "replace": "Substituir",
+        "workspaceGrep": "Localizar e substituir na área de trabalho",
         "copy": "Copiar",
         "cut": "Recortar",
         "paste": "Colar",

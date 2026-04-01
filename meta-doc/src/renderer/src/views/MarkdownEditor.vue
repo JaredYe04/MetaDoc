@@ -73,6 +73,10 @@
         v-if="searchReplaceDialogVisible"
         :adapter="textEditorAdapter"
         :position="SRMenuPosition"
+        :panel-size="SRPanelSize"
+        :doc-revision="searchReplaceDocRevision"
+        @update:position="onSearchReplacePositionUpdate"
+        @update:panel-size="onSearchReplacePanelSizeUpdate"
         @close="handleSearchReplaceClose"
       />
 
@@ -535,8 +539,38 @@ const getDefaultSearchMenuPosition = () => {
   }
 }
 const SRMenuPosition = ref(getDefaultSearchMenuPosition())
+/** 与 SearchReplaceMenu 同步，避免子组件内拖放后父级仍保留初始值，被 watch(position) 用陈旧坐标覆盖 */
+const SRPanelSize = ref({ width: 380, height: 0 })
+
+const onSearchReplacePositionUpdate = (p: { top: number; left: number }) => {
+  SRMenuPosition.value = { top: p.top, left: p.left }
+}
+
+const onSearchReplacePanelSizeUpdate = (s: { width: number; height: number }) => {
+  SRPanelSize.value = { width: s.width, height: s.height }
+}
+
+/** 查找面板打开时随正文变化递增，驱动 SearchReplaceMenu 重新执行搜索 */
+const searchReplaceDocRevision = ref(0)
+
+watch(currentMarkdown, () => {
+  if (!searchReplaceDialogVisible.value) return
+  searchReplaceDocRevision.value++
+})
+
+/** 窗口尺寸变化时只把面板约束在视口内；坐标未变则不赋值，避免触发子组件 watch、把面板打回初始位置 */
 const updateSearchMenuPosition = () => {
-  SRMenuPosition.value = getDefaultSearchMenuPosition()
+  if (typeof window === 'undefined') return
+  const margin = 24
+  const panelApproxW = 420
+  const panelApproxH = 480
+  const cur = SRMenuPosition.value
+  const maxLeft = Math.max(margin, window.innerWidth - panelApproxW)
+  const maxTop = Math.max(margin, window.innerHeight - panelApproxH)
+  const nextLeft = Math.min(Math.max(margin, cur.left), maxLeft)
+  const nextTop = Math.min(Math.max(margin, cur.top), maxTop)
+  if (cur.left === nextLeft && cur.top === nextTop) return
+  SRMenuPosition.value = { left: nextLeft, top: nextTop }
 }
 const currentTitlePath = ref('')
 const contextMenuVisible = ref(false) // 右键菜单可见性
@@ -566,9 +600,16 @@ type SetValueOptions = {
   preserveTheme?: boolean // 是否在设置值后保留主题（防止主题被重置）
 }
 
+const normalizeMdForCompare = (s: string) => s.replace(/\r\n/g, '\n')
+
 const flushPendingExternalUpdate = () => {
   const pending = pendingExternalUpdate
   if (!pending) return
+  // 工作区已与待写入内容一致时无需 setValue，避免触发 Vditor input 与多余 dirty 计算
+  if (normalizeMdForCompare(pending.value) === normalizeMdForCompare(documentRef.value.markdown ?? '')) {
+    pendingExternalUpdate = undefined
+    return
+  }
   pendingExternalUpdate = undefined
   scheduleSetValue(pending.value, { clearHistory: pending.clearHistory, timeoutMs: 0 })
 }
@@ -577,6 +618,18 @@ const resetInteractionFlag = debounce(() => {
   isEditorInteracting.value = false
   flushPendingExternalUpdate()
 }, 300)
+
+// 保存清除脏标记后，取消「停止交互」的延迟 flush，并丢弃挂起的外部 setValue。
+// 否则过期 pending 会在保存后写入编辑器，input 回写陈旧内容，saved 已更新 → 脏点再次出现。
+watch(
+  () => documentRef.value.dirty,
+  (dirty, wasDirty) => {
+    if (wasDirty === true && dirty === false) {
+      pendingExternalUpdate = undefined
+      resetInteractionFlag.cancel()
+    }
+  }
+)
 
 const markEditorInteraction = () => {
   isEditorInteracting.value = true
@@ -2768,6 +2821,9 @@ onMounted(async () => {
     textEditorAdapter.value = createVditorAdapter({
       getInstance: () => vditor.value as unknown as Vditor | null,
       syncMarkdown: (markdown: string) => {
+        // 与 Vditor input 回调一致：先对齐 lastAppliedContent，避免 watch(currentMarkdown) 误判为
+        // 「外部更新」而 scheduleSetValue(clearHistory)，清空撤销栈并重绘（查找替换面板位置/尺寸也会被牵连）。
+        lastAppliedContent.value = markdown ?? ''
         workspace.updateDocumentMarkdown(props.tabId, markdown)
       },
       getTitleIndex: () => titleIndex.value as TitleIndex | null

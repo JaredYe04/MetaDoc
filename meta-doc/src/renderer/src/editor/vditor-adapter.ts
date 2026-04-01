@@ -62,6 +62,8 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
   private isReplacing: boolean = false // 标记是否正在执行替换操作
   private pendingEdits: Map<string, PendingEdit> = new Map() // 待确认的编辑操作
   private currentSearchAbortController: AbortController | null = null // 当前搜索的取消控制器
+  /** 每次发起/取消搜索递增，防止旧异步任务写坏新 state（导致 isSearching 卡住或结果错乱） */
+  private searchGeneration = 0
 
   constructor(options: VditorAdapterOptions) {
     this.getInstance = options.getInstance
@@ -72,11 +74,15 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
   configureSearch(options: SearchOptions, behavior?: { revealFirst?: boolean }): EditorSearchState {
     const revealFirst = behavior?.revealFirst !== false
 
+    this.searchGeneration++
+
     // 取消之前的搜索（如果存在）
     if (this.currentSearchAbortController) {
       this.currentSearchAbortController.abort()
       this.currentSearchAbortController = null
     }
+
+    const generation = this.searchGeneration
 
     // 保存之前的索引，以便在重新搜索后恢复
     const previousIndex = this.state.currentIndex
@@ -115,7 +121,8 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
       previousMatchText,
       revealFirst,
       startOffset,
-      this.currentSearchAbortController.signal
+      this.currentSearchAbortController.signal,
+      generation
     )
 
     // 立即返回当前状态（此时 matches 还是空的，会在异步完成后更新）
@@ -128,18 +135,31 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     previousMatchText: string | undefined,
     revealFirst: boolean,
     startOffset: number,
-    abortSignal: AbortSignal
+    abortSignal: AbortSignal,
+    generation: number
   ): Promise<void> {
+    const isCurrent = () => generation === this.searchGeneration
+
     try {
-      const fullText = this.getFullText()
-      if (!fullText) {
-        this.state.matches = []
-        this.state.currentIndex = -1
-        this.state.isSearching = false
+      if (!isCurrent()) {
         return
       }
 
-      // 设置搜索状态
+      const fullText = this.getFullText()
+      if (!fullText) {
+        if (isCurrent()) {
+          this.state.matches = []
+          this.state.currentIndex = -1
+          this.state.isSearching = false
+        }
+        return
+      }
+
+      if (!isCurrent()) {
+        return
+      }
+
+      // 与 configureSearch 一致：搜索中
       this.state.isSearching = true
       this.state.matches = []
       this.state.currentIndex = -1
@@ -158,7 +178,9 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
 
       // 分批处理匹配项
       for await (const batch of searchGenerator) {
-        // 检查是否已取消
+        if (!isCurrent()) {
+          return
+        }
         if (abortSignal.aborted) {
           return
         }
@@ -212,7 +234,9 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
         // 追加当前批次的匹配到总列表
         allFindResults.push(...batchResults)
 
-        // 检查是否已取消
+        if (!isCurrent()) {
+          return
+        }
         if (abortSignal.aborted) {
           return
         }
@@ -221,13 +245,12 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
         this.state.matches = [...allFindResults]
       }
 
-      // 检查是否已取消
+      if (!isCurrent()) {
+        return
+      }
       if (abortSignal.aborted) {
         return
       }
-
-      // 搜索完成
-      this.state.isSearching = false
 
       // 尝试恢复到之前的索引位置
       let targetIndex = -1
@@ -246,23 +269,28 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
         targetIndex = 0
       }
 
-      this.state.currentIndex = targetIndex
+      if (isCurrent()) {
+        this.state.currentIndex = targetIndex
 
-      // Vditor不需要高亮所有匹配，只在用户点击列表项时高亮
-      // 如果revealFirst为true，只高亮第一个匹配
-      if (revealFirst && targetIndex >= 0 && allFindResults.length > 0) {
-        this.highlightSingleMatch(allFindResults[targetIndex], targetIndex, true)
+        // Vditor不需要高亮所有匹配，只在用户点击列表项时高亮
+        if (revealFirst && targetIndex >= 0 && allFindResults.length > 0) {
+          this.highlightSingleMatch(allFindResults[targetIndex], targetIndex, true)
+        }
       }
     } catch (error) {
-      // 如果是因为取消导致的错误，不需要处理
       if (abortSignal.aborted) {
         return
       }
       console.warn('performTextBasedSearch:error', error)
-      this.state.matches = []
-      this.state.currentIndex = -1
-      this.state.isSearching = false
-      this.highlights = []
+      if (isCurrent()) {
+        this.state.matches = []
+        this.state.currentIndex = -1
+        this.highlights = []
+      }
+    } finally {
+      if (isCurrent()) {
+        this.state.isSearching = false
+      }
     }
   }
 
@@ -767,7 +795,14 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     if (this.state.currentIndex === -1 || !this.highlights.length) {
       return this.getSearchState()
     }
-    const highlight = this.highlights[this.state.currentIndex]
+    // highlightSingleMatch 只保留一个 span，始终放在 highlights[0]；currentIndex 是全文中的第 N 个匹配
+    const highlight =
+      this.highlights.length === 1
+        ? this.highlights[0]
+        : this.highlights[this.state.currentIndex]
+    if (!highlight) {
+      return this.getSearchState()
+    }
     const value = this.computeReplacementText(highlight, replacement)
     this.isReplacing = true
     try {
@@ -789,7 +824,13 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     if (this.state.currentIndex === -1) {
       return this.getSearchState()
     }
-    const highlight = this.highlights[this.state.currentIndex]
+    const highlight =
+      this.highlights.length === 1
+        ? this.highlights[0]
+        : this.highlights[this.state.currentIndex]
+    if (!highlight) {
+      return this.getSearchState()
+    }
     const value = this.computeReplacementText(highlight, replacement)
     this.isReplacing = true
     try {
@@ -912,6 +953,7 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
   }
 
   clearSearch(): void {
+    this.searchGeneration++
     // 取消正在进行的搜索
     if (this.currentSearchAbortController) {
       this.currentSearchAbortController.abort()
@@ -1268,12 +1310,31 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     return charIndex
   }
 
+  /**
+   * 将当前编辑区状态记入 Vditor 的 diff 撤销栈（与工具栏 undo/redo、全局 Ctrl+Z 使用同一套栈）。
+   * 查找替换等绕过 irInput 的 DOM 修改不会触发 debounce 的 processAfterRender，需在此处补记。
+   */
+  private pushVditorUndoSnapshot(): void {
+    const instance = this.getInstance() as { vditor?: { undo?: { addToUndoStack: (v: unknown) => void } } } | null
+    const iv = instance?.vditor
+    if (!iv?.undo?.addToUndoStack) return
+    try {
+      iv.undo.addToUndoStack(iv)
+    } catch (error) {
+      console.warn('pushVditorUndoSnapshot failed', error)
+    }
+  }
+
   private syncAfterMutation() {
-    const workspace = useWorkspace()
-    const activeDocument = workspace.activeDocument.value
-    if (!activeDocument) return
-    const markdown = activeDocument.markdown || ''
-    this.syncMarkdown(markdown)
+    const instance = this.getInstance()
+    if (!instance) return
+    try {
+      const markdown = instance.getValue() ?? ''
+      this.syncMarkdown(markdown)
+      this.pushVditorUndoSnapshot()
+    } catch (error) {
+      console.warn('syncAfterMutation:getValue failed', error)
+    }
   }
 
   private clearHighlights() {

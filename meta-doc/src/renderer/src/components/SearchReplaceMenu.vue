@@ -24,7 +24,10 @@
         <span v-if="matchSummary.total" class="match-counter">
           {{ matchSummary.current }}/{{ matchSummary.total }}
         </span>
-        <Loader2 v-if="isSearching" class="search-loading-icon w-4 h-4 animate-spin" />
+        <Loader2
+          v-if="isSearching && canSearch && !regexError"
+          class="search-loading-icon w-4 h-4 animate-spin"
+        />
       </div>
       <ScrollArea class="textarea-scroll">
         <Textarea
@@ -36,64 +39,83 @@
         />
       </ScrollArea>
       <div class="toggle-row">
+        <div class="toggle-row-toggles">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button
+                :variant="form.matchCase ? 'default' : 'secondary'"
+                size="sm"
+                class="toggle-btn h-7 px-2"
+                @click="toggleFlag('matchCase')"
+              >
+                Aa
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('searchReplace.matchCase') }}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button
+                :variant="form.wholeWord ? 'default' : 'secondary'"
+                size="sm"
+                class="toggle-btn h-7 px-2"
+                @click="toggleFlag('wholeWord')"
+              >
+                W
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('searchReplace.matchWholeWord') }}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button
+                :variant="form.useRegex ? 'default' : 'secondary'"
+                size="sm"
+                class="toggle-btn h-7 px-2"
+                @click="toggleFlag('useRegex')"
+              >
+                .*
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('searchReplace.useRegex') }}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button
+                :variant="form.preserveCase ? 'default' : 'secondary'"
+                size="sm"
+                class="toggle-btn h-7 px-2"
+                @click="toggleFlag('preserveCase')"
+              >
+                ↔
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('searchReplace.preserveCase') }}
+            </TooltipContent>
+          </Tooltip>
+        </div>
         <Tooltip>
           <TooltipTrigger as-child>
             <Button
-              :variant="form.matchCase ? 'default' : 'secondary'"
-              size="sm"
-              class="toggle-btn h-7 px-2"
-              @click="toggleFlag('matchCase')"
+              variant="secondary"
+              size="icon"
+              class="toggle-collapse-btn h-7 w-7 shrink-0"
+              :aria-expanded="collapsed ? 'false' : 'true'"
+              @click="collapsed = !collapsed"
+              @mousedown.stop
             >
-              Aa
+              <component :is="collapsed ? ArrowDown : ArrowUp" class="toggle-collapse-icon" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top">
-            {{ t('searchReplace.matchCase') }}
-          </TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button
-              :variant="form.wholeWord ? 'default' : 'secondary'"
-              size="sm"
-              class="toggle-btn h-7 px-2"
-              @click="toggleFlag('wholeWord')"
-            >
-              W
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            {{ t('searchReplace.matchWholeWord') }}
-          </TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button
-              :variant="form.useRegex ? 'default' : 'secondary'"
-              size="sm"
-              class="toggle-btn h-7 px-2"
-              @click="toggleFlag('useRegex')"
-            >
-              .*
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            {{ t('searchReplace.useRegex') }}
-          </TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button
-              :variant="form.preserveCase ? 'default' : 'secondary'"
-              size="sm"
-              class="toggle-btn h-7 px-2"
-              @click="toggleFlag('preserveCase')"
-            >
-              ↔
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            {{ t('searchReplace.preserveCase') }}
+            {{ t('searchReplace.toggleReplace') }}
           </TooltipContent>
         </Tooltip>
       </div>
@@ -210,24 +232,6 @@
           {{ t('searchReplace.findNextBtn') }}
         </TooltipContent>
       </Tooltip>
-      <Tooltip>
-        <TooltipTrigger as-child>
-          <span>
-            <Button
-              variant="secondary"
-              size="icon"
-              class="h-7 w-7"
-              :disabled="!canSearch"
-              @click="handleFindAll"
-            >
-              <Eye class="h-4 w-4" />
-            </Button>
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          {{ t('searchReplace.findAllBtn') }}
-        </TooltipContent>
-      </Tooltip>
       <template v-if="!collapsed">
         <Separator orientation="vertical" class="h-7 border-dashed" />
         <Tooltip>
@@ -254,11 +258,15 @@
               <Button
                 variant="secondary"
                 size="icon"
-                class="h-7 w-7"
+                class="h-7 w-7 replace-all-toolbar-btn"
                 :disabled="!canReplace"
                 @click="handleReplaceAll"
               >
-                <RotateCw class="h-4 w-4" />
+                <img
+                  :src="(themeState.currentTheme as any).ReplaceAllIcon"
+                  alt=""
+                  class="replace-all-icon"
+                />
               </Button>
             </span>
           </TooltipTrigger>
@@ -267,18 +275,6 @@
           </TooltipContent>
         </Tooltip>
       </template>
-
-      <Button
-        variant="secondary"
-        size="icon"
-        class="collapse-btn h-7 w-7"
-        @click="collapsed = !collapsed"
-      >
-        <component :is="collapsed ? ArrowDown : ArrowUp" class="h-4 w-4" />
-      </Button>
-      <Button variant="secondary" size="sm" class="h-7" @click="handleReset">
-        {{ t('searchReplace.resetBtn') }}
-      </Button>
     </footer>
 
     <!-- Resizer 组件 -->
@@ -309,17 +305,7 @@ import { themeState, mixColors } from '../utils/themes'
 import eventBus from '../utils/event-bus'
 import type { TextEditorAdapter, EditorSearchState } from '../editor/text-editor-types'
 import { createRendererLogger } from '../utils/logger'
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUp as Top,
-  ArrowDown as Bottom,
-  Pencil,
-  RotateCw,
-  Undo2,
-  Eye,
-  Loader2
-} from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, Pencil, Undo2, Loader2 } from 'lucide-vue-next'
 import { generateMatchContext } from '../utils/match-context'
 
 const logger = createRendererLogger('SearchReplaceMenu')
@@ -327,14 +313,23 @@ const logger = createRendererLogger('SearchReplaceMenu')
 const props = withDefaults(
   defineProps<{
     position: { top: number; left: number }
+    /** 由父级持久化；未传时仅用本地默认 */
+    panelSize?: { width: number; height: number }
+    /**
+     * 文档内容版本：递增时若查找框非空则重新搜索（如 Markdown 正文变更）。
+     * 传 -1 表示禁用（纯文本/LaTeX 等未接线的编辑器）。
+     */
+    docRevision?: number
     adapter: TextEditorAdapter | null
     mode?: 'normal' | 'demo'
   }>(),
-  { mode: 'normal' }
+  { mode: 'normal', docRevision: -1 }
 )
 
 const emit = defineEmits<{
   (e: 'close'): void
+  (e: 'update:position', position: { top: number; left: number }): void
+  (e: 'update:panelSize', size: { width: number; height: number }): void
 }>()
 
 const { t } = useI18n()
@@ -348,16 +343,35 @@ const menuPosition = ref({
 watch(
   () => props.position,
   (position) => {
+    if (
+      menuPosition.value.top === position.top &&
+      menuPosition.value.left === position.left
+    ) {
+      return
+    }
     menuPosition.value = { ...position }
   },
   { deep: true }
 )
 
-// 面板大小状态
+/** 与首次打开一致：宽度 380、高度 auto(0)；匹配列表收起后恢复，避免固定高度留白 */
+const DEFAULT_PANEL_SIZE = { width: 380, height: 0 } as const
+
+// 面板大小状态（与父级双向：避免 resize 时用陈旧 props 覆盖用户调整）
 const panelSize = ref({
-  width: 380,
-  height: 0 // 0 表示自动高度
+  width: props.panelSize?.width ?? DEFAULT_PANEL_SIZE.width,
+  height: props.panelSize?.height ?? DEFAULT_PANEL_SIZE.height // 0 表示自动高度
 })
+
+watch(
+  () => props.panelSize,
+  (p) => {
+    if (!p) return
+    if (p.width === panelSize.value.width && p.height === panelSize.value.height) return
+    panelSize.value = { width: p.width, height: p.height }
+  },
+  { deep: true }
+)
 
 const panelRef = ref<HTMLElement | null>(null)
 const isResizing = ref(false)
@@ -376,13 +390,42 @@ const searchState = ref<EditorSearchState | null>(null)
 const regexError = ref<string | null>(null)
 const findInputRef = ref<{ focus?: () => void } | null>(null)
 
+/** 与「查找 / 展开替换 / 匹配列表」可见区域对应的拖拽最小尺寸，避免内容挤出面板 */
+const collapsed = ref(true)
+const showMatchesList = ref(false)
+
+const resizeConstraints = computed(() => {
+  const maxHeight = Math.min(1000, window.innerHeight * 0.8)
+  const maxWidth = 800
+  const hasMatchesPanel =
+    showMatchesList.value && (searchState.value?.matches.length ?? 0) > 0
+
+  const baseMinHeight = collapsed.value ? 240 : 430
+  const matchesPanelMinExtra = hasMatchesPanel ? 300 : 0
+  let minHeight = baseMinHeight + matchesPanelMinExtra
+  if (minHeight > maxHeight) {
+    minHeight = Math.max(160, Math.floor(maxHeight * 0.92))
+  }
+
+  return {
+    minWidth: 300,
+    minHeight,
+    maxWidth,
+    maxHeight
+  }
+})
+
 const panelStyles = computed(() => {
   const theme = themeState.currentTheme
+  const { minWidth, minHeight } = resizeConstraints.value
   return {
     top: `${menuPosition.value.top}px`,
     left: `${menuPosition.value.left}px`,
     width: `${panelSize.value.width}px`,
     height: panelSize.value.height > 0 ? `${panelSize.value.height}px` : 'auto',
+    minWidth: `${minWidth}px`,
+    minHeight: `${minHeight}px`,
+    boxSizing: 'border-box' as const,
     backgroundColor: theme.background2nd,
     color: theme.textColor,
     border: `1px solid ${mixColors(theme.background2nd, theme.textColor, 0.3)}`
@@ -485,10 +528,13 @@ const applySearch = () => {
           const currentMatchCount = currentState.matches.length
           const hasMatchCountChanged = currentMatchCount !== lastMatchCount
           const hasIsSearchingChanged = currentState.isSearching !== searchState.value?.isSearching
+          // 适配器已结束搜索但 UI 仍显示 loading 时强制对齐（防御旧异步竞态）
+          const forceSyncDone =
+            !currentState.isSearching && searchState.value?.isSearching === true
 
           // 如果匹配数量或搜索状态发生变化，需要更新状态
           // 但是对于 currentIndex，需要保护用户手动选择的索引
-          if (hasMatchCountChanged || hasIsSearchingChanged) {
+          if (hasMatchCountChanged || hasIsSearchingChanged || forceSyncDone) {
             // 创建状态副本，保护用户选择的索引
             const stateToUpdate = { ...currentState }
 
@@ -552,6 +598,16 @@ watch(
   }
 )
 
+// 正文变更（由父级递增 docRevision）：查找关键字非空时持续重新搜索
+watch(
+  () => props.docRevision,
+  (rev, prev) => {
+    if (props.docRevision < 0 || prev === undefined) return
+    if (!form.findText || !props.adapter) return
+    applySearch()
+  }
+)
+
 // 监听搜索状态变化，自动显示匹配列表
 watch(
   () => searchState.value?.matches.length,
@@ -571,6 +627,44 @@ watch(
     if (newIndex !== null && newIndex !== undefined) {
       selectedMatchIndex.value = newIndex
     }
+  }
+)
+
+/** 是否曾在「非搜索中」展示过至少一条匹配（用于区分异步搜索中的短暂空列表） */
+const hadStableMatchesPanel = ref(false)
+
+watch(
+  () => ({
+    len: searchState.value?.matches.length ?? 0,
+    searching: searchState.value?.isSearching ?? false,
+    list: showMatchesList.value
+  }),
+  (cur) => {
+    if (cur.list && cur.len > 0 && !cur.searching) {
+      hadStableMatchesPanel.value = true
+    }
+  }
+)
+
+// 匹配列表消失且搜索已结束：收回固定宽高（避免匹配区去掉后仍保留大块空白），位置不变
+watch(
+  () => ({
+    len: searchState.value?.matches.length ?? 0,
+    searching: searchState.value?.isSearching ?? false
+  }),
+  (cur) => {
+    if (props.mode === 'demo' || cur.searching) return
+    if (cur.len > 0) return
+    if (!hadStableMatchesPanel.value) return
+    hadStableMatchesPanel.value = false
+    panelSize.value = {
+      width: DEFAULT_PANEL_SIZE.width,
+      height: DEFAULT_PANEL_SIZE.height
+    }
+    emit('update:panelSize', {
+      width: DEFAULT_PANEL_SIZE.width,
+      height: DEFAULT_PANEL_SIZE.height
+    })
   }
 )
 
@@ -700,25 +794,6 @@ const handleReplaceAll = () => {
       count: replacedCount,
       find: form.findText,
       replace: form.replaceText
-    })
-  )
-}
-
-const handleFindAll = () => {
-  if (props.mode === 'demo') return
-  if (!props.adapter || !canSearch.value) return
-  const state = props.adapter.getSearchState()
-  searchState.value = state
-  // 显示匹配列表
-  if (state.matches.length > 0) {
-    showMatchesList.value = true
-    selectedMatchIndex.value = state.currentIndex >= 0 ? state.currentIndex : 0
-  }
-  eventBus.emit(
-    'show-info',
-    t('searchReplace.foundCount', {
-      count: state.matches.length,
-      find: form.findText
     })
   )
 }
@@ -979,19 +1054,6 @@ const matchesScrollbarStyle = computed(() => {
   return {}
 })
 
-const handleReset = () => {
-  if (props.mode === 'demo') return
-  // 只重置搜索结果，不清除搜索和替换文本
-  regexError.value = null
-  props.adapter?.clearSearch()
-  searchState.value = null
-  userSelectedIndex.value = null // 清除用户选择标记
-  // 如果有搜索文本，重新执行搜索
-  if (form.findText) {
-    applySearch()
-  }
-}
-
 const handleClose = () => {
   if (props.mode === 'demo') return
   props.adapter?.clearSearch()
@@ -1006,8 +1068,6 @@ const toggleFlag = (key: ToggleFlagKey) => {
   form[key] = !form[key]
 }
 
-const collapsed = ref(true)
-const showMatchesList = ref(false)
 const isDragging = ref(false)
 const dragStart = ref({ x: 0, y: 0 })
 const selectedMatchIndex = ref<number | null>(null)
@@ -1032,9 +1092,13 @@ const onMouseMove = (event: MouseEvent) => {
 }
 
 const onMouseUp = () => {
+  const wasDragging = isDragging.value
   isDragging.value = false
   document.removeEventListener('mousemove', onMouseMove)
   document.removeEventListener('mouseup', onMouseUp)
+  if (wasDragging && props.mode !== 'demo') {
+    emit('update:position', { top: menuPosition.value.top, left: menuPosition.value.left })
+  }
 }
 
 // Resizer 处理函数
@@ -1059,11 +1123,7 @@ const handleResizerMouseDown = (event: MouseEvent) => {
     const deltaX = e.clientX - resizeStart.value.x
     const deltaY = e.clientY - resizeStart.value.y
 
-    const minWidth = 300
-    const maxWidth = 800
-    const minHeight = 200
-    // 最大高度限制为视口高度的 80%，但不超过 1000px
-    const maxHeight = Math.min(1000, window.innerHeight * 0.8)
+    const { minWidth, minHeight, maxWidth, maxHeight } = resizeConstraints.value
 
     const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStart.value.width + deltaX))
     const newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStart.value.height + deltaY))
@@ -1075,9 +1135,16 @@ const handleResizerMouseDown = (event: MouseEvent) => {
   }
 
   const onResizeUp = () => {
+    const wasResizing = isResizing.value
     isResizing.value = false
     document.removeEventListener('mousemove', onResizeMove)
     document.removeEventListener('mouseup', onResizeUp)
+    if (wasResizing && props.mode !== 'demo') {
+      emit('update:panelSize', {
+        width: panelSize.value.width,
+        height: panelSize.value.height
+      })
+    }
   }
 
   document.addEventListener('mousemove', onResizeMove)
@@ -1103,6 +1170,28 @@ watch(
   (value) => {
     if (!value) {
       eventBus.emit('search-replace-expand')
+    }
+  }
+)
+
+// 展开替换或显示匹配列表后，若当前固定高度/宽度小于新的下限，自动抬升尺寸
+watch(
+  () => ({
+    minW: resizeConstraints.value.minWidth,
+    minH: resizeConstraints.value.minHeight,
+    collapsed: collapsed.value,
+    matches: searchState.value?.matches.length ?? 0,
+    showList: showMatchesList.value
+  }),
+  ({ minW, minH }) => {
+    const w = panelSize.value.width
+    const h = panelSize.value.height
+    let nw = w
+    let nh = h
+    if (w < minW) nw = minW
+    if (h > 0 && h < minH) nh = minH
+    if (nw !== w || nh !== h) {
+      panelSize.value = { width: nw, height: nh }
     }
   }
 )
@@ -1162,11 +1251,10 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(12px);
   transition: box-shadow 0.2s ease;
   user-select: none;
-  overflow: visible;
+  overflow: auto;
   display: flex;
   flex-direction: column;
-  min-height: 0; /* 确保 flex 子元素可以收缩 */
-  max-height: min(1000px, 80vh); /* 限制最大高度，不超过视口高度的80%或1000px */
+  max-height: min(1000px, 80vh); /* 限制最大高度，不超过视口高度的80%或1000px；最小高宽由内联 style 按状态给出 */
 }
 
 .search-replace-panel:active {
@@ -1234,7 +1322,22 @@ onBeforeUnmount(() => {
 
 .toggle-row {
   display: flex;
+  align-items: center;
   gap: 8px;
+  width: 100%;
+}
+
+.toggle-row-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.toggle-collapse-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .toggle-btn {
@@ -1261,8 +1364,15 @@ onBeforeUnmount(() => {
   margin-bottom: 12px;
 }
 
-.collapse-btn {
-  margin-left: auto;
+.replace-all-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  object-fit: contain;
+}
+
+.replace-all-toolbar-btn {
+  padding: 0;
 }
 
 .draggable-zone {

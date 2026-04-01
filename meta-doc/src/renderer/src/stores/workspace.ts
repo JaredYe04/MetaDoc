@@ -53,7 +53,7 @@ export interface WorkspaceTab {
   format: WorkspaceTabFormat
   dirty: boolean
   readonly?: boolean
-  /** 预览模式（单机打开）：不显示在“已打开文件”，仅一个预览 tab；双击/编辑/切换视图后变为正式打开 */
+  /** 预览模式（单击打开）：不显示在「已打开文件」，同窗口仅一个预览 tab；双击、切换视图、或产生脏标记（需保存）后变为正式 tab */
   preview?: boolean
   toolType?: ToolTabType // 工具Tab类型
   route?: string // 路由路径（用于工具Tab）
@@ -799,9 +799,6 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
     promoteNewDocumentTabAfterContentWrite(tabId)
 
     updateDocumentDirty(tabId)
-    if (tab?.preview) {
-      pinTab(tabId)
-    }
   }
 }
 
@@ -906,9 +903,6 @@ function updateDocumentTex(tabId: string, tex: string): void {
     promoteNewDocumentTabAfterContentWrite(tabId)
 
     updateDocumentDirty(tabId)
-    if (tab?.preview) {
-      pinTab(tabId)
-    }
   }
 }
 
@@ -1151,6 +1145,10 @@ function updateDocumentDirty(tabId: string): void {
   const tab = tabs.find((item) => item.id === tabId)
   if (tab) {
     tab.dirty = dirty
+    // 预览 tab 一旦需要保存（任意维度产生脏标记），即视为正式打开，避免未保存内容被「单预览槽」误替换
+    if (dirty && tab.preview) {
+      pinTab(tabId)
+    }
     if (tab.id === activeTabId.value) {
       eventBus.emit('is-need-save', dirty)
     }
@@ -1258,6 +1256,13 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
 
   // 确保保存的内容是规范化后的（与编辑器更新时保持一致）
   // 注意：这里使用规范化后的内容，确保与打开文档时的处理逻辑一致
+  // 同步规范化内存中的正文，避免 doc.markdown/doc.tex 仍为 \r\n 等形态而 saved* 已为 \n，
+  // 导致下方「保存后校验」误判为未保存并再次 updateDocumentDirty（脏点闪烁）。
+  if (doc.format === 'tex') {
+    doc.tex = normalizedTex
+  } else {
+    doc.markdown = normalizedMarkdown
+  }
   doc.savedMarkdown = normalizedMarkdown
   doc.savedTex = normalizedTex
   doc.savedOutline = structuredCloneFallback(doc.outline)

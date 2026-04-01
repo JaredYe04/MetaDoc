@@ -1160,6 +1160,7 @@
         "saveAll": "Save all",
         "find": "Find",
         "replace": "Replace",
+        "workspaceGrep": "Workspace find and replace",
         "copy": "Copy",
         "cut": "Cut",
         "paste": "Paste",

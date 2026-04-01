@@ -274,18 +274,29 @@ const convertHtmlToPdfBuffer = async (
 
     logger.info('代码块滚动限制已移除')
 
+    // 与 ConvertHtmlForPdf 注入的页边距一致（英寸→pt），供版心宽度/图片缩放计算；勿硬编码 0.5in
+    const pdfMarginsIn = options?.margins ?? {
+      top: 0.5,
+      bottom: 0.5,
+      left: 0.5,
+      right: 0.5
+    }
+    const marginTopPtNum = pdfMarginsIn.top * 72
+    const marginBottomPtNum = pdfMarginsIn.bottom * 72
+    const marginLeftPtNum = pdfMarginsIn.left * 72
+    const marginRightPtNum = pdfMarginsIn.right * 72
+
     // 在生成 PDF 之前，确保内容宽度适合页面，并智能缩放超长图片
     await win.webContents.executeJavaScript(`
       (function() {
-        // A4 纸张尺寸和页边距计算
+        // A4 纸张尺寸和页边距计算（与 printToPDF pageSize 默认 A4 对齐）
         // A4: 210mm × 297mm = 8.27" × 11.69" = 595.44pt × 841.68pt
-        // 页边距：上下左右各 0.5 英寸 = 36pt
         const pageWidthPt = 595.44;  // A4 宽度（points）
         const pageHeightPt = 841.68; // A4 高度（points）
-        const marginTopPt = 36;       // 上边距（points）
-        const marginBottomPt = 36;     // 下边距（points）
-        const marginLeftPt = 36;       // 左边距（points）
-        const marginRightPt = 36;      // 右边距（points）
+        const marginTopPt = ${marginTopPtNum};       // 上边距（points）
+        const marginBottomPt = ${marginBottomPtNum}; // 下边距（points）
+        const marginLeftPt = ${marginLeftPtNum};     // 左边距（points）
+        const marginRightPt = ${marginRightPtNum};   // 右边距（points）
         
         // 可用内容区域
         const availableWidthPt = pageWidthPt - marginLeftPt - marginRightPt;
@@ -325,8 +336,9 @@ const convertHtmlToPdfBuffer = async (
           }
         });
         
-        // 处理表格溢出问题
-        const tables = document.querySelectorAll('table');
+        // 仅处理正文内表格。勿含 table.meta-doc-pdf-print-frame：边距已由该表 tbody 的 padding 实现，
+        // 若再按版心宽度缩窄整张表，等于二次扣除左右边距，右侧会多出一大块空白。
+        const tables = document.querySelectorAll('#preview table');
         tables.forEach(table => {
           const rect = table.getBoundingClientRect();
           if (rect.width > availableWidthPx) {
@@ -581,8 +593,8 @@ const convertHtmlToPdfBuffer = async (
     logger.info(`图片智能缩放处理完成`)
 
     logger.info('开始生成 PDF')
-    // 使用导出选项或默认值
-    const margins = options?.margins || { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 }
+    // Markdown→PDF 的页边距由 ConvertHtmlForPdf 内联 CSS（@page 零边距 + 表格 thead/tfoot 与 tbody 左右 padding）实现；
+    // 此处 printToPDF 须保持零物理边距，否则 Chromium 在 API 边距带使用默认白纸色，深色/主题背景无法铺满整页。
     let pageSize = options?.pageSize || 'A4'
     // Electron 的 printToPDF 不支持 B5，将其映射为 A4
     if (pageSize === 'B5') {
@@ -593,12 +605,13 @@ const convertHtmlToPdfBuffer = async (
 
     const pdfBuffer = await win.webContents.printToPDF({
       printBackground,
+      displayHeaderFooter: false,
       margins: {
         marginType: 'custom',
-        top: margins.top,
-        bottom: margins.bottom,
-        left: margins.left,
-        right: margins.right
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0
       },
       pageSize: pageSize as any // 类型转换，因为我们已经处理了 B5
     })

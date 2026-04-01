@@ -1,5 +1,5 @@
 <template>
-  <ScrollArea class="home-panel-scrollbar">
+  <ScrollArea class="home-panel-scrollbar" :show-horizontal-scrollbar="false">
     <div class="home-panel-content">
       <DocumentMetaSection
         :title="metaTitle || $t('article.no_title')"
@@ -48,8 +48,9 @@ const isRendering = ref(false)
 
 const zoomScale = ref(1)
 const previewZoomStyle = computed(() => ({
-  transform: `scale(${zoomScale.value})`,
-  transformOrigin: 'top left'
+  // transform: scale() 只缩放视觉，不会触发布局重排；会导致缩放后仍按旧宽度换行
+  // Electron/Chromium 下使用 zoom 会触发布局重排，缩放时换行/表格布局会随容器宽度重新计算
+  zoom: zoomScale.value
 }))
 
 function clampZoom(v: number) {
@@ -270,23 +271,74 @@ onUnmounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  /* 不裁剪，便于宽表格把 scrollWidth 传给外层 ScrollArea 显示横向滚动条 */
-  overflow: visible;
+  overflow: hidden;
 }
 
 .content-preview {
   flex: 1;
   width: 100%;
-  min-width: max-content;
+  max-width: 100%;
+  min-width: 0;
   padding: 24px;
   box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  overflow-x: hidden;
   line-height: 1.7;
   font-size: 15px;
   min-height: 0;
   /* 与主题正文色一致；勿对整树使用 * { color: inherit }，否则会压过 hljs（见 MarkdownEditor.vue） */
   color: v-bind('themeState.currentTheme.textColor');
+}
+
+/* Vditor 预览根：限制在容器宽度内换行，避免出现整页级横向滚动 */
+.content-preview :deep(.vditor-reset) {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 固定布局 + 占满容器宽度，列宽可被压缩，单元格内长文/URL 会换行而不是单行撑开 */
+.content-preview :deep(table) {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  display: table;
+}
+
+.content-preview :deep(th),
+.content-preview :deep(td) {
+  white-space: normal;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  /* 固定布局下允许列收缩，避免长连续字符把单元格撑成一行 */
+  min-width: 0;
+}
+
+/* 单元格内的代码/预格式化块也允许换行 */
+.content-preview :deep(td pre),
+.content-preview :deep(td code),
+.content-preview :deep(th pre),
+.content-preview :deep(th code) {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 代码块过长时在块内滚动，不把整页撑宽 */
+.content-preview :deep(pre) {
+  max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+/* 块级公式过宽时在公式容器内横向滚动 */
+.content-preview :deep(.katex-display) {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .content-preview :deep(img) {

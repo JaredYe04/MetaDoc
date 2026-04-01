@@ -2516,7 +2516,56 @@ export async function ConvertMarkdownToHtmlManually(
   }
 }
 
-export const ConvertHtmlForPdf = async (md) => {
+/** 判断 hljs 主题名是否偏暗色（用于 PDF 强制浅色/深色时切换为可读组合） */
+function isLikelyDarkHljsTheme(name) {
+  if (!name || typeof name !== 'string') return false
+  const n = String(name).toLowerCase()
+  if (
+    n.includes('gradient-light') ||
+    n.includes('solarized-light') ||
+    n.includes('one-light') ||
+    n.includes('atom-one-light') ||
+    n.includes('paraiso-light') ||
+    (n.includes('github') && !n.includes('dark'))
+  ) {
+    return false
+  }
+  if (n.includes('light') && !n.includes('highlight')) return false
+  return (
+    n.includes('dark') ||
+    n.includes('onedark') ||
+    n.includes('night') ||
+    n === 'nord' ||
+    n === 'monokai' ||
+    n === 'dracula' ||
+    n.includes('obsidian') ||
+    n.includes('tokyo-night') ||
+    n.includes('stackoverflow-dark')
+  )
+}
+
+function coerceHljsForPdfLight(resolved) {
+  return isLikelyDarkHljsTheme(resolved) ? 'github' : resolved
+}
+
+function coerceHljsForPdfDark(resolved) {
+  return isLikelyDarkHljsTheme(resolved) ? resolved : 'github-dark'
+}
+
+/** 仅允许安全颜色串写入 PDF 内联样式，防止主题异常值破坏 CSS */
+function sanitizeCssColorForPdf(value) {
+  if (!value || typeof value !== 'string') return '#ffffff'
+  const v = value.trim()
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) return v
+  if (/^(rgb|hsla?)\(\s*[\d\s.,%]+\)$/i.test(v) && v.length < 160) return v
+  return '#ffffff'
+}
+
+/**
+ * @param {string} md
+ * @param {{ pdfThemeMode?: 'light'|'dark'|'follow', margins?: { top:number, bottom:number, left:number, right:number } }} [pdfOptions]
+ */
+export const ConvertHtmlForPdf = async (md, pdfOptions = {}) => {
   getLogger().info(`ConvertHtmlForPdf 开始，Markdown 长度: ${md.length}`)
 
   let cdn = ''
@@ -2569,35 +2618,321 @@ export const ConvertHtmlForPdf = async (md) => {
   // 使用 JSON.stringify 对处理后的 md 进行转义
   const safeMarkdown = JSON.stringify(processedMd)
 
-  const contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
-  const codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
+  const pdfThemeMode = pdfOptions.pdfThemeMode ?? 'light'
+  const contentSetting = await getSetting('contentTheme')
+  const codeSetting = await getSetting('codeTheme')
+  const resolvedCode = resolveVditorCodeThemeSettingValue(codeSetting)
+
+  let effectiveVditorMode = 'light'
+  let effectiveContentTheme = 'light'
+  let effectiveCodeTheme = resolvedCode
+
+  if (pdfThemeMode === 'light') {
+    effectiveVditorMode = 'light'
+    effectiveContentTheme = 'light'
+    effectiveCodeTheme = coerceHljsForPdfLight(resolvedCode)
+  } else if (pdfThemeMode === 'dark') {
+    effectiveVditorMode = 'dark'
+    effectiveContentTheme = 'dark'
+    effectiveCodeTheme = coerceHljsForPdfDark(resolvedCode)
+  } else {
+    effectiveVditorMode = themeState.currentTheme.type === 'dark' ? 'dark' : 'light'
+    effectiveContentTheme = resolveVditorContentThemeSettingValue(contentSetting)
+    effectiveCodeTheme = resolvedCode
+  }
+
+  const margins = pdfOptions.margins || { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 }
+  const mTop = margins.top
+  const mRight = margins.right
+  const mBottom = margins.bottom
+  const mLeft = margins.left
+
+  /** 整页底色：与 Electron 物理边距解耦，由 @page + body 铺满（含分页边缘与四角） */
+  let pageBgColor = '#ffffff'
+  if (pdfThemeMode === 'light') {
+    pageBgColor = '#ffffff'
+  } else if (pdfThemeMode === 'dark') {
+    pageBgColor = '#2f363d'
+  } else {
+    const ts = themeState.currentTheme
+    pageBgColor = sanitizeCssColorForPdf(
+      ts.editorTextareaBackgroundColor || ts.background || '#ffffff'
+    )
+  }
+
   const lineNumber = await getSetting('lineNumber')
   const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
   getLogger().info(
-    `主题设置: contentTheme=${contentTheme}, codeTheme=${codeTheme}, lineNumber=${lineNumber}, mathInlineDigit=${mathInlineDigit}`
+    `PDF 外观: pdfThemeMode=${pdfThemeMode}, vditorMode=${effectiveVditorMode}, contentTheme=${effectiveContentTheme}, codeTheme=${effectiveCodeTheme}, lineNumber=${lineNumber}, mathInlineDigit=${mathInlineDigit}`
   )
 
+  const safeCdn = JSON.stringify(cdn)
+  const safeContentTheme = JSON.stringify(effectiveContentTheme)
+  const safeThemePath = JSON.stringify(`${cdn}/dist/css/content-theme`)
+  const safeCodeTheme = JSON.stringify(effectiveCodeTheme)
+  const safeVditorMode = JSON.stringify(effectiveVditorMode)
+
+  /** 写入 link href 的安全片段，防止异常设置值破坏路径 */
+  const safeThemeId = /^[a-zA-Z0-9._-]+$/.test(effectiveContentTheme) ? effectiveContentTheme : 'light'
+  const safeHljsId = /^[a-zA-Z0-9._-]+$/.test(effectiveCodeTheme) ? effectiveCodeTheme : 'github'
+
   const html = `<!DOCTYPE html>
-<html lang="zh">
+<html lang="zh" style="margin:0;padding:0;min-height:100%;background-color:${pageBgColor} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
 <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="${effectiveVditorMode === 'dark' ? 'dark' : 'light'}">
     <link rel="stylesheet" href="${cdn}/dist/index.css"/>
+    <!-- 与 Vditor.preview 内 setContentTheme / highlightRender 使用相同 id，提前阻塞加载，避免 printToPDF 时仍只有 index.css 浅色 -->
+    <link id="vditorContentTheme" rel="stylesheet" type="text/css" href="${cdn}/dist/css/content-theme/${safeThemeId}.css"/>
+    <link id="vditorHljsStyle" rel="stylesheet" type="text/css" href="${cdn}/dist/js/highlight.js/styles/${safeHljsId}.min.css"/>
     <script src="${cdn}/dist/method.min.js"></script>
+    <style>
+        /*
+         * 样式顺序：index → 内容主题 / hljs（上方 link）→ 本块最后，可覆盖 Vditor 默认但保留深色主题色。
+         * @page 须 margin:0 + 主进程零物理边距，避免白边。
+         * 页边距：左右 = tbody 单元格 padding；上下 = thead/tfoot 占位（每页重复）。
+         */
+        @page {
+            size: auto;
+            margin: 0;
+        }
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+            background-color: ${pageBgColor} !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 100%;
+            overflow: hidden !important;
+            overflow-x: hidden !important;
+            overflow-y: hidden !important;
+            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+            max-width: 100%;
+            background-color: ${pageBgColor} !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        table.meta-doc-pdf-print-frame {
+            width: 100%;
+            max-width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            table-layout: fixed !important;
+            background: transparent !important;
+        }
+        /* fixed 下列宽常由首行决定；thead 格几乎无水平内容，不设宽会导致列极窄、正文提前换行、右侧假「大边距」 */
+        table.meta-doc-pdf-print-frame > colgroup col.meta-doc-pdf-print-col {
+            width: 100%;
+        }
+        /* 仅版式表直接子格，勿用 .meta-doc-pdf-print-frame td（会匹配正文里 Markdown 表格单元格并 border:none!important 压掉主题） */
+        table.meta-doc-pdf-print-frame > thead > tr > td,
+        table.meta-doc-pdf-print-frame > tbody > tr > td,
+        table.meta-doc-pdf-print-frame > tfoot > tr > td {
+            width: 100% !important;
+            border: none !important;
+            box-sizing: border-box;
+        }
+        thead.meta-doc-pdf-print-thead {
+            display: table-header-group;
+        }
+        tfoot.meta-doc-pdf-print-tfoot {
+            display: table-footer-group;
+        }
+        .meta-doc-pdf-print-pad-top {
+            padding: ${mTop}in 0 0 0 !important;
+            margin: 0 !important;
+            line-height: 0 !important;
+            font-size: 0 !important;
+            vertical-align: top;
+            background: transparent !important;
+        }
+        .meta-doc-pdf-print-pad-bottom {
+            padding: 0 0 ${mBottom}in 0 !important;
+            margin: 0 !important;
+            line-height: 0 !important;
+            font-size: 0 !important;
+            vertical-align: top;
+            background: transparent !important;
+        }
+        .meta-doc-pdf-print-body {
+            padding: 0 ${mRight}in 0 ${mLeft}in !important;
+            margin: 0 !important;
+            vertical-align: top;
+            background: transparent !important;
+        }
+        @media print {
+            html, body {
+                background-color: ${pageBgColor} !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            body {
+                overflow: visible !important;
+            }
+            #preview,
+            #preview .vditor-reset,
+            #preview table,
+            #preview tr,
+            #preview td,
+            #preview th {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+
+        #preview {
+            overflow: visible !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            max-width: 100%;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0;
+            box-sizing: border-box;
+            background: transparent !important;
+        }
+
+        #preview.vditor-reset--anchor {
+            padding-left: 0 !important;
+        }
+        #preview.vditor-reset h1 {
+            padding-left: 0 !important;
+            padding-inline-start: 0 !important;
+            text-indent: 0 !important;
+        }
+
+        #preview .vditor-preview,
+        #preview .md-editor-preview {
+            overflow: visible !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box;
+        }
+
+        #preview .md-editor-code pre code,
+        #preview pre code,
+        #preview .hljs {
+            overflow: visible !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            max-height: none !important;
+            max-width: 100% !important;
+            height: auto !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            white-space: pre-wrap !important;
+            box-sizing: border-box;
+        }
+        #preview .md-editor-code pre,
+        #preview pre {
+            overflow: visible !important;
+            max-height: none !important;
+            max-width: 100% !important;
+            height: auto !important;
+            box-sizing: border-box;
+        }
+        #preview .md-editor-code {
+            overflow: visible !important;
+            max-height: none !important;
+            max-width: 100% !important;
+            box-sizing: border-box;
+        }
+
+        #preview img {
+            max-width: 100% !important;
+            height: auto !important;
+            box-sizing: border-box;
+        }
+
+        /* 仅正文内表格：勿用全局 table，否则会覆盖版式外表格的 table-layout:fixed */
+        #preview table {
+            max-width: 100% !important;
+            table-layout: auto;
+            box-sizing: border-box;
+        }
+
+        #preview p,
+        #preview div,
+        #preview h1,
+        #preview h2,
+        #preview h3,
+        #preview h4,
+        #preview h5,
+        #preview h6,
+        #preview ul,
+        #preview ol,
+        #preview li,
+        #preview blockquote {
+            max-width: 100%;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        #preview pre {
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            white-space: pre-wrap !important;
+        }
+
+        #preview code:not(pre code) {
+            white-space: normal !important;
+        }
+    </style>
 </head>
-<body>
-    <div id="preview" style="max-width: 100%; width: auto; padding: 0 20px; box-sizing: border-box;"></div>
+<body style="margin:0;padding:0;box-sizing:border-box;min-height:100%;background-color:${pageBgColor} !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact;">
+    <!--
+      上下边距：thead/tfoot 每页重复；左右为 tbody 单元格 padding。
+      body 全幅铺色，与 printToPDF 零物理边距配合，避免深色/主题下白边。
+    -->
+    <table class="meta-doc-pdf-print-frame" role="presentation">
+        <colgroup><col class="meta-doc-pdf-print-col" /></colgroup>
+        <thead class="meta-doc-pdf-print-thead">
+            <tr>
+                <td class="meta-doc-pdf-print-pad-top">&#8203;</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="meta-doc-pdf-print-body">
+                    <div id="preview" style="max-width: 100%; width: 100%; padding: 0; box-sizing: border-box;"></div>
+                </td>
+            </tr>
+        </tbody>
+        <tfoot class="meta-doc-pdf-print-tfoot">
+            <tr>
+                <td class="meta-doc-pdf-print-pad-bottom">&#8203;</td>
+            </tr>
+        </tfoot>
+    </table>
     <script>
             // 等待页面加载后，渲染 markdown 内容
             window.onload = function() {
                 // 使用转义后的 md 内容
                 const previewElement = document.getElementById('preview');
                 Vditor.preview(previewElement, ${safeMarkdown}, {
-                    cdn: "${cdn}",
-                    markdown: {
-                        theme: "{ current: '${contentTheme}' }"
+                    cdn: ${safeCdn},
+                    mode: ${safeVditorMode},
+                    theme: {
+                        current: ${safeContentTheme},
+                        path: ${safeThemePath}
                     },
+                    anchor: 0,
                     hljs: {
-                        style: "${codeTheme}",
+                        style: ${safeCodeTheme},
                         lineNumber: ${lineNumber}
                     },
                     math: {
@@ -2669,109 +3004,6 @@ export const ConvertHtmlForPdf = async (md) => {
                 }, 1000);
             };
     </script>
-    <style>
-        /* 确保 html 和 body 没有滚动条 */
-        html, body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden !important;
-            overflow-x: hidden !important;
-            overflow-y: hidden !important;
-            width: 100%;
-            height: auto;
-        }
-        
-        body {
-            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-        
-        /* 确保预览容器没有滚动条 */
-        #preview {
-            overflow: visible !important;
-            overflow-x: visible !important;
-            overflow-y: visible !important;
-            max-width: 100%;
-            width: auto;
-            margin: 0 auto;
-            padding: 0 20px;
-            box-sizing: border-box;
-        }
-        
-        /* 确保 Vditor 生成的预览容器没有滚动条 */
-        #preview .vditor-preview,
-        #preview .md-editor-preview {
-            overflow: visible !important;
-            overflow-x: visible !important;
-            overflow-y: visible !important;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-        
-        /* 导出 PDF 时，确保代码块完全展开，无滚动条 */
-        .md-editor-code pre code,
-        pre code,
-        .hljs {
-            overflow: visible !important;
-            overflow-x: visible !important;
-            overflow-y: visible !important;
-            max-height: none !important;
-            max-width: 100% !important;
-            height: auto !important;
-            word-wrap: break-word !important;
-            overflow-wrap: break-word !important;
-            white-space: pre-wrap !important;
-            box-sizing: border-box;
-        }
-        .md-editor-code pre,
-        pre {
-            overflow: visible !important;
-            max-height: none !important;
-            max-width: 100% !important;
-            height: auto !important;
-            box-sizing: border-box;
-        }
-        .md-editor-code {
-            overflow: visible !important;
-            max-height: none !important;
-            max-width: 100% !important;
-            box-sizing: border-box;
-        }
-        
-        /* 确保图片、表格等元素不会超出页面宽度 */
-        img {
-            max-width: 100% !important;
-            height: auto !important;
-            box-sizing: border-box;
-        }
-        
-        table {
-            max-width: 100% !important;
-            table-layout: auto;
-            box-sizing: border-box;
-        }
-        
-        /* 确保所有块级元素都使用正确的盒模型 */
-        p, div, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote {
-            max-width: 100%;
-            box-sizing: border-box;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-        
-        /* 确保代码块内的长行可以换行（内联代码保持原样） */
-        pre {
-            word-wrap: break-word !important;
-            overflow-wrap: break-word !important;
-            white-space: pre-wrap !important;
-        }
-        
-        /* 内联代码保持原样，不强制换行 */
-        code:not(pre code) {
-            white-space: normal !important;
-        }
-    </style>
 </body>
 </html>`
   //     <style>

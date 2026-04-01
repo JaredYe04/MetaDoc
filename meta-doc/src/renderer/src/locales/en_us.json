@@ -4061,6 +4061,7 @@
   },
   "userManual": {
     "title": "User Manual",
+    "exportPureMarkdown": "Export as Plain Markdown",
     "searchPlaceholder": "Search document content...",
     "emptyContent": "Please select a section from the left",
     "backToOverview": "Back to Overview",
@@ -4284,6 +4285,7 @@
     },
     "sidebar": {
       "recommendedList": "Recommended Learning",
+      "learningPathTooltip": "View your learning progress and recommended path",
       "onlyRecommended": "Show Recommended Only",
       "onlyRecommendedTip": "Turn off to show full manual catalog"
     },

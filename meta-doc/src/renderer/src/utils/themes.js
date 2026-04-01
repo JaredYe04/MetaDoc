@@ -24,6 +24,11 @@ import MdDocIconBlack from '../assets/icons/md-doc-black.svg'
 import MdDocIconWhite from '../assets/icons/md-doc-white.svg'
 import TexDocIconBlack from '../assets/icons/tex-doc-black.svg'
 import TexDocIconWhite from '../assets/icons/tex-doc-white.svg'
+// 快速链接：Markdown/LaTeX 专用图标（非 doc icon）
+import MdIconBlack from '../assets/icons/md-black.svg'
+import MdIconWhite from '../assets/icons/md-white.svg'
+import TexIconBlack from '../assets/icons/tex-black.svg'
+import TexIconWhite from '../assets/icons/tex-white.svg'
 import BaseDocIconBlack from '../assets/icons/base-doc-black.svg'
 import BaseDocIconWhite from '../assets/icons/base-doc-white.svg'
 // 工作区图标导入
@@ -342,6 +347,8 @@ const generateThemeIcons = (isDarkMode) => {
     }),
     MdDocIcon: selectIconByTheme(isDarkMode, { light: MdDocIconBlack, dark: MdDocIconWhite }),
     TexDocIcon: selectIconByTheme(isDarkMode, { light: TexDocIconBlack, dark: TexDocIconWhite }),
+    MdIcon: selectIconByTheme(isDarkMode, { light: MdIconBlack, dark: MdIconWhite }),
+    TexIcon: selectIconByTheme(isDarkMode, { light: TexIconBlack, dark: TexIconWhite }),
     BaseDocIcon: selectIconByTheme(isDarkMode, { light: BaseDocIconBlack, dark: BaseDocIconWhite }),
     RefreshIcon: selectIconByTheme(isDarkMode, { light: RefreshIconBlack, dark: RefreshIconWhite }),
     FolderAddIcon: selectIconByTheme(isDarkMode, {

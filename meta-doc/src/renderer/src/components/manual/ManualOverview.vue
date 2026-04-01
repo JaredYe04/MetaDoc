@@ -2,144 +2,20 @@
   <div class="manual-overview">
     <ScrollArea class="overview-scrollbar">
       <div class="overview-content">
-        <!-- 欢迎区域 -->
-        <div class="welcome-section">
-          <h1 class="welcome-title">
-            {{ $t('userManual.overview.welcome') || '欢迎使用用户手册' }}
-          </h1>
-          <p class="welcome-description">
-            {{
-              $t('userManual.overview.description') ||
-              '根据您的使用偏好，我们为您推荐了最适合的学习路径'
-            }}
-          </p>
-        </div>
-
-        <!-- 使用定位（用户画像） -->
-        <div v-if="userProfile" class="profile-section">
-          <h2 class="section-title">
-            <User class="w-4 h-4" />
-            {{ $t('userManual.overview.profileSummary') || '您的使用定位' }}
-          </h2>
-          <UserProfileVisualization :profile="userProfile" @reanalyze="openProfileDialog" />
-        </div>
-
-        <!-- 学习进度 -->
-        <div v-if="learningPath.length > 0" class="progress-section">
-          <h2 class="section-title">
-            <BarChart3 class="w-4 h-4" />
-            {{ $t('userManual.overview.progress') || '学习进度' }}
-          </h2>
-          <div class="progress-card">
-            <div class="progress-header">
-              <span class="progress-label">{{
-                $t('userManual.progress.label') || '学习进度'
-              }}</span>
-              <span class="progress-percentage">{{ learningProgress }}%</span>
-            </div>
-            <Progress
-              :percentage="learningProgress"
-              :stroke-width="12"
-              :show-text="false"
-              :color="progressColor"
-            />
-            <div class="progress-info">
-              <span
-                >{{ completedCount }} / {{ totalCount }}
-                {{ $t('userManual.progress.completed') || '已完成' }}</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- 推荐学习路径 -->
-        <div v-if="learningPath.length > 0" class="path-section">
-          <h2 class="section-title">
-            <BookOpen class="w-4 h-4" />
-            {{ $t('userManual.overview.recommendedPath') || '推荐学习路径' }}
-          </h2>
-          <div class="path-card">
-            <div class="path-description">
-              <p>{{ pathDescription }}</p>
-            </div>
-            <!-- 有向图展示：点击节点仅选中，与下方列表双向联动 -->
-            <div class="path-graph-container">
-              <LearningGraph v-model:selected-id="selectedNodeId" :default-expanded="true" />
-            </div>
-            <div class="path-steps">
-              <div
-                v-for="(articleId, index) in learningPath"
-                :key="articleId"
-                class="path-step"
-                :class="{
-                  'is-completed': isArticleCompleted(articleId),
-                  'is-current': articleId === currentArticleId,
-                  'is-selected': articleId === selectedNodeId
-                }"
-                @click="selectStep(articleId)"
-                @dblclick.prevent="startLearningStep(articleId)"
-              >
-                <div class="step-number">{{ index + 1 }}</div>
-                <div class="step-content">
-                  <div class="step-title">{{ getArticleTitle(articleId) }}</div>
-                  <div class="step-meta">
-                    <Badge v-if="isArticleCompleted(articleId)" variant="default">
-                      {{ $t('userManual.overview.completed') || '已完成' }}
-                    </Badge>
-                    <Badge v-else-if="articleId === currentArticleId" variant="default">
-                      {{ $t('userManual.overview.current') || '当前' }}
-                    </Badge>
-                    <Badge v-else variant="secondary">
-                      {{ $t('userManual.overview.pending') || '待学习' }}
-                    </Badge>
-                  </div>
-                </div>
-                <Check class="w-4 h-4" />
-              </div>
-            </div>
-            <div class="path-actions">
-              <Button :disabled="!selectedNodeId" @click="startSelectedLearning">
-                <FileText class="mr-2 h-4 w-4" />
-                {{ $t('userManual.overview.startLearning') || '开始学习' }}
-              </Button>
-              <Button variant="ghost" size="sm" @click="handleClearProgress">
-                {{ $t('userManual.progress.clearProgress') || '清空学习进度' }}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 快速开始 -->
-        <div v-else class="quick-start-section">
-          <h2 class="section-title">
-            <Zap class="w-4 h-4" />
-            {{ $t('userManual.overview.quickStart') || '快速开始' }}
-          </h2>
-          <div class="quick-start-card">
-            <p>
-              {{
-                $t('userManual.overview.noProfile') ||
-                '还没有设置用户画像？让我们先了解一下您的使用偏好，以便为您推荐最适合的学习路径。'
-              }}
-            </p>
-            <Button @click="openProfileDialog">
-              <User class="mr-2 h-4 w-4" />
-              {{ $t('userManual.profile.buttonText') || '完善我的使用偏好' }}
-            </Button>
-          </div>
-        </div>
-
-        <!-- 快速链接 -->
+        <!-- 快速链接（放最前） -->
         <div class="quick-links-section">
-          <h2 class="section-title">
-            <Link class="w-4 h-4" />
-            {{ $t('userManual.overview.quickLinks') || '快速链接' }}
-          </h2>
+          <div class="section-header">
+            <h2 class="section-title">
+              <Link class="w-4 h-4" />
+              {{ $t('userManual.overview.quickLinks') || '快速链接' }}
+            </h2>
+          </div>
           <div class="quick-links-grid">
-            <div
+            <button
               v-for="category in quickLinks"
               :key="category.id"
               class="quick-link-card"
+              type="button"
               @click="navigateToCategory(category.id)"
             >
               <div class="link-icon">
@@ -155,6 +31,80 @@
               <div class="link-count">
                 {{ category.count }} {{ $t('userManual.overview.articles') || '篇文章' }}
               </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 推荐学习路径（合并：使用定位 + 学习进度 + 路径列表） -->
+        <div class="path-panel">
+          <div class="section-header">
+            <h2 class="section-title">
+              <BookOpen class="w-4 h-4" />
+              {{ $t('userManual.overview.recommendedPath') || '推荐学习路径' }}
+            </h2>
+            <Button v-if="learningPath.length > 0" variant="ghost" size="sm" @click="handleClearProgress">
+              {{ $t('userManual.progress.clearProgress') || '清空学习进度' }}
+            </Button>
+          </div>
+
+          <div class="path-card">
+            <div v-if="userProfile" class="path-profile">
+              <UserProfileVisualization :profile="userProfile" @reanalyze="openProfileDialog" />
+            </div>
+
+            <div v-if="learningPath.length > 0" class="path-progress-row">
+              <div class="progress-meta">
+                <span class="progress-label">{{ $t('userManual.progress.label') || '学习进度' }}</span>
+                <span class="progress-value">{{ learningProgress }}%</span>
+                <span class="progress-sub">
+                  {{ completedCount }} / {{ totalCount }} {{ $t('userManual.progress.completed') || '已完成' }}
+                </span>
+              </div>
+              <Progress
+                class="progress-bar"
+                :percentage="learningProgress"
+                :stroke-width="10"
+                :show-text="false"
+                :color="progressColor"
+              />
+            </div>
+
+            <div v-if="learningPath.length === 0" class="path-empty">
+              <p class="path-empty-text">
+                {{
+                  $t('userManual.overview.noProfile') ||
+                  '还没有设置用户画像？让我们先了解一下您的使用偏好，以便为您推荐最适合的学习路径。'
+                }}
+              </p>
+              <Button size="sm" @click="openProfileDialog">
+                <User class="mr-2 h-4 w-4" />
+                {{ $t('userManual.profile.buttonText') || '完善我的使用偏好' }}
+              </Button>
+            </div>
+
+            <div v-if="learningPath.length > 0" class="path-steps">
+              <button
+                v-for="(articleId, index) in learningPath"
+                :key="articleId"
+                class="path-step"
+                type="button"
+                :class="{
+                  'is-completed': isArticleCompleted(articleId),
+                  'is-current': articleId === currentArticleId
+                }"
+                @click="startLearningStep(articleId)"
+              >
+                <div class="step-number">{{ index + 1 }}</div>
+                <div class="step-content">
+                  <div class="step-title">{{ getArticleTitle(articleId) }}</div>
+                </div>
+                <Badge v-if="isArticleCompleted(articleId)" variant="default">
+                  {{ $t('userManual.overview.completed') || '已完成' }}
+                </Badge>
+                <Badge v-else-if="articleId === currentArticleId" variant="secondary">
+                  {{ $t('userManual.overview.current') || '当前' }}
+                </Badge>
+              </button>
             </div>
           </div>
         </div>
@@ -172,8 +122,8 @@ import { Button } from '@renderer/components/ui/button'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile, ManualCategory } from '../../stores/userManual'
 import UserProfileVisualization from './UserProfileVisualization.vue'
-import LearningGraph from './LearningGraph.vue'
-import { User, BarChart3, BookOpen, Check, FileText, Zap, Link } from 'lucide-vue-next'
+ import eventBus from '../../utils/event-bus'
+ import { User, BookOpen, Link } from 'lucide-vue-next'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Badge } from '@renderer/components/ui/badge'
 import { Progress } from '@renderer/components/ui/progress'
@@ -222,10 +172,7 @@ watch([learningPath, locale], () => {
   loadArticleTitles()
 })
 
-const emit = defineEmits<{
-  openProfile: []
-  viewGraph: []
-}>()
+const emit = defineEmits<{ openProfile: [] }>()
 
 const completedCount = computed(() => {
   return learningPath.value.filter((id) => {
@@ -283,25 +230,11 @@ const getArticleTitle = (articleId: string) => {
   return articleId
 }
 
-/** 仅选中步骤（与图节点双向绑定），不跳转 */
-const selectStep = (articleId: string) => {
-  selectedNodeId.value = selectedNodeId.value === articleId ? null : articleId
-}
-
-const selectedNodeId = ref<string | null>(null)
-
-/** 点击「开始学习」再跳转到选中的文档 */
-const startSelectedLearning = () => {
-  if (selectedNodeId.value) {
-    setCurrentArticle(selectedNodeId.value, 'navigation')
-    selectedNodeId.value = null
-  }
-}
-
 /** 双击列表项直接开始学习 */
 const startLearningStep = (articleId: string) => {
   setCurrentArticle(articleId, 'navigation')
-  selectedNodeId.value = null
+  // 通知左侧导航树展开并滚动到当前位置
+  eventBus.emit('manual-navigation-focus-article', { articleId })
 }
 
 /** 清空当前推荐路径的学习进度 */
@@ -339,8 +272,8 @@ const openProfileDialog = () => {
 const categoryIconMap: Record<string, string> = {
   'quick-start': 'HomeIcon',
   core: 'FileIcon',
-  markdown: 'MdDocIcon',
-  latex: 'TexDocIcon',
+  markdown: 'MdIcon',
+  latex: 'TexIcon',
   ai: 'AiLogo',
   agent: 'AiLogo',
   'knowledge-base': 'KnowledgeIcon',
@@ -375,7 +308,10 @@ const navigateToCategory = async (categoryId: string) => {
 
   const category = manualIndex.value.categories.find((c) => c.id === categoryId)
   if (category && category.articles.length > 0) {
-    await setCurrentArticle(category.articles[0].id, 'navigation')
+    const firstId = category.articles[0].id
+    await setCurrentArticle(firstId, 'navigation')
+    // 通知左侧导航树展开并滚动到当前位置
+    eventBus.emit('manual-navigation-focus-article', { articleId: firstId })
   }
 }
 </script>
@@ -397,132 +333,103 @@ const navigateToCategory = async (categoryId: string) => {
 .overview-content {
   width: 100%;
   max-width: 100%;
-  padding: 32px;
+  padding: 20px;
   margin: 0 auto;
   box-sizing: border-box;
-}
-
-.welcome-section {
-  text-align: center;
-  margin-bottom: 48px;
-  padding: 32px;
-  background-color: v-bind('themeState.currentTheme.background2nd');
-  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
-  border-radius: 8px;
-}
-
-.welcome-title {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: v-bind('themeState.currentTheme.textColor');
-}
-
-.welcome-description {
-  font-size: 14px;
-  margin: 0;
-  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
-  line-height: 1.6;
 }
 
 .section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
-  margin: 0 0 16px 0;
+  margin: 0;
   color: v-bind('themeState.currentTheme.textColor');
 }
 
-.profile-section,
-.progress-section,
-.path-section,
-.quick-start-section,
 .quick-links-section {
-  margin-bottom: 32px;
+  margin-bottom: 14px;
 }
 
-.progress-card,
 .path-card,
-.quick-start-card {
-  padding: 24px;
+.progress-card {
+  padding: 16px;
   background-color: v-bind('themeState.currentTheme.background2nd');
   border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
   border-radius: 8px;
 }
 
-.progress-header {
+.section-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.path-panel {
+  margin-top: 10px;
+}
+
+.path-card {
+  padding: 14px;
+}
+
+.path-profile {
   margin-bottom: 12px;
+}
+
+.path-progress-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: v-bind('themeState.currentTheme.background');
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.08)"');
+  margin-bottom: 12px;
+}
+
+.progress-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .progress-label {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: v-bind('themeState.currentTheme.textColor');
 }
 
-.progress-percentage {
-  font-size: 24px;
-  font-weight: 600;
+.progress-value {
+  font-size: 13px;
+  font-weight: 700;
   color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
 }
 
-.progress-info {
-  margin-top: 12px;
-  font-size: 14px;
+.progress-sub {
+  font-size: 12px;
   color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
 }
 
-.path-description {
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
-}
-
-.path-description p {
-  margin: 0;
-  color: v-bind('themeState.currentTheme.textColor');
-  line-height: 1.6;
-}
-
-.path-graph-container {
-  margin-bottom: 24px;
-  height: 360px;
-  min-height: 320px;
-}
-
-.path-graph-container :deep(.learning-graph) {
-  border: none;
-  background-color: transparent;
-  margin-bottom: 0;
-  height: 100%;
-}
-
-.path-graph-container :deep(.graph-content) {
-  padding: 16px;
-  height: calc(100% - 48px);
-  box-sizing: border-box;
-}
-
-.path-graph-container :deep(.graph-canvas) {
-  min-height: 0;
-  height: 100%;
-}
-
 .path-steps {
-  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .path-step {
+  appearance: none;
+  border: none;
+  width: 100%;
+  text-align: left;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
+  gap: 10px;
+  padding: 10px 12px;
   background-color: v-bind('themeState.currentTheme.background');
   border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
   border-radius: 8px;
@@ -537,10 +444,6 @@ const navigateToCategory = async (categoryId: string) => {
   border-color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
 }
 
-.path-step.is-completed {
-  opacity: 0.7;
-}
-
 .path-step.is-current {
   border-color: v-bind('themeState.currentTheme.primaryColor || "#409EFF"');
   background-color: v-bind(
@@ -548,16 +451,9 @@ const navigateToCategory = async (categoryId: string) => {
   );
 }
 
-.path-step.is-selected {
-  border-color: #e6a23c;
-  background-color: v-bind(
-    'themeState.currentTheme.type === "dark" ? "rgba(230, 162, 60, 0.12)" : "rgba(230, 162, 60, 0.08)"'
-  );
-}
-
 .step-number {
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -566,6 +462,7 @@ const navigateToCategory = async (categoryId: string) => {
   border-radius: 50%;
   font-weight: 600;
   flex-shrink: 0;
+  font-size: 12px;
 }
 
 .path-step.is-completed .step-number {
@@ -578,58 +475,31 @@ const navigateToCategory = async (categoryId: string) => {
 }
 
 .step-title {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: v-bind('themeState.currentTheme.textColor');
-  margin-bottom: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.step-meta {
-  display: flex;
-  gap: 8px;
-}
-
-.step-check {
-  font-size: 20px;
-  color: #67c23a;
-  flex-shrink: 0;
-}
-
-.path-actions {
-  display: flex;
-  gap: 12px;
-  padding-top: 24px;
-  border-top: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
-}
-
-.quick-start-card {
-  text-align: center;
-  padding: 48px 24px;
-}
-
-.quick-start-card p {
-  margin: 0 0 24px 0;
-  color: v-bind('themeState.currentTheme.textColor');
-  line-height: 1.6;
-}
-
 .quick-links-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  /* 更紧凑：降低最小列宽，减少“空旷冗余” */
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 10px;
 }
 
 .quick-link-card {
-  padding: 24px;
-  background-color: v-bind('themeState.currentTheme.background2nd');
+  appearance: none;
   border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
+  padding: 12px;
+  background-color: v-bind('themeState.currentTheme.background2nd');
   border-radius: 8px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
+  color: inherit;
 }
 
 .quick-link-card:hover {
@@ -639,34 +509,81 @@ const navigateToCategory = async (categoryId: string) => {
 }
 
 .link-icon {
-  width: 32px;
-  height: 32px;
-  margin: 0 auto 12px;
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: 50% 50%;
 }
 
 .link-icon-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  transition: inherit;
 }
 
 .link-icon-emoji {
-  font-size: 32px;
+  font-size: 28px;
   line-height: 1;
+  transition: inherit;
+}
+
+.quick-link-card:hover .link-icon {
+  transform: scale(1.12);
+  animation: quickLinkWiggle 1.9s ease-in-out infinite;
+}
+
+@keyframes quickLinkWiggle {
+  0% {
+    transform: scale(1.12) translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.12) translateY(-0.5px) rotate(-1.2deg);
+  }
+  50% {
+    transform: scale(1.12) translateY(0) rotate(1.2deg);
+  }
+  75% {
+    transform: scale(1.12) translateY(0.4px) rotate(-0.8deg);
+  }
+  100% {
+    transform: scale(1.12) translateY(0) rotate(0deg);
+  }
 }
 
 .link-title {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: v-bind('themeState.currentTheme.textColor');
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .link-count {
   font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
+}
+
+.path-empty {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.15)"');
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.path-empty-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
   color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.6)"');
 }
 </style>

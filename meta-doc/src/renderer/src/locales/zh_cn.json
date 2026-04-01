@@ -4674,6 +4674,7 @@
     "renderFailed": "渲染失败"
   },
   "userManual": {
+    "exportPureMarkdown": "导出纯 Markdown",
     "agent": {
       "introduction": {
         "title": "Agent使用教学",
@@ -4916,6 +4917,7 @@
     "searchPlaceholder": "搜索文档内容...",
     "sidebar": {
       "recommendedList": "推荐学习",
+      "learningPathTooltip": "查看您的学习进度与推荐学习路径",
       "onlyRecommended": "只显示推荐路径",
       "onlyRecommendedTip": "关闭后显示完整手册目录"
     },

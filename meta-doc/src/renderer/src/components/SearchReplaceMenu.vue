@@ -374,7 +374,7 @@ const form = reactive({
 
 const searchState = ref<EditorSearchState | null>(null)
 const regexError = ref<string | null>(null)
-const findInputRef = ref<HTMLTextAreaElement>()
+const findInputRef = ref<{ focus?: () => void } | null>(null)
 
 const panelStyles = computed(() => {
   const theme = themeState.currentTheme

@@ -487,6 +487,36 @@ function processInternalLinks() {
   pointer-events: none;
 }
 
+/* AgentView demo：需要稳定的尺寸与字体基线，避免按钮/图标被挤压或异常放大覆盖 */
+.markdown-preview :deep(.manual-demo-inline .agent-view-page) {
+  width: 100% !important;
+  max-width: 100% !important;
+  /* 给出可视高度，避免内部 100% 高度布局塌陷 */
+  height: 560px !important;
+  min-height: 560px !important;
+  /* 统一字体基线，避免图标按继承字号被放大 */
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  overflow: hidden !important;
+  border-radius: 10px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0,0,0,0.1)"');
+  background-color: v-bind('themeState.currentTheme.background');
+}
+
+.markdown-preview :deep(.manual-demo-inline .agent-view-page .el-icon) {
+  font-size: 16px !important;
+}
+
+.markdown-preview :deep(.manual-demo-inline .agent-view-page svg) {
+  max-width: 20px;
+  max-height: 20px;
+}
+
+.markdown-preview :deep(.manual-demo-inline .agent-view-page .sidebar-footer-content) {
+  /* 防止 footer 区域被压缩到看不见（导致只剩一个巨大的 icon 叠在内容上） */
+  flex-shrink: 0;
+}
+
 /* 手册内 Demo：只改变定位方式（防止浮层），保持组件原始尺寸和布局 */
 /* QuickStartPanel: 原为 absolute 全屏，改为 relative，让 wrapper 自适应内容高度 */
 .markdown-preview :deep(.manual-demo-inline .quick-start-panel-wrapper) {

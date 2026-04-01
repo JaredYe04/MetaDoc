@@ -82,6 +82,7 @@
                 :show-voice="false"
                 :show-attach="true"
                 :show-knowledge-base="true"
+                :show-reasoning="true"
                 v-model:enable-knowledge-base-query="enableKnowledgeBaseQuery"
                 @submit="onMsgSend"
                 @reset="reset"
@@ -638,13 +639,28 @@ async function generateNextResponse(
   beforeGeneration: () => void | Promise<void>,
   callbackRef: Ref<string>,
   afterGeneration: () => void | Promise<void>,
-  shouldQueryKnowledgeBase: boolean = false
+  shouldQueryKnowledgeBase: boolean = false,
+  enableReasoning: boolean = false
 ) {
   responding.value = true
   await Promise.resolve(beforeGeneration())
   cur_reasoning.value = ''
   //logger.log(messages.value)
   const messageCopy: AIDialogMessage[] = JSON.parse(JSON.stringify(messages.value)) // 深拷贝消息列表，因为Proxy不能直接拷贝
+
+  // DeepSeek（及部分 OpenAI-compatible）会严格校验 messages：不允许出现连续 assistant。
+  // 我们的 UI 会先 push 一个 assistant placeholder（content=''）用于流式渲染，但该占位不应参与请求。
+  while (messageCopy.length > 0) {
+    const last = messageCopy[messageCopy.length - 1]
+    const isAssistant = last?.role === 'assistant'
+    const c = typeof last?.content === 'string' ? last.content.trim() : ''
+    const r = typeof (last as any)?.reasoning === 'string' ? String((last as any).reasoning).trim() : ''
+    if (isAssistant && !c && !r) {
+      messageCopy.pop()
+      continue
+    }
+    break
+  }
 
   // 构建包含引用信息的消息数组
   // 1. 如果有激活的引用，构建引用内容作为系统消息
@@ -671,13 +687,21 @@ async function generateNextResponse(
   }
 
   //logger.log(messageCopy)
+  // taskName 仅用于展示；避免 messageCopy 太短时访问越界
+  const taskName =
+    messageCopy.length >= 2 ? messageCopy[messageCopy.length - 2].content ?? 'AI Chat' : 'AI Chat'
   const { handle, done } = createAiTask(
-    messageCopy[messageCopy.length - 2].content ?? 'AI Chat',
+    taskName,
     messageCopy,
     cur_resp,
     ai_types.chat,
     'ai-chat',
-    { stream: true, enableKnowledgeBase: shouldQueryKnowledgeBase, reasoningRef: cur_reasoning }
+    {
+      stream: true,
+      enableKnowledgeBase: shouldQueryKnowledgeBase,
+      reasoningRef: cur_reasoning,
+      ...(enableReasoning ? { enableReasoning: true } : {})
+    }
   )
   currentAiTaskHandle.value = handle
   let wasCancelled = false
@@ -695,7 +719,11 @@ async function generateNextResponse(
   }
 }
 
-const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
+const onMsgSend = async (
+  enableKnowledgeBaseQueryParam?: boolean,
+  _content?: string,
+  enableReasoningParam?: boolean
+) => {
   const userMessage: AIDialogMessage & { referenceIds?: string[] } = {
     role: 'user',
     content: promptInput.value,
@@ -715,6 +743,8 @@ const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
     enableKnowledgeBaseQueryParam !== undefined
       ? enableKnowledgeBaseQueryParam
       : enableKnowledgeBaseQuery.value
+
+  const enableReasoning = enableReasoningParam === true
 
   let stopStream: WatchStopHandle | undefined
   let stopReasoning: WatchStopHandle | undefined
@@ -771,7 +801,8 @@ const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
         updateTitle()
       }
     },
-    shouldQueryKnowledgeBase
+    shouldQueryKnowledgeBase,
+    enableReasoning
   )
 }
 

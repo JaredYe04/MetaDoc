@@ -278,7 +278,11 @@ ${notes ? `注意事项：${notes}\n` : ''}
     await graphSessionsDb.update(id, patch)
   }
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (
+    _kb?: boolean,
+    _content?: string,
+    enableReasoningParam?: boolean
+  ) => {
     if (!options.activeSessionId.value || !currentPrompt.value.trim()) {
       notifyWarning(t('graph.noPrompt', '请输入绘图需求'))
       return
@@ -371,7 +375,11 @@ ${notes ? `注意事项：${notes}\n` : ''}
         codeTarget,
         'chat',
         originKey,
-        { stream: true, reasoningRef: reasoningTarget }
+        {
+          stream: true,
+          reasoningRef: reasoningTarget,
+          ...(enableReasoningParam === true ? { enableReasoning: true } : {})
+        }
       )
 
       currentAiTaskHandle.value = handle

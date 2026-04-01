@@ -17,6 +17,8 @@ export interface GenerateChatOptions {
   temperature?: number
   maxTokens?: number
   abortSignal?: AbortSignal
+  /** 为 true 时请求提供商侧开启深度思考 / reasoning（默认关闭） */
+  enableReasoning?: boolean
 }
 
 export interface GenerateChatResult {
@@ -31,13 +33,25 @@ export interface GenerateChatResult {
  */
 export async function generateChat(options: GenerateChatOptions): Promise<GenerateChatResult> {
   const { config, temperature, maxTokens, abortSignal } = options
-  const model = getModelFromConfig(config)
+  const enableReasoning = options.enableReasoning === true
+  const model = getModelFromConfig(config, { enableReasoning })
+
+  // 这里不做 provider 特判（避免“一个平台一套 if/else”）。
+  // 非流式 reasoning 依赖 AI SDK/provider 的标准化输出（reasoningText）。
+  // 若某 provider 仅在 raw 字段返回 reasoning（如 reasoning_details），建议统一走流式（我们默认 stream=true），
+  // 并由 stream-chat.ts 的 includeRawChunks + 通用提取器负责展示。
+
+  const providerOptions =
+    config.type === 'gemini' && enableReasoning
+      ? { google: { thinkingConfig: { includeThoughts: true } } }
+      : undefined
 
   const base = {
     model,
     temperature: temperature ?? config.temperature,
     maxOutputTokens: maxTokens ?? (config.enableMaxTokens ? config.maxTokens : undefined),
-    abortSignal
+    abortSignal,
+    ...(providerOptions ? { providerOptions } : {})
   }
 
   const result = await generateText(

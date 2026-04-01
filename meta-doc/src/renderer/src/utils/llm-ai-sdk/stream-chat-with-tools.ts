@@ -20,6 +20,8 @@ export interface StreamChatWithToolsOptions {
   temperature?: number
   maxTokens?: number
   abortSignal?: AbortSignal
+  /** 为 true 时请求提供商侧开启深度思考 / reasoning（默认关闭） */
+  enableReasoning?: boolean
   /** 每检测到一个完整 tool call（tool-input-available）时调用，参数与 onToolCallsDetected 一致 */
   onToolCall?: (toolCall: {
     id: string
@@ -41,9 +43,15 @@ export async function streamChatWithTools(
   options: StreamChatWithToolsOptions
 ): Promise<StreamChatWithToolsResult> {
   const { config, messages, tools, temperature, maxTokens, abortSignal, onToolCall } = options
-  const model = getModelFromConfig(config)
+  const enableReasoning = options.enableReasoning === true
+  const model = getModelFromConfig(config, { enableReasoning })
   const aiMessages = toAISDKMessages(messages)
   const aiTools = toAISDKTools(tools)
+
+  const providerOptions =
+    config.type === 'gemini' && enableReasoning
+      ? { google: { thinkingConfig: { includeThoughts: true } } }
+      : undefined
 
   const result = streamText({
     model,
@@ -51,7 +59,9 @@ export async function streamChatWithTools(
     tools: aiTools,
     temperature: temperature ?? config.temperature,
     maxOutputTokens: maxTokens ?? (config.enableMaxTokens ? config.maxTokens : undefined),
-    abortSignal
+    includeRawChunks: true,
+    abortSignal,
+    ...(providerOptions ? { providerOptions } : {})
   })
 
   const reportedToolCallIds = new Set<string>()

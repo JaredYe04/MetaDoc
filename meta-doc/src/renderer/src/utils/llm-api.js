@@ -420,7 +420,8 @@ async function answerQuestionNonStream(
       prompt,
       temperature: meta.temperature ?? config.temperature,
       maxTokens: effectiveMaxTokens,
-      abortSignal: signal ?? undefined
+      abortSignal: signal ?? undefined,
+      enableReasoning: meta.enableReasoning === true
     })
     const processedText = await processThinkTag(text)
     ref.value = processedText
@@ -435,7 +436,7 @@ async function answerQuestionNonStream(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, true)
+    const llmError = handleLlmError(error, true, { llmConfig: config, meta })
     throw llmError
   }
 }
@@ -490,7 +491,7 @@ async function answerQuestionStream(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, true)
+    const llmError = handleLlmError(error, true, { llmConfig: config, meta })
     throw llmError
   }
 }
@@ -668,7 +669,8 @@ async function continueConversationNonStream(
       messages: sanitizedMsgs,
       temperature: meta.temperature ?? config.temperature,
       maxTokens: effectiveMaxTokens,
-      abortSignal: signal ?? undefined
+      abortSignal: signal ?? undefined,
+      enableReasoning: meta.enableReasoning === true
     })
     const processedContent = await processThinkTag(text)
     ref.value = processedContent
@@ -683,7 +685,7 @@ async function continueConversationNonStream(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, true)
+    const llmError = handleLlmError(error, true, { llmConfig: config, meta })
     throw llmError
   }
 }
@@ -752,7 +754,7 @@ async function continueConversationStream(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, true)
+    const llmError = handleLlmError(error, true, { llmConfig: config, meta })
     throw llmError
   }
 }
@@ -858,6 +860,7 @@ async function continueConversationWithTools(
       temperature: meta.temperature ?? config.temperature,
       maxTokens: effectiveMaxTokens,
       abortSignal: signal ?? undefined,
+      enableReasoning: meta.enableReasoning === true,
       onToolCall: async (tc) => {
         await onToolCallsDetected([tc])
       }
@@ -931,7 +934,7 @@ async function continueConversationWithTools(
       }
     }
   } catch (error) {
-    const llmError = handleLlmError(error, true)
+    const llmError = handleLlmError(error, true, { llmConfig: config, meta })
     throw llmError
   }
 }

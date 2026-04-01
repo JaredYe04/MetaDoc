@@ -88,11 +88,13 @@ export function cloneReferenceStoreSnapshot(
 
 export function createComposerSendQueueItem(
   markdown: string,
-  referenceSnapshot: ComposerSendQueueItem['referenceSnapshot']
+  referenceSnapshot: ComposerSendQueueItem['referenceSnapshot'],
+  enableReasoning?: boolean
 ): ComposerSendQueueItem {
   return {
     id: `csq-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     markdown,
+    ...(enableReasoning === true ? { enableReasoning: true } : {}),
     referenceSnapshot,
     createdAt: new Date().toISOString()
   }

@@ -150,9 +150,10 @@
                   :show-voice="false"
                   :placeholder="t('aiChat.inputPlaceholder')"
                   :show-knowledge-base="false"
+                  :show-reasoning="true"
                   :show-reference-picker="true"
                   :get-at-label="getAtLabel"
-                  @submit="(kb, content) => handleComposerSubmit(kb, content)"
+                  @submit="(kb, content, er) => handleComposerSubmit(kb, content, er)"
                   @reset="handleComposerReset"
                   @attach="handleAttachFile"
                   @open-reference-picker="referencePickerOpen = true"
@@ -1258,7 +1259,11 @@ async function migrateHomePendingRefsIfNeeded(
 }
 
 /** 主页发送首条消息：新建会话、注入附件引用并提交 */
-function applyHomeLaunchSubmit(content: string, pendingRefs: Reference[] = []) {
+function applyHomeLaunchSubmit(
+  content: string,
+  pendingRefs: Reference[] = [],
+  enableReasoning?: boolean
+) {
   nextTick(() => {
     createSession(agentConfigManager.getDefaultConfigId())
     void (async () => {
@@ -1275,7 +1280,7 @@ function applyHomeLaunchSubmit(content: string, pendingRefs: Reference[] = []) {
       }
       composerInput.value = content
       await nextTick()
-      void handleComposerSubmit(undefined, content)
+      void handleComposerSubmit(undefined, content, enableReasoning === true)
     })()
   })
 }
@@ -1286,7 +1291,7 @@ function consumeHomeSubmitIfReady() {
   if (!tab || tab.kind !== 'system' || tab.route !== '/agent') return
   const pending = agentManageUi.takePendingHomeAgentSubmit()
   if (!pending) return
-  applyHomeLaunchSubmit(pending.content, pending.references)
+  applyHomeLaunchSubmit(pending.content, pending.references, pending.enableReasoning === true)
 }
 
 watch(
@@ -1433,7 +1438,9 @@ const createChatMessage = (
 })
 
 /** 在 executeAgentEngine 定义之后赋值 */
-let runComposerSendPipelineForSessionRef: ((s: AgentSession, c: string) => Promise<void>) | null = null
+let runComposerSendPipelineForSessionRef:
+  | ((s: AgentSession, c: string, enableReasoning?: boolean) => Promise<void>)
+  | null = null
 
 function onComposerSendQueueUpdate(next: ComposerSendQueueItem[]) {
   const s = activeSession.value
@@ -1467,13 +1474,21 @@ async function flushOneComposerSendQueueItem(sessionId: string): Promise<void> {
   session.referenceStore = cloneReferenceStoreSnapshot(item.referenceSnapshot) as AgentSession['referenceStore']
   if (!runComposerSendPipelineForSessionRef) return
   try {
-    await runComposerSendPipelineForSessionRef(session, item.markdown)
+    await runComposerSendPipelineForSessionRef(
+      session,
+      item.markdown,
+      item.enableReasoning === true
+    )
   } catch (e) {
     createRendererLogger('AgentView').error('[composerSendQueue] flush failed', e)
   }
 }
 
-const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: string) => {
+const handleComposerSubmit = async (
+  _enableKB?: boolean,
+  contentFromEvent?: string,
+  enableReasoningFromComposer?: boolean
+) => {
   if (guardDemoAction(t('agent.demo.action.sendMessage'))) {
     const session = activeSession.value
     if (session) {
@@ -1529,7 +1544,11 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
   if (isSessionGenerating(session.id)) {
     if (!session.composerSendQueue) session.composerSendQueue = []
     session.composerSendQueue.push(
-      createComposerSendQueueItem(content, cloneReferenceStoreSnapshot(session.referenceStore))
+      createComposerSendQueueItem(
+        content,
+        cloneReferenceStoreSnapshot(session.referenceStore),
+        enableReasoningFromComposer === true
+      )
     )
     notifyInfo(t('agent.composer.queuedHint'))
     touchSession(session)
@@ -1547,7 +1566,7 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
     logger.error('[handleComposerSubmit] 发送管线未初始化')
     return
   }
-  await runComposerSendPipelineForSessionRef(session, content)
+  await runComposerSendPipelineForSessionRef(session, content, enableReasoningFromComposer === true)
 }
 
 // 执行Agent引擎
@@ -1558,7 +1577,8 @@ const executeAgentEngine = async (
   assistantMessage?: ChatAgentMessage,
   actualSession?: AgentSession,
   shouldQueryKnowledgeBase: boolean = false,
-  extraReferences?: Reference[]
+  extraReferences?: Reference[],
+  enableReasoning: boolean = false
 ) => {
   // 多会话并行时必须传入 actualSession；缺省仅兼容「单会话且当前 tab 即目标」的旧调用，否则易串到 activeSession
   const session = actualSession || activeSession.value
@@ -1827,7 +1847,8 @@ const executeAgentEngine = async (
           registerAgentRunHandle(session.id, handle)
           logger.debug(`[executeAgentEngine] AI任务已创建，handle: ${handle}`)
         },
-        onToolCallsDetected
+        onToolCallsDetected,
+        ...(enableReasoning ? { enableReasoning: true } : {})
       })
 
       logger.debug('[executeAgentEngine] LlmAdapter.callChatViaTask完成')
@@ -1935,6 +1956,7 @@ const executeAgentEngine = async (
         signal: abortController.signal,
         activeReferenceIds: messageRefIds,
         extraReferences,
+        ...(enableReasoning ? { enableReasoning: true } : {}),
         onProgress: (progress) => {
           session.status = progress.stage as any
           persistSessions()
@@ -1990,7 +2012,11 @@ const executeAgentEngine = async (
   }
 }
 
-runComposerSendPipelineForSessionRef = async (session: AgentSession, content: string) => {
+runComposerSendPipelineForSessionRef = async (
+  session: AgentSession,
+  content: string,
+  enableReasoning?: boolean
+) => {
   const logger = createRendererLogger('AgentView')
   logger.debug(`[runComposerSendPipeline] ${content.substring(0, 50)}...`)
 
@@ -2088,7 +2114,8 @@ runComposerSendPipelineForSessionRef = async (session: AgentSession, content: st
         assistantMessage,
         liveSession,
         shouldQueryKnowledgeBase,
-        extraRefs
+        extraRefs,
+        enableReasoning === true
       )
     } else {
       await executeAgentEngine(
@@ -2098,7 +2125,8 @@ runComposerSendPipelineForSessionRef = async (session: AgentSession, content: st
         undefined,
         liveSession,
         shouldQueryKnowledgeBase,
-        extraRefs
+        extraRefs,
+        enableReasoning === true
       )
     }
   } catch (error) {

@@ -8,13 +8,60 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import type { LanguageModelV3 } from '@ai-sdk/provider'
 import type { LlmConfig } from '../llm-adapters/types'
 
+export type GetModelOptions = {
+  /** 为 true 时在请求体中注入各提供商常用的「深度思考 / reasoning」开关（默认不注入） */
+  enableReasoning?: boolean
+}
+
+/**
+ * 在 OpenAI 兼容的 POST /chat/completions 请求体上注入 reasoning 相关字段（仅当 enableReasoning 为 true）。
+ * 按 baseURL 区分，避免向不支持的网关发送未知字段导致 400。
+ */
+export function mergeReasoningIntoChatCompletionBody(
+  requestBaseURL: string,
+  body: Record<string, unknown>,
+  enableReasoning: boolean
+): void {
+  if (!enableReasoning) return
+  const u = requestBaseURL.toLowerCase()
+  if (u.includes('deepseek.com')) {
+    body.thinking = { type: 'enabled' }
+  } else if (u.includes('openrouter.ai')) {
+    body.reasoning = { effort: 'medium' }
+  }
+}
+
+function createReasoningFetchForOpenAICompatible(
+  effectiveBaseURL: string,
+  enableReasoning: boolean
+): typeof fetch | undefined {
+  if (!enableReasoning) return undefined
+  const baseFetch = fetch
+  return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    const url =
+      typeof input === 'string' ? input : input instanceof URL ? input.href : (input as Request).url
+    const method = (init?.method || 'GET').toUpperCase()
+    if (method !== 'POST' || typeof init?.body !== 'string' || !url.includes('chat/completions')) {
+      return baseFetch(input, init)
+    }
+    try {
+      const parsed = JSON.parse(init.body) as Record<string, unknown>
+      mergeReasoningIntoChatCompletionBody(effectiveBaseURL, parsed, true)
+      return baseFetch(input, { ...init, body: JSON.stringify(parsed) })
+    } catch {
+      return baseFetch(input, init)
+    }
+  }
+}
+
 /**
  * 根据当前 LlmConfig 返回 AI SDK 的 model 实例（v3），供 generateText / streamText 使用
  * 需使用 @ai-sdk/openai 与 @ai-sdk/google 3.x+（AI SDK 5/6 仅支持 v2/v3 规范）
  */
-export function getModelFromConfig(config: LlmConfig): LanguageModelV3 {
+export function getModelFromConfig(config: LlmConfig, options?: GetModelOptions): LanguageModelV3 {
   const { type, apiUrl = '', apiKey, selectedModel } = config
   const baseURL = apiUrl.replace(/\/$/, '')
+  const enableReasoning = options?.enableReasoning === true
 
   switch (type) {
     case 'gemini': {
@@ -46,7 +93,8 @@ export function getModelFromConfig(config: LlmConfig): LanguageModelV3 {
       }
       const openai = createOpenAI({
         apiKey: apiKey || 'dummy-key',
-        baseURL: effectiveBaseURL
+        baseURL: effectiveBaseURL,
+        fetch: createReasoningFetchForOpenAICompatible(effectiveBaseURL, enableReasoning)
       })
       // 关键：OpenAI-compatible（如 DeepSeek/Ollama/Qwen compatible）通常不支持 /responses
       // 必须强制走 /chat/completions
@@ -54,9 +102,11 @@ export function getModelFromConfig(config: LlmConfig): LanguageModelV3 {
     }
 
     default: {
+      const effectiveBaseURL = baseURL || 'https://api.openai.com/v1'
       const openai = createOpenAI({
         apiKey: apiKey || 'dummy-key',
-        baseURL: baseURL || 'https://api.openai.com/v1'
+        baseURL: effectiveBaseURL,
+        fetch: createReasoningFetchForOpenAICompatible(effectiveBaseURL, enableReasoning)
       })
       return openai.chat(selectedModel as any) as LanguageModelV3
     }

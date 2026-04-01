@@ -36,9 +36,9 @@
               :disabled="false"
               :show-attach="false"
               :show-voice="false"
-              :show-reset="false"
               :placeholder="homeAgentComposerPlaceholder"
               :show-knowledge-base="false"
+              :show-reasoning="true"
               :show-reference-picker="true"
               :get-at-label="getAtLabel"
               :force-multiline-layout="true"
@@ -550,7 +550,7 @@ async function openHomeAttachFilePicker() {
   }
 }
 
-function handleHomeAgentSubmit(_kb?: boolean, content?: string) {
+function handleHomeAgentSubmit(_kb?: boolean, content?: string, enableReasoning?: boolean) {
   const raw =
     (typeof content === 'string' ? content : homeComposerRef.value?.getContentForSubmit?.()) ??
     homeComposerInput.value
@@ -559,7 +559,11 @@ function handleHomeAgentSubmit(_kb?: boolean, content?: string) {
   const textOnly = text.replace(/@\[[^\]]*\]/g, '').trim()
   const hasAtTokens = /@\[[^\]]+\]/.test(text)
   if (!textOnly && !hasAtTokens && uploadRefs.length === 0) return
-  agentManageUi.setPendingHomeAgentSubmit({ content: text, references: uploadRefs })
+  agentManageUi.setPendingHomeAgentSubmit({
+    content: text,
+    references: uploadRefs,
+    ...(enableReasoning === true ? { enableReasoning: true } : {})
+  })
   homeComposerInput.value = ''
   homeUploadedAttachments.value = []
   snapshotBeforeChip.value = null
@@ -870,11 +874,17 @@ onBeforeUnmount(() => {
   position: absolute;
   bottom: 6px;
   right: 6px;
+  z-index: 11;
+  pointer-events: auto;
 }
 
 .home-agent-composer :deep(.composer-shell.is-multiline .composer-scroll) {
+  position: relative;
+  z-index: 0;
   padding-bottom: 20px;
   padding-left: 28px;
+  /* 为右下角发送/深度思考等按钮预留宽度，避免 el-scrollbar 命中区盖住按钮 */
+  padding-right: min(148px, 38vw);
 }
 
 .home-agent-composer :deep(.agent-ref-composer-input) {

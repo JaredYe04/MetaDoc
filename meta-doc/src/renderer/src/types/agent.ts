@@ -112,6 +112,8 @@ export interface AgentTool {
 export interface ComposerSendQueueItem {
   id: string
   markdown: string
+  /** 入队时是否开启深度思考（与 ChatComposer 一致） */
+  enableReasoning?: boolean
   /** 入队时附件区快照（发送该条前写回 referenceStore） */
   referenceSnapshot: Array<{
     id: string

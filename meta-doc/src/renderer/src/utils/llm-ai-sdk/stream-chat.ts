@@ -10,6 +10,73 @@ import type { LlmConfig } from '../llm-adapters/types'
 import type { Message } from '../llm-adapters/types'
 import type { UsageStats } from '../llm-adapters/types'
 
+/**
+ * 通用 reasoning 提取器：
+ * - 依赖 AI SDK includeRawChunks，能看到不同 provider 的原始 chunk(rawValue)
+ * - 不做“平台 if/else”，而是从原始 JSON 中按常见字段名提取 reasoning
+ */
+function normalizeReasoningDetails(details: unknown): string {
+  if (!details) return ''
+  if (Array.isArray(details)) {
+    const parts: string[] = []
+    for (const item of details) {
+      if (typeof item === 'string') {
+        if (item.trim()) parts.push(item.trim())
+        continue
+      }
+      if (item && typeof item === 'object') {
+        const anyItem = item as any
+        const t = anyItem.text ?? anyItem.content ?? anyItem.reasoning ?? anyItem.summary
+        if (typeof t === 'string' && t.trim()) parts.push(t.trim())
+      }
+    }
+    return parts.join('\n')
+  }
+  if (typeof details === 'string') return details.trim()
+  return ''
+}
+
+function tryParseJsonText(s: string): any | null {
+  const t = s.trim()
+  if (!t) return null
+  const json = t.startsWith('data:') ? t.replace(/^data:\s*/, '') : t
+  if (json === '[DONE]') return null
+  try {
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
+function extractReasoningFromAnyJson(obj: any): string {
+  if (!obj || typeof obj !== 'object') return ''
+  const delta = obj?.choices?.[0]?.delta
+  const rc =
+    (typeof delta?.reasoning_content === 'string' && delta.reasoning_content) ||
+    (typeof delta?.reasoning === 'string' && delta.reasoning) ||
+    ''
+  const rd = normalizeReasoningDetails(obj?.reasoning_details)
+  const msg = obj?.choices?.[0]?.message
+  const mc =
+    (typeof msg?.reasoning_content === 'string' && msg.reasoning_content) ||
+    (typeof msg?.reasoning === 'string' && msg.reasoning) ||
+    ''
+  return [rd, rc, mc].filter((x) => typeof x === 'string' && x.trim()).join('\n')
+}
+
+function extractReasoningFromRawValue(rawValue: unknown): string {
+  if (!rawValue) return ''
+  if (typeof rawValue === 'string') {
+    const parsed = tryParseJsonText(rawValue)
+    if (parsed) return extractReasoningFromAnyJson(parsed)
+    return ''
+  }
+  if (typeof rawValue === 'object') {
+    return extractReasoningFromAnyJson(rawValue as any)
+  }
+  return ''
+}
+
 export interface StreamChatOptions {
   /** 当前 LLM 配置 */
   config: LlmConfig
@@ -19,6 +86,8 @@ export interface StreamChatOptions {
   temperature?: number
   maxTokens?: number
   abortSignal?: AbortSignal
+  /** 为 true 时请求提供商侧开启深度思考 / reasoning（默认关闭） */
+  enableReasoning?: boolean
 }
 
 /** 与 AI SDK fullStream 对齐：正文与 reasoning 分流（模型支持时才有 reasoning） */
@@ -36,13 +105,21 @@ export interface StreamChatResult {
  */
 export async function streamChat(options: StreamChatOptions): Promise<StreamChatResult> {
   const { config, temperature, maxTokens, abortSignal } = options
-  const model = getModelFromConfig(config)
+  const enableReasoning = options.enableReasoning === true
+  const model = getModelFromConfig(config, { enableReasoning })
+
+  const providerOptions =
+    config.type === 'gemini' && enableReasoning
+      ? { google: { thinkingConfig: { includeThoughts: true } } }
+      : undefined
 
   const base = {
     model,
     temperature: temperature ?? config.temperature,
     maxOutputTokens: maxTokens ?? (config.enableMaxTokens ? config.maxTokens : undefined),
-    abortSignal
+    abortSignal,
+    includeRawChunks: true,
+    ...(providerOptions ? { providerOptions } : {})
   }
 
   const result =
@@ -71,6 +148,11 @@ export async function streamChat(options: StreamChatOptions): Promise<StreamChat
             const chunk = part.text ?? ''
             if (chunk) {
               await onDelta({ reasoning: chunk })
+            }
+          } else if (part.type === 'raw') {
+            const extra = extractReasoningFromRawValue((part as any).rawValue)
+            if (extra) {
+              await onDelta({ reasoning: extra })
             }
           }
         }

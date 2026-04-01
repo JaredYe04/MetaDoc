@@ -60,18 +60,19 @@
         :label="t('setting.defaultEditorMode')"
         name="defaultEditorMode"
         layout="horizontal"
+        :hint="t('setting.defaultEditorModeHint')"
       >
         <Select
-          v-model="settings.metadataSaveMode"
-          @update:model-value="saveSetting('metadataSaveMode', settings.metadataSaveMode)"
+          v-model="settings.vditorMode"
+          @update:model-value="saveSetting('vditorMode', settings.vditorMode)"
         >
           <SelectTrigger class="w-[280px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent class="min-w-[280px]">
-            <SelectItem value="sidecar">{{ t('setting.metadataSaveModeSidecar') }}</SelectItem>
-            <SelectItem value="embed">{{ t('setting.metadataSaveModeEmbed') }}</SelectItem>
-            <SelectItem value="none">{{ t('setting.metadataSaveModeNone') }}</SelectItem>
+            <SelectItem value="wysiwyg">{{ t('setting.editorModeWysiwyg') }}</SelectItem>
+            <SelectItem value="ir">{{ t('setting.editorModeIr') }}</SelectItem>
+            <SelectItem value="sv">{{ t('setting.editorModeSv') }}</SelectItem>
           </SelectContent>
         </Select>
         <div class="editor-mode-current-hint">{{ currentEditorModeHint }}</div>

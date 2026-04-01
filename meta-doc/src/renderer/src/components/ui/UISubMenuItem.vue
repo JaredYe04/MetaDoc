@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { inject, computed } from 'vue'
+import { inject, computed, nextTick } from 'vue'
 import { themeState, mixColors } from '../../utils/themes'
 
 // 使用主题色作为 active 状态
@@ -58,11 +58,12 @@ const closeAllClickSubMenus = inject<(() => void) | undefined>('closeAllClickSub
 
 const handleClick = () => {
   if (!props.disabled && !props.isTitle) {
-    // 点击叶子节点后，关闭所有打开的菜单
-    if (closeAllClickSubMenus) {
-      closeAllClickSubMenus()
-    }
+    // 先 emit，再在下一帧关菜单：若先关菜单，Teleport/Transition 会立刻卸载子树，
+    // Vue 仍在 patch 时会出现 insertBefore(null) 报错，多次导出后菜单/点击会失效。
     emit('click')
+    if (closeAllClickSubMenus) {
+      nextTick(() => closeAllClickSubMenus())
+    }
   }
 }
 

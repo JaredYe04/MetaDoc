@@ -120,7 +120,9 @@
             >
               <WorkspaceExplorer v-if="showWorkspaceExplorer" ref="workspaceExplorerRef" />
             </div>
-            <WorkspaceGrepPanel v-if="activeTab === 'grep'" />
+            <div v-show="activeTab === 'grep'" class="sidebar-grep-panel">
+              <WorkspaceGrepPanel v-if="showWorkspaceGrep" ref="workspaceGrepPanelRef" />
+            </div>
             <MetaInfoPanel
               v-if="activeTab === 'meta' && activeDocument"
               :meta="activeDocument.meta"
@@ -166,12 +168,17 @@ const workspace = useWorkspace()
 
 const viewSidebarResizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null)
 const workspaceExplorerRef = ref<InstanceType<typeof WorkspaceExplorer> | null>(null)
+const workspaceGrepPanelRef = ref<InstanceType<typeof WorkspaceGrepPanel> | null>(null)
 
 /** WorkspaceExplorer defineExpose 的方法（模板 ref 类型上需显式写出） */
 type WorkspaceExplorerExposed = {
   addWorkspaceFolder: () => Promise<void>
   closeAllWorkspaceFolders: () => Promise<void>
   openWorkspaceReplace: () => Promise<void>
+}
+
+type WorkspaceGrepPanelExposed = {
+  focusPatternInput: () => void
 }
 
 const showWorkspaceExplorer = ref(false)
@@ -359,6 +366,31 @@ const handleFocusWorkspaceSidebar = (event?: unknown) => {
   })()
 }
 
+/** 显示工作区 Grep 侧栏、选中对应 Tab、展开面板并聚焦搜索框（快捷键与菜单共用） */
+const handleFocusWorkspaceGrepSidebar = (event?: unknown) => {
+  const payload = event as { expand?: boolean } | undefined
+  showWorkspaceGrep.value = true
+  activeTab.value = 'grep'
+  void setSetting('workspaceGrepVisible', true)
+  if (payload?.expand === false) return
+  const tryFocus = (): boolean => {
+    const panel = workspaceGrepPanelRef.value as WorkspaceGrepPanelExposed | null
+    if (!panel || typeof panel.focusPatternInput !== 'function') return false
+    panel.focusPatternInput()
+    return true
+  }
+  void (async () => {
+    await nextTick()
+    await nextTick()
+    viewSidebarResizableRef.value?.setCollapsed?.(false)
+    if (tryFocus()) return
+    await nextTick()
+    if (tryFocus()) return
+    await nextTick()
+    tryFocus()
+  })()
+}
+
 /** 先聚焦工作区侧栏，再在已挂载的 Explorer 上执行（Explorer 用 v-show 保持挂载，ref 在任意 Tab 下仍有效） */
 function invokeWorkspaceExplorerAction(
   action: 'addWorkspaceFolder' | 'closeAllWorkspaceFolders' | 'openWorkspaceReplace'
@@ -449,6 +481,7 @@ const handleWorkspaceInvokeOpenWorkspace = () => {
 onMounted(async () => {
   await loadSavedState()
   eventBus.on('focus-workspace-sidebar', handleFocusWorkspaceSidebar)
+  eventBus.on('focus-workspace-grep-sidebar', handleFocusWorkspaceGrepSidebar)
   eventBus.on('workspace-invoke-add-folder', handleWorkspaceInvokeAddFolder)
   eventBus.on('workspace-invoke-close-all-folders', handleWorkspaceInvokeCloseAllFolders)
   eventBus.on('workspace-invoke-open-workspace', handleWorkspaceInvokeOpenWorkspace)
@@ -465,6 +498,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   eventBus.off('focus-workspace-sidebar', handleFocusWorkspaceSidebar)
+  eventBus.off('focus-workspace-grep-sidebar', handleFocusWorkspaceGrepSidebar)
   eventBus.off('workspace-invoke-add-folder', handleWorkspaceInvokeAddFolder)
   eventBus.off('workspace-invoke-close-all-folders', handleWorkspaceInvokeCloseAllFolders)
   eventBus.off('workspace-invoke-open-workspace', handleWorkspaceInvokeOpenWorkspace)
@@ -570,7 +604,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.sidebar-workspace-panel {
+.sidebar-workspace-panel,
+.sidebar-grep-panel {
   display: flex;
   flex-direction: column;
 }

@@ -5,7 +5,7 @@
  * 支持默认 Win/Linux/Mac 方案与用户自定义方案。方案切换后需触发 refreshShortcutBindings 或发送 'shortcut-scheme-updated' 以生效。
  *
  * 【主进程 before-input-event】Tab/文件类仍由主进程处理；
- * 本模块处理：打开用户手册、保存/另存为、查找/替换、复制/剪切/粘贴、撤销/重做。
+ * 本模块处理：打开用户手册、保存/另存为、查找/替换、工作区查找、复制/剪切/粘贴、撤销/重做。
  */
 
 import eventBus from '../utils/event-bus'
@@ -126,6 +126,13 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
         e.preventDefault()
         ;(e as any).stopPropagation?.()
         eventBus.emit('search-replace', { expandReplace: true })
+        return
+      }
+
+      case 'workspaceGrep': {
+        e.preventDefault()
+        ;(e as any).stopPropagation?.()
+        eventBus.emit('focus-workspace-grep-sidebar')
         return
       }
 

@@ -1116,6 +1116,7 @@
         "saveAll": "Alle speichern",
         "find": "Suchen",
         "replace": "Ersetzen",
+        "workspaceGrep": "Arbeitsbereich suchen und ersetzen",
         "copy": "Kopieren",
         "cut": "Ausschneiden",
         "paste": "Einfügen",

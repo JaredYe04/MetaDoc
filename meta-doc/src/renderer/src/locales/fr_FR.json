@@ -1078,6 +1078,7 @@
         "saveAll": "Tout enregistrer",
         "find": "Rechercher",
         "replace": "Remplacer",
+        "workspaceGrep": "Rechercher et remplacer dans l’espace de travail",
         "copy": "Copier",
         "cut": "Couper",
         "paste": "Coller",

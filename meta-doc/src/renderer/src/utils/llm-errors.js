@@ -4,6 +4,34 @@ import { createRendererLogger } from './logger.ts'
 /**
  * LLM 异常类型枚举
  */
+/**
+ * 用户主动取消 AI 任务时 reject/抛出的文案（与 cancelAiTask、i18n taskCancelled2 等对齐）
+ * 需归类为 ABORTED，避免触发 LLM 错误弹窗
+ */
+const USER_TASK_CANCEL_MESSAGES = new Set([
+  '任务已取消',
+  '任務已取消',
+  'Task was canceled',
+  'Task was cancelled',
+  'タスクはキャンセルされました',
+  '작업 취소됨',
+  'Aufgabe wurde abgebrochen',
+  'Tâche annulée',
+  'La tarea ha sido cancelada',
+  'Tarefa cancelada',
+  'Задача отменена'
+])
+
+function isUserTaskCancellationError(error) {
+  if (!error || typeof error !== 'object') return false
+  const msg = typeof error.message === 'string' ? error.message.trim() : ''
+  if (!msg) return false
+  if (USER_TASK_CANCEL_MESSAGES.has(msg)) return true
+  // cancelAiTask 使用固定中文；部分路径可能带前后缀
+  if (msg.includes('任务已取消') || msg.includes('任務已取消')) return true
+  return false
+}
+
 export const LlmErrorType = {
   /** API 未启用 */
   NOT_ENABLED: 'NOT_ENABLED',
@@ -74,9 +102,18 @@ export function createLlmError(error, context = {}) {
     return error
   }
 
+  // 用户手动取消任务（非 AbortError 名称，如 cancelAiTask 的 reject 文案）
+  if (isUserTaskCancellationError(error)) {
+    return new LlmError(LlmErrorType.ABORTED, error.message || '请求已取消', error, context)
+  }
+
   // 处理中止错误
   if (error?.name === 'AbortError' || error?.name === 'DOMException') {
     return new LlmError(LlmErrorType.ABORTED, '请求已中止', error, context)
+  }
+
+  if (error?.cause && isUserTaskCancellationError(error.cause)) {
+    return new LlmError(LlmErrorType.ABORTED, '请求已取消', error, context)
   }
 
   // AI SDK 无输出：通常为端点错误或上游返回异常，优先展示 cause
@@ -174,41 +211,46 @@ export function createLlmError(error, context = {}) {
 export function handleLlmError(error, showToUser = true, context = {}) {
   const llmError = createLlmError(error, context)
   const logger = createRendererLogger('LlmErrors')
-  // 记录错误日志
-  logger.error('LLM 错误:', {
+  const logPayload = {
     type: llmError.type,
     message: llmError.message,
     details: llmError.details,
     originalError: llmError.originalError
-  })
+  }
+  if (llmError.type === LlmErrorType.ABORTED) {
+    logger.debug('LLM 请求已中止/取消:', logPayload)
+  } else {
+    logger.error('LLM 错误:', logPayload)
+  }
 
   // 如果需要显示给用户
   if (showToUser && llmError.shouldShowToUser()) {
     eventBus.emit('show-error', llmError.getUserMessage())
   }
 
-  // 额外：抛出全局 LLM API 错误事件（用于统一弹窗兜底）
-  // 注意：具体是否弹窗、是否仅弹一次、是否区分“内置免费模型”等逻辑由 UI 层决定
-  eventBus.emit('llm-api-error', {
-    llmError,
-    context,
-    originalErrorMessage:
-      error instanceof Error
-        ? error.message
-        : error?.message
-          ? String(error.message)
-          : String(error),
-    originalErrorString: (() => {
-      try {
-        if (error instanceof Error) {
-          return `${error.name}: ${error.message}\n${error.stack || ''}`.trim()
+  // 统一弹窗兜底：与用户可见提示一致，中止/用户取消不弹窗
+  if (showToUser && llmError.shouldShowToUser()) {
+    eventBus.emit('llm-api-error', {
+      llmError,
+      context,
+      originalErrorMessage:
+        error instanceof Error
+          ? error.message
+          : error?.message
+            ? String(error.message)
+            : String(error),
+      originalErrorString: (() => {
+        try {
+          if (error instanceof Error) {
+            return `${error.name}: ${error.message}\n${error.stack || ''}`.trim()
+          }
+          return JSON.stringify(error)
+        } catch {
+          return String(error)
         }
-        return JSON.stringify(error)
-      } catch {
-        return String(error)
-      }
-    })()
-  })
+      })()
+    })
+  }
 
   return llmError
 }

@@ -11,6 +11,8 @@ export type ShortcutActionId =
   | 'saveAll'
   | 'find'
   | 'replace'
+  /** 侧栏工作区全局查找/替换（WorkspaceGrepPanel） */
+  | 'workspaceGrep'
   | 'copy'
   | 'cut'
   | 'paste'
@@ -29,6 +31,7 @@ export const SHORTCUT_ACTION_IDS: ShortcutActionId[] = [
   'saveAll',
   'find',
   'replace',
+  'workspaceGrep',
   'copy',
   'cut',
   'paste',

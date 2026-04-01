@@ -933,6 +933,31 @@ export function applyElementPlusTheme() {
     '--md-el-scrollbar-thumb-hover',
     mixColors(themeForScrollbar, scrollbarHoverBase, 0.8)
   )
+
+  // el-input-number：侧栏映射的 --el-fill-color* 在自定义主题下含主题色比例高，加减钮会像纯色块；
+  // 中间区域默认跟 --el-fill-color-blank，易显死黑/死白。单独用中性灰底 + 少量主题色混色。
+  let inputNumberAccent = themeForScrollbar
+  if (typeof theme.themeColor === 'string') {
+    const tcAccent = tinycolor(theme.themeColor)
+    if (tcAccent.isValid()) {
+      inputNumberAccent = tcAccent.toHexString()
+    }
+  }
+  const inCtrlBase = isDark ? '#2f2f33' : '#e4e4ea'
+  const inCtrlHoverBase = isDark ? '#3a3a40' : '#d8d8e0'
+  const inFieldBase = isDark ? '#26262a' : '#eeeff3'
+  root.style.setProperty(
+    '--md-el-input-number-control-bg',
+    mixColors(inputNumberAccent, inCtrlBase, 0.9)
+  )
+  root.style.setProperty(
+    '--md-el-input-number-control-bg-hover',
+    mixColors(inputNumberAccent, inCtrlHoverBase, 0.86)
+  )
+  root.style.setProperty(
+    '--md-el-input-number-field-bg',
+    mixColors(inputNumberAccent, inFieldBase, 0.93)
+  )
 }
 
 /**

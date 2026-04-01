@@ -748,11 +748,36 @@ html.dark {
   color: var(--el-color-primary) !important;
 }
 
-/* el-input-number 数字输入框 */
+/* el-input-number 数字输入框
+ * 加减钮背景、中间输入区背景由 themes.applyElementPlusTheme 写入 --md-el-input-number-*，
+ * 避免自定义主题下沿用侧栏 fill 导致纯色块或死黑/死白。 */
 .el-input-number {
   border-radius: 4px !important;
   transition: none !important;
   border-radius: 4px !important;
+}
+
+.el-input-number .el-input {
+  --el-input-bg-color: var(--md-el-input-number-field-bg, var(--el-fill-color-blank));
+}
+
+.el-input-number .el-input__wrapper {
+  background-color: var(--md-el-input-number-field-bg, var(--el-fill-color-blank)) !important;
+}
+
+.el-input-number__decrease,
+.el-input-number__increase {
+  background: var(--md-el-input-number-control-bg, var(--el-fill-color-light)) !important;
+}
+
+.el-input-number__decrease:hover,
+.el-input-number__increase:hover {
+  background: var(--md-el-input-number-control-bg-hover, var(--el-fill-color)) !important;
+}
+
+.el-input-number.is-disabled .el-input-number__decrease,
+.el-input-number.is-disabled .el-input-number__increase {
+  background: var(--el-disabled-bg-color) !important;
 }
 
 .el-input-number:active {

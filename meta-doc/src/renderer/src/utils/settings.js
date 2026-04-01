@@ -71,6 +71,7 @@ export const settings = reactive({
   autoCompletionMaxTokens: 50, // 自动补全最大token数（最小20，0表示无限制）
   //exportImageMode: "none", // 导出图片选项
   autoRemoveThinkTag: true, //自动去除推理过程
+  llmApiErrorDialogEnabled: true, // LLM API 报错时是否弹出全局对话框
   agentTerminalExecutionAllowed: true, // Agent 终端执行默认允许（不弹确认，避免无 UI 时卡住）
   bypassCodeBlock: true, // 统计文字信息时排除代码块
   autoSaveExternalImage: true, // 自动保存外部图片（已废弃，保留用于兼容）

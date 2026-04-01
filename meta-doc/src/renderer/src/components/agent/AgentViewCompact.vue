@@ -391,13 +391,13 @@
           :disabled="!activeSession"
           :show-attach="false"
           :show-voice="false"
-          :show-reset="false"
           :placeholder="t('aiChat.inputPlaceholder')"
           :show-knowledge-base="false"
+          :show-reasoning="true"
           :compact="true"
           :show-reference-picker="true"
           :get-at-label="getAtLabel"
-          @submit="(kb, content) => handleComposerSubmit(kb, content)"
+          @submit="(kb, content, er) => handleComposerSubmit(kb, content, er)"
           @reset="handleComposerReset"
           @attach="handleAttachFile"
           @open-reference-picker="referencePickerOpen = true"
@@ -1598,7 +1598,11 @@ async function flushOneComposerSendQueueItem(sessionId: string): Promise<void> {
   session.referenceStore = cloneReferenceStoreSnapshot(item.referenceSnapshot) as AgentSession['referenceStore']
   if (!runComposerSendPipelineForSessionRef) return
   try {
-    await runComposerSendPipelineForSessionRef(session, item.markdown)
+    await runComposerSendPipelineForSessionRef(
+      session,
+      item.markdown,
+      item.enableReasoning === true
+    )
   } catch (e) {
     createRendererLogger('AgentViewCompact').error('[composerSendQueue] flush failed', e)
   }
@@ -1611,7 +1615,8 @@ const handleComposerReset = () => {
 const executeAgentEngine = async (
   userMessage: string,
   actualSession?: AgentSession,
-  extraReferences?: Reference[]
+  extraReferences?: Reference[],
+  enableReasoning?: boolean
 ) => {
   const session = actualSession || activeSession.value
   if (!session || !session.agentConfigId) {
@@ -1653,6 +1658,7 @@ const executeAgentEngine = async (
       signal: abortController.signal,
       activeReferenceIds: refIds,
       extraReferences,
+      ...(enableReasoning === true ? { enableReasoning: true } : {}),
       onProgress: (progress: any) => {
         session.status = progress.stage as any
         // 注意：不要在流式输出期间频繁持久化（可能破坏 reactive 对象）
@@ -1694,7 +1700,11 @@ const executeAgentEngine = async (
   }
 }
 
-runComposerSendPipelineForSessionRef = async (session: AgentSession, content: string) => {
+runComposerSendPipelineForSessionRef = async (
+  session: AgentSession,
+  content: string,
+  enableReasoning?: boolean
+) => {
   const logger = createRendererLogger('AgentViewCompact')
   const liveSession = sessions.value.find((s) => s.id === session.id)
   if (!liveSession) {
@@ -1762,14 +1772,18 @@ runComposerSendPipelineForSessionRef = async (session: AgentSession, content: st
   scrollToBottom()
 
   try {
-    await executeAgentEngine(content, liveSession, extraRefs)
+    await executeAgentEngine(content, liveSession, extraRefs, enableReasoning === true)
   } catch (error) {
     logger.error('[runComposerSendPipeline] 执行失败:', error)
     notifyError(error instanceof Error ? error.message : String(error))
   }
 }
 
-const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: string) => {
+const handleComposerSubmit = async (
+  _enableKB?: boolean,
+  contentFromEvent?: string,
+  enableReasoningFromComposer?: boolean
+) => {
   const logger = createRendererLogger('AgentViewCompact')
   const session = activeSession.value
   if (!session) return
@@ -1792,7 +1806,11 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
   if (isSessionGenerating(session.id)) {
     if (!session.composerSendQueue) session.composerSendQueue = []
     session.composerSendQueue.push(
-      createComposerSendQueueItem(content, cloneReferenceStoreSnapshot(session.referenceStore))
+      createComposerSendQueueItem(
+        content,
+        cloneReferenceStoreSnapshot(session.referenceStore),
+        enableReasoningFromComposer === true
+      )
     )
     notifyInfo(t('agent.composer.queuedHint'))
     touchSession(session)
@@ -1808,7 +1826,11 @@ const handleComposerSubmit = async (_enableKB?: boolean, contentFromEvent?: stri
     logger.error('[handleComposerSubmit] 发送管线未初始化')
     return
   }
-  await runComposerSendPipelineForSessionRef(session, content)
+  await runComposerSendPipelineForSessionRef(
+    session,
+    content,
+    enableReasoningFromComposer === true
+  )
 }
 
 const handleCancelGeneration = () => {

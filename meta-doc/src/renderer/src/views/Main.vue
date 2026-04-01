@@ -58,6 +58,14 @@
     <LoggerConsolePanel />
     <TabSwitcherOverlay />
 
+    <!-- LLM API 错误全局对话框（仅弹一次，可关闭/不再提示/跳转手册） -->
+    <LlmApiErrorDialog
+      v-model:open="llmApiErrorDialogOpen"
+      :payload="llmApiErrorDialogPayload"
+      :dont-show-checked="llmApiErrorDialogDontShowChecked"
+      @dont-show-again="handleLlmApiErrorDialogDontShowAgain"
+    />
+
     <!-- 文件冲突对话框 -->
     <FileConflictDialog
       v-if="fileConflictData"
@@ -164,6 +172,7 @@ import BottomMenu from '../components/BottomMenu.vue'
 import AITaskQueue from '../components/AITaskQueue.vue'
 import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
 import FileConflictDialog from '../components/FileConflictDialog.vue'
+import LlmApiErrorDialog from '../components/LlmApiErrorDialog.vue'
 import TabContentRenderer from '../components/TabContentRenderer.vue'
 import GlobalProgressBar from '../components/GlobalProgressBar.vue'
 
@@ -175,7 +184,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
-import { getSetting, updateRecentDocs } from '../utils/settings.js'
+import { getSetting, setSetting, updateRecentDocs } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
 
@@ -289,6 +298,18 @@ const fileConflictData = ref<{
     }>
   }
 } | null>(null)
+
+// LLM API 错误全局弹窗（仅在当前会话弹一次）
+const llmApiErrorDialogOpen = ref(false)
+const llmApiErrorDialogPayload = ref<any | null>(null)
+const llmApiErrorDialogDontShowChecked = ref(false)
+let llmApiErrorDialogSessionShown = false
+
+const handleLlmApiErrorDialogDontShowAgain = async (checked: boolean) => {
+  llmApiErrorDialogDontShowChecked.value = checked
+  // checked=true 表示“不再提示” => setting=false
+  await setSetting('llmApiErrorDialogEnabled', checked ? false : true)
+}
 
 const fileConflictDialogFormat = computed((): 'md' | 'tex' | undefined => {
   const f = fileConflictData.value?.format
@@ -1271,6 +1292,25 @@ function initMainEventListeners() {
   }
   eventBus.on('show-error', handleShowError)
 
+  // LLM API 全局错误弹窗（只弹一次，避免多个对话框叠加）
+  const handleLlmApiError = async (payload: any) => {
+    try {
+      if (llmApiErrorDialogOpen.value) return
+      if (llmApiErrorDialogSessionShown) return
+
+      const enabled = (await getSetting('llmApiErrorDialogEnabled')) !== false
+      if (!enabled) return
+
+      llmApiErrorDialogSessionShown = true
+      llmApiErrorDialogDontShowChecked.value = false
+      llmApiErrorDialogPayload.value = payload || null
+      llmApiErrorDialogOpen.value = true
+    } catch {
+      // ignore
+    }
+  }
+  eventBus.on('llm-api-error', handleLlmApiError)
+
   // 显示警告通知
   const handleShowWarning = (message: unknown) => {
     notifyWarning(message as string, { title: t('main.notification.warning.title') })
@@ -1526,6 +1566,7 @@ function initMainEventListeners() {
     () => eventBus.off('close-active-tab', handleCloseActiveTabRequest),
     () => eventBus.off('file-conflict-detected', handleFileConflictDetected),
     () => eventBus.off('show-error', handleShowError),
+    () => eventBus.off('llm-api-error', handleLlmApiError),
     () => eventBus.off('show-warning', handleShowWarning),
     () => eventBus.off('ai-chat-insert-to-document', handleAiChatInsertToDocument),
     () =>

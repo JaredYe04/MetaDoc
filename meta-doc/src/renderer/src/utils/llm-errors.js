@@ -171,8 +171,8 @@ export function createLlmError(error, context = {}) {
 /**
  * 处理并显示 LLM 错误
  */
-export function handleLlmError(error, showToUser = true) {
-  const llmError = createLlmError(error)
+export function handleLlmError(error, showToUser = true, context = {}) {
+  const llmError = createLlmError(error, context)
   const logger = createRendererLogger('LlmErrors')
   // 记录错误日志
   logger.error('LLM 错误:', {
@@ -186,6 +186,29 @@ export function handleLlmError(error, showToUser = true) {
   if (showToUser && llmError.shouldShowToUser()) {
     eventBus.emit('show-error', llmError.getUserMessage())
   }
+
+  // 额外：抛出全局 LLM API 错误事件（用于统一弹窗兜底）
+  // 注意：具体是否弹窗、是否仅弹一次、是否区分“内置免费模型”等逻辑由 UI 层决定
+  eventBus.emit('llm-api-error', {
+    llmError,
+    context,
+    originalErrorMessage:
+      error instanceof Error
+        ? error.message
+        : error?.message
+          ? String(error.message)
+          : String(error),
+    originalErrorString: (() => {
+      try {
+        if (error instanceof Error) {
+          return `${error.name}: ${error.message}\n${error.stack || ''}`.trim()
+        }
+        return JSON.stringify(error)
+      } catch {
+        return String(error)
+      }
+    })()
+  })
 
   return llmError
 }

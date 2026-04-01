@@ -118,6 +118,19 @@
         </Button>
 
         <Button
+          v-if="showReasoning"
+          :title="t('aiChat.reasoningToggleTooltip')"
+          :variant="enableReasoning ? 'default' : 'ghost'"
+          size="icon"
+          class="composer-btn"
+          :class="{ 'composer-btn-reasoning-active': enableReasoning }"
+          :disabled="disabled"
+          @click.prevent="toggleReasoning"
+        >
+          <Brain class="w-4 h-4" />
+        </Button>
+
+        <Button
           v-if="showReset"
           :title="t('aiChat.resetTooltip', '重置')"
           variant="ghost"
@@ -135,7 +148,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
-import { Paperclip, Mic, ArrowUp, RefreshCw, Link } from 'lucide-vue-next'
+import { Paperclip, Mic, ArrowUp, RefreshCw, Link, Brain } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { useI18n } from 'vue-i18n'
 import { ElScrollbar } from 'element-plus'
@@ -154,8 +167,12 @@ const props = withDefaults(
     showVoice?: boolean
     showCancel?: boolean
     showKnowledgeBase?: boolean
+    /** 显示「深度思考」开关（默认关闭；不展示时仍可通过 v-model 由父组件控制） */
+    showReasoning?: boolean
     showReset?: boolean
     enableKnowledgeBaseQuery?: boolean
+    /** 是否开启深度思考 / reasoning（默认 false） */
+    enableReasoning?: boolean
     /** 紧凑模式：小字号、小内边距、小圆角、小按钮 */
     compact?: boolean
     /** 是否在输入 @ 时触发打开选择器（插入 @path 或 @tab:id 到输入框） */
@@ -181,8 +198,10 @@ const props = withDefaults(
     showVoice: false,
     showCancel: false,
     showKnowledgeBase: false,
-    showReset: true,
+    showReasoning: false,
+    showReset: false,
     enableKnowledgeBaseQuery: false,
+    enableReasoning: false,
     compact: false,
     showReferencePicker: false,
     getAtLabel: undefined,
@@ -194,12 +213,13 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
-  (e: 'submit', enableKnowledgeBaseQuery?: boolean, content?: string): void
+  (e: 'submit', enableKnowledgeBaseQuery?: boolean, content?: string, enableReasoning?: boolean): void
   (e: 'reset'): void
   (e: 'attach', file?: File | File[]): void
   (e: 'voice'): void
   (e: 'cancel'): void
   (e: 'update:enableKnowledgeBaseQuery', value: boolean): void
+  (e: 'update:enableReasoning', value: boolean): void
   (e: 'open-reference-picker'): void
   /** 输入区键盘事件（先于组件默认处理；可 preventDefault） */
   (e: 'composer-keydown', event: KeyboardEvent): void
@@ -216,6 +236,7 @@ const SEND_PREF_KEY = 'meta-doc-chat-send-on-enter'
 const sendOnEnter = ref(true)
 const knowledgeBaseEnabled = ref(false)
 const enableKnowledgeBaseQuery = ref(props.enableKnowledgeBaseQuery)
+const enableReasoning = ref(props.enableReasoning)
 
 const updateMaxScrollHeight = () => {
   maxScrollHeight.value = Math.max(180, Math.floor(window.innerHeight * 0.3))
@@ -320,7 +341,7 @@ const handleSubmit = () => {
     props.showReferencePicker && refInputRef.value?.getValue
       ? refInputRef.value.getValue()
       : (props.modelValue ?? '')
-  emit('submit', enableKnowledgeBaseQuery.value, content)
+  emit('submit', enableKnowledgeBaseQuery.value, content, enableReasoning.value)
   // 提交后主动清空本地输入值，确保输入框在父组件异步处理前也会被清空
   emit('update:modelValue', '')
 }
@@ -329,6 +350,12 @@ const toggleKnowledgeBaseQuery = () => {
   if (!knowledgeBaseEnabled.value || props.disabled) return
   enableKnowledgeBaseQuery.value = !enableKnowledgeBaseQuery.value
   emit('update:enableKnowledgeBaseQuery', enableKnowledgeBaseQuery.value)
+}
+
+const toggleReasoning = () => {
+  if (props.disabled) return
+  enableReasoning.value = !enableReasoning.value
+  emit('update:enableReasoning', enableReasoning.value)
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
@@ -450,6 +477,13 @@ watch(
   () => props.enableKnowledgeBaseQuery,
   (value) => {
     enableKnowledgeBaseQuery.value = value
+  }
+)
+
+watch(
+  () => props.enableReasoning,
+  (value) => {
+    enableReasoning.value = value
   }
 )
 
@@ -713,7 +747,9 @@ onBeforeUnmount(() => {
   position: absolute;
   bottom: 16px;
   right: 16px;
+  z-index: 11;
   align-items: flex-end;
+  pointer-events: auto;
 }
 
 .composer-btn {
@@ -737,6 +773,15 @@ onBeforeUnmount(() => {
 }
 
 .composer-btn-knowledge-base-active:hover:not(:disabled) {
+  background: hsl(var(--primary) / 0.9) !important;
+}
+
+.composer-btn-reasoning-active {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.composer-btn-reasoning-active:hover:not(:disabled) {
   background: hsl(var(--primary) / 0.9) !important;
 }
 </style>

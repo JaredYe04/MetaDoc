@@ -79,6 +79,29 @@
 
         <Separator />
 
+        <!-- LLM API 报错弹窗开关 -->
+        <div class="flex items-center justify-between">
+          <div class="space-y-0.5">
+            <Label class="text-base">{{ t('setting.llmApiErrorDialog') }}</Label>
+            <p class="text-sm text-muted-foreground">
+              {{
+                settings.llmApiErrorDialogEnabled
+                  ? t('setting.enabled')
+                  : t('setting.disabled')
+              }}
+            </p>
+          </div>
+          <Switch
+            :checked="settings.llmApiErrorDialogEnabled"
+            @update:checked="handleLlmApiErrorDialogToggle"
+          />
+        </div>
+        <p class="text-xs text-muted-foreground mt-1">
+          {{ t('setting.llmApiErrorDialogHint') }}
+        </p>
+
+        <Separator />
+
         <!-- 终端执行默认允许 -->
         <div class="flex items-center justify-between">
           <div class="space-y-0.5">
@@ -233,13 +256,21 @@
         class="config-context-menu"
         :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
       >
-        <button class="context-menu-item" @click="handleContextCopy">
+        <button
+          v-if="!contextMenu.config || !isBuiltinFreeLlmConfig(contextMenu.config)"
+          class="context-menu-item"
+          @click="handleContextCopy"
+        >
           {{ t('setting.copyConfig') }}
         </button>
         <button class="context-menu-item" @click="handleContextEdit">
           {{ t('setting.editConfig') }}
         </button>
-        <button class="context-menu-item" @click="handleContextExport">
+        <button
+          v-if="!contextMenu.config || !isBuiltinFreeLlmConfig(contextMenu.config)"
+          class="context-menu-item"
+          @click="handleContextExport"
+        >
           {{ t('setting.exportConfig') }}
         </button>
         <button
@@ -267,6 +298,7 @@
               <FormField name="configName" :label="t('setting.configName')">
                 <Input
                   v-model="editDraft.name"
+                  :disabled="editDraftLockNameAndDescription"
                   class="max-w-md"
                   @blur="onNewConfigNameBlur"
                 />
@@ -277,6 +309,7 @@
                   v-model="editDraft.description"
                   type="text"
                   :placeholder="t('setting.configDescriptionPlaceholder')"
+                  :disabled="editDraftLockNameAndDescription"
                   class="max-w-md"
                 />
               </FormField>
@@ -290,7 +323,12 @@
                     <SelectValue :placeholder="t('setting.chooseLlm')" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="metadoc">{{ t('setting.metadoc') }}</SelectItem>
+                    <SelectItem
+                      v-if="SHOW_METADOC_LLM_PROVIDER || editDraft.selectedLlm === 'metadoc'"
+                      value="metadoc"
+                    >
+                      {{ t('setting.metadoc') }}
+                    </SelectItem>
                     <SelectItem value="ollama">{{ t('setting.ollama') }}</SelectItem>
                     <SelectItem value="openai">{{ t('setting.openai') }}</SelectItem>
                     <SelectItem value="openai-official">{{ t('setting.openaiOfficial') }}</SelectItem>
@@ -344,7 +382,12 @@
               <!-- OpenAI 配置（编辑用） -->
               <template v-else-if="editDraft.selectedLlm === 'openai' && editDraft.openai">
                 <FormField name="apiBaseUrl" :label="t('setting.apiBaseUrl')">
-                  <Input v-model="editDraft.openai.apiUrl" :placeholder="t('setting.openaiApiUrl')" class="max-w-md" />
+                  <Input
+                    v-model="editDraft.openai.apiUrl"
+                    :placeholder="t('setting.openaiApiUrl')"
+                    :disabled="editDialogIsBuiltinFree"
+                    class="max-w-md"
+                  />
                 </FormField>
                 <FormField name="apiKey" :label="t('setting.apiKey')">
                   <Input
@@ -352,7 +395,11 @@
                     type="password"
                     :placeholder="t('setting.apiKeyPlaceholder')"
                     class="max-w-md"
+                    @copy.prevent="editDialogIsBuiltinFree && editDraft.openai?.apiKey === BUILTIN_FREE_OPENROUTER_API_KEY"
                   />
+                  <p v-if="editDialogIsBuiltinFree" class="text-xs text-muted-foreground mt-1">
+                    {{ t('setting.builtinFreeApiKeyHint') }}
+                  </p>
                 </FormField>
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
                   <Autocomplete
@@ -361,6 +408,7 @@
                     :placeholder="t('setting.chooseModelPlaceholder')"
                     value-key="value"
                     input-class="w-[240px] max-w-full"
+                    :disabled="editDialogIsBuiltinFree"
                     @update:model-value="(v) => { editDraft.openai.selectedModel = v }"
                   />
                 </FormField>
@@ -724,6 +772,7 @@ import {
   loadLlmConfigs,
   copyConfig,
   isPresetConfig,
+  isBuiltinFreeLlmConfig,
   updateConfig,
   resetConfigToPreset,
   type LlmConfigItem
@@ -817,6 +866,12 @@ const isDemo = computed(() => props.mode === 'demo')
 const { t } = useI18n()
 const logger = createRendererLogger('SettingLlm')
 
+const BUILTIN_FREE_OPENROUTER_API_KEY =
+  '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'
+
+/** MetaDoc 云端 LLM 后端暂不可用（serverless），隐藏新建入口；旧配置仍可在编辑对话框中显示 */
+const SHOW_METADOC_LLM_PROVIDER = false
+
 const ollamaModels = ref<OllamaModel[]>([])
 const openaiModels = ref<OpenAIModel[]>([])
 const openaiOfficialModels = ref<OpenAIModel[]>([])
@@ -878,6 +933,11 @@ const editDialogIsPreset = computed(() => {
   const c = llmConfigs.value.find((x) => x.id === editDraft.value!.id)
   return c ? isPresetConfig(c) : false
 })
+const editDialogIsBuiltinFree = computed(() => {
+  if (!editDraft.value) return false
+  const c = llmConfigs.value.find((x) => x.id === editDraft.value!.id)
+  return c ? isBuiltinFreeLlmConfig(c) : false
+})
 const newConfigNameBlurred = ref(false)
 const isNewConfigMode = computed(() => editDraft.value?.id === 'new')
 const editDraftLockType = computed(() => {
@@ -885,6 +945,8 @@ const editDraftLockType = computed(() => {
   const c = llmConfigs.value.find((x) => x.id === editDraft.value!.id)
   return c ? isPresetConfig(c) : false
 })
+
+const editDraftLockNameAndDescription = computed(() => editDialogIsBuiltinFree.value)
 
 const isCurrentConfigManual = computed(() => {
   const c = getCurrentConfig()
@@ -897,6 +959,9 @@ const saveSetting = (key: string, value: unknown) => {
 
 const getConfigDisplayName = (config: LlmConfigItem): string => {
   if (config.isDefault) {
+    if (config.presetKind === 'builtin-free') {
+      return t('setting.defaultConfigBuiltinFree')
+    }
     const typeKeyMap: Record<string, string> = {
       ollama: 'setting.defaultConfigOllama',
       openai: 'setting.defaultConfigOpenai',
@@ -961,6 +1026,11 @@ const openContextMenu = (e: MouseEvent, config: LlmConfigItem) => {
 
 const handleContextCopy = () => {
   if (!contextMenu.config) return
+  if (isBuiltinFreeLlmConfig(contextMenu.config)) {
+    notifyWarning(t('setting.builtinFreeConfigCannotCopy'))
+    contextMenu.visible = false
+    return
+  }
   const copied = copyConfig(contextMenu.config.id)
   if (copied) {
     loadConfigs()
@@ -977,6 +1047,11 @@ const handleContextEdit = () => {
 
 const handleContextExport = () => {
   if (!contextMenu.config) return
+  if (isBuiltinFreeLlmConfig(contextMenu.config)) {
+    notifyWarning(t('setting.builtinFreeConfigCannotExport'))
+    contextMenu.visible = false
+    return
+  }
   handleExportConfig(contextMenu.config.id)
   contextMenu.visible = false
 }
@@ -1075,7 +1150,7 @@ const runOneCheck = async (
           if (val && val.length > 0 && !resolved) {
             resolved = true
             stop()
-            cancelAiTask(handle, false)
+            cancelAiTask(handle, false, false)
           }
         }
       )
@@ -1110,12 +1185,40 @@ const handleCheckConfig = async (config: LlmConfigItem, options?: { useCustomCon
     const prompt = `${new Date().toLocaleString()}\n${t('setting.testPrompt')}`
     const customLlmConfig = useCustomConfig ? buildCustomLlmConfigFromItem(config) : undefined
 
-    const [streamCompletion, nonStreamCompletion, streamChat, nonStreamChat] = await Promise.all([
-      runOneCheck('answer', true, config.id, prompt, temperature, customLlmConfig ?? undefined),
-      runOneCheck('answer', false, config.id, prompt, temperature, customLlmConfig ?? undefined),
-      runOneCheck('chat', true, config.id, prompt, temperature, customLlmConfig ?? undefined),
-      runOneCheck('chat', false, config.id, prompt, temperature, customLlmConfig ?? undefined)
-    ])
+    // 串行执行四项测试：并行会对同一 LLM 端点并发请求，易触发限流/连接中断，
+    // 且流式测试会在首 token 后主动 abort，并行时容易互相干扰并出现 “Invalid JSON” 等误报。
+    const streamCompletion = await runOneCheck(
+      'answer',
+      true,
+      config.id,
+      prompt,
+      temperature,
+      customLlmConfig ?? undefined
+    )
+    const nonStreamCompletion = await runOneCheck(
+      'answer',
+      false,
+      config.id,
+      prompt,
+      temperature,
+      customLlmConfig ?? undefined
+    )
+    const streamChat = await runOneCheck(
+      'chat',
+      true,
+      config.id,
+      prompt,
+      temperature,
+      customLlmConfig ?? undefined
+    )
+    const nonStreamChat = await runOneCheck(
+      'chat',
+      false,
+      config.id,
+      prompt,
+      temperature,
+      customLlmConfig ?? undefined
+    )
 
     const details = {
       streamCompletion,
@@ -1324,6 +1427,33 @@ const saveEditDialog = async () => {
   if (editDraft.value.gemini) updates.gemini = editDraft.value.gemini
   if (editDraft.value.qwen) updates.qwen = editDraft.value.qwen
   if (editDraft.value.metadoc) updates.metadoc = editDraft.value.metadoc
+
+  // 内置免费模型：只允许修改 API Key（其余字段保持固定）
+  if (editDialogIsBuiltinFree.value) {
+    const apiKey = editDraft.value.openai?.apiKey ?? ''
+    const success = await updateConfig(id, {
+      openai: {
+        apiUrl: 'https://openrouter.ai/api/v1',
+        apiKey,
+        selectedModel: 'openrouter/free',
+        enableMaxTokens: false,
+        maxTokens: 4096
+      }
+    })
+    if (success) {
+      loadConfigs()
+      closeEditDialog()
+      if (currentConfigId.value === id) {
+        await fetchLlmSettings()
+        eventBus.emit('llm-api-updated')
+      }
+      notifySuccess(t('setting.configSaved'))
+    } else {
+      notifyError(t('setting.saveFailed'))
+    }
+    return
+  }
+
   const success = await updateConfig(id, updates)
   if (success) {
     loadConfigs()
@@ -1356,6 +1486,11 @@ const decrementTemperature = () => {
 const handleRemoveThinkTagChange = (val: boolean) => {
   settings.autoRemoveThinkTag = val
   saveSetting('autoRemoveThinkTag', val)
+}
+
+const handleLlmApiErrorDialogToggle = (val: boolean) => {
+  settings.llmApiErrorDialogEnabled = val
+  saveSetting('llmApiErrorDialogEnabled', val)
 }
 
 const handleAgentTerminalExecutionAllowedChange = (val: boolean) => {
@@ -1445,6 +1580,7 @@ const fetchLlmSettings = async () => {
 
   settings.llmTemperature = (await getSetting('llmTemperature')) || 1.3
   settings.autoRemoveThinkTag = (await getSetting('autoRemoveThinkTag')) ?? true
+  settings.llmApiErrorDialogEnabled = (await getSetting('llmApiErrorDialogEnabled')) !== false
   settings.agentTerminalExecutionAllowed =
     (await getSetting('agentTerminalExecutionAllowed')) !== false
 }
@@ -1479,6 +1615,7 @@ const updateLlmInfo = () => {
   setSetting('qwenSelectedModel', settings.qwen.selectedModel)
   setSetting('qwenEnableMaxTokens', settings.qwen.enableMaxTokens)
   setSetting('qwenMaxTokens', settings.qwen.maxTokens)
+  setSetting('llmApiErrorDialogEnabled', settings.llmApiErrorDialogEnabled)
   setSetting('agentTerminalExecutionAllowed', settings.agentTerminalExecutionAllowed)
   eventBus.emit('llm-api-updated')
 }
@@ -1856,6 +1993,11 @@ const handleExportConfig = async (configId: string) => {
   try {
     const jsonString = exportConfig(configId)
     if (!jsonString) {
+      const cfg = llmConfigs.value.find((c) => c.id === configId)
+      if (cfg && isBuiltinFreeLlmConfig(cfg)) {
+        notifyWarning(t('setting.builtinFreeConfigCannotExport'))
+        return
+      }
       notifyError(t('setting.exportFailed') || 'Export failed')
       return
     }

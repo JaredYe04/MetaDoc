@@ -14,7 +14,7 @@ import {
 import { toast } from '@renderer/utils/toast'
 import { messageBox } from '@renderer/utils/messageBox'
 import { MdEditor, MdPreview, MdCatalog } from 'md-editor-v3'
-import { themeState } from '../utils/themes'
+import { themeState, mixColors } from '../utils/themes'
 import '../assets/md-editor-v3-style.css'
 import ReferenceDisplay from './agent/ReferenceDisplay.vue'
 import type { Reference } from '../types/agent-framework'
@@ -102,6 +102,21 @@ watch(
 
 const roleClass = computed(() => {
   return props.message.role === 'user' ? 'user-role' : 'ai-role'
+})
+
+const userBubbleStyle = computed(() => {
+  if (role.value !== 'user') return {}
+  const theme = themeState.currentTheme
+  const isDark = theme.type === 'dark'
+  const bg = isDark ? mixColors(theme.background2nd, '#000000', 0.28) : mixColors(theme.background2nd, '#ffffff', 0.25)
+  const border = isDark
+    ? mixColors(theme.background2nd, '#000000', 0.42)
+    : mixColors(theme.background2nd, '#000000', 0.1)
+  return {
+    backgroundColor: bg,
+    borderColor: border,
+    color: theme.textColor
+  }
 })
 
 onBeforeMount(() => {
@@ -349,58 +364,69 @@ onBeforeMount(() => {
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
-    <!-- 用户消息的操作按钮（在左侧） -->
+    <!-- 用户消息：气泡外左下角「...」菜单（与 AgentMessageRenderer 的外侧布局一致） -->
     <transition name="fade">
-      <DropdownMenu
+      <div
         v-if="role === 'user' && showActions"
-        @click.stop
-        @update:open="handleDropdownVisibleChange"
-        class="side-button"
+        class="message-bubble__leading-actions"
+        @mouseenter="handleActionsMouseEnter"
+        @mouseleave="handleActionsMouseLeave"
       >
-        <DropdownMenuTrigger
-          as-child
-          @mouseenter="handleActionsMouseEnter"
-          @mouseleave="handleActionsMouseLeave"
-        >
-          <Button variant="ghost" size="icon" class="h-8 w-8 rounded-full">
-            <MoreVertical class="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          @mouseenter="handleDropdownMouseEnter"
-          @mouseleave="handleDropdownMouseLeave"
-        >
-          <DropdownMenuItem @click="handleActionCommand('copy')">
-            <Copy class="w-4 h-4 mr-2" />
-            {{ t('common.copy', '复制') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
-            <FilePlus class="w-4 h-4 mr-2" />
-            {{ t('aiChat.insertToDocument', '插入到文档') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('export-to-document')">
-            <FolderPlus class="w-4 h-4 mr-2" />
-            {{ t('aiChat.exportToDocument', '导出到新文档') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('edit')">
-            <Pencil class="w-4 h-4 mr-2" />
-            {{ t('messageBubble.edit', '编辑') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="handleActionCommand('regenerate')">
-            <RefreshCw class="w-4 h-4 mr-2" />
-            {{ t('messageBubble.regenerate', '重新生成') }}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem @click="handleActionCommand('delete')">
-            <Trash2 class="w-4 h-4 mr-2" />
-            {{ t('common.delete', '删除') }}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <DropdownMenu :modal="false" @click.stop @update:open="handleDropdownVisibleChange">
+          <DropdownMenuTrigger as-child>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="ai-action-btn"
+              @click.stop.prevent
+              @mouseenter="handleDropdownMouseEnter"
+              @mouseleave="handleDropdownMouseLeave"
+            >
+              <MoreVertical class="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            @mouseenter="handleDropdownMouseEnter"
+            @mouseleave="handleDropdownMouseLeave"
+          >
+            <DropdownMenuItem @click="handleActionCommand('copy')">
+              <Copy class="w-4 h-4 mr-2" />
+              {{ t('common.copy', '复制') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
+              <FilePlus class="w-4 h-4 mr-2" />
+              {{ t('aiChat.insertToDocument', '插入到文档') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="handleActionCommand('export-to-document')">
+              <FolderPlus class="w-4 h-4 mr-2" />
+              {{ t('aiChat.exportToDocument', '导出到新文档') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="handleActionCommand('edit')">
+              <Pencil class="w-4 h-4 mr-2" />
+              {{ t('messageBubble.edit', '编辑') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="handleActionCommand('regenerate')">
+              <RefreshCw class="w-4 h-4 mr-2" />
+              {{ t('messageBubble.regenerate', '重新生成') }}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem @click="handleActionCommand('delete')">
+              <Trash2 class="w-4 h-4 mr-2" />
+              {{ t('common.delete', '删除') }}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </transition>
     <div
       ref="bubbleContentRef"
-      :class="['bubble-content', 'response-container', { 'ai-flat-content': role !== 'user' }]"
+      :class="[
+        'bubble-content',
+        'response-container',
+        { 'ai-flat-content': role !== 'user' }
+      ]"
+      :style="userBubbleStyle"
       style="max-height: none"
     >
       <Collapsible
@@ -554,14 +580,6 @@ onBeforeMount(() => {
   overflow-y: auto !important;
 }
 
-.side-button {
-  align-self: flex-end; /* 将按钮对齐到容器的底部 */
-  margin-top: auto; /* 自动填充上方的空间，贴到底部 */
-  z-index: 10; /* 确保按钮在内容之上 */
-  position: relative; /* 建立定位上下文 */
-  flex-shrink: 0; /* 防止按钮被压缩 */
-}
-
 .message-bubble {
   display: flex;
   align-items: flex-start;
@@ -570,10 +588,22 @@ onBeforeMount(() => {
   margin-right: 30px;
 }
 
+.message-bubble__leading-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  align-self: flex-end; /* 贴到气泡底边 */
+  margin-bottom: 10px; /* 抵消 bubble-content 的 margin-bottom，让按钮对齐到底边 */
+  margin-right: 4px;
+  z-index: 10;
+}
+
 .bubble-content {
   min-width: 10px;
   min-height: 10px;
   border-radius: 10px;
+  border: 1px solid transparent;
   transition:
     transform 0.3s ease,
     border-color 0.3s,

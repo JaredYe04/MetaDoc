@@ -23,6 +23,12 @@ export interface LlmConfigItem {
   /** 可选描述，用于在卡片上显示或备注 */
   description?: string
   isDefault?: boolean // 是否为默认配置（用于 i18n 显示）
+  /**
+   * 预设配置类型标记（用于更细粒度的 UI/权限控制）
+   * - default: 传统内置默认模板（可编辑，限制部分字段，允许复制/导出）
+   * - builtin-free: 内置免费模型（允许选中；仅允许修改 apiKey；禁止复制/删除/导出）
+   */
+  presetKind?: 'default' | 'builtin-free'
   type:
     | 'metadoc'
     | 'ollama'
@@ -114,10 +120,28 @@ function createDefaultConfigs(): LlmConfigItem[] {
 
   return [
     {
+      id: `${baseId}-openrouter-free`,
+      name: '免费模型（内置）',
+      description: 'OpenRouter 免费路由（额度极少，建议配置自己的 API Key）',
+      isDefault: true,
+      presetKind: 'builtin-free',
+      type: 'openai',
+      openai: {
+        apiUrl: 'https://openrouter.ai/api/v1',
+        apiKey: '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',
+        selectedModel: 'openrouter/free',
+        enableMaxTokens: false,
+        maxTokens: 4096
+      },
+      createdAt: now,
+      updatedAt: now
+    },
+    {
       id: `${baseId}-ollama`,
       name: 'Ollama (默认)', // 默认名称，UI 会根据 isDefault 和 type 进行 i18n 翻译
       description: '',
       isDefault: true,
+      presetKind: 'default',
       type: 'ollama',
       ollama: {
         apiUrl: 'http://localhost:11434/api',
@@ -133,6 +157,7 @@ function createDefaultConfigs(): LlmConfigItem[] {
       name: 'OpenAI兼容 (默认)',
       description: '',
       isDefault: true,
+      presetKind: 'default',
       type: 'openai',
       openai: {
         apiUrl: 'https://api.openai.com/v1',
@@ -149,6 +174,7 @@ function createDefaultConfigs(): LlmConfigItem[] {
       name: 'OpenAI官方 (默认)',
       description: '',
       isDefault: true,
+      presetKind: 'default',
       type: 'openai-official',
       'openai-official': {
         apiKey: '',
@@ -164,6 +190,7 @@ function createDefaultConfigs(): LlmConfigItem[] {
       name: 'DeepSeek (默认)',
       description: '',
       isDefault: true,
+      presetKind: 'default',
       type: 'deepseek',
       deepseek: {
         apiKey: '',
@@ -179,6 +206,7 @@ function createDefaultConfigs(): LlmConfigItem[] {
       name: 'Google Gemini (默认)',
       description: '',
       isDefault: true,
+      presetKind: 'default',
       type: 'gemini',
       gemini: {
         apiKey: '',
@@ -194,6 +222,7 @@ function createDefaultConfigs(): LlmConfigItem[] {
       name: '通义千问 (默认)',
       description: '',
       isDefault: true,
+      presetKind: 'default',
       type: 'qwen',
       qwen: {
         apiKey: '',
@@ -215,10 +244,13 @@ function ensureDefaultConfigs(): void {
   const defaultTypes: Array<
     'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini' | 'qwen'
   > = ['ollama', 'openai', 'openai-official', 'deepseek', 'gemini', 'qwen']
-  const existingTypes = new Set(configs.value.filter((c) => c.isDefault).map((c) => c.type))
+
+  // 注意：内置免费模型与 openai 默认模板同属 type=openai，不能只用 type 判断缺失与否
+  const existingDefaultTypes = new Set(configs.value.filter((c) => c.isDefault).map((c) => c.type))
+  const hasBuiltinFree = configs.value.some((c) => c.presetKind === 'builtin-free')
 
   // 检查是否有缺失的默认配置
-  const missingTypes = defaultTypes.filter((type) => !existingTypes.has(type))
+  const missingTypes = defaultTypes.filter((type) => !existingDefaultTypes.has(type))
 
   if (missingTypes.length > 0) {
     const defaultConfigs = createDefaultConfigs()
@@ -226,6 +258,17 @@ function ensureDefaultConfigs(): void {
     const missingConfigs = defaultConfigs.filter((c) => missingTypes.includes(c.type as any))
     configs.value.push(...missingConfigs)
     saveLlmConfigs()
+  }
+
+  // 补充内置免费模型（按 presetKind 判断）
+  if (!hasBuiltinFree) {
+    const defaultConfigs = createDefaultConfigs()
+    const builtinFree = defaultConfigs.find((c) => c.presetKind === 'builtin-free')
+    if (builtinFree) {
+      // 放在最前面，确保首次安装默认选中它
+      configs.value.unshift(builtinFree)
+      saveLlmConfigs()
+    }
   }
 }
 
@@ -270,9 +313,12 @@ export async function loadLlmConfigs(): Promise<void> {
         }
       }
     } else if (configs.value.length > 0) {
-      currentConfigId.value = configs.value[0].id
+      // 首次启动：默认选中“内置免费模型”（如果存在）
+      const builtinFree = configs.value.find((c) => c.presetKind === 'builtin-free')
+      currentConfigId.value = (builtinFree || configs.value[0]).id
       localStorage.setItem(CURRENT_CONFIG_KEY, currentConfigId.value)
-      workspaceState.snapshot = JSON.parse(JSON.stringify(configs.value[0]))
+      const selected = configs.value.find((c) => c.id === currentConfigId.value) || configs.value[0]
+      workspaceState.snapshot = JSON.parse(JSON.stringify(selected))
       workspaceState.hasUnsavedChanges = false
     }
   } catch (error) {
@@ -459,7 +505,11 @@ export async function updateConfig(
  * 是否为预设配置（预设不可删除，但可编辑，且编辑时不可更改大模型类型）
  */
 export function isPresetConfig(config: LlmConfigItem): boolean {
-  return config.isDefault === true
+  return config.isDefault === true || config.presetKind === 'builtin-free'
+}
+
+export function isBuiltinFreeLlmConfig(config: LlmConfigItem | null | undefined): boolean {
+  return config?.presetKind === 'builtin-free'
 }
 
 /**
@@ -509,6 +559,7 @@ export async function resetConfigToPreset(id: string): Promise<LlmConfigItem | n
 export function copyConfig(configId: string): LlmConfigItem | null {
   const config = configs.value.find((c) => c.id === configId)
   if (!config) return null
+  if (isBuiltinFreeLlmConfig(config)) return null
 
   const copy: LlmConfigItem = {
     ...JSON.parse(JSON.stringify(config)),
@@ -1071,6 +1122,7 @@ loadWithDelay()
 export function exportConfig(configId: string): string | null {
   const config = configs.value.find((c) => c.id === configId)
   if (!config) return null
+  if (isBuiltinFreeLlmConfig(config)) return null
 
   return JSON.stringify(config, null, 2)
 }

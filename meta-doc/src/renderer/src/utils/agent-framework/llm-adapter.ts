@@ -672,6 +672,8 @@ export class LlmAdapter {
       onToolCallsDetected?: (
         toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>
       ) => Promise<void> // 工具调用检测回调
+      /** 为 true 时在 LLM 请求中开启深度思考 / reasoning（默认关闭） */
+      enableReasoning?: boolean
     } = {}
   ): Promise<string> {
     const {
@@ -684,7 +686,8 @@ export class LlmAdapter {
       reactiveMessage,
       onTaskCreated,
       tools: optionsTools,
-      onToolCallsDetected
+      onToolCallsDetected,
+      enableReasoning
     } = options
 
     // 根据配置决定是否使用 max_tokens
@@ -1167,6 +1170,7 @@ export class LlmAdapter {
           maxTokens: effectiveMaxTokens,
           customLlmConfig,
           reasoningRef,
+          ...(enableReasoning === true ? { enableReasoning: true } : {}),
           ...(useNativeTools && {
             tools: optionsTools,
             onToolCallsDetected,

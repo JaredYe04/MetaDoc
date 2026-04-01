@@ -63,6 +63,7 @@
                 :show-voice="false"
                 :show-attach="false"
                 :show-knowledge-base="false"
+                :show-reasoning="true"
                 :compact="true"
                 @submit="handleGenerate"
                 @cancel="handleCancel"

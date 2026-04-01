@@ -1257,6 +1257,38 @@
           "file": "settings/llm.md"
         },
         {
+          "id": "settings.llm-api-setup",
+          "title": {
+            "zh_CN": "LLM API 配置入门",
+            "en_US": "LLM API Setup Guide",
+            "zh_TW": "LLM API 設定入門",
+            "es_ES": "Guía rápida: API LLM",
+            "pt_BR": "Guia rápido: API LLM",
+            "ru_RU": "Настройка API LLM: основы",
+            "ja_JP": "LLM API 設定ガイド",
+            "ko_KR": "LLM API 설정 가이드",
+            "de_DE": "LLM-API einrichten",
+            "fr_FR": "Configurer l’API LLM"
+          },
+          "tags": [
+            "设置",
+            "LLM",
+            "API Key",
+            "教程"
+          ],
+          "difficulty": 1,
+          "estimatedTime": 20,
+          "prerequisites": [
+            "settings.llm"
+          ],
+          "relatedArticles": [
+            "settings.llm",
+            "settings.llm-management",
+            "settings.llm-types"
+          ],
+          "file": "settings/llm-api-setup.md"
+        },
+        {
           "id": "settings.llm-management",
           "title": {
             "zh_CN": "LLM配置管理",

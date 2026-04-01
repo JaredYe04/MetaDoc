@@ -85,19 +85,14 @@ export function matchShortcut(e: KeyboardEvent, parsed: ParsedShortcut, isMac: b
 
   // zoom-in: support Ctrl+='=' and Ctrl+'+' (main + numpad)
   const isPlusKey =
-    pk === 'Plus' &&
-    (ek === '+' || ek === '=' || ekLower === 'plus' || e.code === 'NumpadAdd')
+    pk === 'Plus' && (ek === '+' || ek === '=' || ekLower === 'plus' || e.code === 'NumpadAdd')
 
   // zoom-out: support Ctrl+'-' (main + numpad)
   const isMinusKey =
-    pk === 'Minus' &&
-    (ek === '-' || ekLower === 'minus' || e.code === 'NumpadSubtract')
+    pk === 'Minus' && (ek === '-' || ekLower === 'minus' || e.code === 'NumpadSubtract')
 
   const keyMatch =
-    isPlusKey ||
-    isMinusKey ||
-    ek === pk ||
-    (pk.length === 1 && ekLower === pk.toLowerCase())
+    isPlusKey || isMinusKey || ek === pk || (pk.length === 1 && ekLower === pk.toLowerCase())
 
   if (!keyMatch) return false
 

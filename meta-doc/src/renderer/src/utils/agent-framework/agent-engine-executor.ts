@@ -48,6 +48,8 @@ export interface EngineExecuteOptions {
   activeReferenceIds?: string[]
   /** 临时引用：仅本次执行注入上下文，不写入 session.referenceStore */
   extraReferences?: Array<import('../../types/agent-framework').Reference>
+  /** 用户从 Composer 开启「深度思考」时传入，透传到 LLM 请求（默认关闭） */
+  enableReasoning?: boolean
 }
 
 /**
@@ -73,6 +75,11 @@ export abstract class BaseEngineExecutor {
     this.session = session
     this.agentConfig = agentConfig
     this.options = options
+  }
+
+  /** 透传给 LlmAdapter.callChatViaTask：仅当用户在输入区开启深度思考时启用 */
+  protected callChatExtraOptions(): { enableReasoning?: true } {
+    return this.options.enableReasoning === true ? { enableReasoning: true } : {}
   }
 
   /**
@@ -908,7 +915,8 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         reactiveMessage: assistantMessage,
         onTaskCreated: this.options.onTaskCreated,
         tools: await this.getAvailableTools(),
-        onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
+        onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage),
+        ...this.callChatExtraOptions()
       })
 
       // 解析ReAct格式：Thought -> Action -> Observation
@@ -1033,7 +1041,8 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           reactiveMessage: finalMessage,
           onTaskCreated: this.options.onTaskCreated,
           tools: await this.getAvailableTools(),
-          onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
+          onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage),
+          ...this.callChatExtraOptions()
         })
 
         // 等待队列完成（最终回复可能也有工具调用）
@@ -1240,7 +1249,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           detectedToolCalls = toolCalls
           // 使用统一的工具调用处理逻辑（会添加到队列并立即执行）
           await this.createToolCallsDetectedHandler(assistantMessage)(toolCalls)
-        }
+        },
+        ...this.callChatExtraOptions()
       })
 
       // AI输出完成
@@ -1806,7 +1816,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           reactiveMessage: finalMessage,
           onTaskCreated: this.options.onTaskCreated,
           tools: await this.getAvailableTools(),
-          onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
+          onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage),
+          ...this.callChatExtraOptions()
         })
 
         // 等待队列完成（最终回复可能也有工具调用）
@@ -1916,7 +1927,8 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
       reactiveMessage: assistantMessage,
       onTaskCreated: this.options.onTaskCreated,
       tools: await this.getAvailableTools(),
-      onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
+      onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage),
+      ...this.callChatExtraOptions()
     })
 
     // AI输出完成
@@ -2119,7 +2131,8 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       signal: this.options.signal,
       taskName: '计划步骤选择',
       originKey: `agent-plan-${this.session.id}-${Date.now()}-select`,
-      onTaskCreated: this.options.onTaskCreated
+      onTaskCreated: this.options.onTaskCreated,
+      ...this.callChatExtraOptions()
       // 注意：这里没有reactiveMessage，所以不需要onToolCallsDetected
     })
 

@@ -29,6 +29,8 @@ export interface PendingAgentDraft {
 export interface PendingHomeAgentPayload {
   content: string
   references: Reference[]
+  /** 是否开启深度思考（与 ChatComposer 一致） */
+  enableReasoning?: boolean
 }
 
 const ALLOWED_DIALOG_COMMANDS: Exclude<AgentManageDialogType, null>[] = [
@@ -161,7 +163,11 @@ export const useAgentManageUiStore = defineStore('agent-manage-ui', () => {
       pendingHomeAgentSubmit.value = null
       return
     }
-    pendingHomeAgentSubmit.value = { content, references: refs }
+    pendingHomeAgentSubmit.value = {
+      content,
+      references: refs,
+      ...(payload.enableReasoning === true ? { enableReasoning: true } : {})
+    }
   }
 
   function takePendingHomeAgentSubmit(): PendingHomeAgentPayload | null {

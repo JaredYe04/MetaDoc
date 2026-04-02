@@ -70,6 +70,14 @@
           </Button>
           <Button
             variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'exportfixturebatch' }]"
+            @click="handleMenuSelect('exportfixturebatch')"
+          >
+            <Folder class="debug-menu-icon" />
+            <span class="debug-menu-label">{{ $t('setting.debug.exportFixtureBatch') }}</span>
+          </Button>
+          <Button
+            variant="ghost"
             :class="['debug-menu-item', { 'is-active': activeTab === 'startupprofile' }]"
             @click="handleMenuSelect('startupprofile')"
           >
@@ -1427,6 +1435,81 @@
                   </div>
                 </div>
               </div>
+              <!-- 批量导出验收：fixtures 目录下各文件 → PDF + DOCX -->
+              <div v-show="activeTab === 'exportfixturebatch'" class="tab-content">
+                <div class="test-panel" :style="testPanelStyle">
+                  <p class="text-sm text-muted-foreground mb-4">
+                    {{ $t('setting.debug.exportFixtureBatchIntro') }}
+                  </p>
+                  <FormField :label="$t('setting.debug.exportFixtureFixturesDir')" name="fxDir">
+                    <div class="flex gap-2 items-center">
+                      <Input
+                        v-model="exportFixtureFixturesDir"
+                        class="flex-1 max-w-2xl font-mono text-xs"
+                        :placeholder="$t('setting.debug.exportFixtureFixturesDir')"
+                      />
+                      <Button variant="outline" size="default" @click="handleExportFixtureChooseFixturesDir">
+                        {{ $t('setting.debug.selectDir') }}
+                      </Button>
+                    </div>
+                  </FormField>
+                  <FormField :label="$t('setting.debug.exportFixtureOutputDir')" name="outDir">
+                    <div class="flex gap-2 items-center">
+                      <Input
+                        v-model="exportFixtureOutputDir"
+                        class="flex-1 max-w-2xl font-mono text-xs"
+                        :placeholder="$t('setting.debug.exportFixtureOutputDir')"
+                      />
+                      <Button variant="outline" size="default" @click="handleExportFixtureChooseOutputDir">
+                        {{ $t('setting.debug.selectDir') }}
+                      </Button>
+                    </div>
+                  </FormField>
+                  <FormField name="runFixture">
+                    <Button
+                      variant="default"
+                      :disabled="!exportFixtureFixturesDir || !exportFixtureOutputDir || exportFixtureRunning"
+                      @click="runExportFixtureBatch"
+                    >
+                      <template v-if="exportFixtureRunning">
+                        {{
+                          $t('setting.debug.exportFixtureRunning', {
+                            current: exportFixtureCurrent,
+                            total: exportFixtureTotalJobs
+                          })
+                        }}
+                      </template>
+                      <template v-else>
+                        {{ $t('setting.debug.exportFixtureRun') }}
+                      </template>
+                    </Button>
+                  </FormField>
+                  <div v-if="exportFixtureProgressMessage" class="text-sm text-muted-foreground mb-2">
+                    {{ exportFixtureProgressMessage }}
+                  </div>
+                  <Progress
+                    v-if="exportFixtureRunning"
+                    :model-value="exportFixtureProgressPercent"
+                    class="h-2 mb-4"
+                  />
+                  <div class="space-y-2 max-h-80 overflow-y-auto">
+                    <div
+                      v-for="row in exportFixtureRows"
+                      :key="row.file"
+                      class="flex flex-wrap items-center gap-2 py-1.5 px-2 rounded border text-sm"
+                    >
+                      <span class="font-mono text-xs flex-1 min-w-[200px]">{{ row.file }}</span>
+                      <Badge :variant="row.pdf === 'success' ? 'default' : row.pdf === 'fail' ? 'destructive' : 'outline'">
+                        PDF: {{ row.pdf }}
+                      </Badge>
+                      <Badge :variant="row.docx === 'success' ? 'default' : row.docx === 'fail' ? 'destructive' : 'outline'">
+                        DOCX: {{ row.docx }}
+                      </Badge>
+                      <span v-if="row.error" class="text-destructive text-xs w-full">{{ row.error }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div v-show="activeTab === 'agentsessiondebug'" class="tab-content">
                 <Tabs v-model="agentSessionDebugActiveTab" class="debug-tabs">
                   <TabsList class="debug-tabs-list">
@@ -2140,6 +2223,7 @@ import {
   Refresh,
   Tools,
   Document,
+  Folder,
   Setting,
   VideoPlay,
   ChatDotRound,
@@ -2148,6 +2232,7 @@ import {
 import eventBus, { sendBroadcast } from '../../utils/event-bus'
 import { testFramework, type TestFunction } from '../../utils/test-framework'
 import messageBridge from '../../bridge/message-bridge'
+import { join, extname } from '../../utils/path-utils.js'
 import { agentToolManager } from '../../utils/agent-tool-manager'
 import type { LocalizedText } from '../../types/agent-tool'
 import { getLocalizedInstruction } from '../../utils/agent-tools/i18n-helper'
@@ -2311,6 +2396,7 @@ const getCurrentTabTitle = () => {
     unittest: t('setting.debug.unitTest.title'),
     agentsessiondebug: t('setting.debug.agentSessionDebug'),
     exportregression: t('setting.debug.exportRegression'),
+    exportfixturebatch: t('setting.debug.exportFixtureBatch'),
     startupprofile: t('setting.debug.startupProfile')
   }
   return titles[activeTab.value] || t('setting.debug.title')
@@ -2673,6 +2759,191 @@ async function runExportRegression() {
     exportRegressionCurrent.value = 0
     exportRegressionProgressPercent.value = 100
     exportRegressionProgressMessage.value = t('setting.debug.exportRegressionComplete')
+  }
+}
+
+const EXPORT_FIXTURE_EXT = new Set([
+  '.md',
+  '.json',
+  '.py',
+  '.vue',
+  '.html',
+  '.htm',
+  '.png',
+  '.tex'
+])
+
+function getDebugExportDefaultDirs(): { fixturesDir: string; outputDir: string } {
+  try {
+    if (typeof process !== 'undefined' && process.cwd) {
+      const normalizedCwd = process.cwd().replace(/\\/g, '/')
+      let root = ''
+      const idx = normalizedCwd.indexOf('/meta-doc/')
+      if (idx !== -1) {
+        root = normalizedCwd.substring(0, idx + '/meta-doc'.length)
+      } else if (normalizedCwd.endsWith('/meta-doc')) {
+        root = normalizedCwd
+      } else {
+        root = `${normalizedCwd}/meta-doc`
+      }
+      return {
+        fixturesDir: join(root, 'debug-export', 'fixtures'),
+        outputDir: join(root, 'debug-export', 'output')
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return { fixturesDir: '', outputDir: '' }
+}
+
+const exportFixtureFixturesDir = ref('')
+const exportFixtureOutputDir = ref('')
+const exportFixtureRunning = ref(false)
+const exportFixtureCurrent = ref(0)
+const exportFixtureTotalJobs = ref(0)
+const exportFixtureProgressPercent = ref(0)
+const exportFixtureProgressMessage = ref('')
+const exportFixtureRows = ref<
+  Array<{ file: string; pdf: string; docx: string; error?: string }>
+>([])
+
+async function handleExportFixtureChooseFixturesDir() {
+  const msg = await import('../../bridge/message-bridge').then((m) => m.default)
+  const result = await msg.invoke('show-open-dialog', {
+    title: t('setting.debug.exportFixtureFixturesDir'),
+    properties: ['openDirectory']
+  })
+  if (!result.canceled && result.filePaths?.[0]) {
+    exportFixtureFixturesDir.value = result.filePaths[0]
+  }
+}
+async function handleExportFixtureChooseOutputDir() {
+  const msg = await import('../../bridge/message-bridge').then((m) => m.default)
+  const result = await msg.invoke('show-open-dialog', {
+    title: t('setting.debug.exportFixtureOutputDir'),
+    properties: ['openDirectory']
+  })
+  if (!result.canceled && result.filePaths?.[0]) {
+    exportFixtureOutputDir.value = result.filePaths[0]
+  }
+}
+
+async function runExportFixtureBatch() {
+  const fixturesDir = exportFixtureFixturesDir.value?.trim()
+  const outputDir = exportFixtureOutputDir.value?.trim()
+  if (!fixturesDir || !outputDir) return
+
+  let entries: Array<{ name: string; path: string; isDirectory: boolean }> = []
+  try {
+    entries = await messageBridge.invoke('read-directory', fixturesDir)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    notifyError(t('setting.debug.exportFixtureReadDirFail', { msg }))
+    return
+  }
+
+  const files = entries
+    .filter((e) => !e.isDirectory && EXPORT_FIXTURE_EXT.has(extname(e.name).toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  if (files.length === 0) {
+    notifyWarning(t('setting.debug.exportFixtureNoFiles'))
+    exportFixtureRows.value = []
+    return
+  }
+
+  const { prepareExportPayload } = await import('../../services/export-manager')
+  const { resolveDocumentForExport } = await import('../../services/export-document-resolver')
+
+  exportFixtureRunning.value = true
+  exportFixtureCurrent.value = 0
+  exportFixtureTotalJobs.value = files.length * 2
+  exportFixtureProgressPercent.value = 0
+  exportFixtureProgressMessage.value = ''
+  exportFixtureRows.value = files.map((f) => ({
+    file: f.name,
+    pdf: 'pending',
+    docx: 'pending'
+  }))
+
+  const eventBus = (await import('../../utils/event-bus')).default
+  const onProgress = (p: {
+    percentage?: number
+    message?: string
+    subMessage?: string
+    params?: Record<string, unknown>
+  }) => {
+    const params = p?.params ?? {}
+    const msg1 = p?.message ? t(p.message, params) : ''
+    const msg2 = p?.subMessage ? t(p.subMessage, params) : ''
+    exportFixtureProgressMessage.value = [msg1, msg2].filter(Boolean).join(' ')
+  }
+  eventBus.on('global-progress', onProgress)
+
+  let done = 0
+  const bump = () => {
+    done++
+    exportFixtureCurrent.value = done
+    exportFixtureProgressPercent.value =
+      exportFixtureTotalJobs.value > 0
+        ? Math.min(99, Math.round((100 * done) / exportFixtureTotalJobs.value))
+        : 0
+  }
+
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i]
+      const row = exportFixtureRows.value[i]
+      const doc = await resolveDocumentForExport(f.path)
+      if (!doc) {
+        row.pdf = 'fail'
+        row.docx = 'fail'
+        row.error = t('setting.debug.exportFixtureResolveFail')
+        bump()
+        bump()
+        continue
+      }
+
+      // 子目录必须用完整文件名（含扩展名），否则 sample.md / sample.vue / sample.py 都会变成 sample 互相覆盖
+      const outFolderName = f.name
+      const subOut = join(outputDir.replace(/[/\\]+$/, ''), outFolderName)
+      const pdfPath = join(subOut, 'export.pdf')
+      const docxPath = join(subOut, 'export.docx')
+      const idSafe = outFolderName.replace(/[^a-zA-Z0-9_-]+/g, '_')
+      const suggestedName = outFolderName
+
+      try {
+        const payloadPdf = await prepareExportPayload(doc, 'pdf', suggestedName, undefined, {
+          requestId: `fixture-${idSafe}-pdf-${Date.now()}`
+        })
+        const r1 = await messageBridge.invoke('perform-export-to-path', payloadPdf, pdfPath)
+        row.pdf = r1?.success ? 'success' : 'fail'
+        if (!r1?.success) row.error = String(r1?.error ?? 'pdf')
+      } catch (e) {
+        row.pdf = 'fail'
+        row.error = e instanceof Error ? e.message : String(e)
+      }
+      bump()
+
+      try {
+        const payloadDocx = await prepareExportPayload(doc, 'docx', suggestedName, undefined, {
+          requestId: `fixture-${idSafe}-docx-${Date.now()}`
+        })
+        const r2 = await messageBridge.invoke('perform-export-to-path', payloadDocx, docxPath)
+        row.docx = r2?.success ? 'success' : 'fail'
+        if (!r2?.success) row.error = [row.error, String(r2?.error ?? 'docx')].filter(Boolean).join(' | ')
+      } catch (e) {
+        row.docx = 'fail'
+        row.error = [row.error, e instanceof Error ? e.message : String(e)].filter(Boolean).join(' | ')
+      }
+      bump()
+    }
+    exportFixtureProgressMessage.value = t('setting.debug.exportFixtureComplete')
+    exportFixtureProgressPercent.value = 100
+  } finally {
+    eventBus.off('global-progress', onProgress)
+    exportFixtureRunning.value = false
   }
 }
 
@@ -6064,6 +6335,14 @@ onMounted(async () => {
   modules.value = testFramework.getModules()
   refreshTestHistory()
   await fetchWindowTypes()
+
+  const defFx = getDebugExportDefaultDirs()
+  if (!exportFixtureFixturesDir.value && defFx.fixturesDir) {
+    exportFixtureFixturesDir.value = defFx.fixturesDir
+  }
+  if (!exportFixtureOutputDir.value && defFx.outputDir) {
+    exportFixtureOutputDir.value = defFx.outputDir
+  }
 
   // 刷新可用Tool列表
   availableTools.value = agentToolManager.getAllTools()

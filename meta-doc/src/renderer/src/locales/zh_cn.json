@@ -1841,8 +1841,38 @@
       "texToTex": {
         "name": "LaTeX 转 LaTeX",
         "description": "导出 LaTeX 文档"
+      },
+      "texToHtml": {
+        "name": "LaTeX 转 HTML",
+        "description": "将 LaTeX 转为 Markdown 后导出 HTML"
+      },
+      "texToDocx": {
+        "name": "LaTeX 转 DOCX",
+        "description": "将 LaTeX 转为 Markdown 后导出 DOCX"
+      },
+      "txtToMd": {
+        "name": "纯文本转 Markdown",
+        "description": "将纯文本或代码导出为 Markdown"
+      },
+      "txtToHtml": {
+        "name": "纯文本转 HTML",
+        "description": "将纯文本或代码转为 Markdown 后导出 HTML"
+      },
+      "txtToDocx": {
+        "name": "纯文本转 DOCX",
+        "description": "将纯文本或代码转为 Markdown 后导出 DOCX"
+      },
+      "txtToPdf": {
+        "name": "纯文本转 PDF",
+        "description": "将纯文本或代码转为 Markdown 后导出 PDF"
       }
     },
+    "taskTitle": "导出任务",
+    "taskPhasePickPath": "选择保存位置…",
+    "taskPhasePreparing": "正在预处理…",
+    "taskPhaseDone": "已完成",
+    "taskPhaseFailed": "失败",
+    "taskCancel": "中断",
     "options": {
       "title": "导出选项",
       "pageSize": {
@@ -4029,6 +4059,16 @@
       "exportRegressionRunAll": "一键导出所有格式",
       "exportRegressionExporting": "导出中… ({current} / {total})",
       "exportRegressionComplete": "全部完成",
+      "exportFixtureBatch": "批量导出验收",
+      "exportFixtureBatchIntro": "从「样例目录」扫描 md / json / py / vue / html / png / tex，逐个按与主界面相同的导出管线生成 PDF 与 DOCX。每个源文件对应「输出目录」下以完整文件名（含扩展名）命名的子文件夹，例如 sample.vue、sample.py，避免同名不同扩展名互相覆盖。默认路径为仓库内 debug-export/fixtures 与 debug-export/output（output 已在 .gitignore，不入库）。",
+      "exportFixtureFixturesDir": "样例目录",
+      "exportFixtureOutputDir": "输出目录",
+      "exportFixtureRun": "一键导出 PDF + DOCX",
+      "exportFixtureRunning": "导出中… ({current} / {total})",
+      "exportFixtureNoFiles": "样例目录下没有可导出的文件（扩展名需为 md、json、py、vue、html、png、tex）",
+      "exportFixtureComplete": "批量导出完成",
+      "exportFixtureReadDirFail": "无法读取样例目录：{msg}",
+      "exportFixtureResolveFail": "无法解析该文件为导出文档",
       "unitTest": {
         "title": "单元测试",
         "singleTest": "单个测试",

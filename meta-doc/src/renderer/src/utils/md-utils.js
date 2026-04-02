@@ -2002,11 +2002,13 @@ export async function ConvertMarkdownToHtmlVditor(md) {
  * @param md - Markdown 文本
  * @param convertImagesToBase64 - 是否将图片转为 base64
  * @param docPath - 可选，当前文档路径，用于解析相对图片路径（如 images/xxx.png）
+ * @param {{ fragmentOnly?: boolean }} [options] - fragmentOnly: 仅返回正文 HTML 片段（供 DOCX 等），不包装完整文档与内嵌 CSS
  */
 export async function ConvertMarkdownToHtmlManually(
   md,
   convertImagesToBase64 = true,
-  docPath = ''
+  docPath = '',
+  options = {}
 ) {
   const contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
   const codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
@@ -2450,6 +2452,10 @@ export async function ConvertMarkdownToHtmlManually(
       })
     }
 
+    if (options.fragmentOnly) {
+      return finalHtml
+    }
+
     // 第四步：获取并内嵌 Vditor CSS
     let vditorCss = ''
     try {
@@ -2615,8 +2621,9 @@ export const ConvertHtmlForPdf = async (md, pdfOptions = {}) => {
     getLogger().warn(`检测到 ${plantumlBlockCount} 个未预渲染的 PlantUML 代码块，可能预渲染失败`)
   }
 
-  // 使用 JSON.stringify 对处理后的 md 进行转义
-  const safeMarkdown = JSON.stringify(processedMd)
+  // 用 Base64 传入内联脚本：Markdown 中的 </script>（如 Vue SFC）会提前结束 HTML 的 <script>，导致 Vditor 只收到半截源码、代码挤一行且无高亮
+  const pdfMarkdownBase64 = btoa(unescape(encodeURIComponent(processedMd)))
+  const safeMdB64 = JSON.stringify(pdfMarkdownBase64)
 
   const pdfThemeMode = pdfOptions.pdfThemeMode ?? 'light'
   const contentSetting = await getSetting('contentTheme')
@@ -2921,9 +2928,9 @@ export const ConvertHtmlForPdf = async (md, pdfOptions = {}) => {
     <script>
             // 等待页面加载后，渲染 markdown 内容
             window.onload = function() {
-                // 使用转义后的 md 内容
                 const previewElement = document.getElementById('preview');
-                Vditor.preview(previewElement, ${safeMarkdown}, {
+                var __pdfMd = decodeURIComponent(escape(atob(${safeMdB64})));
+                Vditor.preview(previewElement, __pdfMd, {
                     cdn: ${safeCdn},
                     mode: ${safeVditorMode},
                     theme: {

@@ -545,6 +545,16 @@ const visible = computed({
   set: (value) => emit('update:modelValue', value)
 })
 
+/** 与 prepareExportPayload 一致：部分适配器将选项存到 md→* 等键下 */
+const optionsStorageFormats = computed(() => {
+  return (
+    props.adapter?.getOptionsStorageFormats?.() ?? {
+      source: props.sourceFormat,
+      target: props.targetFormat
+    }
+  )
+})
+
 const dialogTitle = computed(() => {
   if (!props.adapter) return t('export.options.title')
   return props.adapter.nameKey ? t(props.adapter.nameKey) : props.adapter.name
@@ -570,14 +580,14 @@ onMounted(async () => {
 
 // 初始化表单数据
 watch(
-  () => [props.adapter, props.sourceFormat, props.targetFormat],
-  ([adapter, sourceFormat, targetFormat]) => {
+  () => [props.adapter, optionsStorageFormats.value.source, optionsStorageFormats.value.target],
+  ([adapter, storageSource, storageTarget]) => {
     if (adapter) {
       const defaults = adapter.getDefaultOptions()
       defaultOptions.value = defaults
 
       // 从localStorage加载保存的选项
-      const savedOptions = loadExportOptions(sourceFormat, targetFormat)
+      const savedOptions = loadExportOptions(storageSource, storageTarget)
       const merged = mergeExportOptions(defaults, savedOptions)
 
       formData.value = JSON.parse(JSON.stringify(merged))
@@ -801,8 +811,12 @@ function handleConfirm(): void {
     return
   }
 
-  // 保存到localStorage
-  saveExportOptions(props.sourceFormat, props.targetFormat, formData.value as ExportOptions)
+  // 保存到localStorage（键与 prepareExportPayload 一致）
+  saveExportOptions(
+    optionsStorageFormats.value.source,
+    optionsStorageFormats.value.target,
+    formData.value as ExportOptions
+  )
 
   emit('confirm', formData.value as ExportOptions)
   visible.value = false
@@ -813,7 +827,10 @@ function handleCancel(): void {
   // 恢复默认值
   if (props.adapter) {
     const defaults = props.adapter.getDefaultOptions()
-    const savedOptions = loadExportOptions(props.sourceFormat, props.targetFormat)
+    const savedOptions = loadExportOptions(
+      optionsStorageFormats.value.source,
+      optionsStorageFormats.value.target
+    )
     const merged = mergeExportOptions(defaults, savedOptions)
     formData.value = JSON.parse(JSON.stringify(merged))
   }

@@ -207,6 +207,11 @@ export interface ExportAdapter<
   /** 验证导出选项 */
   validateOptions(options: Partial<TOptions>): { valid: boolean; error?: string }
 
+  /**
+   * 导出选项在 localStorage 中的存储键；若与 sourceFormat 不一致（如 LaTeX→DOCX 复用 Markdown→DOCX 的配置）则覆盖。
+   */
+  getOptionsStorageFormats?(): { source: DocumentFormat; target: ExportFormat }
+
   /** 准备导出数据（在renderer进程中执行） */
   prepareExportData(
     data: {

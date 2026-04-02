@@ -6,6 +6,7 @@ import { formatRegistry, type FormatConfig } from './format-registry'
 import { getOutlineAdapter } from './outline-adapters'
 import { convertLatexToMarkdown } from './latex-utils'
 import { extname } from './path-utils'
+import { EXTENSION_TO_MONACO_LANGUAGE } from './monaco-extension-languages'
 import MarkdownEditor from '../views/MarkdownEditor.vue'
 import LaTeXEditor from '../views/LaTeXEditor.vue'
 import PlainTextEditor from '../views/PlainTextEditor.vue'
@@ -67,67 +68,15 @@ function detectMonacoLanguageFromExtension(filePath?: string): string {
   if (!filePath) return 'plaintext'
 
   const ext = extname(filePath).toLowerCase()
-
-  // 常见代码文件扩展名映射
-  const extensionToLanguage: Record<string, string> = {
-    '.js': 'javascript',
-    '.jsx': 'javascript',
-    '.ts': 'typescript',
-    '.tsx': 'typescript',
-    '.py': 'python',
-    '.java': 'java',
-    '.cpp': 'cpp',
-    '.cxx': 'cpp',
-    '.cc': 'cpp',
-    '.c': 'c',
-    '.h': 'cpp',
-    '.hpp': 'cpp',
-    '.cs': 'csharp',
-    '.php': 'php',
-    '.rb': 'ruby',
-    '.go': 'go',
-    '.rs': 'rust',
-    '.swift': 'swift',
-    '.kt': 'kotlin',
-    '.scala': 'scala',
-    '.sh': 'shell',
-    '.bash': 'shell',
-    '.zsh': 'shell',
-    '.ps1': 'powershell',
-    '.html': 'html',
-    '.htm': 'html',
-    '.css': 'css',
-    '.scss': 'scss',
-    '.sass': 'sass',
-    '.less': 'less',
-    '.json': 'json',
-    '.xml': 'xml',
-    '.yaml': 'yaml',
-    '.yml': 'yaml',
-    '.toml': 'toml',
-    '.ini': 'ini',
-    '.conf': 'ini',
-    '.sql': 'sql',
-    '.md': 'markdown',
-    '.tex': 'latex',
-    '.r': 'r',
-    '.m': 'objective-c',
-    '.mm': 'objective-c',
-    '.vue': 'html',
-    '.svelte': 'html',
-    '.dart': 'dart',
-    '.lua': 'lua',
-    '.pl': 'perl',
-    '.pm': 'perl',
-    '.vim': 'vim',
-    '.diff': 'diff',
-    '.patch': 'diff',
-    '.log': 'log',
-    '.txt': 'plaintext',
-    '.text': 'plaintext'
+  const base = filePath.replace(/\\/g, '/').split('/').pop()?.toLowerCase() ?? ''
+  if (base === 'dockerfile' || base.endsWith('.dockerfile')) {
+    return EXTENSION_TO_MONACO_LANGUAGE['.dockerfile'] ?? 'dockerfile'
+  }
+  if (base === 'makefile' || base === 'gnumakefile') {
+    return EXTENSION_TO_MONACO_LANGUAGE['.mk'] ?? 'makefile'
   }
 
-  return extensionToLanguage[ext] || 'plaintext'
+  return EXTENSION_TO_MONACO_LANGUAGE[ext] || 'plaintext'
 }
 
 /**

@@ -1,6 +1,9 @@
 node_modules
 dist
 out
+
+# Debug 页「批量导出验收」产出（样例在 debug-export/fixtures，可提交）
+debug-export/output/
 .DS_Store
 *.log*
 src/main/models/nomic-embed-text-v1.5.Q8_0.gguf

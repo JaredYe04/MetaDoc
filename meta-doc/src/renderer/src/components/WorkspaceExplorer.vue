@@ -185,6 +185,8 @@ import { URIUtils, type URI } from '../utils/workspace/fs-models'
 import { RefreshService } from '../utils/workspace/refresh-service'
 import logoPath from '../assets/logo.svg'
 import messageBridge from '../bridge/message-bridge'
+import { getExportOptions } from '../services/export-manager'
+import { getExportSourceFormatForPath } from '../services/export-document-resolver'
 
 const { t } = useI18n()
 const logger = createRendererLogger('WorkspaceExplorer')
@@ -463,6 +465,26 @@ const lastSelectedIndex = computed({
   }
 })
 
+/** 工作区文件导出子菜单（多选时需同源格式，否则不显示） */
+function buildWorkspaceExportSubmenu(filePaths: string[]): ContextMenuItem | null {
+  if (!filePaths.length) return null
+  const fmts = filePaths.map((p) => getExportSourceFormatForPath(p))
+  const first = fmts[0]
+  if (first == null || !fmts.every((f) => f === first)) return null
+  const targets = getExportOptions(first).filter((t) => t.status === 'ready')
+  if (!targets.length) return null
+  const pathsEncoded = JSON.stringify(filePaths)
+  return {
+    type: 'submenu',
+    label: 'leftMenu.export',
+    children: targets.map((t) => ({
+      type: 'action' as const,
+      label: (t.labelKey || t.label || 'leftMenu.export') as string,
+      value: `export-run:${t.format}\n${pathsEncoded}`
+    }))
+  }
+}
+
 // 构建右键菜单项
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const items: ContextMenuItem[] = []
@@ -557,6 +579,20 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
       value: 'open',
       label: 'workspaceExplorer.contextMenu.open'
     })
+
+    const allNodesForExport = getAllNodesSync()
+    let exportPaths: string[] = Array.from(selectedPaths.value).filter((p) => {
+      const n = allNodesForExport.find((x) => x.path === p && x.type === 'file')
+      return Boolean(n)
+    })
+    if (exportPaths.length === 0) {
+      exportPaths = [node.path]
+    }
+    const exportSub = buildWorkspaceExportSubmenu(exportPaths)
+    if (exportSub) {
+      items.push({ type: 'divider' })
+      items.push(exportSub)
+    }
   }
 
   // 剪切和复制（如果有选中项，会批量操作；否则操作单个节点）
@@ -1598,6 +1634,28 @@ const handleContextMenuCommand = async (command: string) => {
   }
 
   try {
+    if (command.startsWith('export-run:')) {
+      const nl = command.indexOf('\n')
+      if (nl === -1) return
+      const format = command.slice('export-run:'.length, nl)
+      let paths: string[]
+      try {
+        paths = JSON.parse(command.slice(nl + 1)) as string[]
+      } catch {
+        return
+      }
+      if (!Array.isArray(paths)) return
+      for (const p of paths) {
+        eventBus.emit('export', {
+          format,
+          filename: basename(p),
+          options: {},
+          sourcePath: p
+        })
+      }
+      return
+    }
+
     switch (command) {
       case 'open':
         if (node && node.type === 'file') {

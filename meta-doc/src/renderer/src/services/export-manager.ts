@@ -6,6 +6,7 @@ import type { WorkspaceDocument } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger.js'
 import { exportAdapterRegistry, type ExportOptions } from './export-adapters'
 import { loadExportOptions, mergeExportOptions } from './export-adapters/storage'
+import { isExportImagePath, loadImageFileAsMarkdownImage } from './export-path-utils'
 
 export interface BaseExportPayload {
   sourceFormat: DocumentFormat
@@ -38,12 +39,15 @@ export const prepareExportPayload = async (
   doc: WorkspaceDocument,
   targetFormat: ExportFormat,
   explicitName?: string,
-  exportOptions?: ExportOptions
+  exportOptions?: ExportOptions,
+  prepareOpts?: { requestId?: string }
 ): Promise<BaseExportPayload> => {
   const messageBridge = (await import('../bridge/message-bridge')).default
   const { createProgressHandle } = await import('../utils/progress-handle')
 
-  const requestId = `export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const requestId =
+    prepareOpts?.requestId?.trim() ||
+    `export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const handle = createProgressHandle({
     requestId,
     message: 'agent.reference.progress.preparingExport',
@@ -72,15 +76,34 @@ export const prepareExportPayload = async (
     throw new NotImplementedExportError(sourceFormat, targetFormat)
   }
 
-  // 获取并合并导出选项
+  // 获取并合并导出选项（部分适配器复用其它源格式的存储键，如 LaTeX→DOCX 使用 md→docx）
   const defaultOptions = adapter.getDefaultOptions()
-  const savedOptions = loadExportOptions(sourceFormat, targetFormat)
+  const storageFormats = adapter.getOptionsStorageFormats?.() ?? {
+    source: sourceFormat,
+    target: targetFormat
+  }
+  const savedOptions = loadExportOptions(storageFormats.source, storageFormats.target)
   const mergedOptions = mergeExportOptions(defaultOptions, savedOptions)
   const finalOptions = exportOptions
     ? mergeExportOptions(mergedOptions, exportOptions)
     : mergedOptions
 
   const serialized = await serializeDocument(doc)
+  let mdForPayload = serialized.md
+  // .png 等在编辑器里常按 UTF-8 解码进 markdown，实为乱码；导出前强制按二进制读成 data URL 图片语法
+  if (doc.path && isExportImagePath(doc.path)) {
+    try {
+      const mdImg = await loadImageFileAsMarkdownImage(doc.path, (p) =>
+        messageBridge.invoke('read-file-for-upload', p)
+      )
+      if (mdImg != null) {
+        mdForPayload = mdImg
+      }
+    } catch {
+      /* 保持 serialized.md */
+    }
+  }
+
   const suggestedName =
     explicitName && explicitName.trim().length > 0 ? explicitName.trim() : inferDocumentName(doc)
 
@@ -91,7 +114,7 @@ export const prepareExportPayload = async (
     sourcePath: doc.path,
     requestId,
     data: {
-      md: serialized.md,
+      md: mdForPayload,
       json: serialized.json,
       tex: serialized.tex
     }

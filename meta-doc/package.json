@@ -63,7 +63,8 @@
     "agent-cli:test": "node scripts/agent-cli/send-and-receive.mjs \"Hello, reply with exactly: OK\" \"What is 1+1? Reply with one number.\"",
     "agent-cli:full-test": "node scripts/agent-cli/run-full-test.mjs",
     "startup-profile": "node scripts/startup-profile-collect.mjs",
-    "startup-profile:build": "node scripts/startup-profile-collect.mjs --build"
+    "startup-profile:build": "node scripts/startup-profile-collect.mjs --build",
+    "export-harness": "node export-automation/run-export-harness.mjs"
   },
   "fileAssociations": [
     {

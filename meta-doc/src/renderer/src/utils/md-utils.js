@@ -1993,6 +1993,72 @@ export async function ConvertMarkdownToHtmlVditor(md) {
   return await Vditor.md2html(md, { cdn: cdn })
 }
 
+/** 与 Vditor.highlightRender 一致：不参与 hljs 的围栏语言（公式/图表等） */
+const DOCX_HLJS_SKIP_LANGS = new Set([
+  'math',
+  'mermaid',
+  'flowchart',
+  'echarts',
+  'mindmap',
+  'plantuml',
+  'markmap',
+  'abc',
+  'graphviz',
+  'smiles'
+])
+
+/**
+ * 在 md2html 结果上为围栏代码块注入 highlight.js 高亮（不调用 mathRender / preview，避免公式双份）。
+ * 供 DOCX 导出；主进程再将 hljs class 转为内联 color 以适配 html-to-docx。
+ * @param {string} html - Vditor.md2html 输出片段
+ * @returns {Promise<string>}
+ */
+export async function enhanceMd2htmlWithHljsForDocx(html) {
+  if (!html || typeof html !== 'string') return html
+  const wrap = document.createElement('div')
+  wrap.innerHTML = html
+  const blocks = wrap.querySelectorAll('pre > code')
+  if (blocks.length === 0) return html
+
+  let hljs
+  try {
+    const mod = await import('highlight.js')
+    hljs = mod.default
+  } catch (e) {
+    getLogger().warn('DOCX 代码高亮：highlight.js 加载失败，将使用无高亮 HTML', e)
+    return html
+  }
+
+  blocks.forEach((block) => {
+    if (!(block instanceof HTMLElement)) return
+    if (block.classList.contains('language-math')) return
+    const langClass = [...block.classList].find((c) => c.startsWith('language-'))
+    if (!langClass) return
+    const lang = langClass.slice('language-'.length)
+    if (!lang || DOCX_HLJS_SKIP_LANGS.has(lang)) return
+
+    let language = lang
+    if (!hljs.getLanguage(language)) {
+      language = 'plaintext'
+    }
+
+    let codeText = block.textContent ?? ''
+    if (codeText.endsWith('\n')) {
+      codeText = codeText.slice(0, -1)
+    }
+
+    try {
+      const { value } = hljs.highlight(codeText, { language, ignoreIllegals: true })
+      block.innerHTML = value
+      block.classList.add('hljs')
+    } catch (err) {
+      getLogger().warn(`DOCX 代码高亮失败 (${lang})，保留纯文本`, err)
+    }
+  })
+
+  return wrap.innerHTML
+}
+
 /**
  * 将 Vditor.md2html 生成的 HTML 中 class="language-math" 的行内/块级公式渲染为 PNG 图片
  * - span.language-math 视为行内

@@ -9,7 +9,11 @@ import {
   collectOriginalImageUrls,
   collectRenderedImageUrls
 } from '../export-steps'
-import { embedImagesInline, ConvertMarkdownToHtmlVditor } from '../../utils/md-utils'
+import {
+  embedImagesInline,
+  ConvertMarkdownToHtmlVditor,
+  enhanceMd2htmlWithHljsForDocx
+} from '../../utils/md-utils'
 
 /**
  * Markdown -> DOCX 导出适配器
@@ -414,8 +418,9 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
     })
     markdown = await ensureLocal2HttpForTarget(markdown, 'docx', docPath)
     const markdownWithBase64Images = await embedImagesInline(markdown)
-    // DOCX 使用 md2html：结构稳定，公式与 .language-math 占位替换一致；勿用 preview+mathRender，易产生重复正文与复杂 DOM
-    const html = await ConvertMarkdownToHtmlVditor(markdownWithBase64Images)
+    // DOCX：先 md2html（公式 DOM 与主进程占位符流程稳定），再仅对 pre>code 注入 hljs，不跑 mathRender
+    const htmlFromMd = await ConvertMarkdownToHtmlVditor(markdownWithBase64Images)
+    const html = await enhanceMd2htmlWithHljsForDocx(htmlFromMd)
 
     const originalImageUrls = collectOriginalImageUrls(data.md)
     const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)

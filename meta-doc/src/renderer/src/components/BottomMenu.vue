@@ -64,6 +64,33 @@
     <LlmStatisticsDialog v-model="showLlmStatisticsDialog" />
     <VersionInfoPanel />
     <div class="actions-group">
+      <Transition name="bottom-menu-progress">
+        <div
+          v-if="progressVisible"
+          class="bottom-menu-progress"
+          :style="{
+            color: themeState.currentTheme.textColor,
+            borderRightColor: themeState.currentTheme.borderColor || 'rgba(128, 128, 128, 0.35)'
+          }"
+        >
+          <div class="bottom-menu-progress-text">
+            <span class="bottom-menu-progress-message">{{ progressMessage }}</span>
+            <span v-if="progressSubMessage" class="bottom-menu-progress-sub">{{
+              progressSubMessage
+            }}</span>
+          </div>
+          <Progress
+            :model-value="progressPercentage"
+            :status="progressStatus"
+            :show-text="false"
+            :stroke-width="4"
+            class="bottom-menu-progress-track"
+          />
+          <span v-if="progressShowPercentage" class="bottom-menu-progress-pct">{{
+            Math.round(progressPercentage)
+          }}%</span>
+        </div>
+      </Transition>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger as-child>
@@ -146,9 +173,20 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@renderer/components/ui/tooltip'
+import { Progress } from '@renderer/components/ui/progress'
+import { useGlobalProgress } from '../composables/useGlobalProgress'
 
 const workspace = useWorkspace()
 const { t } = useI18n()
+
+const {
+  visible: progressVisible,
+  message: progressMessage,
+  subMessage: progressSubMessage,
+  percentage: progressPercentage,
+  status: progressStatus,
+  showPercentage: progressShowPercentage
+} = useGlobalProgress()
 
 const tasks = useAiTasks()
 
@@ -451,6 +489,69 @@ onMounted(() => {
   flex: 0 0 auto;
   margin-left: 12px;
   flex-shrink: 0;
+}
+
+.bottom-menu-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(380px, 38vw);
+  padding: 2px 8px 2px 0;
+  border-right: 1px solid transparent;
+  margin-right: 4px;
+  box-sizing: border-box;
+}
+
+.bottom-menu-progress-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+  line-height: 1.15;
+}
+
+.bottom-menu-progress-message {
+  font-size: 11px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottom-menu-progress-sub {
+  font-size: 10px;
+  opacity: 0.72;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottom-menu-progress-track {
+  flex: 0 0 120px;
+  width: 120px;
+  max-width: 120px;
+}
+
+.bottom-menu-progress-pct {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.85;
+  min-width: 2.25em;
+  text-align: right;
+}
+
+.bottom-menu-progress-enter-active,
+.bottom-menu-progress-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.bottom-menu-progress-enter-from,
+.bottom-menu-progress-leave-to {
+  opacity: 0;
 }
 
 .ai-task-menu {

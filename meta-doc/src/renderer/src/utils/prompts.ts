@@ -73,9 +73,13 @@ export const generateTitlePrompt = (treeJson: string): string => {
 
   return `You are an excellent editor. The following is an article outline. Please determine what the article is about and generate a title.
 
+**Language rule:**
+- Output the title in the same language as the article outline text.
+- If you cannot confidently determine the language, output in English.
+
 **Output requirements:**
 - Output the title directly, starting from the first line
-- Title should be within 15 words
+- Title should be within 15 words (or similarly short length in non-English languages)
 - Avoid unnecessary prefix or explanation
 
 Article outline:
@@ -103,9 +107,13 @@ export const generateDescriptionPrompt = (treeJson: string): string => {
 
   return `You are an excellent editor. The following is an article outline. Please determine what the article is about and generate a summary.
 
+**Language rule:**
+- Output the summary in the same language as the article outline text.
+- If you cannot confidently determine the language, output in English.
+
 **Output requirements:**
 - Output the summary directly
-- Summary should be within 200 words
+- Summary should be within 200 words (or similarly concise length in non-English languages)
 
 Article outline:
 ${outlineText}`
@@ -128,6 +136,10 @@ export const generateKeywordsPrompt = (treeJson: string): string => {
     template ||
     `You are a professional document editing assistant. The following is a document outline:
 ${outlineText}
+
+Language rule:
+- Output the keywords in the same language as the document outline text.
+- If you cannot confidently determine the language, output in English.
 
 Please generate 5-8 high-quality keywords. Output a JSON array only, e.g. ["AI", "text processing"]. Start from the first line with the JSON array; avoid explanation or prefix.`
   )

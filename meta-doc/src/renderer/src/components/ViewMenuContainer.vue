@@ -124,7 +124,9 @@
               <WorkspaceGrepPanel v-if="showWorkspaceGrep" ref="workspaceGrepPanelRef" />
             </div>
             <MetaInfoPanel
-              v-if="activeTab === 'meta' && activeDocument"
+              v-if="showMetaInfoTab && activeDocument"
+              v-show="activeTab === 'meta'"
+              :key="activeDocument.tabId"
               :meta="activeDocument.meta"
               :markdown="activeDocument.markdown"
               :latex="activeDocument.tex"

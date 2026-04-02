@@ -21,6 +21,7 @@
             <TooltipTrigger as-child>
               <Button type="info" @click="handleGenerate" :loading="loading" size="icon">
                 <Refresh v-if="!loading" class="h-4 w-4" />
+                <Loading v-else class="h-4 w-4 animate-spin" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left">
@@ -47,7 +48,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { toast } from '@renderer/utils/toast'
-import { Refresh, Check } from '@element-plus/icons-vue'
+import { Refresh, Check, Loading } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { themeState } from '../utils/themes'
@@ -138,7 +139,7 @@ const handleAccept = () => {
 
 const generateContent = async () => {
   if (!props.prompt) {
-    ElMessage.warning(t('llmDialog.promptEmptyWarning'))
+    toast.warning(t('llmDialog.promptEmptyWarning'))
     return
   }
   loading.value = true
@@ -167,7 +168,7 @@ const generateContent = async () => {
       stream: true
     }).done
   } catch (error) {
-    ElMessage.error(t('llmDialog.generateFailedError'))
+    toast.error(t('llmDialog.generateFailedError'))
     console.error(error)
   } finally {
     loading.value = false

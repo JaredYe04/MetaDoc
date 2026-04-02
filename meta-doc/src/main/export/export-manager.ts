@@ -763,6 +763,113 @@ const stripMarkdownFromTitle = (title: string): string => {
 // 注意：手动目录生成已移除，现在使用 Word 自动目录（WordTocProcessor）
 
 /**
+ * highlight.js token → 内联颜色（GitHub 浅色主题近似，供 Word 识别；与 PDF 浅色 hljs 同系）
+ * html-to-docx 不消费外链 hljs CSS，必须内联。
+ */
+const HLJS_TOKEN_COLORS: Record<string, string> = {
+  comment: '#6a737d',
+  quote: '#6a737d',
+  keyword: '#d73a49',
+  decorator: '#6f42c1',
+  'selector-tag': '#d73a49',
+  subst: '#d73a49',
+  literal: '#005cc5',
+  number: '#005cc5',
+  regexp: '#032f62',
+  string: '#032f62',
+  doctag: '#032f62',
+  addition: '#032f62',
+  attribute: '#032f62',
+  variable: '#005cc5',
+  'template-variable': '#005cc5',
+  type: '#005cc5',
+  'selector-class': '#005cc5',
+  'selector-attr': '#005cc5',
+  'selector-pseudo': '#005cc5',
+  link: '#005cc5',
+  title: '#6f42c1',
+  name: '#22863a',
+  section: '#6f42c1',
+  built_in: '#e36209',
+  bullet: '#735c0f',
+  symbol: '#e36209',
+  meta: '#6a737d',
+  'meta-keyword': '#d73a49',
+  'meta-string': '#032f62',
+  deletion: '#b31d28',
+  emphasis: '#24292e',
+  strong: '#24292e',
+  formula: '#d73a49',
+  operator: '#d73a49',
+  entity: '#005cc5',
+  property: '#005cc5',
+  punctuation: '#24292e',
+  tag: '#22863a',
+  params: '#24292e',
+  function: '#6f42c1',
+  class: '#6f42c1',
+  function_: '#6f42c1',
+  char: '#032f62',
+  namespace: '#22863a',
+  'attr-name': '#6f42c1',
+  'attr-value': '#032f62'
+}
+
+function colorStyleForHljsClassAttr(classAttr: string): string | null {
+  const tokens = classAttr.match(/hljs-([\w-]+)/g)
+  if (!tokens || tokens.length === 0) return null
+  for (const t of tokens) {
+    const name = t.slice('hljs-'.length)
+    const hex = HLJS_TOKEN_COLORS[name]
+    if (hex) {
+      let style = `color: ${hex}`
+      if (name === 'emphasis') style += '; font-style: italic'
+      if (name === 'strong') style += '; font-weight: bold'
+      return style
+    }
+  }
+  return null
+}
+
+/** 将 hljs 的 span class 转为内联 style，并去掉 class，减轻 html-to-docx 压力 */
+function injectHljsInlineColors(html: string): string {
+  return html.replace(
+    /<span([^>]*?)\sclass\s*=\s*["']([^"']+)["']([^>]*)>/gi,
+    (full, before, classes, after) => {
+      const styleAdd = colorStyleForHljsClassAttr(classes)
+      if (!styleAdd) return full
+      const b = String(before || '').trim()
+      const a = String(after || '').trim()
+      const existingStyle = /style\s*=\s*["']([^"']*)["']/i.exec(b + ' ' + a)
+      let merged = styleAdd
+      if (existingStyle) {
+        merged = `${existingStyle[1].replace(/;\s*$/, '')}; ${styleAdd}`
+      }
+      let rest = `${b} ${a}`
+        .replace(/\s*style\s*=\s*["'][^"']*["']/gi, '')
+        .replace(/\s*class\s*=\s*["'][^"']*["']/gi, '')
+        .trim()
+      rest = rest ? ` ${rest}` : ''
+      return `<span style="${merged}"${rest}>`
+    }
+  )
+}
+
+/** 不间断空格：html-to-docx 会丢弃相邻着色 span 之间的普通 U+0020，用 NBSP 才能稳定保留词间空白（实测 pre-wrap 包一层普通空格会被吃掉）。 */
+const NBSP_FOR_WORD = '\u00a0'
+
+/**
+ * 仅处理「标签之间」的文本片段（不碰属性里的空格）；换行留给后续转 <br/>。
+ */
+function preserveSpacesInHtmlTextNodes(html: string): string {
+  return html.replace(/>([^<]*)</g, (_full, text: string) => {
+    if (!text) return '><'
+    const replaced = text.replace(/\t/g, NBSP_FOR_WORD.repeat(4)).replace(/ /g, NBSP_FOR_WORD)
+    return `>${replaced}<`
+  })
+}
+
+/**
  * 处理代码块，将换行符转换为<br>标签，并包装在表格中创建背景框
  * html-to-docx可能不支持white-space: pre和某些CSS属性（如背景色、边框），
  * 使用表格来创建边框和背景效果
@@ -819,10 +926,27 @@ const processCodeBlocksForWord = (html: string): string => {
       return ''
     }
 
-    // 用 <br/> 保留所有换行；html-to-docx 对 td 内多 <p> 的合并行为易导致单行，故用 pre-wrap + <br/>
-    const withBr = escapeHtmlLocal(text).replace(/\n/g, '<br/>')
+    // 用 <br/> 保留所有换行；空格/Tab 用 NBSP，避免 html-to-docx 折叠（同高亮路径）
+    const withBr = escapeHtmlLocal(text)
+      .replace(/\t/g, NBSP_FOR_WORD.repeat(4))
+      .replace(/\n/g, '<br/>')
+      .replace(/ /g, NBSP_FOR_WORD)
     return `<p style="margin: 0 !important; padding: 0 !important; line-height: 1.35 !important; white-space: pre-wrap !important; font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important; font-size: 9pt !important; color: #333333 !important;">${withBr}</p>`
   }
+
+  /** 保留 hljs 产出的 span，将 class 换为内联色，换行转 <br/>；勿对片段做 script 剥离 */
+  const extractAndProcessCodeRich = (inner: string): string => {
+    let html = injectHljsInlineColors(inner)
+    html = preserveSpacesInHtmlTextNodes(html)
+    html = html.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/^\n+/, '').replace(/\n+$/, '')
+    if (!html) {
+      return ''
+    }
+    html = html.replace(/\n/g, '<br/>')
+    return `<p style="margin: 0 !important; padding: 0 !important; line-height: 1.35 !important; white-space: pre-wrap !important; font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important; font-size: 9pt !important; color: #333333 !important;">${html}</p>`
+  }
+
+  const codeInnerLooksHljs = (s: string) => /hljs-/.test(s)
 
   // 表格样式模板（使用更明显的背景色）
   // 注意：td的padding设为6pt上下（减少上下padding），左右12pt
@@ -837,23 +961,38 @@ const processCodeBlocksForWord = (html: string): string => {
       </tr>
     </table>`
 
-  // 仅做「剥标签 + <br/> 换行 + 表格外框」：不注入 hljs 颜色等，避免 html-to-docx 丢内容或与公式处理冲突
-  // 先处理 <pre>…</pre>（md2html 围栏代码通常如此）
-  processed = processed.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (match, content) => {
-    if (content.includes('<table')) {
+  // 先处理 <pre>…</pre>（md2html 围栏；渲染侧可已注入 hljs span）
+  processed = processed.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (match, preInner) => {
+    if (preInner.includes('<table')) {
       return match
     }
-    return codeTableTemplate(extractAndProcessCode(content))
+    const codeMatch = preInner.match(/<code([^>]*)>([\s\S]*?)<\/code>/i)
+    if (codeMatch && /language-math/i.test(codeMatch[1])) {
+      return match
+    }
+    let body: string
+    if (codeMatch && codeInnerLooksHljs(codeMatch[2])) {
+      body = extractAndProcessCodeRich(codeMatch[2])
+      if (!body.trim()) {
+        body = extractAndProcessCode(preInner)
+      }
+    } else {
+      body = extractAndProcessCode(preInner)
+    }
+    return codeTableTemplate(body)
   })
 
   // 少数情况下仅有 <code class="language-xxx"> 而无 pre（勿匹配 language-math，那是公式）
   processed = processed.replace(
-    /<code[^>]*class\s*=\s*["'][^"']*(?:language-|hljs)[^"']*["'][^>]*>([\s\S]*?)<\/code>/gi,
-    (match, content) => {
-      if (content.includes('<table') || /language-math/i.test(match)) {
+    /<code([^>]*class\s*=\s*["'][^"']*(?:language-|hljs)[^"']*["'][^>]*)>([\s\S]*?)<\/code>/gi,
+    (match, _codeAttrs, inner) => {
+      if (inner.includes('<table') || /language-math/i.test(match)) {
         return match
       }
-      return codeTableTemplate(extractAndProcessCode(content))
+      const body = codeInnerLooksHljs(inner)
+        ? extractAndProcessCodeRich(inner) || extractAndProcessCode(inner)
+        : extractAndProcessCode(inner)
+      return codeTableTemplate(body)
     }
   )
 

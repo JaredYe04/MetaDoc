@@ -2268,6 +2268,180 @@ export class ImageNumberingProcessor implements DocxProcessor {
   }
 }
 
+/** OOXML 元素本地名（兼容 w:p 与无前缀） */
+function docxXmlLocalName(el: Element): string {
+  const ln = el.localName
+  if (ln) {
+    return ln
+  }
+  const tag = el.tagName
+  const i = tag.indexOf(':')
+  return i >= 0 ? tag.slice(i + 1) : tag
+}
+
+function docxElementHasDescendantLocalName(root: Element, local: string): boolean {
+  const all = root.getElementsByTagName('*')
+  for (let i = 0; i < all.length; i++) {
+    if (docxXmlLocalName(all[i] as Element) === local) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * html-to-docx 在表格单元格内会把行内超链接、高亮/代码样式等拆成多个 <w:p>，导出后呈「多余换行」。
+ * 在 document.xml 层合并同一单元格内、连续且安全的多个段落为一段。
+ */
+export class TableCellParagraphMergeProcessor implements DocxProcessor {
+  name = 'TableCellParagraphMergeProcessor'
+
+  /** 可与相邻段落合并：无列表、无图片、无域代码 */
+  private static canMergeParagraphInTableCell(p: Element): boolean {
+    if (docxXmlLocalName(p) !== 'p') {
+      return false
+    }
+    for (let c = p.firstChild; c; c = c.nextSibling) {
+      if (c.nodeType !== 1) {
+        continue
+      }
+      if (docxXmlLocalName(c as Element) !== 'pPr') {
+        continue
+      }
+      if (docxElementHasDescendantLocalName(c as Element, 'numPr')) {
+        return false
+      }
+    }
+    if (
+      docxElementHasDescendantLocalName(p, 'drawing') ||
+      docxElementHasDescendantLocalName(p, 'pict') ||
+      docxElementHasDescendantLocalName(p, 'object')
+    ) {
+      return false
+    }
+    if (
+      docxElementHasDescendantLocalName(p, 'fldChar') ||
+      docxElementHasDescendantLocalName(p, 'instrText') ||
+      docxElementHasDescendantLocalName(p, 'fldSimple')
+    ) {
+      return false
+    }
+    return true
+  }
+
+  private static mergeParagraphGroupInCell(group: Element[]): void {
+    if (group.length < 2) {
+      return
+    }
+    const first = group[0]
+    for (let i = 1; i < group.length; i++) {
+      const p = group[i]
+      let c = p.firstChild
+      while (c) {
+        const next = c.nextSibling
+        if (c.nodeType === 1 && docxXmlLocalName(c as Element) === 'pPr') {
+          c = next
+          continue
+        }
+        first.appendChild(c)
+        c = next
+      }
+      p.parentNode?.removeChild(p)
+    }
+  }
+
+  private static mergeParagraphsInTableCell(tc: Element): boolean {
+    const children: Element[] = []
+    for (let n = tc.firstChild; n; n = n.nextSibling) {
+      if (n.nodeType === 1) {
+        children.push(n as Element)
+      }
+    }
+    let group: Element[] = []
+    let modified = false
+
+    const flush = (): void => {
+      if (group.length >= 2) {
+        TableCellParagraphMergeProcessor.mergeParagraphGroupInCell(group)
+        modified = true
+      }
+      group = []
+    }
+
+    for (const el of children) {
+      const ln = docxXmlLocalName(el)
+      if (ln === 'tbl') {
+        flush()
+        continue
+      }
+      if (ln === 'tcPr') {
+        continue
+      }
+      if (ln === 'p') {
+        if (TableCellParagraphMergeProcessor.canMergeParagraphInTableCell(el)) {
+          group.push(el)
+        } else {
+          flush()
+        }
+      } else {
+        flush()
+      }
+    }
+    flush()
+    return modified
+  }
+
+  private static collectAllTableCells(root: Element): Element[] {
+    const out: Element[] = []
+    const walk = (node: Node): void => {
+      if (node.nodeType === 1) {
+        const el = node as Element
+        if (docxXmlLocalName(el) === 'tc') {
+          out.push(el)
+        }
+        for (let c = el.firstChild; c; c = c.nextSibling) {
+          walk(c)
+        }
+      }
+    }
+    walk(root)
+    return out
+  }
+
+  async process(context: DocxProcessingContext): Promise<boolean> {
+    const { documentXml } = context
+    const parser = new DOMParser({
+      errorHandler: {
+        warning: (w) => logger.warn('TableCellParagraphMergeProcessor XML 警告:', w),
+        error: (e) => logger.error('TableCellParagraphMergeProcessor XML 错误:', e),
+        fatalError: (e) => logger.error('TableCellParagraphMergeProcessor XML 致命错误:', e)
+      }
+    })
+    const xmlDoc = parser.parseFromString(documentXml, 'text/xml')
+    if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+      logger.error('TableCellParagraphMergeProcessor: document.xml 解析失败，跳过表格段落合并')
+      return false
+    }
+    const de = xmlDoc.documentElement
+    if (!de) {
+      return false
+    }
+    const cells = TableCellParagraphMergeProcessor.collectAllTableCells(de as Element)
+    let modified = false
+    for (const tc of cells) {
+      if (TableCellParagraphMergeProcessor.mergeParagraphsInTableCell(tc)) {
+        modified = true
+      }
+    }
+    if (modified) {
+      const serializer = new XMLSerializer()
+      context.documentXml = serializer.serializeToString(xmlDoc)
+      logger.info('TableCellParagraphMergeProcessor: 已合并表格单元格内因行内样式拆分的段落')
+    }
+    return modified
+  }
+}
+
 /**
  * Document XML 修复处理器
  * 修复对齐、分页等问题

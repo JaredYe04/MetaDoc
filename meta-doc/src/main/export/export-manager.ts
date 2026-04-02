@@ -28,7 +28,8 @@ import {
   WordTocProcessor,
   HeaderFooterProcessor,
   ImageNumberingProcessor,
-  ImageCenterProcessor
+  ImageCenterProcessor,
+  TableCellParagraphMergeProcessor
 } from './docx-processor'
 import { convertSvgToPdf } from '../utils/svg-to-pdf'
 
@@ -2366,6 +2367,8 @@ const getDocxProcessingManager = (): DocxProcessingManager => {
     docxProcessingManager = new DocxProcessingManager()
     // 图片居中必须在 DocumentXmlFixProcessor 之前执行，否则会被统一改成左对齐
     docxProcessingManager.register(new ImageCenterProcessor())
+    // 合并 html-to-docx 在表格单元格内为行内样式拆出的多个 w:p（见 TableCellParagraphMergeProcessor）
+    docxProcessingManager.register(new TableCellParagraphMergeProcessor())
     // 注册 Document XML 修复处理器（修复对齐、分页、语言等；会保留已设置的 center）
     docxProcessingManager.register(new DocumentXmlFixProcessor())
     // 注册 Word 自动目录处理器

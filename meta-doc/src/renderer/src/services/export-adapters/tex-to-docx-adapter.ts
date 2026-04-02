@@ -1,35 +1,26 @@
-import { BaseExportAdapter } from './base-adapter'
-import type { BaseExportOptions, ExportOptionField } from './types'
+import { MdToDocxAdapter } from './md-to-docx-adapter'
+import type { DocxExportOptions } from './types'
+import type { DocumentFormat, ExportFormat } from '../../../../types'
 import { convertLatexToMarkdown } from '../../utils/latex-utils'
-import {
-  local2httpProtocol,
-  embedImagesInline,
-  ConvertMarkdownToHtmlVditor
-} from '../../utils/md-utils'
 
 /**
- * LaTeX -> DOCX 导出适配器
- * 流程：TEX→MD → local2http → embedImagesInline → MD→HTML(Vditor)
+ * LaTeX -> DOCX：先 TEX→MD，再走与 Markdown→DOCX 相同的预处理与选项（选项存储复用 md→docx）。
  */
-export class TexToDocxAdapter extends BaseExportAdapter<'tex', 'docx', BaseExportOptions> {
-  sourceFormat: 'tex' = 'tex'
-  targetFormat: 'docx' = 'docx'
-  id = 'tex-to-docx'
-  name = 'LaTeX to DOCX'
-  nameKey = 'export.adapters.texToDocx.name'
+export class TexToDocxAdapter extends MdToDocxAdapter {
+  override sourceFormat: 'tex' = 'tex'
+  override targetFormat: 'docx' = 'docx'
+  override id = 'tex-to-docx'
+  override name = 'LaTeX to DOCX'
+  override nameKey = 'export.adapters.texToDocx.name'
 
-  getDefaultOptions(): BaseExportOptions {
-    return {}
+  getOptionsStorageFormats(): { source: DocumentFormat; target: ExportFormat } {
+    return { source: 'md', target: 'docx' }
   }
 
-  getOptionFields(): ExportOptionField[] {
-    return []
-  }
-
-  async prepareExportData(
+  override async prepareExportData(
     data: { md: string; json: string; tex: string },
-    options: BaseExportOptions,
-    context?: { doc?: { path?: string } }
+    options: DocxExportOptions,
+    context?: any
   ): Promise<{
     md: string
     json: string
@@ -37,24 +28,7 @@ export class TexToDocxAdapter extends BaseExportAdapter<'tex', 'docx', BaseExpor
     html?: string
     imageUrls?: string[]
   }> {
-    let markdown = convertLatexToMarkdown(data.tex)
-    markdown = await local2httpProtocol(markdown, context?.doc?.path)
-    markdown = await embedImagesInline(markdown)
-    const html = await ConvertMarkdownToHtmlVditor(markdown)
-    return {
-      md: markdown,
-      json: data.json,
-      tex: data.tex,
-      html
-    }
-  }
-
-  async executeExport(
-    preparedData: { md: string; json: string; tex: string; html?: string; imageUrls?: string[] },
-    targetPath: string,
-    options: BaseExportOptions,
-    context?: any
-  ): Promise<void> {
-    throw new Error('executeExport should be called in main process')
+    const mdFromTex = convertLatexToMarkdown(data.tex ?? '')
+    return super.prepareExportData({ ...data, md: mdFromTex }, options, context)
   }
 }

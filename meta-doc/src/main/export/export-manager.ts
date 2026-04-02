@@ -200,9 +200,37 @@ const convertHtmlToPdfBuffer = async (
     await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
     await loadPromise
 
-    // 等待一小段时间确保资源完全加载
-    logger.info('等待资源加载...')
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // did-finish-load 早于外链 Vditor 脚本执行与 Vditor.preview 完成；首次冷启动易打出空白 PDF
+    logger.info('等待 Vditor 预览与字体就绪...')
+    const pdfPreviewWait = await win.webContents.executeJavaScript(`
+      (async () => {
+        try {
+          await document.fonts.ready
+        } catch (e) {}
+        const deadline = Date.now() + 30000
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+        const preview = () => document.getElementById('preview')
+        const vditorReady = () => {
+          const el = preview()
+          if (!el) return false
+          return !!(
+            el.querySelector('.vditor-reset') ||
+            el.querySelector('.vditor-preview') ||
+            el.querySelector('pre.hljs') ||
+            el.querySelector('pre code')
+          )
+        }
+        while (Date.now() < deadline) {
+          if (vditorReady()) {
+            await sleep(200)
+            return 'ready'
+          }
+          await sleep(80)
+        }
+        return 'timeout'
+      })()
+    `)
+    logger.info(`Vditor 预览等待结果: ${pdfPreviewWait}`)
 
     // 检查图片是否加载完成
     const imagesLoaded = await win.webContents.executeJavaScript(`
@@ -746,25 +774,26 @@ const processCodeBlocksForWord = (html: string): string => {
   const extractAndProcessCode = (content: string): string => {
     // 先处理HTML实体，避免在移除标签时丢失信息
     let text = content
-      .replace(/&lt;/g, '\u0001LT\u0001') // 临时标记，避免<被当作标签
-      .replace(/&gt;/g, '\u0001GT\u0001') // 临时标记，避免>被当作标签
-      .replace(/&amp;/g, '\u0001AMP\u0001') // 临时标记
+      .replace(/&lt;/g, '\u0001LT\u0001')
+      .replace(/&gt;/g, '\u0001GT\u0001')
+      .replace(/&amp;/g, '\u0001AMP\u0001')
       .replace(/&quot;/g, '\u0001QUOT\u0001')
       .replace(/&#39;/g, '\u0001APOS\u0001')
-      .replace(/&nbsp;/g, ' ') // &nbsp;转换为空格
+      .replace(/&nbsp;/g, ' ')
 
-    // 将现有的<br>标签转换为换行符
+    // 将 <br>、常见块结束标签转为换行，避免 hljs 仅输出 span 时整段粘成一行
     text = text.replace(/<br\s*\/?>/gi, '\n')
+    text = text.replace(/<\/p>\s*/gi, '\n')
+    text = text.replace(/<\/div>\s*/gi, '\n')
+    text = text.replace(/<\/tr>\s*/gi, '\n')
 
-    // 移除所有HTML标签，但保留文本内容
-    // 使用递归方式移除嵌套标签，确保正确提取文本
+    // 移除所有HTML标签，保留文本与已插入的换行
     let lastText = ''
     while (text !== lastText) {
       lastText = text
       text = text.replace(/<[^>]+>/g, '')
     }
 
-    // 恢复HTML实体
     const ctrlChar = String.fromCharCode(1)
     text = text
       .replace(new RegExp(`${ctrlChar}LT${ctrlChar}`, 'g'), '<')
@@ -773,56 +802,26 @@ const processCodeBlocksForWord = (html: string): string => {
       .replace(new RegExp(`${ctrlChar}QUOT${ctrlChar}`, 'g'), '"')
       .replace(new RegExp(`${ctrlChar}APOS${ctrlChar}`, 'g'), "'")
 
-    // 统一换行符（\r\n -> \n, \r -> \n）
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
 
-    // 分割为行
-    let lines = text.split('\n')
-
-    // 移除开头的空行（纯空白行）
-    while (lines.length > 0 && lines[0].trim().length === 0) {
-      lines.shift()
-    }
-
-    // 移除结尾的空行（纯空白行）
-    while (lines.length > 0 && lines[lines.length - 1].trim().length === 0) {
-      lines.pop()
-    }
-
-    // 如果所有行都被移除了，返回空字符串
-    if (lines.length === 0) {
-      logger.warn('所有行都被移除了，返回空字符串')
-      return ''
-    }
-
-    // 处理第一行：移除第一行前面的多余空格（只移除前导空格，不影响代码本身的缩进）
-    if (lines.length > 0) {
-      lines[0] = lines[0].replace(/^\s+/, '')
-    }
-
-    // 过滤掉所有空行（行与行之间的多余空行）
-    const processedLines = lines.filter((line) => line.trim().length > 0)
-
-    // 将每行代码用<p>标签包裹，每个<p>标签设置margin:0和padding:0，避免多余的空行
-    // 这样可以确保在Word中每行代码之间没有额外的间距
-    // 注意：需要先转义HTML特殊字符，因为代码可能包含<、>等字符
-    const escapeHtml = (text: string): string => {
-      return text
+    const escapeHtmlLocal = (s: string): string =>
+      s
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;')
+
+    // 去掉块首尾纯空白，保留中间空行（用 <br/> 表现）
+    text = text.replace(/^\n+/, '').replace(/\n+$/, '')
+
+    if (text.length === 0) {
+      return ''
     }
 
-    const result = processedLines
-      .map(
-        (line) =>
-          `<p style="margin: 0 !important; padding: 0 !important; line-height: 1.2 !important;">${escapeHtml(line)}</p>`
-      )
-      .join('')
-
-    return result
+    // 用 <br/> 保留所有换行；html-to-docx 对 td 内多 <p> 的合并行为易导致单行，故用 pre-wrap + <br/>
+    const withBr = escapeHtmlLocal(text).replace(/\n/g, '<br/>')
+    return `<p style="margin: 0 !important; padding: 0 !important; line-height: 1.35 !important; white-space: pre-wrap !important; font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important; font-size: 9pt !important; color: #333333 !important;">${withBr}</p>`
   }
 
   // 表格样式模板（使用更明显的背景色）
@@ -838,39 +837,23 @@ const processCodeBlocksForWord = (html: string): string => {
       </tr>
     </table>`
 
-  // 1. 处理<div class="md-editor-code">包装的代码块（优先处理，因为可能包含pre和code）
-  processed = processed.replace(
-    /<div[^>]*class="[^"]*md-editor-code[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
-    (match, content) => {
-      // 如果content已经是表格（被上面的处理替换了），直接返回
-      if (content.includes('<table')) {
-        return match
-      }
-      const codeContent = extractAndProcessCode(content)
-      return codeTableTemplate(codeContent)
-    }
-  )
-
-  // 2. 处理<pre>标签（可能包含<code>标签）
+  // 仅做「剥标签 + <br/> 换行 + 表格外框」：不注入 hljs 颜色等，避免 html-to-docx 丢内容或与公式处理冲突
+  // 先处理 <pre>…</pre>（md2html 围栏代码通常如此）
   processed = processed.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (match, content) => {
-    // 如果content已经是表格（被上面的处理替换了），直接返回
     if (content.includes('<table')) {
       return match
     }
-    const codeContent = extractAndProcessCode(content)
-    return codeTableTemplate(codeContent)
+    return codeTableTemplate(extractAndProcessCode(content))
   })
 
-  // 3. 处理独立的<code class="hljs">代码块
+  // 少数情况下仅有 <code class="language-xxx"> 而无 pre（勿匹配 language-math，那是公式）
   processed = processed.replace(
-    /<code[^>]*class="[^"]*hljs[^"]*"[^>]*>([\s\S]*?)<\/code>/gi,
+    /<code[^>]*class\s*=\s*["'][^"']*(?:language-|hljs)[^"']*["'][^>]*>([\s\S]*?)<\/code>/gi,
     (match, content) => {
-      // 如果content已经是表格（被上面的处理替换了），直接返回
-      if (content.includes('<table')) {
+      if (content.includes('<table') || /language-math/i.test(match)) {
         return match
       }
-      const codeContent = extractAndProcessCode(content)
-      return codeTableTemplate(codeContent)
+      return codeTableTemplate(extractAndProcessCode(content))
     }
   )
 
@@ -3533,7 +3516,9 @@ const EXPORT_HANDLER_MAP: Record<DocumentFormat, Partial<Record<ExportFormat, Ex
   tex: {
     ...LATEX_HANDLERS
   },
-  json: JSON_HANDLERS
+  json: JSON_HANDLERS,
+  /** 纯文本源在渲染侧已规范为 Markdown，主进程与 md 相同 */
+  txt: MARKDOWN_HANDLERS
 }
 
 const FILTER_MAP: Record<ExportFormat, Electron.FileFilter> = {
@@ -3543,6 +3528,34 @@ const FILTER_MAP: Record<ExportFormat, Electron.FileFilter> = {
   md: { name: t('main.dialogs.filters.markdown'), extensions: ['md'] },
   tex: { name: t('main.dialogs.filters.latex'), extensions: ['tex'] },
   json: { name: 'JSON', extensions: ['json'] }
+}
+
+/** 仅弹出「另存为」对话框，供渲染进程在预处理前让用户选择路径 */
+export async function pickExportSavePath(
+  mainWindow: BrowserWindow | null,
+  suggestedName: string,
+  targetFormat: ExportFormat
+): Promise<{ canceled: true; path?: undefined } | { canceled: false; path: string }> {
+  const defaultFileName = enforceExtension(suggestedName, targetFormat)
+  const filters = FILTER_MAP[targetFormat]
+    ? [FILTER_MAP[targetFormat]]
+    : [{ name: targetFormat.toUpperCase(), extensions: [targetFormat] }]
+
+  if (mainWindow) {
+    mainWindow.webContents.send('export-dialog-opening')
+  }
+
+  const dialogResult = await dialog.showSaveDialog(mainWindow || undefined, {
+    title: t('main.dialogs.exportDocumentTitle'),
+    defaultPath: defaultFileName,
+    filters
+  })
+
+  if (dialogResult.canceled || !dialogResult.filePath) {
+    return { canceled: true }
+  }
+
+  return { canceled: false, path: enforceExtension(dialogResult.filePath, targetFormat) }
 }
 
 export const performExportRequest = async (

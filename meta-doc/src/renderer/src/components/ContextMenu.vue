@@ -1,7 +1,45 @@
 <template>
   <div ref="menuRef" class="context-menu" :style="menuStyle" @contextmenu.prevent @mousedown.stop>
-    <template v-for="(item, index) in items" :key="item.value ?? `divider-${index}`">
+    <template v-for="(item, index) in items" :key="item.value ?? `item-${index}`">
       <div v-if="item.type === 'divider'" class="context-menu__divider" />
+      <div
+        v-else-if="item.type === 'submenu' && item.children?.length"
+        class="context-menu__submenu-wrap"
+        @mouseenter="openSubmenuIndex = index"
+        @mouseleave="openSubmenuIndex = null"
+      >
+        <div
+          class="context-menu__item context-menu__item--submenu-parent"
+          :style="menuItemStyle"
+          :class="{ 'is-disabled': item.disabled }"
+        >
+          <span class="context-menu__label">{{ item.label ? $t(item.label) : '' }}</span>
+          <span class="context-menu__submenu-chevron">›</span>
+        </div>
+        <div
+          v-show="openSubmenuIndex === index"
+          class="context-menu__submenu-panel"
+          :style="submenuPanelStyle"
+          @mouseenter="openSubmenuIndex = index"
+          @mouseleave="openSubmenuIndex = null"
+        >
+          <template v-for="(child, ci) in item.children" :key="child.value ?? `sub-${ci}`">
+            <div v-if="child.type === 'divider'" class="context-menu__divider" />
+            <div
+              v-else
+              class="context-menu__item"
+              :style="menuItemStyle"
+              :class="{
+                'is-danger': child.danger,
+                'is-disabled': child.disabled
+              }"
+              @mousedown.prevent="onMenuItemMouseDown(child)"
+            >
+              <span class="context-menu__label">{{ child.label ? $t(child.label) : '' }}</span>
+            </div>
+          </template>
+        </div>
+      </div>
       <div
         v-else
         class="context-menu__item"
@@ -42,6 +80,7 @@ const emit = defineEmits<{
 
 const menuRef = ref<HTMLElement | null>(null)
 const menuPosition = ref({ top: props.y ?? 0, left: props.x ?? 0 })
+const openSubmenuIndex = ref<number | null>(null)
 
 const adjustWithinViewport = () => {
   const el = menuRef.value
@@ -66,6 +105,13 @@ watch(
   () => [props.x, props.y],
   ([x, y]) => updatePosition(x ?? 0, y ?? 0),
   { immediate: true }
+)
+
+watch(
+  () => props.items,
+  () => {
+    openSubmenuIndex.value = null
+  }
 )
 
 const closeMenu = () => emit('close')
@@ -131,6 +177,28 @@ const menuStyle = computed(() => {
   return style
 })
 
+const submenuPanelStyle = computed(() => {
+  const background = themeState.currentTheme.background2nd
+  const textColor = themeState.currentTheme.textColor
+  const borderColor = mixColors(
+    background,
+    textColor,
+    themeState.currentTheme.type === 'dark' ? 0.5 : 0.35
+  )
+  return {
+    background,
+    color: textColor,
+    border: `1px solid ${borderColor}`,
+    boxShadow:
+      themeState.currentTheme.type === 'dark'
+        ? '0 12px 28px rgba(0, 0, 0, 0.45)'
+        : '0 12px 28px rgba(15, 23, 42, 0.16)',
+    borderRadius: '10px',
+    padding: '4px 0',
+    minWidth: '160px'
+  } as CSSProperties
+})
+
 const menuItemStyle = computed(() => {
   const baseBg = themeState.currentTheme.background2nd
   const baseText = themeState.currentTheme.textColor
@@ -175,6 +243,29 @@ const onMenuItemMouseDown = (item: ContextMenuItem) => {
   font-size: 13px;
   line-height: 1.4;
   pointer-events: auto;
+}
+
+.context-menu__submenu-wrap {
+  position: relative;
+}
+
+.context-menu__submenu-panel {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin-left: 2px;
+  z-index: 2100;
+}
+
+.context-menu__item--submenu-parent {
+  padding-right: 8px;
+}
+
+.context-menu__submenu-chevron {
+  margin-left: auto;
+  opacity: 0.65;
+  font-size: 14px;
+  line-height: 1;
 }
 
 .context-menu__item {

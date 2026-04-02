@@ -59,8 +59,8 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
           lineHeight: 1.2
         }
       },
-      generateCover: true,
-      generateToc: true,
+      generateCover: false,
+      generateToc: false,
       processFormula: true,
       showPageNumbers: false,
       showHeader: false,
@@ -78,7 +78,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         label: '生成封面',
         labelKey: 'export.options.generateCover.label',
         type: 'boolean',
-        default: true,
+        default: false,
         description: '在第一页显示文档标题、作者、摘要和关键词',
         descriptionKey: 'export.options.generateCover.description',
         tab: 'basic'
@@ -88,7 +88,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         label: '生成目录',
         labelKey: 'export.options.generateToc.label',
         type: 'boolean',
-        default: true,
+        default: false,
         description: '在封面后（或文档开头）生成目录',
         descriptionKey: 'export.options.generateToc.description',
         tab: 'basic'
@@ -414,6 +414,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
     })
     markdown = await ensureLocal2HttpForTarget(markdown, 'docx', docPath)
     const markdownWithBase64Images = await embedImagesInline(markdown)
+    // DOCX 使用 md2html：结构稳定，公式与 .language-math 占位替换一致；勿用 preview+mathRender，易产生重复正文与复杂 DOM
     const html = await ConvertMarkdownToHtmlVditor(markdownWithBase64Images)
 
     const originalImageUrls = collectOriginalImageUrls(data.md)

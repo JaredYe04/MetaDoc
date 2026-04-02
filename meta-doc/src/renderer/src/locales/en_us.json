@@ -1482,6 +1482,16 @@
       "exportRegressionRunAll": "Export all formats",
       "exportRegressionExporting": "Exporting… ({current} / {total})",
       "exportRegressionComplete": "All complete",
+      "exportFixtureBatch": "Batch export fixtures",
+      "exportFixtureBatchIntro": "Scan the fixtures folder for md / json / py / vue / html / png / tex and export each to PDF and DOCX via the same pipeline as the app. Each source file writes under a subfolder named with the full filename including extension (e.g. sample.vue, sample.py) so names like sample.md and sample.vue do not overwrite each other. Default paths: debug-export/fixtures and debug-export/output (output is gitignored).",
+      "exportFixtureFixturesDir": "Fixtures directory",
+      "exportFixtureOutputDir": "Output directory",
+      "exportFixtureRun": "Export all to PDF + DOCX",
+      "exportFixtureRunning": "Exporting… ({current} / {total})",
+      "exportFixtureNoFiles": "No matching files in the fixtures directory (expected extensions: md, json, py, vue, html, png, tex)",
+      "exportFixtureComplete": "Batch export finished",
+      "exportFixtureReadDirFail": "Cannot read fixtures directory: {msg}",
+      "exportFixtureResolveFail": "Could not resolve this file for export",
       "unitTest": {
         "singleTest": "Single Test",
         "batchTest": "Batch Test",
@@ -4002,8 +4012,38 @@
       "texToTex": {
         "name": "LaTeX to LaTeX",
         "description": "Export LaTeX documents"
+      },
+      "texToHtml": {
+        "name": "LaTeX to HTML",
+        "description": "Convert LaTeX to Markdown, then export HTML"
+      },
+      "texToDocx": {
+        "name": "LaTeX to DOCX",
+        "description": "Convert LaTeX to Markdown, then export DOCX"
+      },
+      "txtToMd": {
+        "name": "Plain text to Markdown",
+        "description": "Export plain text or code as Markdown"
+      },
+      "txtToHtml": {
+        "name": "Plain text to HTML",
+        "description": "Convert to Markdown, then export HTML"
+      },
+      "txtToDocx": {
+        "name": "Plain text to DOCX",
+        "description": "Convert to Markdown, then export DOCX"
+      },
+      "txtToPdf": {
+        "name": "Plain text to PDF",
+        "description": "Convert to Markdown, then export PDF"
       }
-    }
+    },
+    "taskTitle": "Export task",
+    "taskPhasePickPath": "Choose save location…",
+    "taskPhasePreparing": "Preparing…",
+    "taskPhaseDone": "Done",
+    "taskPhaseFailed": "Failed",
+    "taskCancel": "Cancel"
   },
   "fontSize": {
     "chuhao": "Initial",

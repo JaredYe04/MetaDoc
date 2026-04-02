@@ -14,6 +14,12 @@ import { TexToTexAdapter } from './tex-to-tex-adapter'
 import { TexToMdAdapter } from './tex-to-md-adapter'
 import { TexToHtmlAdapter } from './tex-to-html-adapter'
 import { TexToDocxAdapter } from './tex-to-docx-adapter'
+import {
+  TxtToMdAdapter,
+  TxtToHtmlAdapter,
+  TxtToDocxAdapter,
+  TxtToPdfAdapter
+} from './txt-export-adapters'
 
 // 注册所有适配器
 export async function registerAllAdapters(): Promise<void> {
@@ -30,6 +36,11 @@ export async function registerAllAdapters(): Promise<void> {
   exportAdapterRegistry.register(new TexToMdAdapter())
   exportAdapterRegistry.register(new TexToHtmlAdapter())
   exportAdapterRegistry.register(new TexToDocxAdapter())
+
+  exportAdapterRegistry.register(new TxtToMdAdapter())
+  exportAdapterRegistry.register(new TxtToHtmlAdapter())
+  exportAdapterRegistry.register(new TxtToDocxAdapter())
+  exportAdapterRegistry.register(new TxtToPdfAdapter())
 }
 
 // 导出注册表和适配器类型
@@ -57,5 +68,9 @@ export {
   TexToTexAdapter,
   TexToMdAdapter,
   TexToHtmlAdapter,
-  TexToDocxAdapter
+  TexToDocxAdapter,
+  TxtToMdAdapter,
+  TxtToHtmlAdapter,
+  TxtToDocxAdapter,
+  TxtToPdfAdapter
 }

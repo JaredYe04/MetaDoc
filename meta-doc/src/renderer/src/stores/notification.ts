@@ -131,8 +131,9 @@ export const useNotificationStore = defineStore('notification', () => {
         notifications.value = notifications.value.slice(0, MAX_HISTORY)
       }
       saveToStorage()
-      // info / success 10 秒后自动移除，warning / error 保留
-      if (type === 'info' || type === 'success') {
+      // info / success 10 秒后自动移除；导出任务等由业务侧结束后移除
+      const isExportTask = metadata?.kind === 'export-task'
+      if (!isExportTask && (type === 'info' || type === 'success')) {
         setTimeout(() => remove(notification.id), 10_000)
       }
     }
@@ -181,6 +182,18 @@ export const useNotificationStore = defineStore('notification', () => {
     }
   }
 
+  /** 就地更新一条通知（用于导出任务进度等） */
+  function updateNotification(id: string, patch: Partial<NotificationItem>): void {
+    const n = notifications.value.find((x) => x.id === id)
+    if (!n) return
+    const { metadata: metaPatch, ...rest } = patch
+    Object.assign(n, rest)
+    if (metaPatch) {
+      n.metadata = { ...(n.metadata || {}), ...metaPatch }
+    }
+    saveToStorage()
+  }
+
   function removeAll(): void {
     if (notifications.value.length > 0) {
       notifications.value = []
@@ -221,6 +234,7 @@ export const useNotificationStore = defineStore('notification', () => {
     removeRead,
     getById,
     getUnread,
-    loadFromStorage
+    loadFromStorage,
+    updateNotification
   }
 })

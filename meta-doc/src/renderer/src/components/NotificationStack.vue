@@ -30,13 +30,26 @@
         </button>
 
         <div class="toast-icon">
-          <component :is="getIconForType(toast.type)" class="h-5 w-5" />
+          <Loader2
+            v-if="isExportTaskSpinner(toast)"
+            class="h-5 w-5 animate-spin text-primary"
+          />
+          <component v-else :is="getIconForType(toast.type)" class="h-5 w-5" />
         </div>
 
         <div class="toast-content">
           <div class="toast-title">{{ toast.title }}</div>
           <div class="toast-description">{{ toast.message }}</div>
         </div>
+
+        <button
+          v-if="toast.metadata?.kind === 'export-task' && toast.metadata?.canCancel"
+          type="button"
+          class="toast-export-cancel"
+          @click.stop="cancelExportTask(toast)"
+        >
+          {{ $t('export.taskCancel', '中断') }}
+        </button>
 
         <div v-if="!toast.read" class="toast-unread" />
       </div>
@@ -67,9 +80,26 @@ import { storeToRefs } from 'pinia'
 import { useNotificationStore } from '../stores/notification'
 import eventBus from '../utils/event-bus'
 import type { NotificationType, NotificationItem } from '../types/notification'
-import { X, CheckCircle2, XCircle, AlertCircle, Info } from 'lucide-vue-next'
+import { X, CheckCircle2, XCircle, AlertCircle, Info, Loader2 } from 'lucide-vue-next'
+import messageBridge from '../bridge/message-bridge'
 
 const store = useNotificationStore()
+
+function isExportTaskSpinner(toast: NotificationItem): boolean {
+  if (toast.metadata?.kind !== 'export-task') return false
+  if (toast.type === 'success' || toast.type === 'error') return false
+  const phase = toast.metadata?.phase as string | undefined
+  return phase === 'pick' || phase === 'prepare'
+}
+
+function cancelExportTask(toast: NotificationItem): void {
+  const rid = toast.metadata?.requestId as string | undefined
+  if (rid) {
+    void messageBridge.invoke('cancel-export-task', rid)
+    eventBus.emit('cancel-progress', { requestId: rid })
+  }
+  store.remove(toast.id)
+}
 
 function handleClearAll(): void {
   store.removeAll()
@@ -491,5 +521,35 @@ onBeforeUnmount(() => {
 
 .stack-toast.is-read {
   opacity: 0.7;
+}
+
+.toast-export-cancel {
+  flex-shrink: 0;
+  align-self: center;
+  margin-right: 28px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.toast-export-cancel:hover {
+  background: hsl(var(--muted) / 0.85);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 0.9s linear infinite;
 }
 </style>

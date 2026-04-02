@@ -122,9 +122,10 @@ import ocrService from './utils/ocr-service'
 import { performSpellCheck, type SpellCheckParams } from './utils/spell-check-service'
 import { addWordToDictionary, addWordsToDictionary } from './utils/spell-check-dictionary'
 import type { LaTeXCompileResult } from '../types/utils'
-import type { DocumentFormat } from '../types'
+import type { DocumentFormat, ExportFormat } from '../types'
 import {
   performExportRequest,
+  pickExportSavePath,
   type RendererExportPayload,
   abortExportTask
 } from './export/export-manager'
@@ -2424,7 +2425,19 @@ function bindFileHandlers(): void {
           '.png': 'image/png',
           '.gif': 'image/gif',
           '.bmp': 'image/bmp',
-          '.webp': 'image/webp'
+          '.webp': 'image/webp',
+          '.svg': 'image/svg+xml',
+          '.svgz': 'image/svg+xml',
+          '.ico': 'image/x-icon',
+          '.icns': 'image/icns',
+          '.tif': 'image/tiff',
+          '.tiff': 'image/tiff',
+          '.heic': 'image/heic',
+          '.heif': 'image/heif',
+          '.avif': 'image/avif',
+          '.jpe': 'image/jpeg',
+          '.jfif': 'image/jpeg',
+          '.dib': 'image/bmp'
         }
 
         const mimeType = mimeTypes[ext] || 'application/octet-stream'
@@ -2539,6 +2552,16 @@ function bindSpellCheckHandlers(): void {
 }
 
 function bindExportHandlers(): void {
+  ipcBridge.registerHandle(
+    'pick-export-save-path',
+    async (
+      _event: IpcMainInvokeEvent,
+      data: { suggestedName: string; targetFormat: ExportFormat }
+    ) => {
+      return await pickExportSavePath(mainWindow, data.suggestedName, data.targetFormat)
+    }
+  )
+
   ipcBridge.registerHandle(
     'perform-export',
     async (event: IpcMainInvokeEvent, payload: RendererExportPayload) => {

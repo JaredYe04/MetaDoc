@@ -35,10 +35,19 @@ const jsonTargets: ExportTargetDescriptor[] = [
   { format: 'md', labelKey: 'leftMenu.exportMarkdown', status: 'planned' }
 ]
 
+/** 纯文本 / 代码等：先规范为 Markdown 再导出 */
+const plainTextTargets: ExportTargetDescriptor[] = [
+  { format: 'md', labelKey: 'leftMenu.exportMarkdown', status: 'ready' },
+  { format: 'html', labelKey: 'leftMenu.exportHtml', status: 'ready' },
+  { format: 'docx', labelKey: 'leftMenu.exportDocx', status: 'ready' },
+  { format: 'pdf', labelKey: 'leftMenu.exportPdf', status: 'ready' }
+]
+
 export const EXPORT_RULES: Record<DocumentFormat, ExportTargetDescriptor[]> = {
   md: markdownTargets,
   tex: latexTargets,
-  json: jsonTargets
+  json: jsonTargets,
+  txt: plainTextTargets
 }
 
 export const getExportTargets = (sourceFormat: DocumentFormat): ExportTargetDescriptor[] => {

@@ -703,13 +703,32 @@ eventBus.on('export-as-template', (payload) => {
   }
 })
 
-eventBus.on('export', async ({ format, filename, options }) => {
-  const doc = getDocument()
-  if (!doc) return
+// 导出并发上限（无全局锁时允许多个任务同时进行，仅限制峰值）
+let exportActiveCount = 0
+const MAX_CONCURRENT_EXPORTS = 3
 
-  const targetPath = options?.targetPath
+async function acquireExportSlot() {
+  while (exportActiveCount >= MAX_CONCURRENT_EXPORTS) {
+    await new Promise((r) => setTimeout(r, 80))
+  }
+  exportActiveCount += 1
+}
 
-  // 设置鼠标等待状态（无 targetPath 时显示等待，有 targetPath 时多为脚本驱动可不改光标）
+function releaseExportSlot() {
+  exportActiveCount = Math.max(0, exportActiveCount - 1)
+}
+
+eventBus.on('export', async (payload) => {
+  const { format, filename, options, sourcePath: sourcePathArg } = payload || {}
+  if (!format) return
+
+  const opt = options || {}
+  const presetTargetPath = opt.targetPath
+  const sourcePath = sourcePathArg ?? opt.sourcePath
+  const { targetPath: _tp, sourcePath: _sp, ...restOptions } = opt
+  const exportOptions =
+    restOptions && Object.keys(restOptions).length > 0 ? restOptions : undefined
+
   const setCursorWaiting = () => {
     document.body.style.cursor = 'wait'
     if (document.documentElement) {
@@ -724,37 +743,133 @@ eventBus.on('export', async ({ format, filename, options }) => {
     }
   }
 
-  if (!targetPath) setCursorWaiting()
+  if (!presetTargetPath) setCursorWaiting()
 
-  // 监听主进程发送的对话框打开事件，恢复鼠标状态（仅走对话框时有效）
   const handleDialogOpening = () => {
     restoreCursor()
   }
   messageBridge.on('export-dialog-opening', handleDialogOpening)
 
-  try {
-    // 与程序内导出完全同一套准备流程：预渲染图表、公式、图片处理等
-    const payload = await prepareExportPayload(doc, format, filename, options)
-    const result = targetPath
-      ? await messageBridge.invoke('perform-export-to-path', payload, targetPath)
-      : await messageBridge.invoke('perform-export', payload)
+  await acquireExportSlot()
 
-    // 如果用户取消了对话框（result.success === false 且没有 error），取消任务
+  const requestId = `export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  let notifId = null
+  let notifStore = null
+
+  try {
+    const { resolveDocumentForExport } = await import('../services/export-document-resolver')
+    const { useNotificationStore } = await import('../stores/notification')
+    notifStore = useNotificationStore()
+
+    const doc = await resolveDocumentForExport(sourcePath ?? null)
+    if (!doc) {
+      restoreCursor()
+      messageBridge.removeListener('export-dialog-opening', handleDialogOpening)
+      releaseExportSlot()
+      return
+    }
+
+    const pathLabel = doc.path ? basename(doc.path) : filename || 'Untitled'
+    const tg = i18n?.global?.t
+    const taskTitle = tg ? tg('export.taskTitle') : '导出任务'
+    const phasePick = tg ? tg('export.taskPhasePickPath') : '选择保存位置…'
+    const phasePrep = tg ? tg('export.taskPhasePreparing') : '正在预处理…'
+    const phaseDone = tg ? tg('export.taskPhaseDone') : '已完成'
+    const phaseFail = tg ? tg('export.taskPhaseFailed') : '失败'
+
+    notifId = notifStore.notify({
+      title: taskTitle,
+      message: presetTargetPath ? `${pathLabel} — ${phasePrep}` : `${pathLabel} — ${phasePick}`,
+      type: 'info',
+      showToast: false,
+      duration: 86400000,
+      metadata: {
+        kind: 'export-task',
+        requestId,
+        targetFormat: format,
+        fileLabel: pathLabel,
+        phase: presetTargetPath ? 'prepare' : 'pick',
+        canCancel: Boolean(presetTargetPath)
+      }
+    })
+
+    let targetPath = presetTargetPath
+    if (!targetPath) {
+      const pick = await messageBridge.invoke('pick-export-save-path', {
+        suggestedName: filename || pathLabel || 'Untitled',
+        targetFormat: format
+      })
+      if (pick.canceled || !pick.path) {
+        if (notifId) notifStore.remove(notifId)
+        restoreCursor()
+        messageBridge.removeListener('export-dialog-opening', handleDialogOpening)
+        releaseExportSlot()
+        return
+      }
+      targetPath = pick.path
+    }
+
+    if (notifId) {
+      notifStore.updateNotification(notifId, {
+        message: `${pathLabel} — ${phasePrep}`,
+        metadata: { phase: 'prepare', canCancel: true }
+      })
+    }
+
+    const payloadPrepared = await prepareExportPayload(
+      doc,
+      format,
+      filename,
+      exportOptions,
+      { requestId }
+    )
+    const result = await messageBridge.invoke('perform-export-to-path', payloadPrepared, targetPath)
+
     if (!result.success && !result.error) {
-      // 用户取消了对话框，取消任务
-      if (payload.requestId) {
+      if (payloadPrepared.requestId) {
         try {
-          await messageBridge.invoke('cancel-export-task', payload.requestId)
+          await messageBridge.invoke('cancel-export-task', payloadPrepared.requestId)
         } catch (err) {
           // ignore
         }
       }
     }
 
-    // 确保在完成后恢复鼠标状态（防止事件未触发）
+    if (notifId) {
+      if (result.success) {
+        notifStore.updateNotification(notifId, {
+          type: 'success',
+          message: `${pathLabel} — ${phaseDone}`,
+          metadata: { phase: 'done', canCancel: false }
+        })
+        setTimeout(() => notifStore.remove(notifId), 6000)
+      } else if (result.error) {
+        notifStore.updateNotification(notifId, {
+          type: 'error',
+          message: `${pathLabel} — ${phaseFail}: ${result.error}`,
+          metadata: { phase: 'error', canCancel: false }
+        })
+      } else {
+        notifStore.remove(notifId)
+      }
+    }
+
     restoreCursor()
   } catch (error) {
     restoreCursor()
+    if (notifId && notifStore) {
+      const pathLabel = filename || 'Untitled'
+      const phaseFail = i18n?.global?.t?.('export.taskPhaseFailed', '失败') ?? '失败'
+      const msg =
+        error instanceof Error
+          ? error.message
+          : i18n?.global?.t?.('export.unknownError', '导出失败') ?? '导出失败'
+      notifStore.updateNotification(notifId, {
+        type: 'error',
+        message: `${pathLabel} — ${phaseFail}: ${msg}`,
+        metadata: { phase: 'error', canCancel: false }
+      })
+    }
     if (error instanceof NotImplementedExportError) {
       const message =
         i18n?.global?.t?.('export.notImplemented', '该导出组合尚未实现') ?? '该导出功能尚未实现'
@@ -769,8 +884,8 @@ eventBus.on('export', async ({ format, filename, options }) => {
       getLogger().error('导出失败', error)
     }
   } finally {
-    // 清理事件监听器
     messageBridge.removeListener('export-dialog-opening', handleDialogOpening)
+    releaseExportSlot()
   }
 })
 // eventBus.on('export-to-pdf', async (args) => {

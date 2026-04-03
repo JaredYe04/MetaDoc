@@ -327,7 +327,10 @@
         "showReplaced": "显示替换后内容",
         "match": "匹配文本",
         "summaryMode": "概要模式",
-        "summaryDescription": "搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。"
+        "summaryDescription": "搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。",
+        "manyMatchesWarningTitle": "匹配项过多",
+        "manyMatchesWarningDesc": "共 {count} 处匹配，界面仅详细展示前 {limit} 处。若结果远超预期，请收窄关键词或正则，或使用 withinPaths 限定搜索范围。",
+        "matchIndexOnly": "匹配项 #{n}"
       },
       "subagent": {
         "title": "Subagent",
@@ -720,6 +723,11 @@
       "sendQueueEdit": "编辑",
       "sendQueueRemove": "移除",
       "sendQueueEditTitle": "编辑待发送消息"
+    },
+    "selectionRef": {
+      "chipLabel": "选区：{detail}",
+      "unknown": "选区（无效）",
+      "noSession": "无法添加：请先配置 Agent。"
     },
     "reference": {
       "title": "引用素材管理",
@@ -1699,6 +1707,7 @@
     "redo": "重做",
     "sectionOptimizer": "优化当前段落",
     "selectAll": "全选",
+    "addSelectionToAgent": "添加到 Agent 对话",
     "triggerAutoCompletion": "手动触发AI补全",
     "undo": "撤销"
   },

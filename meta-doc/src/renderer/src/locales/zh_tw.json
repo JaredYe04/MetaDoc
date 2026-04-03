@@ -308,7 +308,10 @@
         "showReplaced": "顯示取代後內容",
         "match": "匹配文字",
         "summaryMode": "概要模式",
-        "summaryDescription": "搜尋操作已成功完成。由於verbose模式未啟用，未包含完整文件內容以節省空間。"
+        "summaryDescription": "搜尋操作已成功完成。由於verbose模式未啟用，未包含完整文件內容以節省空間。",
+        "manyMatchesWarningTitle": "匹配項過多",
+        "manyMatchesWarningDesc": "共 {count} 處匹配，介面僅詳細展示前 {limit} 處。若結果遠超預期，請縮小關鍵字或正則，或使用 withinPaths 限定搜尋範圍。",
+        "matchIndexOnly": "匹配項 #{n}"
       },
       "subagent": {
         "title": "Subagent",

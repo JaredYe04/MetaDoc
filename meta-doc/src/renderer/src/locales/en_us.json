@@ -11,6 +11,7 @@
     "copy": "Copy",
     "paste": "Paste",
     "selectAll": "Select All",
+    "addSelectionToAgent": "Add to Agent chat",
     "undo": "Undo",
     "redo": "Redo",
     "closeAutoCompletion": "Turn Off AI Completion",
@@ -3015,7 +3016,10 @@
         "showOriginal": "Show Original",
         "showReplaced": "Show Replaced",
         "summaryMode": "Summary Mode",
-        "summaryDescription": "Search operation completed successfully. Full document content is not included to save space because verbose mode is off."
+        "summaryDescription": "Search operation completed successfully. Full document content is not included to save space because verbose mode is off.",
+        "manyMatchesWarningTitle": "Many matches",
+        "manyMatchesWarningDesc": "{count} matches found; only the first {limit} are shown in full. If this seems excessive, narrow your pattern or use withinPaths to limit scope.",
+        "matchIndexOnly": "Match #{n}"
       },
       "subagent": {
         "title": "Subagent",
@@ -3296,6 +3300,11 @@
       "sendQueueEdit": "Edit",
       "sendQueueRemove": "Remove",
       "sendQueueEditTitle": "Edit queued message"
+    },
+    "selectionRef": {
+      "chipLabel": "Selection: {detail}",
+      "unknown": "Selection (invalid)",
+      "noSession": "Cannot add: configure Agent first."
     },
     "reference": {
       "title": "Reference Management",

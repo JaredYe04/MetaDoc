@@ -2894,7 +2894,10 @@
         "showReplaced": "교체된 내용 보기",
         "match": "일치하는 텍스트",
         "summaryMode": "요약 모드",
-        "summaryDescription": "검색 작업이 성공적으로 완료되었습니다. 상세 모드가 꺼져 있어 공간 절약을 위해 전체 문서 내용이 포함되지 않았습니다."
+        "summaryDescription": "검색 작업이 성공적으로 완료되었습니다. 상세 모드가 꺼져 있어 공간 절약을 위해 전체 문서 내용이 포함되지 않았습니다.",
+        "manyMatchesWarningTitle": "일치 항목이 너무 많습니다",
+        "manyMatchesWarningDesc": "총 {count}개 일치합니다. 처음 {limit}개만 자세히 표시합니다. 예상보다 많으면 키워드나 정규식을 좁히거나 withinPaths로 범위를 제한하세요.",
+        "matchIndexOnly": "일치 #{n}"
       },
       "webCrawler": {
         "title": "웹 페이지 접근 결과",

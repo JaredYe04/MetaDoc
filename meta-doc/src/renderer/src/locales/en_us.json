@@ -3018,8 +3018,12 @@
         "summaryMode": "Summary Mode",
         "summaryDescription": "Search operation completed successfully. Full document content is not included to save space because verbose mode is off.",
         "manyMatchesWarningTitle": "Many matches",
-        "manyMatchesWarningDesc": "{count} matches found; only the first {limit} are shown in full. If this seems excessive, narrow your pattern or use withinPaths to limit scope.",
-        "matchIndexOnly": "Match #{n}"
+        "manyMatchesWarningDesc": "{count} matches found; only the first {limit} are listed below to save space. If this seems excessive, narrow your pattern or use withinPaths.",
+        "matchIndexOnly": "Match #{n}",
+        "searchQueryLabel": "Search query",
+        "modeRegex": "Regex",
+        "modeFuzzy": "Fuzzy",
+        "matchesTruncatedHint": "{n} more matches are not listed (total is shown above)."
       },
       "subagent": {
         "title": "Subagent",

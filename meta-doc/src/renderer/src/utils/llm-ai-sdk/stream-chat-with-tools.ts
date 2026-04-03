@@ -12,6 +12,7 @@ import type { Message } from '../llm-adapters/types'
 import type { UsageStats } from '../llm-adapters/types'
 import { createRendererLogger } from '../logger'
 import type { StreamPartDelta } from './stream-chat'
+import { extractReasoningFromRawValue } from './stream-chat'
 
 export interface StreamChatWithToolsOptions {
   config: LlmConfig
@@ -85,10 +86,15 @@ export async function streamChatWithTools(
               receivedTextDelta = true
               await onDelta({ text: chunk })
             }
-          } else if (part.type === 'reasoning-delta') {
+          } else if (enableReasoning && part.type === 'reasoning-delta') {
             const chunk = (part as { text?: string }).text ?? ''
             if (chunk) {
               await onDelta({ reasoning: chunk })
+            }
+          } else if (enableReasoning && part.type === 'raw') {
+            const extra = extractReasoningFromRawValue((part as { rawValue?: unknown }).rawValue)
+            if (extra) {
+              await onDelta({ reasoning: extra })
             }
           }
           if (part.type === 'tool-input-available' && onToolCall) {

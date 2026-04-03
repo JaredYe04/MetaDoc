@@ -426,7 +426,7 @@ async function answerQuestionNonStream(
     const processedText = await processThinkTag(text)
     ref.value = processedText
     const reasoningRef = meta?.reasoningRef
-    if (reasoningRef && reasoning) reasoningRef.value = reasoning
+    if (reasoningRef && reasoning && meta.enableReasoning === true) reasoningRef.value = reasoning
     if (usage) {
       try {
         await recordLlmRequest(usage, selectedModel, 'completion')
@@ -469,12 +469,14 @@ async function answerQuestionStream(
       prompt,
       temperature: meta.temperature ?? config.temperature,
       maxTokens: effectiveMaxTokens,
-      abortSignal: signal ?? undefined
+      abortSignal: signal ?? undefined,
+      enableReasoning: meta.enableReasoning === true
     })
     const usage = await consumeStream(async (delta) => {
       if (delta) {
         if (delta.text) ref.value += delta.text
-        if (delta.reasoning && reasoningRef) reasoningRef.value += delta.reasoning
+        if (delta.reasoning && reasoningRef && meta.enableReasoning === true)
+          reasoningRef.value += delta.reasoning
         // 流式过程中不把 processThinkTag 结果写回 ref，避免吞字；流结束后再统一处理
       }
     })
@@ -675,7 +677,7 @@ async function continueConversationNonStream(
     const processedContent = await processThinkTag(text)
     ref.value = processedContent
     const reasoningRef = meta?.reasoningRef
-    if (reasoningRef && reasoning) reasoningRef.value = reasoning
+    if (reasoningRef && reasoning && meta.enableReasoning === true) reasoningRef.value = reasoning
 
     if (usage) {
       try {
@@ -733,12 +735,14 @@ async function continueConversationStream(
       messages: sanitizedMsgs,
       temperature: meta.temperature ?? config.temperature,
       maxTokens: effectiveMaxTokens,
-      abortSignal: signal ?? undefined
+      abortSignal: signal ?? undefined,
+      enableReasoning: meta.enableReasoning === true
     })
     const usage = await consumeStream(async (delta) => {
       if (delta) {
         if (delta.text) ref.value += delta.text
-        if (delta.reasoning && reasoningRef) reasoningRef.value += delta.reasoning
+        if (delta.reasoning && reasoningRef && meta.enableReasoning === true)
+          reasoningRef.value += delta.reasoning
         // 流式过程中不把 processThinkTag 结果写回 ref，避免吞字；流结束后再统一处理
       }
     })
@@ -869,7 +873,7 @@ async function continueConversationWithTools(
     const FLUSH_INTERVAL_MS = 32 // ~30fps，在流式观感与性能间折中
     const streamResult = await consumeStream(async (delta) => {
       if (delta) {
-        if (delta.reasoning && reasoningRef) {
+        if (delta.reasoning && reasoningRef && meta.enableReasoning === true) {
           reasoningRef.value += delta.reasoning
         }
         if (!delta.text) {

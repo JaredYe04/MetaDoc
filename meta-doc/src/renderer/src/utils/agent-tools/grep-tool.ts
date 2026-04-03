@@ -14,46 +14,26 @@ import { useWorkspace } from '../../stores/workspace'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
 import type { ArticleMetaData } from '../../../../types'
+import {
+  GREP_DISPLAY_MAX_DETAILED_MATCHES,
+  type GrepMatch,
+  type GrepResult
+} from './grep-tool-shared'
 import GrepDisplay from './components/GrepDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
 import { createDetailedError } from './tool-utils'
 import { grepInWorkspaces, type WorkspaceGrepMatch } from '../workspace/workspace-grep'
 
+export type { GrepMatch, GrepResult } from './grep-tool-shared'
+export { GREP_DISPLAY_MAX_DETAILED_MATCHES } from './grep-tool-shared'
+
 const logger = createRendererLogger('GrepTool')
 const workspace = useWorkspace()
 
-/**
- * 匹配结果
- */
-export interface GrepMatch {
-  line: number // 行号（1-based）
-  column: number // 列号（1-based）
-  match: string // 匹配的文本
-  filePath?: string // 所在文件路径（工作区级别搜索时提供）
-  preContext: string // 前置上下文
-  postContext: string // 后置上下文
-  context: string // 完整上下文（包含匹配行）
-  similarity?: number // 相似度分数（0-1，仅在模糊搜索模式下提供）
-  groups?: string[] // 正则表达式捕获组（仅在正则表达式搜索模式下提供）
-}
-
-/**
- * Grep结果
- */
-export interface GrepResult {
-  matches: GrepMatch[]
-  totalMatches: number
-  searchPattern: string
-  isRegex: boolean
-  isFuzzy: boolean // 是否使用模糊搜索
-  similarityThreshold?: number // 相似度阈值
-  scope: string[] // 搜索范围：['workspace', 'document', 'metadata']
-  originalContent?: string // 原始文档内容（用于Display组件显示）
-  language?: string // 文档语言类型（'markdown' | 'latex' | 'plaintext'）
-  replacedCount?: number // 替换的数量（如果执行了替换）
-  replacementText?: string // 替换文本（如果执行了替换）
-  replacedContent?: string // 替换后的文档内容（如果执行了替换）
+/** 供 GrepDisplay：列表仅含前 N 条完整匹配，totalMatches 仍为全部数量 */
+function sliceMatchesForDisplay(allMatches: GrepMatch[]): GrepMatch[] {
+  return allMatches.slice(0, GREP_DISPLAY_MAX_DETAILED_MATCHES).map((m) => ({ ...m }))
 }
 
 /**
@@ -618,7 +598,9 @@ function resolveNumber(
 const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const pattern = resolvePattern(params)
   const isRegex = resolveBoolean(params, 'isRegex', false)
-  const isFuzzy = resolveBoolean(params, 'fuzzy', false)
+  // 默认使用模糊搜索；当 isRegex 为 true 时，fuzzy 默认强制为 false（仅用户显式传 fuzzy: true 才会报互斥错误）
+  const defaultFuzzy = !isRegex
+  const isFuzzy = resolveBoolean(params, 'fuzzy', defaultFuzzy)
   const similarityThreshold = resolveNumber(params, 'similarityThreshold', 0.6, 0, 1)
   const contextLines = resolveNumber(params, 'contextLines', 3, 0, 50)
   const rawScope = resolveScope(params)
@@ -698,6 +680,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           stage: 'searching',
           pattern,
           isRegex,
+          fuzzy: isFuzzy,
           scope
         },
         format: 'json',
@@ -1041,7 +1024,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
     // 根据verbose参数决定是否包含完整内容（用于Display组件）
     const resultForDisplay: GrepResult = {
-      matches: allMatches,
+      matches: sliceMatchesForDisplay(allMatches),
       totalMatches: allMatches.length,
       searchPattern: pattern,
       isRegex,
@@ -1051,6 +1034,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       language,
       replacedCount: replacedCount > 0 ? replacedCount : undefined,
       replacementText: replaceText,
+      displayMatchDetailLimit: GREP_DISPLAY_MAX_DETAILED_MATCHES,
       // 只有在verbose模式下才包含完整内容（节省token）
       ...(verbose
         ? {
@@ -1180,7 +1164,7 @@ Use when you don't remember exact keywords, based on similarity matching, **very
 {
   "pattern": "string",           // Required, search pattern (text, regex, or fuzzy search keyword)
   "isRegex": false,              // Optional, whether it's a regex, default false (cannot be true with fuzzy)
-  "fuzzy": false,                // Optional, whether to use fuzzy search, default false (cannot be true with isRegex)
+  "fuzzy": true,                 // Optional, whether to use fuzzy search, default true (cannot be true with isRegex)
   "similarityThreshold": 0.6,    // Optional, fuzzy search similarity threshold (0-1), default 0.6
   "contextLines": 3,             // Optional, context lines, default 3
   "scope": ["workspace", "document", "metadata"],  // Optional; with workspace roots default includes workspace (whole workspace directory)
@@ -1215,8 +1199,9 @@ Returns array of matches with line numbers, positions, and context.`
       },
       fuzzy: {
         type: 'boolean',
-        description: '是否使用模糊搜索（与isRegex不能同时为true），推荐在不知道确切关键词时使用',
-        default: false
+        description:
+          '是否使用模糊搜索（与isRegex不能同时为true），推荐在不知道确切关键词时使用；未显式指定且未开启isRegex时默认为true',
+        default: true
       },
       similarityThreshold: {
         type: 'number',

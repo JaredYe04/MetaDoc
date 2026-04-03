@@ -2896,8 +2896,12 @@
         "summaryMode": "요약 모드",
         "summaryDescription": "검색 작업이 성공적으로 완료되었습니다. 상세 모드가 꺼져 있어 공간 절약을 위해 전체 문서 내용이 포함되지 않았습니다.",
         "manyMatchesWarningTitle": "일치 항목이 너무 많습니다",
-        "manyMatchesWarningDesc": "총 {count}개 일치합니다. 처음 {limit}개만 자세히 표시합니다. 예상보다 많으면 키워드나 정규식을 좁히거나 withinPaths로 범위를 제한하세요.",
-        "matchIndexOnly": "일치 #{n}"
+        "manyMatchesWarningDesc": "총 {count}개 일치합니다. 목록에는 처음 {limit}개만 표시하고 나머지는 생략합니다. 예상보다 많으면 키워드나 정규식을 좁히거나 withinPaths로 범위를 제한하세요.",
+        "matchIndexOnly": "일치 #{n}",
+        "searchQueryLabel": "검색어",
+        "modeRegex": "정규식",
+        "modeFuzzy": "퍼지",
+        "matchesTruncatedHint": "목록에 표시되지 않은 일치가 {n}개 더 있습니다(총 개수는 위 참고)."
       },
       "webCrawler": {
         "title": "웹 페이지 접근 결과",

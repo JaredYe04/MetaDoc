@@ -3022,8 +3022,12 @@
         "summaryMode": "概要モード",
         "summaryDescription": "検索操作は正常に完了しました。詳細モードが無効のため、スペースを節約するために完全なドキュメント内容は含まれていません。",
         "manyMatchesWarningTitle": "一致が多すぎます",
-        "manyMatchesWarningDesc": "{count} 件の一致があります。詳細は先頭 {limit} 件のみ表示します。想定より多い場合はキーワードや正規表現を絞るか、withinPaths で範囲を限定してください。",
-        "matchIndexOnly": "一致 #{n}"
+        "manyMatchesWarningDesc": "{count} 件の一致があります。リストには先頭 {limit} 件のみ表示し、それ以降は省略します。想定より多い場合はキーワードや正規表現を絞るか、withinPaths で範囲を限定してください。",
+        "matchIndexOnly": "一致 #{n}",
+        "searchQueryLabel": "検索語",
+        "modeRegex": "正規表現",
+        "modeFuzzy": "あいまい",
+        "matchesTruncatedHint": "他に {n} 件の一致はリストに表示していません（件数は上記）。"
       },
       "webCrawler": {
         "title": "ウェブアクセス結果",

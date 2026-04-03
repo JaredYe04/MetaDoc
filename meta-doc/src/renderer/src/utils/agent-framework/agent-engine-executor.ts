@@ -2085,7 +2085,8 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       reactiveMessage: summaryMessage,
       onTaskCreated: this.options.onTaskCreated,
       tools: await this.getAvailableTools(),
-      onToolCallsDetected: this.createToolCallsDetectedHandler(summaryMessage)
+      onToolCallsDetected: this.createToolCallsDetectedHandler(summaryMessage),
+      ...this.callChatExtraOptions()
     })
 
     // 消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage

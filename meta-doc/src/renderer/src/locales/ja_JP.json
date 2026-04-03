@@ -3020,7 +3020,10 @@
         "showReplaced": "置換後の内容を表示",
         "match": "一致したテキスト",
         "summaryMode": "概要モード",
-        "summaryDescription": "検索操作は正常に完了しました。詳細モードが無効のため、スペースを節約するために完全なドキュメント内容は含まれていません。"
+        "summaryDescription": "検索操作は正常に完了しました。詳細モードが無効のため、スペースを節約するために完全なドキュメント内容は含まれていません。",
+        "manyMatchesWarningTitle": "一致が多すぎます",
+        "manyMatchesWarningDesc": "{count} 件の一致があります。詳細は先頭 {limit} 件のみ表示します。想定より多い場合はキーワードや正規表現を絞るか、withinPaths で範囲を限定してください。",
+        "matchIndexOnly": "一致 #{n}"
       },
       "webCrawler": {
         "title": "ウェブアクセス結果",

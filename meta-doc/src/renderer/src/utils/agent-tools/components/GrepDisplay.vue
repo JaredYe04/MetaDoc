@@ -8,13 +8,36 @@
       </div>
       <div
         v-else-if="resultData && resultData.matches && resultData.matches.length"
-        class="grep-compact-list"
+        class="grep-compact-wrap"
       >
-        <div v-for="(match, index) in resultData.matches" :key="index" class="grep-compact-item">
-          <span class="grep-compact-file">{{
-            match.filePath || $t('agent.display.grep.document')
-          }}</span>
-          <span class="grep-compact-line">L{{ match.line }}</span>
+        <Alert
+          v-if="showManyMatchesWarning"
+          class="grep-compact-warn mb-2 border-amber-200 bg-amber-50 py-2 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+        >
+          <AlertTriangle class="h-4 w-4" />
+          <AlertTitle class="text-sm">{{
+            $t('agent.display.grep.manyMatchesWarningTitle')
+          }}</AlertTitle>
+          <AlertDescription class="text-xs">
+            {{
+              $t('agent.display.grep.manyMatchesWarningDesc', {
+                count: resultData.totalMatches,
+                limit: matchDetailLimit
+              })
+            }}
+          </AlertDescription>
+        </Alert>
+        <div class="grep-compact-list">
+          <div v-for="(match, index) in resultData.matches" :key="index" class="grep-compact-item">
+            <span class="grep-compact-file">{{
+              match.filePath || $t('agent.display.grep.document')
+            }}</span>
+            <span class="grep-compact-line">{{
+              isMatchDetailOmitted(match, index)
+                ? $t('agent.display.grep.matchIndexOnly', { n: index + 1 }) + ' · L' + match.line
+                : 'L' + match.line
+            }}</span>
+          </div>
         </div>
       </div>
       <div v-else-if="displayData.stage === 'completed'" class="grep-compact-empty">
@@ -60,6 +83,22 @@
             </Badge>
           </div>
         </div>
+
+        <Alert
+          v-if="showManyMatchesWarning"
+          class="grep-many-matches-warn mb-4 border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+        >
+          <AlertTriangle class="h-4 w-4" />
+          <AlertTitle>{{ $t('agent.display.grep.manyMatchesWarningTitle') }}</AlertTitle>
+          <AlertDescription>
+            {{
+              $t('agent.display.grep.manyMatchesWarningDesc', {
+                count: resultData.totalMatches,
+                limit: matchDetailLimit
+              })
+            }}
+          </AlertDescription>
+        </Alert>
 
         <!-- 如果没有完整内容（verbose模式），只显示概要 -->
         <div v-if="!hasFullContent" class="summary-view" :style="summaryViewStyle">
@@ -108,20 +147,28 @@
                   <Badge :class="getMatchScopeBadgeClass(match)">
                     {{ getMatchScopeLabel(match) }}
                   </Badge>
-                  <span v-if="match.filePath" class="match-file" :style="locationStyle">
+                  <span v-if="match.filePath && !isMatchDetailOmitted(match, index)" class="match-file" :style="locationStyle">
                     {{ match.filePath }}
                   </span>
                   <span class="match-location" :style="locationStyle">
+                    <template v-if="isMatchDetailOmitted(match, index)">
+                      {{ $t('agent.display.grep.matchIndexOnly', { n: index + 1 }) }} ·
+                    </template>
                     {{ $t('agent.display.grep.line') }} {{ match.line }},
                     {{ $t('agent.display.grep.column') }} {{ match.column }}
                   </span>
                 </div>
-                <div class="match-text" :style="matchTextStyle">
-                  <code>{{ match.match }}</code>
+                <div v-if="match.filePath && isMatchDetailOmitted(match, index)" class="match-file match-file-omitted" :style="locationStyle">
+                  {{ match.filePath }}
                 </div>
-                <div v-if="match.context" class="match-context" :style="matchContextStyle">
-                  <pre>{{ match.context }}</pre>
-                </div>
+                <template v-if="!isMatchDetailOmitted(match, index)">
+                  <div class="match-text" :style="matchTextStyle">
+                    <code>{{ match.match }}</code>
+                  </div>
+                  <div v-if="match.context" class="match-context" :style="matchContextStyle">
+                    <pre>{{ match.context }}</pre>
+                  </div>
+                </template>
               </div>
             </div>
           </ScrollArea>
@@ -149,15 +196,21 @@
                     <Badge :class="getMatchScopeBadgeClass(match)">
                       {{ getMatchScopeLabel(match) }}
                     </Badge>
-                    <span v-if="match.filePath" class="match-file" :style="locationStyle">
+                    <span v-if="match.filePath && !isMatchDetailOmitted(match, index)" class="match-file" :style="locationStyle">
                       {{ match.filePath }}
                     </span>
                     <span class="match-location" :style="locationStyle">
+                      <template v-if="isMatchDetailOmitted(match, index)">
+                        {{ $t('agent.display.grep.matchIndexOnly', { n: index + 1 }) }} ·
+                      </template>
                       {{ $t('agent.display.grep.line') }} {{ match.line }},
                       {{ $t('agent.display.grep.column') }} {{ match.column }}
                     </span>
                   </div>
-                  <div class="match-text" :style="matchTextStyle">
+                  <div v-if="match.filePath && isMatchDetailOmitted(match, index)" class="match-file match-file-omitted" :style="locationStyle">
+                    {{ match.filePath }}
+                  </div>
+                  <div v-if="!isMatchDetailOmitted(match, index)" class="match-text" :style="matchTextStyle">
                     <code>{{ match.match }}</code>
                   </div>
                 </div>
@@ -216,13 +269,14 @@ import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Badge } from '@renderer/components/ui/badge'
 import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert'
 import { Empty } from '@renderer/components/ui/empty'
-import { Info, XCircle } from 'lucide-vue-next'
+import { AlertTriangle, Info, XCircle } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
-import type { GrepResult, GrepMatch } from '../grep-tool'
+import type { GrepResult, GrepMatch } from '../grep-tool-shared'
+import { GREP_DISPLAY_MAX_DETAILED_MATCHES } from '../grep-tool-shared'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 import { attachMonacoWheelScrollChain } from '../monaco-scroll-chain'
 import { createRendererLogger } from '../../logger'
@@ -375,6 +429,19 @@ const hasFullContent = computed(() => {
   return !!resultData.value?.originalContent
 })
 
+const matchDetailLimit = computed(
+  () => resultData.value?.displayMatchDetailLimit ?? GREP_DISPLAY_MAX_DETAILED_MATCHES
+)
+
+const showManyMatchesWarning = computed(() => {
+  const r = resultData.value
+  return !!r && r.totalMatches > matchDetailLimit.value
+})
+
+/** 是否与工具层约定一致：超出条目不展示匹配正文与上下文 */
+const isMatchDetailOmitted = (match: GrepMatch, index: number) =>
+  match.contentOmitted === true || index >= matchDetailLimit.value
+
 // 检查是否有替换后的内容
 const hasReplacedContent = computed(() => {
   return !!(
@@ -425,15 +492,14 @@ const effectiveStatus = computed(() => {
 })
 
 const getMatchScopeBadgeClass = (match: GrepMatch) => {
-  // 检查 match.match 是否包含 metadata 标识
-  if (match.match && match.match.startsWith('[metadata.')) {
+  if (match.metadataScope || (match.match && match.match.startsWith('[metadata.'))) {
     return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
   }
   return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
 }
 
 const getMatchScopeLabel = (match: GrepMatch) => {
-  if (match.match && match.match.startsWith('[metadata.')) {
+  if (match.metadataScope || (match.match && match.match.startsWith('[metadata.'))) {
     return t('agent.display.grep.metadata')
   }
   return t('agent.display.grep.document')
@@ -528,7 +594,8 @@ const highlightMatchInEditor = async (index: number) => {
   }
 
   // 检查是否是 metadata 匹配（metadata 匹配不在原始文档中，无法高亮）
-  const isMetadataMatch = match.match && match.match.startsWith('[metadata.')
+  const isMetadataMatch =
+    match.metadataScope || (match.match && match.match.startsWith('[metadata.'))
 
   if (isMetadataMatch) {
     // 对于 metadata 匹配，无法在文档中定位，编辑器保持显示原始文档内容

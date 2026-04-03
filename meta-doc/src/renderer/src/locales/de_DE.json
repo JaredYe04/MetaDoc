@@ -3061,7 +3061,10 @@
         "showReplaced": "Ersetzten Inhalt anzeigen",
         "match": "Übereinstimmung",
         "summaryMode": "Übersichtsmodus",
-        "summaryDescription": "Suchvorgang erfolgreich abgeschlossen. Da der ausführliche Modus nicht aktiviert ist, wurde der vollständige Dokumenteninhalt aus Platzgründen nicht eingeschlossen."
+        "summaryDescription": "Suchvorgang erfolgreich abgeschlossen. Da der ausführliche Modus nicht aktiviert ist, wurde der vollständige Dokumenteninhalt aus Platzgründen nicht eingeschlossen.",
+        "manyMatchesWarningTitle": "Sehr viele Treffer",
+        "manyMatchesWarningDesc": "{count} Treffer gefunden; nur die ersten {limit} werden vollständig angezeigt. Wenn das zu viel ist, Muster einschränken oder withinPaths verwenden.",
+        "matchIndexOnly": "Treffer #{n}"
       },
       "webCrawler": {
         "title": "Webseitenzugriff-Ergebnis",

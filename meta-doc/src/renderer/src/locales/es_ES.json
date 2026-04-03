@@ -308,7 +308,10 @@
         "showReplaced": "Mostrar reemplazado",
         "match": "Texto coincidente",
         "summaryMode": "Modo resumen",
-        "summaryDescription": "La operación de búsqueda se completó con éxito. Para ahorrar espacio, no se incluye el contenido completo del documento ya que el modo detallado no está habilitado."
+        "summaryDescription": "La operación de búsqueda se completó con éxito. Para ahorrar espacio, no se incluye el contenido completo del documento ya que el modo detallado no está habilitado.",
+        "manyMatchesWarningTitle": "Demasiadas coincidencias",
+        "manyMatchesWarningDesc": "Se encontraron {count} coincidencias; solo las primeras {limit} se muestran en detalle. Si es excesivo, acote el patrón o use withinPaths.",
+        "matchIndexOnly": "Coincidencia #{n}"
       },
       "subagent": {
         "title": "Subagente",

@@ -2979,7 +2979,10 @@
         "showReplaced": "Afficher le contenu remplacé",
         "match": "Texte correspondant",
         "summaryMode": "Mode sommaire",
-        "summaryDescription": "L'opération de recherche a été effectuée avec succès. Le contenu complet des documents n'est pas inclus pour économiser de l'espace, car le mode détaillé n'est pas activé."
+        "summaryDescription": "L'opération de recherche a été effectuée avec succès. Le contenu complet des documents n'est pas inclus pour économiser de l'espace, car le mode détaillé n'est pas activé.",
+        "manyMatchesWarningTitle": "Trop de correspondances",
+        "manyMatchesWarningDesc": "{count} correspondances trouvées ; seules les {limit} premières sont affichées en détail. Si c'est excessif, affinez le motif ou limitez la portée (withinPaths).",
+        "matchIndexOnly": "Correspondance #{n}"
       },
       "webCrawler": {
         "title": "Résultat de l'accès à la page web",

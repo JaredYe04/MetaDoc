@@ -383,6 +383,10 @@ onBeforeUnmount(() => {
   bottom: 0;
   left: 0;
   right: 0;
+  /* 展开态下作为 flex 子项时避免被 min-content 撑破父级宽度 */
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -518,6 +522,8 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   padding-right: 20px;
+  /* 文案区单独裁切横向溢出，避免裁掉 toast 自身 box-shadow */
+  overflow-x: hidden;
 }
 
 .toast-title {
@@ -525,12 +531,16 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: hsl(var(--foreground));
   margin-bottom: 4px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .toast-description {
   font-size: 13px;
   line-height: 1.5;
   color: hsl(var(--muted-foreground));
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .toast-unread {

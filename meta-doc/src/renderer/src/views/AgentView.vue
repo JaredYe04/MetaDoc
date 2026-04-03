@@ -123,6 +123,7 @@
                   }"
                 />
               </ScrollArea>
+              <AgentEditStagingCollapsible v-if="activeSession" :session-id="activeSessionId" />
               <div class="composer-wrapper">
                 <ReferenceDisplay
                   v-if="activeSession"
@@ -447,6 +448,7 @@ import {
 } from '@renderer/components/ui/dropdown-menu'
 import { themeState, mixColors } from '../utils/themes'
 import AgentComposerSendQueuePanel from '../components/agent/AgentComposerSendQueuePanel.vue'
+import AgentEditStagingCollapsible from '../components/agent/AgentEditStagingCollapsible.vue'
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue'
 import ChatComposer from '../components/chat/ChatComposer.vue'
 import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue'

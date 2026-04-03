@@ -3,10 +3,16 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import messageBridge from '../bridge/message-bridge'
 import type { EditOperation } from '../utils/agent-tools/edit-engine/types'
-import { applyEditSequenceRaw, postProcess } from '../utils/agent-tools/edit-engine'
+import { applyEditSequenceRaw, applySingleEdit, postProcess } from '../utils/agent-tools/edit-engine'
+import { useAgentWorkspaceStore } from './agent-workspace-store'
+import { joinUnderWorkspaceRoot, REL_EDIT_CHECKPOINTS } from '../utils/agent-workspace-persistence'
+import {
+  computeRecordPendingGrossLines,
+  grossLineDiffWholeFile
+} from '../utils/agent-edit-staging-line-stats'
 
 export type StagingEditType = 'edit' | 'create' | 'delete'
 
@@ -49,14 +55,7 @@ function normalizePath(p: string): string {
   return p.replace(/\\/g, '/')
 }
 
-function lineCountDelta(oldS: string, newS: string): { added: number; removed: number } {
-  const ol = oldS ? oldS.split('\n').length : 0
-  const nl = newS ? newS.split('\n').length : 0
-  return {
-    added: Math.max(0, nl - ol),
-    removed: Math.max(0, ol - nl)
-  }
-}
+const REVIEW_UNDO_MAX = 50
 
 /** 按 hunk 折叠：基准 + 所有未拒绝的 operation 顺序应用，再后处理 */
 export function foldRecordContent(record: StagingEditRecord): string {
@@ -67,8 +66,172 @@ export function foldRecordContent(record: StagingEditRecord): string {
   return postProcess(applyEditSequenceRaw(baseline, ops))
 }
 
+/**
+ * 审阅 diff 左侧文本：顺序遍历 hunk，仅应用「已接受」；pending 不应用、rejected 跳过。
+ * 与 {@link foldRecordContent}（右侧）对比时，已定案的块两侧一致，仅 pending 块仍有差异。
+ */
+export function foldRecordContentDiffLeftSide(record: StagingEditRecord): string {
+  if (!record.hunkOperations?.length) return record.oldContent ?? ''
+  let cur = record.oldContent ?? ''
+  for (const h of record.hunkOperations) {
+    if (h.status === 'rejected') continue
+    if (h.status === 'pending') continue
+    try {
+      cur = applySingleEdit(cur, h.operation).next
+    } catch {
+      break
+    }
+  }
+  return postProcess(cur)
+}
+
 export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => {
   const records = ref<StagingEditRecord[]>([])
+
+  /** 打开独立审阅页时选中对应暂存项（由 AgentReviewView 消费后清空） */
+  const reviewFocusEditId = ref<string | null>(null)
+
+  function setReviewFocusEditId(id: string | null) {
+    reviewFocusEditId.value = id
+  }
+
+  /** 审阅界面专用：撤销 / 重做（内存快照 + 尽量同步磁盘） */
+  const reviewUndoStack = ref<string[]>([])
+  const reviewRedoStack = ref<string[]>([])
+
+  let saveTimer: ReturnType<typeof setTimeout> | null = null
+  const SAVE_DEBOUNCE_MS = 500
+
+  async function getEditCheckpointFilePath(): Promise<string | null> {
+    const agentWorkspace = useAgentWorkspaceStore()
+    let root = agentWorkspace.workspaceRoot
+    if (!root) {
+      try {
+        root = await agentWorkspace.refreshWorkspaceRoot()
+      } catch {
+        root = ''
+      }
+    }
+    if (!root) return null
+    return joinUnderWorkspaceRoot(root, REL_EDIT_CHECKPOINTS)
+  }
+
+  async function loadFromWorkspace(): Promise<void> {
+    const path = await getEditCheckpointFilePath()
+    if (!path) return
+    let text: unknown
+    try {
+      text = await messageBridge.invoke('read-file-content', path)
+    } catch {
+      return
+    }
+    if (!text || typeof text !== 'string') return
+    try {
+      const parsed = JSON.parse(text) as { records?: StagingEditRecord[] }
+      if (Array.isArray(parsed.records)) {
+        records.value = parsed.records
+      }
+    } catch {
+      /* ignore malformed file */
+    }
+  }
+
+  async function saveToWorkspace(): Promise<void> {
+    const path = await getEditCheckpointFilePath()
+    if (!path) return
+    try {
+      await messageBridge.invoke('write-file-content', {
+        filePath: path,
+        content: JSON.stringify({ records: records.value }, null, 2)
+      })
+    } catch (e) {
+      console.error('[agent-edit-staging] save checkpoints failed', e)
+    }
+  }
+
+  function scheduleSave(): void {
+    if (saveTimer) {
+      clearTimeout(saveTimer)
+    }
+    saveTimer = setTimeout(() => {
+      saveTimer = null
+      void saveToWorkspace()
+    }, SAVE_DEBOUNCE_MS)
+  }
+
+  watch(
+    records,
+    () => {
+      scheduleSave()
+    },
+    { deep: true }
+  )
+
+  function pushReviewUndoSnapshot(): void {
+    reviewUndoStack.value = [...reviewUndoStack.value, JSON.stringify(records.value)].slice(
+      -REVIEW_UNDO_MAX
+    )
+    reviewRedoStack.value = []
+  }
+
+  async function syncEditFilesAfterReviewRestore(): Promise<void> {
+    const byFile = new Map<string, StagingEditRecord>()
+    for (const r of records.value) {
+      if (r.type !== 'edit') continue
+      const k = normalizePath(r.filePath)
+      const prev = byFile.get(k)
+      if (!prev || r.createdAt >= prev.createdAt) {
+        byFile.set(k, r)
+      }
+    }
+    for (const r of byFile.values()) {
+      if (r.status === 'pending') {
+        const text = foldRecordContent(r)
+        await messageBridge.invoke('write-file-content', {
+          filePath: r.filePath,
+          content: text
+        })
+      } else if (r.status === 'rejected' && r.oldContent != null) {
+        await messageBridge.invoke('write-file-content', {
+          filePath: r.filePath,
+          content: r.oldContent
+        })
+      } else if (r.status === 'accepted') {
+        const text = r.hunkOperations?.length ? foldRecordContent(r) : (r.newContent ?? '')
+        await messageBridge.invoke('write-file-content', {
+          filePath: r.filePath,
+          content: text
+        })
+      }
+    }
+  }
+
+  async function undoReview(): Promise<void> {
+    if (reviewUndoStack.value.length === 0) return
+    const cur = JSON.stringify(records.value)
+    const prev = reviewUndoStack.value.pop()!
+    reviewRedoStack.value.push(cur)
+    records.value = JSON.parse(prev) as StagingEditRecord[]
+    await syncEditFilesAfterReviewRestore()
+  }
+
+  async function redoReview(): Promise<void> {
+    if (reviewRedoStack.value.length === 0) return
+    const cur = JSON.stringify(records.value)
+    const next = reviewRedoStack.value.pop()!
+    reviewUndoStack.value.push(cur)
+    records.value = JSON.parse(next) as StagingEditRecord[]
+    await syncEditFilesAfterReviewRestore()
+  }
+
+  const canReviewUndo = computed(() => reviewUndoStack.value.length > 0)
+  const canReviewRedo = computed(() => reviewRedoStack.value.length > 0)
+
+  function recordHasPendingReviewChunks(r: StagingEditRecord): boolean {
+    if (r.status !== 'pending') return false
+    if (!r.hunkOperations?.length) return true
+    return r.hunkOperations.some((h) => h.status === 'pending')
+  }
 
   const bySession = computed(() => {
     const map = new Map<string, StagingEditRecord[]>()
@@ -128,15 +291,16 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
         }))
         const mergedHunks = [...(existing.hunkOperations ?? []), ...newHunks]
         const newContent = payload.newContent ?? existing.newContent ?? ''
-        const base = existing.oldContent ?? payload.oldContent ?? ''
-        const { added, removed } = lineCountDelta(base, newContent)
         const updated: StagingEditRecord = {
           ...existing,
           newContent,
           hunkOperations: mergedHunks,
-          addedLines: added,
-          removedLines: removed
+          addedLines: 0,
+          removedLines: 0
         }
+        const g = computeRecordPendingGrossLines(updated)
+        updated.addedLines = g.added
+        updated.removedLines = g.removed
         records.value = records.value.map((r) => (r.id === existing.id ? updated : r))
         return updated
       }
@@ -154,7 +318,6 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
 
     const base = payload.oldContent ?? ''
     const nw = payload.newContent ?? ''
-    const { added, removed } = lineCountDelta(base, nw)
 
     const record: StagingEditRecord = {
       id: genId(),
@@ -164,11 +327,20 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
       type: payload.type,
       oldContent: payload.oldContent,
       newContent: payload.newContent,
-      addedLines: added,
-      removedLines: removed,
+      addedLines: 0,
+      removedLines: 0,
       hunkOperations,
       status: 'pending',
       createdAt: Date.now()
+    }
+    if (hunkOperations?.length) {
+      const g = computeRecordPendingGrossLines(record)
+      record.addedLines = g.added
+      record.removedLines = g.removed
+    } else {
+      const g = grossLineDiffWholeFile(base, nw)
+      record.addedLines = g.added
+      record.removedLines = g.removed
     }
     records.value = [...records.value, record]
     return record
@@ -210,10 +382,14 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
       filePath: record.filePath,
       content: text
     })
-    const base = record.oldContent ?? ''
-    const { added, removed } = lineCountDelta(base, text)
+    const nextPatch = { ...record, newContent: text }
+    const g = nextPatch.hunkOperations?.length
+      ? computeRecordPendingGrossLines(nextPatch)
+      : grossLineDiffWholeFile(record.oldContent ?? '', text)
     records.value = records.value.map((r) =>
-      r.id === record.id ? { ...r, newContent: text, addedLines: added, removedLines: removed } : r
+      r.id === record.id
+        ? { ...r, newContent: text, addedLines: g.added, removedLines: g.removed }
+        : r
     )
   }
 
@@ -355,6 +531,10 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
 
   return {
     records,
+    reviewFocusEditId,
+    setReviewFocusEditId,
+    canReviewUndo,
+    canReviewRedo,
     bySession,
     getEditsForSession,
     getEditsByUserMessage,
@@ -370,6 +550,13 @@ export const useAgentEditStagingStore = defineStore('agent-edit-staging', () => 
     redoEdit,
     acceptAll,
     rejectAll,
-    foldRecordContent
+    foldRecordContent,
+    foldRecordContentDiffLeftSide,
+    loadFromWorkspace,
+    saveToWorkspace,
+    pushReviewUndoSnapshot,
+    undoReview,
+    redoReview,
+    recordHasPendingReviewChunks
   }
 })

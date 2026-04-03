@@ -310,8 +310,12 @@
         "summaryMode": "Modo resumen",
         "summaryDescription": "La operación de búsqueda se completó con éxito. Para ahorrar espacio, no se incluye el contenido completo del documento ya que el modo detallado no está habilitado.",
         "manyMatchesWarningTitle": "Demasiadas coincidencias",
-        "manyMatchesWarningDesc": "Se encontraron {count} coincidencias; solo las primeras {limit} se muestran en detalle. Si es excesivo, acote el patrón o use withinPaths.",
-        "matchIndexOnly": "Coincidencia #{n}"
+        "manyMatchesWarningDesc": "Se encontraron {count} coincidencias; solo las primeras {limit} aparecen en la lista para ahorrar espacio. Acote el patrón o use withinPaths.",
+        "matchIndexOnly": "Coincidencia #{n}",
+        "searchQueryLabel": "Consulta",
+        "modeRegex": "Regex",
+        "modeFuzzy": "Difusa",
+        "matchesTruncatedHint": "{n} coincidencias más no listadas (el total está arriba)."
       },
       "subagent": {
         "title": "Subagente",

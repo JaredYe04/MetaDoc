@@ -124,7 +124,7 @@
           size="icon"
           class="composer-btn"
           :class="{ 'composer-btn-reasoning-active': enableReasoning }"
-          :disabled="disabled"
+          :disabled="disabled || loading"
           @click.prevent="toggleReasoning"
         >
           <Brain class="w-4 h-4" />
@@ -353,7 +353,7 @@ const toggleKnowledgeBaseQuery = () => {
 }
 
 const toggleReasoning = () => {
-  if (props.disabled) return
+  if (props.disabled || props.loading) return
   enableReasoning.value = !enableReasoning.value
   emit('update:enableReasoning', enableReasoning.value)
 }

@@ -310,8 +310,12 @@
         "summaryMode": "Режим сводки",
         "summaryDescription": "Операция поиска успешно завершена. Полное содержимое документа не включено для экономии места, так как подробный режим не активирован.",
         "manyMatchesWarningTitle": "Слишком много совпадений",
-        "manyMatchesWarningDesc": "Найдено совпадений: {count}; подробно показаны только первые {limit}. Если это лишнее, сузьте шаблон или ограничьте область (withinPaths).",
-        "matchIndexOnly": "Совпадение #{n}"
+        "manyMatchesWarningDesc": "Найдено совпадений: {count}; в списке только первые {limit}, остальные не перечислены для экономии места. Сузьте шаблон или используйте withinPaths.",
+        "matchIndexOnly": "Совпадение #{n}",
+        "searchQueryLabel": "Запрос",
+        "modeRegex": "Regex",
+        "modeFuzzy": "Нечёткий",
+        "matchesTruncatedHint": "Ещё {n} совпадений не в списке (всего см. выше)."
       },
       "subagent": {
         "title": "Subagent",

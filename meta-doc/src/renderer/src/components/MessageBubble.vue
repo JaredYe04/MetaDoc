@@ -435,7 +435,7 @@ onBeforeMount(() => {
         class="ai-chat-reasoning-wrap"
         :class="{ 'ai-chat-reasoning-wrap--open': isReasoningOpen }"
       >
-        <CollapsibleTrigger class="ai-chat-reasoning-trigger">
+        <CollapsibleTrigger class="ai-chat-reasoning-trigger" :hide-icon="true">
           <ChevronDown class="ai-chat-reasoning-chevron" />
           <span>{{ t('agent.message.reasoningBlock') }}</span>
         </CollapsibleTrigger>
@@ -688,6 +688,7 @@ onBeforeMount(() => {
 .ai-chat-reasoning-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start !important;
   gap: 4px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
@@ -695,7 +696,8 @@ onBeforeMount(() => {
   user-select: none;
   background: transparent;
   border: none;
-  padding: 0 0 4px;
+  padding: 0 0 4px !important;
+  width: auto !important;
 }
 
 .ai-chat-reasoning-chevron {

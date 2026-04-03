@@ -4,12 +4,22 @@
     <template v-if="compact">
       <div v-if="displayData.stage === 'searching'" class="grep-compact-status">
         <el-icon class="is-loading"><Loading /></el-icon>
-        <span>{{ $t('agent.display.grep.searching') }}</span>
+        <div class="grep-compact-searching-text">
+          <span>{{ $t('agent.display.grep.searching') }}</span>
+          <div v-if="searchPatternForDisplay" class="grep-compact-query mt-1">
+            <span class="grep-search-query-label">{{ $t('agent.display.grep.searchQueryLabel') }}</span>
+            <code class="grep-search-query-value">{{ searchPatternForDisplay }}</code>
+          </div>
+        </div>
       </div>
       <div
-        v-else-if="resultData && resultData.matches && resultData.matches.length"
+        v-else-if="displayData.stage === 'completed' && resultData && Array.isArray(resultData.matches)"
         class="grep-compact-wrap"
       >
+        <div v-if="searchPatternForDisplay" class="grep-compact-query mb-2">
+          <span class="grep-search-query-label">{{ $t('agent.display.grep.searchQueryLabel') }}</span>
+          <code class="grep-search-query-value">{{ searchPatternForDisplay }}</code>
+        </div>
         <Alert
           v-if="showManyMatchesWarning"
           class="grep-compact-warn mb-2 border-amber-200 bg-amber-50 py-2 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
@@ -27,17 +37,16 @@
             }}
           </AlertDescription>
         </Alert>
-        <div class="grep-compact-list">
-          <div v-for="(match, index) in resultData.matches" :key="index" class="grep-compact-item">
+        <div v-if="displayedMatches.length" class="grep-compact-list">
+          <div v-for="(match, index) in displayedMatches" :key="index" class="grep-compact-item">
             <span class="grep-compact-file">{{
               match.filePath || $t('agent.display.grep.document')
             }}</span>
-            <span class="grep-compact-line">{{
-              isMatchDetailOmitted(match, index)
-                ? $t('agent.display.grep.matchIndexOnly', { n: index + 1 }) + ' · L' + match.line
-                : 'L' + match.line
-            }}</span>
+            <span class="grep-compact-line">L{{ match.line }}</span>
           </div>
+        </div>
+        <div v-else class="grep-compact-empty">
+          {{ $t('agent.display.grep.noMatches') }}
         </div>
       </div>
       <div v-else-if="displayData.stage === 'completed'" class="grep-compact-empty">
@@ -48,27 +57,47 @@
     <template v-else>
       <div
         v-if="displayData.stage === 'searching'"
-        class="status-message"
+        class="status-message grep-status-searching"
         :style="statusMessageStyle"
       >
         <el-icon class="is-loading"><Loading /></el-icon>
-        <span>{{ $t('agent.display.grep.searching') }}</span>
+        <div class="grep-searching-block">
+          <span>{{ $t('agent.display.grep.searching') }}</span>
+          <div v-if="searchPatternForDisplay" class="grep-search-query-bar mt-3" :style="searchQueryBarStyle">
+            <span class="grep-search-query-label">{{ $t('agent.display.grep.searchQueryLabel') }}</span>
+            <code class="grep-search-query-value">{{ searchPatternForDisplay }}</code>
+            <Badge v-if="searchModeFlags.isRegex" variant="outline" class="text-xs">{{
+              $t('agent.display.grep.modeRegex')
+            }}</Badge>
+            <Badge v-if="searchModeFlags.isFuzzy" variant="outline" class="text-xs">{{
+              $t('agent.display.grep.modeFuzzy')
+            }}</Badge>
+          </div>
+        </div>
       </div>
 
       <div
-        v-else-if="displayData.stage === 'completed' && resultData && resultData.matches"
+        v-else-if="displayData.stage === 'completed' && resultData && Array.isArray(resultData.matches)"
         class="completed-state"
         :style="completedStateStyle"
       >
+        <div v-if="searchPatternForDisplay" class="grep-search-query-bar mb-3" :style="searchQueryBarStyle">
+          <span class="grep-search-query-label">{{ $t('agent.display.grep.searchQueryLabel') }}</span>
+          <code class="grep-search-query-value">{{ searchPatternForDisplay }}</code>
+          <Badge v-if="resultData.isRegex" variant="outline" class="text-xs">{{
+            $t('agent.display.grep.modeRegex')
+          }}</Badge>
+          <Badge v-if="resultData.isFuzzy" variant="outline" class="text-xs">{{
+            $t('agent.display.grep.modeFuzzy')
+          }}</Badge>
+        </div>
+
         <div class="grep-header" :style="headerStyle">
           <h3 class="grep-title" :style="titleStyle">{{ $t('agent.display.grep.title') }}</h3>
           <div class="header-tags" :style="headerTagsStyle">
             <Badge variant="secondary">{{
               $t('agent.display.grep.matchesCount', { count: resultData.totalMatches })
             }}</Badge>
-            <Badge variant="default"
-              >{{ $t('agent.display.grep.searchPattern') }}: {{ resultData.searchPattern }}</Badge
-            >
             <Badge
               v-if="resultData.replacedCount && resultData.replacedCount > 0"
               class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
@@ -107,13 +136,11 @@
             <AlertTitle>{{ $t('agent.display.grep.summaryMode') || '概要模式' }}</AlertTitle>
             <AlertDescription>
               <div class="summary-content">
-                <!-- <p>
-                  {{
-                    $t('agent.display.grep.summaryDescription') ||
-                    '搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。'
-                  }}
-                </p> -->
                 <ul class="summary-list">
+                  <li v-if="searchPatternForDisplay">
+                    {{ $t('agent.display.grep.searchQueryLabel') }}:
+                    <code class="grep-inline-code">{{ searchPatternForDisplay }}</code>
+                  </li>
                   <li>
                     {{ $t('agent.display.grep.matchesCount', { count: resultData.totalMatches }) }}
                   </li>
@@ -131,14 +158,15 @@
         <!-- 匹配列表（始终显示） -->
         <div v-if="!hasFullContent" class="matches-only-view">
           <div class="panel-header" :style="panelHeaderStyle">
-            <span
-              >{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span
-            >
+            <span>
+              {{ $t('agent.display.grep.matchesList') }} ({{ displayedMatches.length }} /
+              {{ resultData.totalMatches }})
+            </span>
           </div>
           <ScrollArea class="max-h-[400px]">
             <div class="matches-list">
               <div
-                v-for="(match, index) in resultData.matches"
+                v-for="(match, index) in displayedMatches"
                 :key="index"
                 class="match-item"
                 :style="getMatchItemStyle(index)"
@@ -147,45 +175,41 @@
                   <Badge :class="getMatchScopeBadgeClass(match)">
                     {{ getMatchScopeLabel(match) }}
                   </Badge>
-                  <span v-if="match.filePath && !isMatchDetailOmitted(match, index)" class="match-file" :style="locationStyle">
+                  <span v-if="match.filePath" class="match-file" :style="locationStyle">
                     {{ match.filePath }}
                   </span>
                   <span class="match-location" :style="locationStyle">
-                    <template v-if="isMatchDetailOmitted(match, index)">
-                      {{ $t('agent.display.grep.matchIndexOnly', { n: index + 1 }) }} ·
-                    </template>
                     {{ $t('agent.display.grep.line') }} {{ match.line }},
                     {{ $t('agent.display.grep.column') }} {{ match.column }}
                   </span>
                 </div>
-                <div v-if="match.filePath && isMatchDetailOmitted(match, index)" class="match-file match-file-omitted" :style="locationStyle">
-                  {{ match.filePath }}
+                <div class="match-text" :style="matchTextStyle">
+                  <code>{{ match.match }}</code>
                 </div>
-                <template v-if="!isMatchDetailOmitted(match, index)">
-                  <div class="match-text" :style="matchTextStyle">
-                    <code>{{ match.match }}</code>
-                  </div>
-                  <div v-if="match.context" class="match-context" :style="matchContextStyle">
-                    <pre>{{ match.context }}</pre>
-                  </div>
-                </template>
+                <div v-if="match.context" class="match-context" :style="matchContextStyle">
+                  <pre>{{ match.context }}</pre>
+                </div>
               </div>
             </div>
           </ScrollArea>
+          <p v-if="hiddenMatchCount > 0" class="grep-matches-truncated-foot px-3 py-2 text-xs text-muted-foreground">
+            {{ $t('agent.display.grep.matchesTruncatedHint', { n: hiddenMatchCount }) }}
+          </p>
         </div>
 
         <div v-else class="grep-content">
           <!-- 左侧：搜索结果列表 -->
           <div class="matches-panel">
             <div class="panel-header" :style="panelHeaderStyle">
-              <span
-                >{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span
-              >
+              <span>
+                {{ $t('agent.display.grep.matchesList') }} ({{ displayedMatches.length }} /
+                {{ resultData.totalMatches }})
+              </span>
             </div>
             <ScrollArea class="max-h-[500px]">
               <div class="matches-list">
                 <div
-                  v-for="(match, index) in resultData.matches"
+                  v-for="(match, index) in displayedMatches"
                   :key="index"
                   class="match-item"
                   :class="{ 'match-item-active': selectedMatchIndex === index }"
@@ -196,26 +220,26 @@
                     <Badge :class="getMatchScopeBadgeClass(match)">
                       {{ getMatchScopeLabel(match) }}
                     </Badge>
-                    <span v-if="match.filePath && !isMatchDetailOmitted(match, index)" class="match-file" :style="locationStyle">
+                    <span v-if="match.filePath" class="match-file" :style="locationStyle">
                       {{ match.filePath }}
                     </span>
                     <span class="match-location" :style="locationStyle">
-                      <template v-if="isMatchDetailOmitted(match, index)">
-                        {{ $t('agent.display.grep.matchIndexOnly', { n: index + 1 }) }} ·
-                      </template>
                       {{ $t('agent.display.grep.line') }} {{ match.line }},
                       {{ $t('agent.display.grep.column') }} {{ match.column }}
                     </span>
                   </div>
-                  <div v-if="match.filePath && isMatchDetailOmitted(match, index)" class="match-file match-file-omitted" :style="locationStyle">
-                    {{ match.filePath }}
-                  </div>
-                  <div v-if="!isMatchDetailOmitted(match, index)" class="match-text" :style="matchTextStyle">
+                  <div class="match-text" :style="matchTextStyle">
                     <code>{{ match.match }}</code>
                   </div>
                 </div>
               </div>
             </ScrollArea>
+            <p
+              v-if="hiddenMatchCount > 0"
+              class="grep-matches-truncated-foot px-3 py-2 text-xs text-muted-foreground"
+            >
+              {{ $t('agent.display.grep.matchesTruncatedHint', { n: hiddenMatchCount }) }}
+            </p>
           </div>
 
           <!-- 右侧：Monaco 编辑器显示完整上下文 -->
@@ -243,11 +267,15 @@
       <div
         v-else-if="
           displayData.stage === 'completed' &&
-          (!resultData || !resultData.matches || resultData.matches.length === 0)
+          (!resultData || !Array.isArray(resultData.matches))
         "
         class="no-results"
         :style="noResultsStyle"
       >
+        <div v-if="searchPatternForDisplay" class="grep-search-query-bar mb-3" :style="searchQueryBarStyle">
+          <span class="grep-search-query-label">{{ $t('agent.display.grep.searchQueryLabel') }}</span>
+          <code class="grep-search-query-value">{{ searchPatternForDisplay }}</code>
+        </div>
         <Empty :description="$t('agent.display.grep.noMatches')" />
       </div>
 
@@ -323,6 +351,10 @@ const demoData = ref({
     ],
     totalMatches: 4,
     searchPattern: 'function',
+    isRegex: false,
+    isFuzzy: false,
+    scope: ['document'],
+    displayMatchDetailLimit: 50,
     replacedCount: 0,
     replacementText: '',
     originalContent: `// 数学工具库
@@ -415,18 +447,40 @@ const displayData = computed(() => {
 const resultData = computed((): GrepResult | null => {
   const data = displayData.value
   if (data && typeof data === 'object') {
-    // 可能 result 在 content.result 或直接是 result
-    const result = data.result || data.content?.result || data
-    if (result && result.matches && Array.isArray(result.matches)) {
+    const result = (data as any).result || (data as any).content?.result || data
+    if (
+      result &&
+      typeof result === 'object' &&
+      'searchPattern' in result &&
+      Array.isArray((result as GrepResult).matches)
+    ) {
       return result as GrepResult
     }
   }
   return null
 })
 
-// 检查是否有完整内容（verbose模式）
-const hasFullContent = computed(() => {
-  return !!resultData.value?.originalContent
+/** 搜索中从进度 payload 读取；完成后从 result 读取 */
+const searchPatternForDisplay = computed(() => {
+  const r = resultData.value
+  if (r?.searchPattern) return r.searchPattern
+  const d = displayData.value as Record<string, unknown> | null
+  if (!d) return ''
+  const p = (d as any).pattern ?? (d as any).content?.pattern
+  return typeof p === 'string' ? p : p != null ? String(p) : ''
+})
+
+const searchModeFlags = computed(() => {
+  const r = resultData.value
+  if (r) {
+    return { isRegex: !!r.isRegex, isFuzzy: !!r.isFuzzy }
+  }
+  const d = displayData.value as Record<string, unknown> | null
+  if (!d) return { isRegex: false, isFuzzy: false }
+  return {
+    isRegex: !!(d as any).isRegex,
+    isFuzzy: !!(d as any).fuzzy
+  }
 })
 
 const matchDetailLimit = computed(
@@ -438,9 +492,27 @@ const showManyMatchesWarning = computed(() => {
   return !!r && r.totalMatches > matchDetailLimit.value
 })
 
-/** 是否与工具层约定一致：超出条目不展示匹配正文与上下文 */
-const isMatchDetailOmitted = (match: GrepMatch, index: number) =>
-  match.contentOmitted === true || index >= matchDetailLimit.value
+/** 列表中展示的匹配（后端已截断；旧数据含 contentOmitted 时去掉占位行） */
+const displayedMatches = computed((): GrepMatch[] => {
+  const r = resultData.value
+  if (!r?.matches?.length) return []
+  const limit = matchDetailLimit.value
+  const raw = r.matches
+  if (raw.some((m) => m.contentOmitted)) {
+    return raw.filter((m) => !m.contentOmitted).slice(0, limit)
+  }
+  return raw.slice(0, limit)
+})
+
+const hiddenMatchCount = computed(() => {
+  const total = resultData.value?.totalMatches ?? 0
+  return Math.max(0, total - displayedMatches.value.length)
+})
+
+// 检查是否有完整内容（verbose模式）
+const hasFullContent = computed(() => {
+  return !!resultData.value?.originalContent
+})
 
 // 检查是否有替换后的内容
 const hasReplacedContent = computed(() => {
@@ -568,7 +640,7 @@ const getMonacoEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
 const highlightMatchInEditor = async (index: number) => {
   if (!resultData.value || !currentContent.value) return
 
-  const match = resultData.value.matches[index]
+  const match = displayedMatches.value[index]
   if (!match) return
 
   // 获取编辑器实例（如果不存在则从全局获取）
@@ -698,7 +770,7 @@ const highlightMatchInEditor = async (index: number) => {
 }
 
 const initMonacoEditor = async () => {
-  if (!resultData.value || resultData.value.matches.length === 0 || !currentContent.value) return
+  if (!resultData.value || displayedMatches.value.length === 0 || !currentContent.value) return
 
   // 确保 Monaco Worker 已配置
   setupMonacoWorker()
@@ -771,7 +843,7 @@ const initMonacoEditor = async () => {
   })
 
   // 默认选中并高亮第一个匹配
-  if (resultData.value.matches.length > 0) {
+  if (displayedMatches.value.length > 0) {
     selectedMatchIndex.value = 0
     await nextTick()
     await highlightMatchInEditor(0)
@@ -792,12 +864,11 @@ const disposeMonacoEditor = () => {
 
 // 监听结果数据和当前内容变化，重新初始化编辑器
 watch(
-  [() => resultData.value, () => currentContent.value],
+  [() => resultData.value, () => currentContent.value, () => displayedMatches.value],
   async () => {
     if (
       resultData.value &&
-      resultData.value.matches &&
-      resultData.value.matches.length > 0 &&
+      displayedMatches.value.length > 0 &&
       currentContent.value
     ) {
       await nextTick()
@@ -827,7 +898,7 @@ watch(
 )
 
 onMounted(async () => {
-  if (resultData.value && resultData.value.matches && resultData.value.matches.length > 0) {
+  if (resultData.value && displayedMatches.value.length > 0) {
     await nextTick()
     initMonacoEditor()
   }
@@ -942,6 +1013,18 @@ const summaryViewStyle = computed(() => ({
   marginBottom: '16px'
 }))
 
+const searchQueryBarStyle = computed(() => ({
+  display: 'flex',
+  flexWrap: 'wrap' as const,
+  alignItems: 'center',
+  gap: '8px',
+  padding: '10px 12px',
+  borderRadius: '6px',
+  border: `1px solid ${themeState.currentTheme.borderColor}`,
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor
+}))
+
 const matchContextStyle = computed(() => ({
   marginTop: '8px',
   padding: '8px',
@@ -1044,6 +1127,46 @@ code {
   to {
     transform: rotate(360deg);
   }
+}
+
+.grep-status-searching {
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 100%;
+}
+
+.grep-searching-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+}
+
+.grep-search-query-label {
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor2');
+  margin-right: 6px;
+}
+.grep-search-query-value {
+  font-size: 13px;
+  word-break: break-all;
+}
+.grep-inline-code {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  word-break: break-all;
+}
+
+.grep-compact-query .grep-search-query {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
 }
 </style>
 

@@ -385,7 +385,7 @@ onBeforeUnmount(() => {
           class="graph-assistant-reasoning-wrap"
           :class="{ 'graph-assistant-reasoning-wrap--open': isReasoningOpen }"
         >
-          <CollapsibleTrigger class="graph-assistant-reasoning-trigger">
+          <CollapsibleTrigger class="graph-assistant-reasoning-trigger" :hide-icon="true">
             <ChevronDown class="graph-assistant-reasoning-chevron" />
             <span>{{ t('agent.message.reasoningBlock') }}</span>
           </CollapsibleTrigger>
@@ -716,6 +716,7 @@ onBeforeUnmount(() => {
 .graph-assistant-reasoning-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start !important;
   gap: 4px;
   font-size: 12px;
   color: v-bind('themeState.currentTheme.textColor2');
@@ -723,7 +724,8 @@ onBeforeUnmount(() => {
   user-select: none;
   background: transparent;
   border: none;
-  padding: 0 0 4px;
+  padding: 0 0 4px !important;
+  width: auto !important;
 }
 
 .graph-assistant-reasoning-chevron {

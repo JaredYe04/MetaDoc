@@ -329,8 +329,12 @@
         "summaryMode": "概要模式",
         "summaryDescription": "搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。",
         "manyMatchesWarningTitle": "匹配项过多",
-        "manyMatchesWarningDesc": "共 {count} 处匹配，界面仅详细展示前 {limit} 处。若结果远超预期，请收窄关键词或正则，或使用 withinPaths 限定搜索范围。",
-        "matchIndexOnly": "匹配项 #{n}"
+        "manyMatchesWarningDesc": "共 {count} 处匹配，列表仅展示前 {limit} 条，其余未逐条列出以节约展示空间。若结果远超预期，请收窄关键词或正则，或使用 withinPaths 限定搜索范围。",
+        "matchIndexOnly": "匹配项 #{n}",
+        "searchQueryLabel": "搜索词",
+        "modeRegex": "正则",
+        "modeFuzzy": "模糊",
+        "matchesTruncatedHint": "另有 {n} 个匹配未在列表中展示（总数见上方）。"
       },
       "subagent": {
         "title": "Subagent",

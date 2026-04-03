@@ -310,8 +310,12 @@
         "summaryMode": "Modo de resumo",
         "summaryDescription": "A operação de pesquisa foi concluída com sucesso. O conteúdo completo do documento não está incluído para economizar espaço, pois o modo verbose não está ativado.",
         "manyMatchesWarningTitle": "Muitas correspondências",
-        "manyMatchesWarningDesc": "{count} correspondências encontradas; apenas as primeiras {limit} são mostradas em detalhe. Se for demais, restrinja o padrão ou use withinPaths.",
-        "matchIndexOnly": "Correspondência #{n}"
+        "manyMatchesWarningDesc": "{count} correspondências encontradas; apenas as primeiras {limit} aparecem na lista para economizar espaço. Restrinja o padrão ou use withinPaths.",
+        "matchIndexOnly": "Correspondência #{n}",
+        "searchQueryLabel": "Consulta",
+        "modeRegex": "Regex",
+        "modeFuzzy": "Fuzzy",
+        "matchesTruncatedHint": "Mais {n} correspondências não listadas (total acima)."
       },
       "subagent": {
         "title": "Subagent",

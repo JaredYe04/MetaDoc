@@ -3063,8 +3063,12 @@
         "summaryMode": "Übersichtsmodus",
         "summaryDescription": "Suchvorgang erfolgreich abgeschlossen. Da der ausführliche Modus nicht aktiviert ist, wurde der vollständige Dokumenteninhalt aus Platzgründen nicht eingeschlossen.",
         "manyMatchesWarningTitle": "Sehr viele Treffer",
-        "manyMatchesWarningDesc": "{count} Treffer gefunden; nur die ersten {limit} werden vollständig angezeigt. Wenn das zu viel ist, Muster einschränken oder withinPaths verwenden.",
-        "matchIndexOnly": "Treffer #{n}"
+        "manyMatchesWarningDesc": "{count} Treffer gefunden; in der Liste nur die ersten {limit}, der Rest wird aus Platzgründen weggelassen. Muster einschränken oder withinPaths verwenden.",
+        "matchIndexOnly": "Treffer #{n}",
+        "searchQueryLabel": "Suchbegriff",
+        "modeRegex": "Regex",
+        "modeFuzzy": "Fuzzy",
+        "matchesTruncatedHint": "Weitere {n} Treffer nicht in der Liste (Gesamtzahl oben)."
       },
       "webCrawler": {
         "title": "Webseitenzugriff-Ergebnis",

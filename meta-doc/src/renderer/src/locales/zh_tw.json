@@ -310,8 +310,12 @@
         "summaryMode": "概要模式",
         "summaryDescription": "搜尋操作已成功完成。由於verbose模式未啟用，未包含完整文件內容以節省空間。",
         "manyMatchesWarningTitle": "匹配項過多",
-        "manyMatchesWarningDesc": "共 {count} 處匹配，介面僅詳細展示前 {limit} 處。若結果遠超預期，請縮小關鍵字或正則，或使用 withinPaths 限定搜尋範圍。",
-        "matchIndexOnly": "匹配項 #{n}"
+        "manyMatchesWarningDesc": "共 {count} 處匹配，列表僅展示前 {limit} 條，其餘未逐條列出以節省空間。若結果遠超預期，請縮小關鍵字或正則，或使用 withinPaths 限定搜尋範圍。",
+        "matchIndexOnly": "匹配項 #{n}",
+        "searchQueryLabel": "搜尋詞",
+        "modeRegex": "正則",
+        "modeFuzzy": "模糊",
+        "matchesTruncatedHint": "另有 {n} 個匹配未在列表中展示（總數見上方）。"
       },
       "subagent": {
         "title": "Subagent",

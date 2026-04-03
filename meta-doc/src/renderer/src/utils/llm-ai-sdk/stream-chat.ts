@@ -64,7 +64,8 @@ function extractReasoningFromAnyJson(obj: any): string {
   return [rd, rc, mc].filter((x) => typeof x === 'string' && x.trim()).join('\n')
 }
 
-function extractReasoningFromRawValue(rawValue: unknown): string {
+/** 供 stream-chat-with-tools 等与 streamText fullStream 对齐：从 raw chunk 提取 reasoning（OpenAI-compatible 常见） */
+export function extractReasoningFromRawValue(rawValue: unknown): string {
   if (!rawValue) return ''
   if (typeof rawValue === 'string') {
     const parsed = tryParseJsonText(rawValue)
@@ -144,12 +145,12 @@ export async function streamChat(options: StreamChatOptions): Promise<StreamChat
               receivedAnyText = true
               await onDelta({ text: chunk })
             }
-          } else if (part.type === 'reasoning-delta') {
+          } else if (enableReasoning && part.type === 'reasoning-delta') {
             const chunk = part.text ?? ''
             if (chunk) {
               await onDelta({ reasoning: chunk })
             }
-          } else if (part.type === 'raw') {
+          } else if (enableReasoning && part.type === 'raw') {
             const extra = extractReasoningFromRawValue((part as any).rawValue)
             if (extra) {
               await onDelta({ reasoning: extra })

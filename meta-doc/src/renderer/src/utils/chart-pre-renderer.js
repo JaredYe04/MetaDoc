@@ -132,8 +132,10 @@ async function computeHash(text) {
  * 使用主进程 IPC 渲染 PlantUML
  * @param {string} code - PlantUML 代码
  * @param {'svg'|'png'} format - 格式：'svg' 或 'png'
+ * @param {string} [requestId] - 导出任务 id，用于与主进程 AbortSignal 对齐
+ * @param {AbortSignal} [abortSignal] - 取消时尽快结束等待（主进程侧仍依赖 requestId）
  */
-export async function renderPlantUMLViaIpc(code, format = 'svg') {
+export async function renderPlantUMLViaIpc(code, format = 'svg', requestId, abortSignal) {
   const logger = createRendererLogger('PlantUMLRenderer')
 
   // 验证传入的代码：不应该包含 XML 标签
@@ -205,15 +207,17 @@ export async function renderPlantUMLViaIpc(code, format = 'svg') {
     throw new Error('无法获取 IPC 渲染器')
   }
 
-  return await messageBridge.invoke('render-plantuml', encodedCode, format)
+  return await messageBridge.invoke('render-plantuml', encodedCode, format, requestId ?? null)
 }
 
 /**
  * 使用主进程 IPC 渲染 ECharts（SSR）
  * @param {string|object} optionJson - ECharts option 的 JSON 字符串或对象
  * @param {string} format - 格式：'svg' 或 'png'
+ * @param {string} [requestId] - 导出任务 id
+ * @param {AbortSignal} [abortSignal] - 取消时在 IPC 返回后跳过上传等后续步骤
  */
-export async function renderEChartsViaIpc(optionJson, format = 'svg') {
+export async function renderEChartsViaIpc(optionJson, format = 'svg', requestId, abortSignal) {
   const logger = createRendererLogger('EChartsRenderer')
   if (!messageBridge.getIpc()) {
     throw new Error('无法获取 IPC 渲染器')
@@ -254,7 +258,14 @@ export async function renderEChartsViaIpc(optionJson, format = 'svg') {
 
   logger.debug('发送 ECharts option 到主进程，长度:', jsonString.length)
 
-  let svgContent = await messageBridge.invoke('render-echarts', jsonString)
+  if (abortSignal?.aborted) {
+    throw new DOMException('ECharts 渲染已取消', 'AbortError')
+  }
+  let svgContent = await messageBridge.invoke('render-echarts', jsonString, requestId ?? null)
+
+  if (abortSignal?.aborted) {
+    throw new DOMException('ECharts 渲染已取消', 'AbortError')
+  }
 
   // 检查返回的是否是 URL（错误情况）
   if (typeof svgContent === 'string' && svgContent.startsWith('http://')) {
@@ -263,12 +274,20 @@ export async function renderEChartsViaIpc(optionJson, format = 'svg') {
     svgContent = await response.text()
   }
 
+  if (abortSignal?.aborted) {
+    throw new DOMException('ECharts 渲染已取消', 'AbortError')
+  }
+
   // 清理 SVG 中的动画和交互元素，确保导出为静态图（避免动画导致 PDF/DOCX/TeX 截帧错误）
   svgContent = cleanSvgForExport(svgContent)
 
   // 基于稳定输入（规范化后的 jsonString + 格式）计算哈希
   const ext = format === 'png' ? 'png' : 'svg'
   const hashBase = await computeHash(jsonString + ':echarts:' + ext)
+
+  if (abortSignal?.aborted) {
+    throw new DOMException('ECharts 渲染已取消', 'AbortError')
+  }
 
   if (format === 'png') {
     // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
@@ -1075,14 +1094,23 @@ async function uploadImageToLocal(imageBlob, fileName) {
   return `${baseUrl}/images/${fileName}`
 }
 
+function isExportAbortError(err) {
+  if (!err) return false
+  if (err.name === 'AbortError') return true
+  const msg = typeof err.message === 'string' ? err.message : String(err.message || '')
+  return msg.includes('已取消') || msg.includes('操作已取消')
+}
+
 /**
  * 预渲染所有图表代码块为图片
  * @param {string} md - Markdown 文本
  * @param {string} cdn - Vditor CDN 地址
  * @param {string} format - 导出格式（已废弃，统一使用 SVG）
+ * @param {function} [progressCallback]
+ * @param {{ signal?: AbortSignal, requestId?: string }} [exportControl] - 导出任务：顺序渲染、可取消、清理中间图
  * @returns {Promise<string>} - 处理后的 Markdown 文本
  */
-export async function preRenderAllCharts(md, cdn, format = '', progressCallback) {
+export async function preRenderAllCharts(md, cdn, format = '', progressCallback, exportControl) {
   const logger = createRendererLogger('ChartPreRenderer')
   logger.debug('开始预渲染所有图表代码块')
 
@@ -1186,12 +1214,30 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
     return next
   }
 
-  // 并发渲染所有图表（PlantUML 串行），完成后统一替换
+  const generatedUrls = exportControl ? [] : null
+  if (exportControl) {
+    exportControl.generatedUrls = generatedUrls
+  }
+
+  const schedulePlantuml = (fn) => {
+    if (exportControl?.signal) {
+      return fn()
+    }
+    return runPlantumlSerial(fn)
+  }
+
+  const rid = exportControl?.requestId
+  const sig = exportControl?.signal
+
+  // 并发渲染所有图表（PlantUML 串行）；导出任务带 AbortSignal 时改为顺序执行以便及时中断
   const targetFormat = format === 'bitmap' ? 'png' : 'svg'
-  const renderTasks = allMatches.map(async ({ chartType, fullMatch, code, config }, index) => {
+
+  const renderOneChart = async ({ chartType, fullMatch, code, config }, index) => {
+    if (sig?.aborted) {
+      throw new DOMException('图表预渲染已取消', 'AbortError')
+    }
     if (!code) {
       logger.warn(`${chartType} 代码块为空，跳过`)
-      // 即使跳过也要更新进度
       progressState.completedCount++
       progressCallback?.({
         message: 'agent.reference.progress.preRenderingCharts',
@@ -1208,15 +1254,10 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
       let imageUrl
       if (config.useIpc) {
         if (chartType === 'echarts') {
-          // 对于 ECharts，code 应该是 JSON 字符串或对象字面量
-          // renderEChartsViaIpc 会处理字符串化和解析
-          imageUrl = await renderEChartsViaIpc(code, targetFormat)
+          imageUrl = await renderEChartsViaIpc(code, targetFormat, rid, sig)
         } else if (chartType === 'plantuml') {
-          // 确保 PlantUML 代码是 UTF-8 编码的字符串
-          // 移除可能的 BOM 标记
           const cleanCode = code.replace(/^\uFEFF/, '').trim()
 
-          // 再次验证代码不包含 XML（双重检查）
           if (
             cleanCode.includes('<svg') ||
             cleanCode.includes('<text') ||
@@ -1228,17 +1269,16 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
             throw new Error('PlantUML 代码包含 XML 标签，代码提取可能有问题')
           }
 
-          // 串行渲染，避免多进程并发导致 Java OOM
-          imageUrl = await runPlantumlSerial(() => renderPlantUMLViaIpc(cleanCode, targetFormat))
+          imageUrl = await schedulePlantuml(() =>
+            renderPlantUMLViaIpc(cleanCode, targetFormat, rid, sig)
+          )
         } else {
           throw new Error(`不支持的 IPC 渲染类型: ${chartType}`)
         }
       } else if (config.useMermaidApi && chartType === 'mermaid') {
-        // 使用 Mermaid 官方 API 渲染
         logger.debug(`renderMermaidViaApi code: ${code}, targetFormat: ${targetFormat}`)
         imageUrl = await renderMermaidViaApi(code, targetFormat)
       } else {
-        // 使用 Vditor 渲染（其他图表类型）
         const chartConfig = CHART_TYPES[chartType]
         logger.debug(
           `renderChartViaVditor chartType: ${chartType}, code: ${code}, cdn: ${cdn}, chartConfig: ${chartConfig}, targetFormat: ${targetFormat}`
@@ -1247,9 +1287,15 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
       }
       logger.debug(`${chartType} 图表渲染完成，URL: ${imageUrl}`)
 
-      // 每完成一张图表，更新进度（使用原子更新）
+      if (
+        generatedUrls &&
+        typeof imageUrl === 'string' &&
+        (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))
+      ) {
+        generatedUrls.push(imageUrl)
+      }
+
       progressState.completedCount++
-      // 使用 requestAnimationFrame 或 setTimeout 确保进度更新不会阻塞
       setTimeout(() => {
         progressCallback?.({
           message: 'agent.reference.progress.preRenderingCharts',
@@ -1261,9 +1307,11 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
 
       return { fullMatch, replacement: `![${chartType} Diagram](${imageUrl})`, chartType }
     } catch (error) {
+      if (isExportAbortError(error)) {
+        throw error
+      }
       logger.error(`${chartType} 图表渲染失败:`, error)
 
-      // 即使失败也要更新进度（使用原子更新）
       progressState.completedCount++
       setTimeout(() => {
         progressCallback?.({
@@ -1276,18 +1324,42 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
 
       return { fullMatch, replacement: null, chartType }
     }
-  })
-
-  const results = await Promise.allSettled(renderTasks)
-
-  // 从后往前替换，避免索引位移问题
-  for (const { value } of results) {
-    if (value && value.replacement) {
-      const { fullMatch, replacement } = value
-      processedMd = processedMd.replace(fullMatch, replacement)
-    }
   }
 
-  logger.debug('所有图表预渲染完成')
-  return processedMd
+  try {
+    let results
+    if (sig) {
+      results = []
+      for (let index = 0; index < allMatches.length; index++) {
+        if (sig.aborted) {
+          throw new DOMException('图表预渲染已取消', 'AbortError')
+        }
+        const r = await renderOneChart(allMatches[index], index)
+        results.push({ status: 'fulfilled', value: r })
+      }
+    } else {
+      const renderTasks = allMatches.map((m, index) => renderOneChart(m, index))
+      results = await Promise.allSettled(renderTasks)
+    }
+
+    for (const res of results) {
+      const value = res.status === 'fulfilled' ? res.value : null
+      if (value && value.replacement) {
+        const { fullMatch, replacement } = value
+        processedMd = processedMd.replace(fullMatch, replacement)
+      }
+    }
+
+    logger.debug('所有图表预渲染完成')
+    return processedMd
+  } catch (e) {
+    if (isExportAbortError(e) && generatedUrls?.length) {
+      try {
+        await messageBridge.invoke('cleanup-export-upload-urls', generatedUrls)
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    throw e
+  }
 }

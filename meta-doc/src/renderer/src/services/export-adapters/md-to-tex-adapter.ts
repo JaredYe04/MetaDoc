@@ -133,7 +133,11 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
     options: LatexExportOptions,
     context?: {
       doc?: WorkspaceDocument
-      handle?: { mark: (p: number, msg?: any) => void }
+      handle?: {
+        mark: (p: number, msg?: any) => void
+        signal?: AbortSignal
+        requestId?: string
+      }
     }
   ): Promise<{
     md: string
@@ -159,11 +163,14 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         }
       : undefined
 
+    const chartAbortOpts = { signal: handle?.signal, requestId: handle?.requestId }
+
     let markdown = filterMetaStep(data.md)
     if (!willRegenerateFromOutline) {
       markdown = await preRenderCharts(markdown, {
         format: 'svg',
-        progressCallback
+        progressCallback,
+        ...chartAbortOpts
       })
     }
     markdown = await prepareImagesForTarget(markdown, 'tex', options.imageProcessing, docPath)
@@ -171,7 +178,13 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
     if (!doc) {
       throw new Error('MdToTexAdapter.prepareExportData requires context.doc')
     }
-    const tex = await convertMarkdownToLatexWithOptions(markdown, doc, data.json, options)
+    const tex = await convertMarkdownToLatexWithOptions(
+      markdown,
+      doc,
+      data.json,
+      options,
+      chartAbortOpts
+    )
 
     const originalImageUrls = collectOriginalImageUrls(data.md)
     const imageUrls = collectRenderedImageUrls(markdown, originalImageUrls)

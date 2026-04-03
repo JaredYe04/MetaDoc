@@ -127,8 +127,13 @@ import {
   performExportRequest,
   pickExportSavePath,
   type RendererExportPayload,
-  abortExportTask
+  abortExportTask,
+  exportArmAbortController,
+  exportDisarmAbortController,
+  cleanupExportUploadUrls,
+  exportAbortSignalForRequest
 } from './export/export-manager'
+import { runEChartsInWorkerThread, runPlantumlInWorkerThread } from './chart-worker-client'
 import { MainProgressHandle } from './utils/progress-handle'
 import {
   createMainLogger,
@@ -2594,6 +2599,32 @@ function bindExportHandlers(): void {
       return abortExportTask(requestId)
     }
   )
+
+  ipcBridge.registerHandle(
+    'export-arm-abort',
+    async (_event: IpcMainInvokeEvent, requestId: string) => {
+      exportArmAbortController(requestId)
+      return true
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'export-disarm-abort',
+    async (_event: IpcMainInvokeEvent, requestId: string) => {
+      exportDisarmAbortController(requestId)
+      return true
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'cleanup-export-upload-urls',
+    async (_event: IpcMainInvokeEvent, urls: string[]) => {
+      if (Array.isArray(urls) && urls.length > 0) {
+        await cleanupExportUploadUrls(urls)
+      }
+      return true
+    }
+  )
 }
 
 /**
@@ -3178,17 +3209,23 @@ function bindUtilityHandlers(): void {
     async (
       event: IpcMainInvokeEvent,
       plantumlCode: string,
-      format: string = 'svg'
+      format: string = 'svg',
+      requestId?: string | null
     ): Promise<string> => {
-      return await renderPlantUMLToLocalImage(plantumlCode, format)
+      const abortSignal = exportAbortSignalForRequest(requestId)
+      return await renderPlantUMLToLocalImage(plantumlCode, format, abortSignal)
     }
   )
 
   ipcBridge.registerHandle(
     'render-echarts',
-    async (event: IpcMainInvokeEvent, optionJson: string): Promise<string> => {
-      // 主进程只返回 SVG 字符串，PNG 转换在渲染进程中完成
-      return await renderEChartsToLocalImage(optionJson)
+    async (
+      event: IpcMainInvokeEvent,
+      optionJson: string,
+      requestId?: string | null
+    ): Promise<string> => {
+      const abortSignal = exportAbortSignalForRequest(requestId)
+      return await renderEChartsToLocalImage(optionJson, abortSignal)
     }
   )
 
@@ -5320,284 +5357,67 @@ async function handleSimpleTexOCR(params: SimpleTexOCRData): Promise<any> {
 }
 
 /**
- * 使用 node-plantuml-2 渲染 PlantUML 代码为本地图片
- * node-plantuml-2 基于 WebAssembly，无需 Java 环境，自动处理 UTF-8 编码和 !theme 指令
- * 注意：已关闭自动语法检查，避免阻塞 UI
+ * 使用 node-plantuml-2 渲染 PlantUML 为本地图片（在 Worker 线程中生成，主进程负责写文件与 PNG 转换）
  * @param plantumlCode PlantUML 源代码
  * @param format 输出格式：'svg' 或 'png'，默认为 'svg'
  * @returns 本地图片的 HTTP URL
  */
 async function renderPlantUMLToLocalImage(
   plantumlCode: string,
-  format: string = 'svg'
+  format: string = 'svg',
+  abortSignal?: AbortSignal
 ): Promise<string> {
   const logger = createMainLogger('PlantUML')
   const crypto = require('crypto')
 
-  // 在打包环境中，修复 node-plantuml-2 的模块路径问题
-  // node-plantuml-2 在打包环境中需要从解包位置加载，避免在 asar 内部创建文件导致 ENOTDIR 错误
-  let plantuml: any
-  if (app.isPackaged) {
-    // 打包环境：从解包位置加载模块
-    const unpackedNodeModulesPath = path.join(
-      process.resourcesPath,
-      'app.asar.unpacked',
-      'node_modules'
-    )
-    const plantumlModulePath = path.join(unpackedNodeModulesPath, 'node-plantuml-2')
-    if (fs.existsSync(plantumlModulePath)) {
-      // 临时修改模块解析路径，确保依赖也能从解包位置加载
-      const Module = require('module')
-      const originalResolveFilename = Module._resolveFilename
-
-      // 创建一个包装函数，优先从解包位置查找模块
-      Module._resolveFilename = function (
-        request: string,
-        parent: any,
-        isMain: boolean,
-        options: any
-      ) {
-        // 如果是 node-plantuml-2 的依赖，优先从解包位置查找
-        if (
-          request === 'node-nailgun-server' ||
-          request === 'node-nailgun-client' ||
-          request === 'plantuml-encoder'
-        ) {
-          const unpackedPath = path.join(unpackedNodeModulesPath, request)
-          if (fs.existsSync(unpackedPath)) {
-            try {
-              return originalResolveFilename.call(this, unpackedPath, parent, isMain, options)
-            } catch (e) {
-              // 如果解包路径失败，回退到默认解析
-            }
-          }
-        }
-        // 其他模块使用默认解析
-        return originalResolveFilename.call(this, request, parent, isMain, options)
-      }
-
-      try {
-        // 使用绝对路径加载解包后的模块
-        // @ts-ignore
-        plantuml = require(plantumlModulePath)
-        logger.debug('打包环境：从解包位置加载 node-plantuml-2:', plantumlModulePath)
-
-        // 设置 PLANTUML_HOME 环境变量，让 node-plantuml-2 使用正确的 JAR 路径
-        const plantumlJarPath = path.join(plantumlModulePath, 'vendor', 'plantuml.jar')
-        if (fs.existsSync(plantumlJarPath)) {
-          process.env.PLANTUML_HOME = plantumlJarPath
-          logger.debug('打包环境：设置 PLANTUML_HOME =', plantumlJarPath)
-        } else {
-          logger.warn('打包环境：未找到 PlantUML JAR 文件:', plantumlJarPath)
-        }
-      } finally {
-        // 恢复原始的模块解析函数
-        Module._resolveFilename = originalResolveFilename
-      }
-    } else {
-      logger.warn('打包环境：未找到解包后的 node-plantuml-2 模块:', plantumlModulePath)
-      // 回退到默认 require
-      // @ts-ignore
-      plantuml = require('node-plantuml-2')
-    }
-  } else {
-    // 开发环境：正常加载模块
-    // @ts-ignore
-    plantuml = require('node-plantuml-2')
-  }
-
-  // 设置 JVM 堆内存，缓解 Java OOM（多图表并发或复杂图时易触发 "insufficient memory"）
-  const prevJavaToolOpts = process.env.JAVA_TOOL_OPTIONS
-  process.env.JAVA_TOOL_OPTIONS = '-Xmx768m'
-
   try {
-    // 清理代码：移除 BOM，保留 !theme 指令（node-plantuml-2 会自动处理）
-    let cleanCode = plantumlCode.replace(/^\uFEFF/, '').trim()
+    const cleanCode = plantumlCode.replace(/^\uFEFF/, '').trim()
 
     if (!cleanCode) {
       throw new Error('PlantUML 代码为空')
     }
 
-    logger.info('开始渲染 PlantUML，代码长度:', cleanCode.length, '格式:', format)
+    logger.info('开始渲染 PlantUML（Worker 线程），代码长度:', cleanCode.length, '格式:', format)
 
-    // 让出控制权，避免阻塞 UI
-    await new Promise((resolve) => setImmediate(resolve))
+    const targetFormat = format
 
-    // 对于 PNG 格式，先生成 SVG，然后转换为高分辨率 PNG
-    // 这样可以与其他图表类型保持一致的高分辨率设置
-    const outputFormat = format === 'png' ? 'svg' : format
-    const targetFormat = format // 保留原始目标格式，用于后续判断
+    const imageBuffer = await runPlantumlInWorkerThread(cleanCode, format, abortSignal)
 
-    // 创建 PlantUML 生成器
-    // node-plantuml-2 的 API：使用流式 API
-    let gen
-    try {
-      gen = plantuml.generate({
-        format: outputFormat
-      })
-      logger.debug('PlantUML 生成器已创建')
-    } catch (genError) {
-      logger.error('创建 PlantUML 生成器失败:', genError)
-      throw new Error(
-        `无法创建 PlantUML 生成器: ${genError instanceof Error ? genError.message : String(genError)}`
-      )
-    }
-
-    // 让出控制权
-    await new Promise((resolve) => setImmediate(resolve))
-
-    // 将 PlantUML 代码写入生成器
-    try {
-      const codeBuffer = Buffer.from(cleanCode, 'utf-8')
-      gen.in.write(codeBuffer)
-      gen.in.end()
-      logger.debug('PlantUML 代码已写入生成器，大小:', codeBuffer.length, 'bytes')
-    } catch (writeError) {
-      logger.error('写入 PlantUML 代码失败:', writeError)
-      throw new Error(
-        `无法写入 PlantUML 代码: ${writeError instanceof Error ? writeError.message : String(writeError)}`
-      )
-    }
-
-    // 收集生成的图片数据
-    const chunks: Buffer[] = []
-    gen.out.on('data', (chunk: Buffer) => {
-      chunks.push(chunk)
-    })
-
-    // 收集错误输出（如果存在 stderr），但不阻塞渲染
-    const errorChunks: Buffer[] = []
-    if (gen.err) {
-      gen.err.on('data', (chunk: Buffer) => {
-        errorChunks.push(chunk)
-        logger.debug('收到 stderr 数据，大小:', chunk.length, 'bytes')
-      })
-    }
-
-    // 等待生成完成，使用非阻塞方式
-    await new Promise<void>((resolve, reject) => {
-      let outEnded = false
-      let errEnded = !gen.err
-      let pollCount = 0
-      const maxPolls = 300 // 最多轮询 30 秒（每 100ms 一次）
-
-      const checkComplete = () => {
-        if (outEnded && errEnded) {
-          resolve()
-        }
-      }
-
-      // 监听子进程事件（如果存在）
-      if (gen && typeof gen.on === 'function') {
-        gen.on('error', (err: Error) => {
-          logger.error('PlantUML 生成器错误:', err)
-          reject(err)
-        })
-      }
-
-      gen.out.on('end', () => {
-        outEnded = true
-        logger.debug('PlantUML stdout 流已结束')
-        checkComplete()
-      })
-
-      gen.out.on('error', (err: Error) => {
-        logger.error('PlantUML stdout 错误:', err)
-        reject(err)
-      })
-
-      if (gen.err) {
-        gen.err.on('end', () => {
-          errEnded = true
-          logger.debug('PlantUML stderr 流已结束')
-          checkComplete()
-        })
-
-        gen.err.on('error', (err: Error) => {
-          logger.warn('PlantUML stderr 错误:', err.message)
-          errEnded = true
-          checkComplete()
-        })
-      }
-
-      // 使用轮询方式检查完成状态，定期让出控制权
-      const pollInterval = setInterval(() => {
-        pollCount++
-        if (outEnded && errEnded) {
-          clearInterval(pollInterval)
-          resolve()
-        } else if (pollCount >= maxPolls) {
-          clearInterval(pollInterval)
-          logger.warn('PlantUML 渲染超时', {
-            outEnded,
-            errEnded,
-            chunksCount: chunks.length
-          })
-          resolve() // 继续处理，即使超时
-        }
-      }, 100) // 每 100ms 检查一次
-    })
-
-    // 让出控制权，允许 UI 更新
-    await new Promise((resolve) => setImmediate(resolve))
-
-    // 注意：已关闭自动语法检查，不会抛出语法错误，即使有 stderr 也继续处理
-    // 这样可以避免阻塞 UI，让渲染过程更加流畅
-    if (errorChunks.length > 0) {
-      // 分批处理，避免阻塞
-      await new Promise((resolve) => setImmediate(resolve))
-      const errorOutput = Buffer.concat(errorChunks).toString('utf-8')
-      if (errorOutput.trim()) {
-        logger.debug('PlantUML stderr 输出（已忽略，不阻塞）:', errorOutput.substring(0, 200))
-        // 不再抛出错误，继续处理
-      }
-    }
-
-    // 分批处理大量数据，避免阻塞 UI
-    await new Promise((resolve) => setImmediate(resolve))
-    const imageBuffer = Buffer.concat(chunks)
     logger.info('PlantUML 渲染完成，大小:', imageBuffer.length, 'bytes')
 
     if (imageBuffer.length === 0) {
       logger.error('PlantUML 渲染输出为空')
-      throw new Error(`生成的 ${outputFormat.toUpperCase()} 为空`)
+      throw new Error(`生成的 ${targetFormat.toUpperCase()} 为空`)
     }
 
-    // 让出控制权
-    await new Promise((resolve) => setImmediate(resolve))
-
-    // 将 imageBuffer 转换为字符串，供后续使用（包括 PNG 转换）
-    // 对于大文件，toString 可能耗时，但这里 SVG 通常不大，影响较小
-    const imageContent = imageBuffer.toString('utf-8')
-
-    // 简化验证：只做最基本的格式检查，不进行语法错误检查
-    if (outputFormat === 'svg' && !imageContent.includes('<svg')) {
-      const errorMsg = imageContent.substring(0, 200).trim()
-      logger.error('PlantUML 渲染返回非 SVG 内容:', errorMsg)
-      throw new Error(`PlantUML 渲染失败: 未返回有效的 SVG`)
-    }
-
-    // 如果目标格式是 PNG，将 SVG 转换为高分辨率 PNG
-    let finalFormat = targetFormat
+    // PNG：Worker 内已 resvg 栅格化，主进程不再调用 convertSvgStringToPngFile（避免阻塞）
     if (targetFormat === 'png') {
-      try {
-        // 让出控制权，避免 PNG 转换阻塞
-        await new Promise((resolve) => setImmediate(resolve))
-
-        const pngUrl = await convertSvgStringToPngFile(imageContent, 2.0)
-        logger.info('PlantUML SVG 已转换为高分辨率 PNG:', pngUrl)
-        return pngUrl
-      } catch (conversionError) {
-        logger.error('PlantUML SVG 转 PNG 失败，使用 SVG 格式:', conversionError)
-        finalFormat = 'svg'
+      const b = imageBuffer
+      const isPng =
+        b.length >= 8 &&
+        b[0] === 0x89 &&
+        b[1] === 0x50 &&
+        b[2] === 0x4e &&
+        b[3] === 0x47 &&
+        b[4] === 0x0d &&
+        b[5] === 0x0a &&
+        b[6] === 0x1a &&
+        b[7] === 0x0a
+      if (!isPng) {
+        logger.error('PlantUML 期望 PNG，输出非 PNG 魔数')
+        throw new Error('PlantUML PNG 输出无效')
+      }
+    } else {
+      const imageContent = imageBuffer.toString('utf-8')
+      if (!imageContent.includes('<svg')) {
+        const errorMsg = imageContent.substring(0, 200).trim()
+        logger.error('PlantUML 渲染返回非 SVG 内容:', errorMsg)
+        throw new Error(`PlantUML 渲染失败: 未返回有效的 SVG`)
       }
     }
 
-    // 让出控制权
-    await new Promise((resolve) => setImmediate(resolve))
-
-    // 保存到本地图片目录（使用基于源码+格式的稳定哈希文件名，避免重复生成）
-    const fileExt = finalFormat === 'png' ? 'png' : 'svg'
+    const finalFormat = targetFormat === 'png' ? 'png' : 'svg'
+    const fileExt = finalFormat
     const hash = crypto
       .createHash('sha256')
       .update(String(plantumlCode) + ':' + finalFormat)
@@ -5616,6 +5436,9 @@ async function renderPlantUMLToLocalImage(
       // not exists, continue to write
     }
 
+    if (abortSignal?.aborted) {
+      throw new DOMException('PlantUML 渲染已取消', 'AbortError')
+    }
     // 写入文件
     await fs.promises.writeFile(filePath, imageBuffer)
     logger.info(`${finalFormat.toUpperCase()} 已保存到:`, filePath)
@@ -5628,103 +5451,23 @@ async function renderPlantUMLToLocalImage(
   } catch (error) {
     logger.error('PlantUML 渲染失败:', error)
     throw error
-  } finally {
-    if (prevJavaToolOpts !== undefined) {
-      process.env.JAVA_TOOL_OPTIONS = prevJavaToolOpts
-    } else {
-      delete process.env.JAVA_TOOL_OPTIONS
-    }
   }
 }
 
 /**
- * 使用 ECharts SSR 渲染图表为 SVG
- * 注意：主进程只负责生成 SVG，PNG 转换在渲染进程中完成
+ * 使用 ECharts SSR 渲染图表为 SVG（Worker 线程）
  * @param optionJson ECharts option 的 JSON 字符串
  * @returns SVG 字符串内容
  */
-async function renderEChartsToLocalImage(optionJson: string): Promise<string> {
-  // @ts-ignore
-  const echarts = require('echarts')
+async function renderEChartsToLocalImage(
+  optionJson: string,
+  abortSignal?: AbortSignal
+): Promise<string> {
   const logger = createMainLogger('ECharts')
-
-  // 主进程无 DOM；打包后部分环境可能注入假的 document，导致 createElement('canvas') 返回无 getContext 的对象。
-  // 强制不创建 canvas，让 zrender 使用内置纯 JS 文字测量（DEFAULT_TEXT_WIDTH_MAP），避免 canvas.getContext is not a function。
-  echarts.setPlatformAPI({
-    createCanvas: () => null
-  })
-
-  // 递归恢复函数（将字符串形式的函数转换回函数对象）
-  function restoreFunctions(obj: any): any {
-    if (obj === null || typeof obj !== 'object') {
-      // 如果是字符串且看起来像函数，尝试转换
-      if (typeof obj === 'string' && obj.trim().startsWith('function')) {
-        try {
-          return new Function('return ' + obj)()
-        } catch {
-          return obj
-        }
-      }
-      return obj
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map(restoreFunctions)
-    }
-
-    const restored: any = {}
-    for (const key in obj) {
-      const value = obj[key]
-      if (typeof value === 'string' && value.trim().startsWith('function')) {
-        try {
-          restored[key] = new Function('return ' + value)()
-        } catch {
-          restored[key] = restoreFunctions(value)
-        }
-      } else {
-        restored[key] = restoreFunctions(value)
-      }
-    }
-    return restored
-  }
-
   try {
-    logger.info('开始渲染 ECharts 为 SVG')
-
-    let option
-    try {
-      option = JSON.parse(optionJson)
-      // 检查是否有函数被序列化为字符串，需要恢复
-      option = restoreFunctions(option)
-    } catch (e) {
-      // 如果JSON解析失败，可能是包含了函数，尝试使用Function解析
-      try {
-        // 使用Function构造器安全地解析（避免直接eval）
-        option = new Function('return ' + optionJson)()
-      } catch (evalError) {
-        const errorMessage = e instanceof Error ? e.message : String(e)
-        const evalErrorMessage = evalError instanceof Error ? evalError.message : String(evalError)
-        throw new Error(
-          `ECharts option 解析失败。JSON错误: ${errorMessage}，Eval错误: ${evalErrorMessage}`
-        )
-      }
-    }
-
-    // 使用 SSR SVG 渲染（零依赖）
-    const chart = echarts.init(null, null, {
-      renderer: 'svg',
-      ssr: true,
-      width: 800,
-      height: 600
-    })
-
-    chart.setOption(option)
-    const svgStr = chart.renderToSVGString()
-    chart.dispose()
-
+    logger.info('开始渲染 ECharts（Worker 线程）')
+    const svgStr = await runEChartsInWorkerThread(optionJson, abortSignal)
     logger.info('ECharts SVG 渲染完成，大小:', svgStr.length, 'bytes')
-
-    // 返回 SVG 字符串内容（不保存文件，由渲染进程决定如何处理）
     return svgStr
   } catch (error) {
     logger.error('ECharts 渲染失败:', error)

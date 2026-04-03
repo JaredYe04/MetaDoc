@@ -72,7 +72,10 @@ export class MdToHtmlAdapter extends BaseExportAdapter<'md', 'html', HtmlExportO
   async prepareExportData(
     data: { md: string; json: string; tex: string },
     options: HtmlExportOptions,
-    context?: { doc?: { path?: string }; handle?: { mark: (p: number, msg?: any) => void } }
+    context?: {
+      doc?: { path?: string }
+      handle?: { mark: (p: number, msg?: any) => void; signal?: AbortSignal; requestId?: string }
+    }
   ): Promise<{
     md: string
     json: string
@@ -95,7 +98,12 @@ export class MdToHtmlAdapter extends BaseExportAdapter<'md', 'html', HtmlExportO
       : undefined
 
     let markdown = filterMetaStep(data.md)
-    markdown = await preRenderCharts(markdown, { format: 'svg', progressCallback })
+    markdown = await preRenderCharts(markdown, {
+      format: 'svg',
+      progressCallback,
+      signal: handle?.signal,
+      requestId: handle?.requestId
+    })
     markdown = await prepareMathForTarget(markdown, 'html')
     markdown = await ensureLocal2HttpForTarget(markdown, 'html', docPath)
     markdown = await prepareImagesForTarget(markdown, 'html', options.imageProcessing, docPath)

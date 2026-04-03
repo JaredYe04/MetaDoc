@@ -10,6 +10,7 @@ import { createMainLogger } from '../logger'
 import { imageUploadDir } from '../express-server'
 import { getRuntimeServerBaseUrl } from '../runtime-server-config'
 import { getSystemFontFiles } from './font-service'
+import { normalizeSvgForResvg, resvgSvgStringToPngBuffer } from './svg-resvg-raster'
 // 仅保留 resvg-js 渲染链路，不再引入 BrowserWindow 或 sharp 回退
 
 const logger = createMainLogger('SvgToPdf')
@@ -241,122 +242,14 @@ export async function convertSvgStringToPngFile(
       return `${getRuntimeServerBaseUrl()}/images/${fileName}`
     }
 
-    // 规范化 SVG
-    const normalized = normalizeSvgForResvg(svgContent)
-
-    // 动态导入 resvg
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Resvg } = require('@resvg/resvg-js')
-
-    // 推断尺寸
-    const widthHeight = (() => {
-      const viewBoxMatch = normalized.match(
-        /viewBox="\s*[\d.-]+\s+[\d.-]+\s+([\d.-]+)\s+([\d.-]+)\s*"/i
-      )
-      const widthMatch = normalized.match(/width="([\d.-]+)"/i)
-      const heightMatch = normalized.match(/height="([\d.-]+)"/i)
-      const width = widthMatch
-        ? parseFloat(widthMatch[1])
-        : viewBoxMatch
-          ? parseFloat(viewBoxMatch[1])
-          : 1920
-      const height = heightMatch
-        ? parseFloat(heightMatch[1])
-        : viewBoxMatch
-          ? parseFloat(viewBoxMatch[2])
-          : 1080
-      return { width: Math.max(1, width), height: Math.max(1, height) }
-    })()
-
-    // 收集可能存在的系统字体文件（跨平台支持）
-    const candidateFontFiles = getSystemFontFiles()
-
-    // 使用 scale 倍缩放生成高分辨率位图，确保 PDF 中图表清晰度与矢量图相当
-    const targetWidth = Math.max(1400, Math.round(widthHeight.width * scale))
-
-    const resvg = new Resvg(normalized, {
-      fitTo: {
-        mode: 'width',
-        value: targetWidth
-      },
-      font: {
-        loadSystemFonts: true,
-        fontFiles: candidateFontFiles,
-        sansSerifFamily: 'Arial',
-        serifFamily: 'Times New Roman',
-        monospaceFamily: 'Consolas',
-        cursiveFamily: 'Arial',
-        fantasyFamily: 'Arial',
-        defaultFontFamily: 'Arial'
-      },
-      logLevel: 'off'
-    })
-
-    const pngData = resvg.render()
-    const renderedPngBuffer = Buffer.from(pngData.asPng())
+    const renderedPngBuffer = resvgSvgStringToPngBuffer(svgContent, scale)
     logger.debug(`高分辨率 PNG 已生成（缩放因子: ${scale}x）`)
 
-    fs.writeFileSync(filePath, renderedPngBuffer)
+    await fs.promises.writeFile(filePath, renderedPngBuffer)
     logger.debug(`SVG 字符串已转换为 PNG: ${filePath}`)
     return `${getRuntimeServerBaseUrl()}/images/${fileName}`
   } catch (error) {
     logger.error('SVG 字符串转 PNG 失败:', error)
     throw error
   }
-}
-
-/**
- * 从标签字符串中提取属性值（支持 "val"、'val'、val）
- */
-function getAttr(tag: string, name: string): string | null {
-  const re = new RegExp(`\\s${name}\\s*=\\s*(["'])([^"']*)\\1|\\s${name}\\s*=\\s*([^\\s>]+)`, 'i')
-  const m = tag.match(re)
-  if (m) return (m[2] !== undefined ? m[2] : m[3]).trim()
-  return null
-}
-
-/**
- * 针对 Mermaid 等使用 foreignObject 的 SVG 进行规范化，避免 resvg 丢字
- * 将 foreignObject 中的内容转换为带位置的 SVG text 元素，避免文字漂移到 (0,0)
- */
-function normalizeSvgForResvg(svgContent: string): string {
-  // 检查是否包含 foreignObject（Mermaid 常用）
-  if (!svgContent.includes('foreignObject')) {
-    return svgContent
-  }
-
-  let normalized = svgContent
-
-  // 将每个 foreignObject 替换为带 x,y 的 text，使 resvg 渲染时文字在正确位置
-  normalized = normalized.replace(
-    /<foreignObject([^>]*)>([\s\S]*?)<\/foreignObject>/gi,
-    (match, attrs, inner) => {
-      const x = getAttr(attrs, 'x') ?? '0'
-      const y = getAttr(attrs, 'y') ?? '0'
-      // foreignObject 的 y 表示框顶，SVG text 的 y 表示基线，用 dy 使首行顶部接近框顶
-      const dy = '0.9em'
-      // 提取纯文本（跳过内部标签如 <div>、<br> 等，只取文本节点）
-      const textContent = inner
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<[^>]+>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .trim()
-      if (!textContent) return ''
-      return `<text x="${escapeXml(x)}" y="${escapeXml(y)}" dy="${dy}" font-family="Arial, Verdana, sans-serif">${escapeXml(textContent)}</text>`
-    }
-  )
-
-  return normalized
-}
-
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
 }

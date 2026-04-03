@@ -144,6 +144,32 @@ export function abortExportTask(requestId: string): boolean {
   return aborted
 }
 
+/** 导出预处理阶段开始前注册，使「中断」能中止主进程内 PlantUML 等 IPC 与后续链路 */
+export function exportArmAbortController(requestId: string): void {
+  if (!requestId) return
+  if (!exportAbortControllers.has(requestId)) {
+    exportAbortControllers.set(requestId, new AbortController())
+  }
+}
+
+/** 预处理失败（非 perform）时释放，避免泄漏；成功进入 perform 时勿调用 */
+export function exportDisarmAbortController(requestId: string): void {
+  if (!requestId) return
+  exportAbortControllers.delete(requestId)
+}
+
+export function exportAbortSignalForRequest(
+  requestId?: string | null
+): AbortSignal | undefined {
+  if (!requestId) return undefined
+  return exportAbortControllers.get(requestId)?.signal
+}
+
+/** 供渲染进程在取消时删除已上传的预渲染图 */
+export async function cleanupExportUploadUrls(imageUrls: string[]): Promise<void> {
+  await cleanupIntermediateImages(imageUrls)
+}
+
 const ensureParentDirectory = async (filePath: string): Promise<void> => {
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
 }
@@ -3704,9 +3730,13 @@ export const performExportRequest = async (
   preSelectedPath?: string
 ): Promise<ExportResponse> => {
   currentRequestId = payload.requestId
-  const abortController = payload.requestId ? new AbortController() : null
-  if (payload.requestId && abortController) {
-    exportAbortControllers.set(payload.requestId, abortController)
+  let abortController: AbortController | null = null
+  if (payload.requestId) {
+    abortController = exportAbortControllers.get(payload.requestId) ?? null
+    if (!abortController) {
+      abortController = new AbortController()
+      exportAbortControllers.set(payload.requestId, abortController)
+    }
   }
   const progressHandle = payload.requestId
     ? new MainProgressHandle({

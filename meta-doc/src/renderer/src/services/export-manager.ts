@@ -125,6 +125,12 @@ export const prepareExportPayload = async (
   }
 
   try {
+    try {
+      await messageBridge.invoke('export-arm-abort', requestId)
+    } catch (armErr) {
+      logger.warn('export-arm-abort 失败:', armErr)
+    }
+
     const payloadData = await adapter.prepareExportData(base.data, finalOptions, {
       doc,
       handle
@@ -143,6 +149,11 @@ export const prepareExportPayload = async (
     }
   } catch (error) {
     logger.error('准备导出数据失败:', error)
+    try {
+      await messageBridge.invoke('export-disarm-abort', requestId)
+    } catch {
+      /* ignore */
+    }
     throw error
   }
 }

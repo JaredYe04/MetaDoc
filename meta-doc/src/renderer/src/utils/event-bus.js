@@ -707,6 +707,13 @@ eventBus.on('export-as-template', (payload) => {
 let exportActiveCount = 0
 const MAX_CONCURRENT_EXPORTS = 3
 
+function isExportUserAbortError(error) {
+  if (!error || typeof error !== 'object') return false
+  if (error.name === 'AbortError') return true
+  const msg = typeof error.message === 'string' ? error.message : ''
+  return msg.includes('已取消') || msg.includes('操作已取消')
+}
+
 async function acquireExportSlot() {
   while (exportActiveCount >= MAX_CONCURRENT_EXPORTS) {
     await new Promise((r) => setTimeout(r, 80))
@@ -792,6 +799,8 @@ eventBus.on('export', async (payload) => {
         canCancel: Boolean(presetTargetPath)
       }
     })
+    // 导出任务通知已入队：显式露出通知堆叠（不依赖对数组原地 unshift 的 watch 是否触发）
+    eventBus.emit('show-notification-stack-export')
 
     let targetPath = presetTargetPath
     if (!targetPath) {
@@ -857,31 +866,38 @@ eventBus.on('export', async (payload) => {
     restoreCursor()
   } catch (error) {
     restoreCursor()
-    if (notifId && notifStore) {
-      const pathLabel = filename || 'Untitled'
-      const phaseFail = i18n?.global?.t?.('export.taskPhaseFailed', '失败') ?? '失败'
-      const msg =
-        error instanceof Error
-          ? error.message
-          : i18n?.global?.t?.('export.unknownError', '导出失败') ?? '导出失败'
-      notifStore.updateNotification(notifId, {
-        type: 'error',
-        message: `${pathLabel} — ${phaseFail}: ${msg}`,
-        metadata: { phase: 'error', canCancel: false }
-      })
-    }
-    if (error instanceof NotImplementedExportError) {
-      const message =
-        i18n?.global?.t?.('export.notImplemented', '该导出组合尚未实现') ?? '该导出功能尚未实现'
-      toast.error(message)
-      getLogger().warn(error.message)
+    if (isExportUserAbortError(error)) {
+      if (notifId && notifStore) {
+        notifStore.remove(notifId)
+      }
+      getLogger().debug('导出已由用户中断')
     } else {
-      const message =
-        error instanceof Error
-          ? error.message
-          : i18n?.global?.t?.('export.unknownError', '导出失败')
-      toast.error(message)
-      getLogger().error('导出失败', error)
+      if (notifId && notifStore) {
+        const pathLabel = filename || 'Untitled'
+        const phaseFail = i18n?.global?.t?.('export.taskPhaseFailed', '失败') ?? '失败'
+        const msg =
+          error instanceof Error
+            ? error.message
+            : i18n?.global?.t?.('export.unknownError', '导出失败') ?? '导出失败'
+        notifStore.updateNotification(notifId, {
+          type: 'error',
+          message: `${pathLabel} — ${phaseFail}: ${msg}`,
+          metadata: { phase: 'error', canCancel: false }
+        })
+      }
+      if (error instanceof NotImplementedExportError) {
+        const message =
+          i18n?.global?.t?.('export.notImplemented', '该导出组合尚未实现') ?? '该导出功能尚未实现'
+        toast.error(message)
+        getLogger().warn(error.message)
+      } else {
+        const message =
+          error instanceof Error
+            ? error.message
+            : i18n?.global?.t?.('export.unknownError', '导出失败')
+        toast.error(message)
+        getLogger().error('导出失败', error)
+      }
     }
   } finally {
     messageBridge.removeListener('export-dialog-opening', handleDialogOpening)

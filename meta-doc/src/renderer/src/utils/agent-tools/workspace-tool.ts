@@ -19,6 +19,7 @@ import {
   pathLooksLikeWorkspaceSkillMd,
   scheduleSkillIndexSyncAfterWrite
 } from '../agent-framework/skill-index-hook'
+import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
 
 const logger = createRendererLogger('WorkspaceTool')
 
@@ -688,8 +689,21 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
             const { created, message } = await createFileWithDirs(fullPath, op.content)
             resMessage = message
             success = true
-            if (!created) {
-              // 已存在视为成功但会返回“已存在，未重复创建”
+            if (created) {
+              const sid = params._sessionId as string | undefined
+              const umid = params._userMessageId as string | undefined
+              if (sid && umid) {
+                try {
+                  useAgentEditStagingStore().pushFileCheckpoint(sid, umid, {
+                    filePath: fullPath,
+                    type: 'create',
+                    newContent: op.content ?? '',
+                    operations: []
+                  })
+                } catch {
+                  /* ignore */
+                }
+              }
             }
             break
           }

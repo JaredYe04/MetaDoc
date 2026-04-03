@@ -16,6 +16,8 @@ const logger = createRendererLogger('AgentWorkspacePersistence')
 export const REL_SESSION_INDEX = '.metadoc/agent/sessions-index.json'
 export const REL_SESSIONS_DIR = '.metadoc/agent/sessions'
 export const REL_LEGACY_SESSIONS_JSON = '.metadoc/agent/sessions.json'
+/** Agent 编辑 checkpoint 持久化文件（workspace-scoped） */
+export const REL_EDIT_CHECKPOINTS = '.metadoc/agent/edit-checkpoints.json'
 export const SESSION_BLOB_EXT = '.msess'
 
 export function joinUnderWorkspaceRoot(root: string, rel: string): string {

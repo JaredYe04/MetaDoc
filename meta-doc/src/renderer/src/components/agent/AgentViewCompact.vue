@@ -257,114 +257,7 @@
         <div class="conversation-bottom-spacer" />
       </ScrollArea>
 
-      <!-- 编辑暂存：默认折叠，可上拉查看并逐条接受/拒绝 -->
-      <Collapsible
-        v-if="activeSession"
-        v-model:open="stagingPanelOpen"
-        class="agent-compact-staging"
-      >
-        <CollapsibleTrigger as-child>
-          <button
-            type="button"
-            class="agent-compact-staging-trigger"
-            :class="{ 'has-items': stagingEdits.length > 0 }"
-          >
-            <span class="agent-compact-staging-trigger-label">
-              {{ t('agent.staging.title', '编辑暂存') }}
-              <template v-if="stagingEdits.length"> ({{ stagingEdits.length }})</template>
-            </span>
-            <ChevronUp v-if="!stagingPanelOpen" class="agent-compact-staging-chevron" />
-            <ChevronDown v-else class="agent-compact-staging-chevron" />
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div class="agent-compact-staging-content">
-            <template v-if="stagingEdits.length === 0">
-              <div class="agent-compact-staging-empty">
-                {{ t('agent.staging.empty', '暂无待审编辑') }}
-              </div>
-            </template>
-            <template v-else>
-              <div class="agent-compact-staging-actions">
-                <Button
-                  size="sm"
-                  class="agent-staging-btn agent-staging-btn-accept"
-                  :disabled="!hasPendingEdits"
-                  @click="stagingAcceptAll"
-                >
-                  {{ t('agent.staging.acceptAll', '全部接受') }}
-                </Button>
-                <Button
-                  size="sm"
-                  class="agent-staging-btn agent-staging-btn-reject"
-                  :disabled="!hasPendingEdits"
-                  @click="stagingRejectAll"
-                >
-                  {{ t('agent.staging.rejectAll', '全部拒绝') }}
-                </Button>
-                <Button
-                  size="sm"
-                  class="agent-staging-btn agent-staging-btn-review"
-                  @click="openReviewWindow"
-                >
-                  {{ t('agent.staging.openReview', '独立审阅') }}
-                </Button>
-              </div>
-              <div class="agent-compact-staging-list">
-                <div
-                  v-for="edit in stagingEdits"
-                  :key="edit.id"
-                  class="agent-compact-staging-item"
-                  :class="edit.status"
-                >
-                  <span class="agent-compact-staging-item-path" :title="edit.filePath">{{
-                    edit.filePath.replace(/^.*[/\\]/, '') || edit.filePath
-                  }}</span>
-                  <span class="agent-compact-staging-item-diff">
-                    <span class="add">+{{ edit.addedLines }}</span>
-                    <span class="del">-{{ edit.removedLines }}</span>
-                  </span>
-                  <span v-if="edit.status === 'pending'" class="agent-compact-staging-item-btns">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      class="h-6 text-xs"
-                      @click="stagingAccept(edit)"
-                    >
-                      {{ t('agent.staging.accept', '接受') }}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      class="h-6 text-xs text-destructive"
-                      @click="stagingReject(edit)"
-                    >
-                      {{ t('agent.staging.reject', '拒绝') }}
-                    </Button>
-                  </span>
-                  <span v-else class="agent-compact-staging-item-status">
-                    {{
-                      edit.status === 'accepted'
-                        ? t('agent.staging.accepted', '已接受')
-                        : t('agent.staging.rejected', '已拒绝')
-                    }}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    class="agent-compact-staging-item-close"
-                    :title="t('agent.staging.dismiss', '关闭并拒绝')"
-                    @click.stop="stagingDismiss(edit)"
-                  >
-                    <X class="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            </template>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+      <AgentEditStagingCollapsible v-if="activeSession" :session-id="activeSession.id" />
 
       <div class="agent-compact-composer">
         <ReferenceDisplay
@@ -595,16 +488,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
-import {
-  Clock,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Paperclip,
-  Plus,
-  Settings,
-  X
-} from 'lucide-vue-next'
+import { Clock, Loader2, Paperclip, Plus, Settings, X } from 'lucide-vue-next'
 import { messageBox } from '@renderer/utils/messageBox'
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
@@ -628,17 +512,13 @@ import {
   resolveFilePathToReference
 } from '../../utils/agent-framework/reference-processor'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from '@renderer/components/ui/collapsible'
 import { Empty } from '@renderer/components/ui/empty'
 import LogoIcon from '../LogoIcon.vue'
 import { themeState, FIXED_LOGO_COLORS } from '../../utils/themes'
 import { useWorkspace } from '../../stores/workspace'
 import { useAgentWorkspaceStore } from '../../stores/agent-workspace-store'
 import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
+import AgentEditStagingCollapsible from './AgentEditStagingCollapsible.vue'
 import AgentMessageRenderer from './AgentMessageRenderer.vue'
 import ChatComposer from '../chat/ChatComposer.vue'
 import ReferenceDisplay from './ReferenceDisplay.vue'
@@ -656,7 +536,6 @@ import {
   isAgentSessionReadyForNextLlmTurn,
   retryComposerQueueDrainLater
 } from '../../utils/agent-composer-send-queue'
-import type { StagingEditRecord } from '../../stores/agent-edit-staging-store'
 import type { Reference } from '../../types/agent-framework'
 import { createRendererLogger } from '../../utils/logger'
 import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '../../utils/notify'
@@ -711,21 +590,6 @@ const isActiveSessionGenerating = computed(() =>
   isSessionGenerating(agentStore.activeSessionId)
 )
 const stagingStore = useAgentEditStagingStore()
-const stagingPanelOpen = ref(false)
-const stagingEdits = computed(() =>
-  activeSession.value ? stagingStore.getEditsForSession(activeSession.value.id) : []
-)
-const hasPendingEdits = computed(() => stagingEdits.value.some((e) => e.status === 'pending'))
-
-// 第一次出现 pending 编辑时自动展开暂存区，后续不再自动展开
-watch(
-  () => stagingEdits.value.filter((e) => e.status === 'pending').length,
-  (pendingCount, prevPendingCount) => {
-    if (pendingCount > 0 && (prevPendingCount ?? 0) === 0) {
-      stagingPanelOpen.value = true
-    }
-  }
-)
 
 const contextUsage = computed(() => {
   const session = activeSession.value
@@ -1460,43 +1324,6 @@ function handleReferenceUpdate() {
   persistSessions()
 }
 
-function stagingAccept(edit: StagingEditRecord) {
-  stagingStore.acceptEdit(edit.id)
-}
-
-async function stagingReject(edit: StagingEditRecord) {
-  try {
-    await stagingStore.rejectEdit(edit)
-  } catch (e) {
-    notifyError(e instanceof Error ? e.message : String(e))
-  }
-}
-
-async function stagingDismiss(edit: StagingEditRecord) {
-  try {
-    await stagingStore.removeEdit(edit)
-  } catch (e) {
-    notifyError(e instanceof Error ? e.message : String(e))
-  }
-}
-
-function stagingAcceptAll() {
-  if (activeSession.value) stagingStore.acceptAll(activeSession.value.id)
-}
-
-async function stagingRejectAll() {
-  if (!activeSession.value) return
-  try {
-    await stagingStore.rejectAll(activeSession.value.id)
-  } catch (e) {
-    notifyError(e instanceof Error ? e.message : String(e))
-  }
-}
-
-function openReviewWindow() {
-  workspace.openToolTab('agentReview')
-}
-
 async function handleMessageRollback(message: AgentMessage) {
   const session = activeSession.value
   if (!session || message.role !== 'user') return
@@ -1598,11 +1425,7 @@ async function flushOneComposerSendQueueItem(sessionId: string): Promise<void> {
   session.referenceStore = cloneReferenceStoreSnapshot(item.referenceSnapshot) as AgentSession['referenceStore']
   if (!runComposerSendPipelineForSessionRef) return
   try {
-    await runComposerSendPipelineForSessionRef(
-      session,
-      item.markdown,
-      item.enableReasoning === true
-    )
+    await runComposerSendPipelineForSessionRef(session, item.markdown)
   } catch (e) {
     createRendererLogger('AgentViewCompact').error('[composerSendQueue] flush failed', e)
   }
@@ -1700,11 +1523,7 @@ const executeAgentEngine = async (
   }
 }
 
-runComposerSendPipelineForSessionRef = async (
-  session: AgentSession,
-  content: string,
-  enableReasoning?: boolean
-) => {
+runComposerSendPipelineForSessionRef = async (session: AgentSession, content: string) => {
   const logger = createRendererLogger('AgentViewCompact')
   const liveSession = sessions.value.find((s) => s.id === session.id)
   if (!liveSession) {
@@ -1772,7 +1591,7 @@ runComposerSendPipelineForSessionRef = async (
   scrollToBottom()
 
   try {
-    await executeAgentEngine(content, liveSession, extraRefs, enableReasoning === true)
+    await executeAgentEngine(content, liveSession, extraRefs, undefined)
   } catch (error) {
     logger.error('[runComposerSendPipeline] 执行失败:', error)
     notifyError(error instanceof Error ? error.message : String(error))
@@ -1826,11 +1645,7 @@ const handleComposerSubmit = async (
     logger.error('[handleComposerSubmit] 发送管线未初始化')
     return
   }
-  await runComposerSendPipelineForSessionRef(
-    session,
-    content,
-    enableReasoningFromComposer === true
-  )
+  await runComposerSendPipelineForSessionRef(session, content)
 }
 
 const handleCancelGeneration = () => {
@@ -2057,9 +1872,14 @@ async function handleMessageDuplicate(message: AgentMessage) {
 }
 
 onMounted(async () => {
-  // 紧凑面板：确保工作区会话已加载（openTabIds / active 由上方 watch 与 store 加载逻辑统一校正）
+  // 紧凑面板：确保工作区会话与 checkpoint 已加载
   if (!sessions.value.length) {
     await agentStore.init()
+  }
+  try {
+    await stagingStore.loadFromWorkspace()
+  } catch (e) {
+    compactLogger.warn('[AgentViewCompact] 加载编辑暂存失败', e)
   }
   scrollToBottom()
 })
@@ -2372,140 +2192,6 @@ onMounted(async () => {
 .agent-compact-attach-dropdown [data-reka-menu-item] {
   font-size: 12px;
   padding: 6px 10px;
-}
-
-/* 编辑暂存面板 */
-.agent-compact-staging {
-  flex-shrink: 0;
-  border-top: 1px solid rgba(128, 128, 128, 0.2);
-}
-
-.agent-compact-staging-trigger {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.agent-compact-staging-trigger:hover,
-.agent-compact-staging-trigger.has-items {
-  color: var(--el-text-color-primary);
-}
-
-.agent-compact-staging-chevron {
-  width: 12px;
-  height: 12px;
-}
-
-.agent-compact-staging-content {
-  max-height: 180px;
-  overflow-y: auto;
-  padding: 4px 8px 8px;
-  font-size: 11px;
-}
-
-.agent-compact-staging-empty {
-  padding: 6px 0;
-  color: var(--el-text-color-secondary);
-}
-
-.agent-compact-staging-actions {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 4px;
-}
-
-/* 底部按钮：紧凑高度，背景色区分，文字颜色一致 */
-.agent-staging-btn {
-  height: 24px;
-  min-height: 24px;
-  padding: 0 8px;
-  font-size: 11px;
-  line-height: 22px;
-  color: #fff !important;
-}
-.agent-staging-btn-accept {
-  background: var(--el-color-success) !important;
-}
-.agent-staging-btn-accept:hover {
-  opacity: 0.9;
-  color: #fff !important;
-}
-.agent-staging-btn-reject {
-  background: var(--el-color-danger) !important;
-}
-.agent-staging-btn-reject:hover {
-  opacity: 0.9;
-  color: #fff !important;
-}
-.agent-staging-btn-review {
-  background: var(--el-fill-color) !important;
-  color: var(--el-text-color-primary) !important;
-}
-.agent-staging-btn-review:hover {
-  background: var(--el-fill-color-dark) !important;
-  color: var(--el-text-color-primary) !important;
-}
-
-.agent-compact-staging-item-close {
-  flex-shrink: 0;
-  margin-left: auto;
-  opacity: 0.6;
-}
-.agent-compact-staging-item-close:hover {
-  opacity: 1;
-}
-
-.agent-compact-staging-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.agent-compact-staging-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 4px;
-  background: rgba(128, 128, 128, 0.06);
-}
-
-.agent-compact-staging-item-path {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.agent-compact-staging-item-diff {
-  display: flex;
-  gap: 4px;
-}
-
-.agent-compact-staging-item-diff .add {
-  color: var(--el-color-success);
-}
-
-.agent-compact-staging-item-diff .del {
-  color: var(--el-color-danger);
-}
-
-.agent-compact-staging-item-btns {
-  display: flex;
-  gap: 2px;
-}
-
-.agent-compact-staging-item-status {
-  font-size: 10px;
-  color: var(--el-text-color-secondary);
 }
 
 .agent-compact-empty {

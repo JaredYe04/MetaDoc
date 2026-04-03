@@ -414,7 +414,9 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
     // 图表（echarts、mermaid、plantuml 等）始终预渲染为图片，与 generateCover/generateToc/processFormula 等选项无关
     markdown = await preRenderCharts(markdown, {
       format: 'bitmap',
-      progressCallback
+      progressCallback,
+      signal: handle?.signal,
+      requestId: handle?.requestId
     })
     markdown = await ensureLocal2HttpForTarget(markdown, 'docx', docPath)
     const markdownWithBase64Images = await embedImagesInline(markdown)

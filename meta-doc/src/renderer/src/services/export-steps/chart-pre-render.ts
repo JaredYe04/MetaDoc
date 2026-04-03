@@ -19,6 +19,17 @@ export interface PreRenderChartsOptions {
     params?: Record<string, unknown>
     status?: string
   }) => void
+  /** 与导出进度句柄一致，用于顺序预渲染、中断及主进程 IPC 取消 */
+  signal?: AbortSignal
+  requestId?: string
+}
+
+function isExportAbortErr(e: unknown): boolean {
+  if (!e || typeof e !== 'object') return false
+  const err = e as Error
+  if (err.name === 'AbortError') return true
+  const msg = typeof err.message === 'string' ? err.message : ''
+  return msg.includes('已取消') || msg.includes('操作已取消')
 }
 
 /**
@@ -31,13 +42,24 @@ export async function preRenderCharts(
   md: string,
   options: PreRenderChartsOptions
 ): Promise<string> {
-  const { format, progressCallback } = options
+  const { format, progressCallback, signal, requestId } = options
+  const exportControl = signal ? { signal, requestId } : undefined
   try {
     logger.debug('preRenderCharts start', { format })
-    const result = await preRenderAllCharts(md, '', format, progressCallback as any)
+    const result = await preRenderAllCharts(
+      md,
+      '',
+      format,
+      progressCallback as any,
+      exportControl as any
+    )
     logger.debug('preRenderCharts end')
     return result
   } catch (error) {
+    if (isExportAbortErr(error)) {
+      logger.debug('图表预渲染已取消')
+      throw error
+    }
     logger.warn('图表预渲染失败，继续使用原始 Markdown:', error)
     if (progressCallback) {
       progressCallback({

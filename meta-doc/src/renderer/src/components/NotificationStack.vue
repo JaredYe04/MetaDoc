@@ -211,6 +211,18 @@ function toggleVisibility() {
   animateVisibility(newVisible ? 1 : 0)
 }
 
+/** 导出任务开始：露出堆叠区（3D 堆叠、非展开），避免用户看不到进度与「中断」 */
+function showStackForExportTask() {
+  isExpanded.value = false
+  expandProgress.value = 0
+  if (expandRaf) {
+    cancelAnimationFrame(expandRaf)
+    expandRaf = null
+  }
+  isVisible.value = true
+  animateVisibility(1)
+}
+
 function handleStackMouseEnter() {
   if (isVisible.value) {
     isExpanded.value = true
@@ -240,6 +252,7 @@ function removeToast(id: string) {
 
 onMounted(() => {
   eventBus.on('toggle-notification-queue', toggleVisibility)
+  eventBus.on('show-notification-stack-export', showStackForExportTask)
   // 初始状态：docked（隐藏），除非有未读通知
   if (notifications.value.length > 0 && notifications.value.some((n) => !n.read)) {
     isVisible.value = true
@@ -251,16 +264,27 @@ onMounted(() => {
   expandProgress.value = 0
 })
 
-// 监听通知列表变化：为空时收起展开态
-watch(notifications, (notifs) => {
-  if (notifs.length === 0 && isExpanded.value) {
-    isExpanded.value = false
-    expandProgress.value = 0
-  }
-})
+// 用 length 监听：Pinia 对 notifications 做 unshift 时数组引用不变，浅 watch 整个数组可能不触发
+watch(
+  () => notifications.value.length,
+  (len, prevLen) => {
+    if (len === 0 && isExpanded.value) {
+      isExpanded.value = false
+      expandProgress.value = 0
+      if (expandRaf) cancelAnimationFrame(expandRaf)
+      expandRaf = null
+      return
+    }
+    if (len > (prevLen ?? 0) && notifications.value[0]?.metadata?.kind === 'export-task') {
+      showStackForExportTask()
+    }
+  },
+  { flush: 'post' }
+)
 
 onBeforeUnmount(() => {
   eventBus.off('toggle-notification-queue', toggleVisibility)
+  eventBus.off('show-notification-stack-export', showStackForExportTask)
   if (visibilityRaf) cancelAnimationFrame(visibilityRaf)
   if (expandRaf) cancelAnimationFrame(expandRaf)
 })

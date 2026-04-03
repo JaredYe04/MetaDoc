@@ -204,7 +204,10 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
   async prepareExportData(
     data: { md: string; json: string; tex: string },
     options: PdfExportOptions,
-    context?: { doc?: { path?: string }; handle?: { mark: (p: number, msg?: any) => void } }
+    context?: {
+      doc?: { path?: string }
+      handle?: { mark: (p: number, msg?: any) => void; signal?: AbortSignal; requestId?: string }
+    }
   ): Promise<{
     md: string
     json: string
@@ -229,7 +232,9 @@ export class MdToPdfAdapter extends BaseExportAdapter<'md', 'pdf', PdfExportOpti
     let markdown = filterMetaStep(data.md)
     markdown = await preRenderCharts(markdown, {
       format: 'svg',
-      progressCallback
+      progressCallback,
+      signal: handle?.signal,
+      requestId: handle?.requestId
     })
     markdown = await prepareMathForTarget(markdown, 'pdf')
     markdown = await ensureLocal2HttpForTarget(markdown, 'pdf', docPath)

@@ -15,7 +15,8 @@ export async function convertMarkdownToLatexWithOptions(
   markdown: string,
   doc: WorkspaceDocument,
   jsonData: string,
-  exportOptions: ExportOptions
+  exportOptions: ExportOptions,
+  chartAbort?: { signal?: AbortSignal; requestId?: string }
 ): Promise<string> {
   const { convertMarkdownToLatex } = await import('../../utils/latex-utils')
   const { removeAllTitlePrefixes, generateMarkdownFromOutlineTree } = await import(
@@ -49,7 +50,11 @@ export async function convertMarkdownToLatexWithOptions(
   if (shouldPreRenderCharts) {
     try {
       logger.debug('在 Markdown 确定后，执行图表预渲染')
-      processedMarkdown = await preRenderCharts(processedMarkdown, { format: 'svg' })
+      processedMarkdown = await preRenderCharts(processedMarkdown, {
+        format: 'svg',
+        signal: chartAbort?.signal,
+        requestId: chartAbort?.requestId
+      })
     } catch (error) {
       logger.warn('图表预渲染失败:', error)
     }

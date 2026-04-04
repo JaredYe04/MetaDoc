@@ -56,6 +56,7 @@
         :selection-text="graphQuickSelection"
         document-kind="tex"
         :document-title="graphQuickDocumentTitle"
+        :source-tab-id="props.tabId"
       />
       <AISuggestionGhost
         :key="editorKey"

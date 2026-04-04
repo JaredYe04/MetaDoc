@@ -95,6 +95,7 @@
         :selection-text="graphQuickSelection"
         document-kind="md"
         :document-title="graphQuickDocumentTitle"
+        :source-tab-id="props.tabId"
       />
       <AISuggestionGhost
         v-if="vditor"

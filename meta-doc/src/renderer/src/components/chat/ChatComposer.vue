@@ -6,7 +6,10 @@
   >
     <div
       class="composer-shell"
-      :class="{ 'is-multiline': isMultiline }"
+      :class="{
+        'is-multiline': isMultiline,
+        'composer-shell--no-leading': !isMultiline && !hasLeadingColumn
+      }"
       :style="{
         backgroundColor: themeState.currentTheme.background,
         color: themeState.currentTheme.textColor,
@@ -85,6 +88,7 @@
         </Button>
 
         <Button
+          v-if="showPrimarySubmit || showPrimaryAsStop || showPrimaryAsQueueSend"
           :title="
             showPrimaryAsStop
               ? t('aiChat.cancelTooltip')
@@ -147,7 +151,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
+import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed, useSlots } from 'vue'
 import { Paperclip, Mic, ArrowUp, RefreshCw, Link, Brain } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { useI18n } from 'vue-i18n'
@@ -188,6 +192,10 @@ const props = withDefaults(
      * 未开启时保持原行为：生成中主按钮始终为终止。
      */
     queueWhileLoading?: boolean
+    /**
+     * 为假时隐藏主「发送」按钮；生成中仍会显示「停止」或入队发送（与 Graph 快速对话框首轮由页脚统一发送一致）
+     */
+    showPrimarySubmit?: boolean
   }>(),
   {
     modelValue: '',
@@ -207,7 +215,8 @@ const props = withDefaults(
     getAtLabel: undefined,
     forceMultilineLayout: false,
     allowSendWithoutComposerText: false,
-    queueWhileLoading: false
+    queueWhileLoading: false,
+    showPrimarySubmit: true
   }
 )
 
@@ -226,6 +235,9 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const slots = useSlots()
+/** 无 leading 列时仍用三列 grid 会把输入区挤进第一列 auto，导致宽度极窄 */
+const hasLeadingColumn = computed(() => props.showAttach || !!slots.leading)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const refInputRef = ref<InstanceType<typeof AgentRefComposerInput> | null>(null)
 const scrollContainerRef = ref<InstanceType<typeof ElScrollbar> | null>(null)
@@ -603,6 +615,11 @@ onBeforeUnmount(() => {
   overflow: hidden;
   position: relative;
   z-index: 10;
+}
+
+/* 仅滚动区 + 操作区时：输入区应占满剩余空间（见 hasLeadingColumn） */
+.composer-shell.composer-shell--no-leading:not(.is-multiline) {
+  grid-template-columns: 1fr auto;
 }
 
 /* 紧凑模式：占满 panel 宽度，长文本时输入框右边界为 panel 边界 */

@@ -727,9 +727,12 @@ defineExpose({
   order: 0;
 }
 
+/* min-width/min-height:0 避免 flex 子项 min-size:auto 随内容撑开，导致内层无法出现滚动 */
 .main-content {
   display: flex;
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 .sidebar-content {

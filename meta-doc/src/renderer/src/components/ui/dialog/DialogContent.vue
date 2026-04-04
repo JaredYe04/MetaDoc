@@ -182,9 +182,17 @@ onUnmounted(() => {
 .dialog-slot-scrollbar {
   height: 100%;
   max-height: 100%;
+  min-height: 0;
+}
+.dialog-slot-scrollbar :deep(.el-scrollbar) {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
 }
 .dialog-slot-scrollbar :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
+  max-height: 100%;
+  box-sizing: border-box;
 }
 
 .dialog-content {

@@ -29,28 +29,35 @@
           </div>
 
           <div v-else class="dialog-container">
-            <el-scrollbar class="conversation-scroll" height="100%">
-              <GraphMessageBubble
-                v-for="(msg, index) in messages.filter((item) => item.role !== 'system')"
-                :key="index"
-                :message="msg"
-                :index="index"
-                :is-streaming="
-                  index === messages.length - 1 && isStreaming && msg.role === 'assistant'
-                "
-                :streaming-content="
-                  index === messages.length - 1 && isStreaming ? streamingContent : ''
-                "
-                :streaming-reasoning="
-                  index === messages.length - 1 && isStreaming ? streamingReasoning : ''
-                "
-                @delete="onMsgDelete"
-                @edit="onMsgEdit"
-                @regenerate="regenerate"
-                @export="handleExport"
-              />
-              <div class="conversation-bottom-spacer" />
-            </el-scrollbar>
+            <div class="conversation-scroll-host">
+              <el-scrollbar
+                ref="conversationScrollbarRef"
+                class="conversation-scroll"
+                height="100%"
+                always
+              >
+                <GraphMessageBubble
+                  v-for="(msg, index) in messages.filter((item) => item.role !== 'system')"
+                  :key="index"
+                  :message="msg"
+                  :index="index"
+                  :is-streaming="
+                    index === messages.length - 1 && isStreaming && msg.role === 'assistant'
+                  "
+                  :streaming-content="
+                    index === messages.length - 1 && isStreaming ? streamingContent : ''
+                  "
+                  :streaming-reasoning="
+                    index === messages.length - 1 && isStreaming ? streamingReasoning : ''
+                  "
+                  @delete="onMsgDelete"
+                  @edit="onMsgEdit"
+                  @regenerate="regenerate"
+                  @export="handleExport"
+                />
+                <div class="conversation-bottom-spacer" />
+              </el-scrollbar>
+            </div>
             <div class="composer-wrapper">
               <ChatComposer
                 v-model="currentPrompt"
@@ -77,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { notifySuccess, notifyError } from '@renderer/utils/notify'
 
@@ -158,6 +165,32 @@ const {
   onPersisted: loadSessions,
   persistEnabled: () => !isDemo.value
 })
+
+const conversationScrollbarRef = ref<{ wrapRef?: HTMLElement } | null>(null)
+
+function scrollConversationToBottom() {
+  nextTick(() => {
+    const inst = conversationScrollbarRef.value as unknown as { wrapRef?: HTMLElement } | null
+    const wrap = inst?.wrapRef
+    if (wrap) {
+      wrap.scrollTop = wrap.scrollHeight
+    }
+  })
+}
+
+watch(
+  () => [
+    messages.value.length,
+    streamingContent.value,
+    streamingReasoning.value,
+    generating.value,
+    analyzingIntent.value,
+    isStreaming.value,
+    activeSessionId.value
+  ],
+  () => scrollConversationToBottom(),
+  { flush: 'post' }
+)
 
 /** 新建会话并选中；可选预填输入框与会话标题（用于从编辑器「插入绘图」打开） */
 const createNewGraphSessionAndSelect = async (options?: {
@@ -295,6 +328,7 @@ const panelStyle = computed(() => ({
   display: 'flex',
   flexDirection: 'column' as const,
   minHeight: 0,
+  minWidth: 0,
   overflow: 'hidden' as const,
   padding: 0,
   boxSizing: 'border-box' as const,
@@ -405,18 +439,35 @@ onUnmounted(() => {
   padding: 0;
 }
 
-.conversation-scroll {
-  flex: 1;
+.conversation-scroll-host {
+  flex: 1 1 0;
   min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.conversation-scroll {
+  flex: 1 1 0;
+  min-height: 0 !important;
+  min-width: 0;
   height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  align-self: stretch;
 }
 
 .conversation-scroll :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  max-height: 100%;
+  box-sizing: border-box;
 }
 
 .conversation-bottom-spacer {
-  height: 24px;
+  min-height: 140px;
+  height: 140px;
   flex-shrink: 0;
 }
 

@@ -9,7 +9,8 @@ import {
   MoreVertical,
   Copy,
   FilePlus,
-  FolderPlus
+  FolderPlus,
+  Download
 } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import {
@@ -25,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@renderer/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
   Dialog,
   DialogContent,
@@ -370,10 +372,8 @@ onBeforeUnmount(() => {
   <div
     class="graph-message"
     :class="role === 'user' ? 'graph-message--user' : 'graph-message--assistant'"
-    @mouseenter="handleMouseEnter"
-    @mouseleave="handleMouseLeave"
   >
-    <!-- 助手：与 Agent 一致，无头像、无气泡，操作在正文下方 -->
+    <!-- 助手：与 AIChat MessageBubble 一致，底部始终显示 icon + Tooltip -->
     <template v-if="role === 'assistant'">
       <div
         class="graph-message__body graph-message__body--flat response-container"
@@ -419,57 +419,88 @@ onBeforeUnmount(() => {
           />
         </div>
       </div>
-      <transition name="fade">
-        <div
-          v-show="showActions"
-          class="ai-message-actions"
-          @mouseenter="handleActionsMouseEnter"
-          @mouseleave="handleActionsMouseLeave"
-        >
-          <DropdownMenu @click.stop @update:open="handleDropdownVisibleChange">
-            <DropdownMenuTrigger as-child>
-              <Button variant="ghost" size="sm" class="ai-action-btn">
-                <MoreVertical class="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              @mouseenter="handleDropdownMouseEnter"
-              @mouseleave="handleDropdownMouseLeave"
+      <div class="ai-message-actions graph-assistant-actions">
+        <Tooltip v-if="hasChart">
+          <TooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="ai-action-btn"
+              :disabled="isStreaming"
+              @click.stop="exportChart"
             >
-              <DropdownMenuItem v-if="hasChart" @click="handleActionCommand('export')">
-                <FilePlus class="w-4 h-4 mr-2" />
-                {{ t('graph.export', '导出图表') }}
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="handleActionCommand('copy')">
-                <Copy class="w-4 h-4 mr-2" />
-                {{ t('common.copy', '复制') }}
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="handleActionCommand('insert-to-document')">
-                <FilePlus class="w-4 h-4 mr-2" />
-                {{ t('aiChat.insertToDocument', '插入到文档') }}
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="handleActionCommand('export-to-document')">
-                <FolderPlus class="w-4 h-4 mr-2" />
-                {{ t('aiChat.exportToDocument', '导出到新文档') }}
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="handleActionCommand('edit')">
-                <Pencil class="w-4 h-4 mr-2" />
-                {{ t('messageBubble.edit', '编辑') }}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="handleActionCommand('delete')">
-                <Trash2 class="w-4 h-4 mr-2" />
-                {{ t('common.delete', '删除') }}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </transition>
+              <Download class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{{ t('graph.exportChart') }}</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="copyContent">
+              <Copy class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{{ t('common.copy', '复制') }}</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="ai-action-btn"
+              @click.stop="requestInsertToDocument"
+            >
+              <FilePlus class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{{ t('aiChat.insertToDocument', '插入到文档') }}</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="exportToNewDocument">
+              <FolderPlus class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{{ t('aiChat.exportToDocument', '导出到新文档') }}</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="onMsgEdit">
+              <Pencil class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{{ t('messageBubble.edit', '编辑') }}</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button variant="ghost" size="sm" class="ai-action-btn" @click.stop="onMsgDelete">
+              <Trash2 class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{{ t('common.delete', '删除') }}</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
     </template>
 
-    <!-- 用户：气泡 + 右侧头像，操作在气泡行下方（与 Agent 底部操作栏一致） -->
+    <!-- 用户：气泡 + 右侧头像，hover 显示「⋯」菜单（与 AIChat 用户消息一致） -->
     <template v-else>
-      <div class="graph-message__user-stack">
+      <div
+        class="graph-message__user-stack"
+        @mouseenter="handleMouseEnter"
+        @mouseleave="handleMouseLeave"
+      >
         <div class="graph-message__user-row">
           <div class="graph-message__body graph-message__body--user response-container">
             <div class="text-content text-content--user">
@@ -649,6 +680,13 @@ onBeforeUnmount(() => {
   gap: 2px;
   padding: 2px 4px;
   margin-bottom: 4px;
+}
+
+/* 与 AIChat 助手消息底栏对齐（扁平正文无左侧头像偏移） */
+.graph-assistant-actions {
+  margin-left: 4px;
+  margin-bottom: 8px;
+  padding: 2px 0;
 }
 
 .ai-action-btn {

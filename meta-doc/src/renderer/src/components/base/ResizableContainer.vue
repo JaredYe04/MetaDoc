@@ -281,7 +281,7 @@ const collapseButtonClass = computed(() => {
   if (props.direction === 'horizontal') {
     return `${base} collapse-button-horizontal`
   } else {
-    return `${base} collapse-button-vertical ${props.sidebarPosition === 'start' ? 'collapse-button-left' : 'collapse-button-right'}`
+    return `${base} collapse-button-vertical ${props.sidebarOnLeft ? 'collapse-button-left' : 'collapse-button-right'}`
   }
 })
 
@@ -291,10 +291,9 @@ const expandButtonClass = computed(() => {
   if (props.direction === 'horizontal') {
     return `${base} expand-button-horizontal`
   } else {
-    // 当侧边栏折叠后，展开按钮应该显示在主内容区一侧（与侧边栏相对的一侧）
-    // 如果侧边栏在左侧（start），展开按钮应该在右侧（right）
-    // 如果侧边栏在右侧（end），展开按钮应该在左侧（left）
-    return `${base} expand-button-vertical ${props.sidebarPosition === 'start' ? 'expand-button-right' : 'expand-button-left'}`
+    // 侧栏在左（sidebarOnLeft）：折叠后从窗口左缘展开；侧栏在右：从右缘展开
+    const atLeftEdge = props.sidebarOnLeft
+    return `${base} expand-button-vertical ${atLeftEdge ? 'expand-button-left' : 'expand-button-right'}`
   }
 })
 
@@ -361,10 +360,16 @@ function isMouseNearDividerCenter(mouseX: number, mouseY: number): boolean {
 // 计算展开按钮边缘 X（用于 hover 显示/隐藏）
 function getExpandEdgeX(rect: DOMRect): number {
   if (props.direction !== 'vertical') return 0
-  if (props.sidebarPosition === 'start' && props.collapsedWidth > 0) {
-    return rect.left + props.collapsedWidth
+  if (props.collapsedWidth > 0) {
+    if (props.sidebarOnLeft) {
+      return rect.left + props.collapsedWidth
+    }
+    return rect.right - props.collapsedWidth
   }
-  return props.sidebarPosition === 'start' ? rect.right : rect.left
+  if (props.sidebarOnLeft) {
+    return rect.left
+  }
+  return rect.right
 }
 
 // 处理鼠标移动，检测是否在边缘区域（展开按钮）或 divider 中心附近（折叠按钮）
@@ -393,13 +398,8 @@ function handleMouseMove(event: MouseEvent) {
 
   let isInEdgeZone = false
   if (props.direction === 'vertical') {
-    if (props.sidebarPosition === 'end') {
-      const x = windowX - rect.left
-      isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
-    } else {
-      const x = windowX - edgeX
-      isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
-    }
+    const x = windowX - edgeX
+    isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
   } else {
     if (props.sidebarPosition === 'end') {
       isInEdgeZone = windowY >= window.innerHeight - edgeThreshold

@@ -117,8 +117,11 @@ export function acquirePoolWindow(params: {
   position: { x: number; y: number }
   width: number
   height: number
+  /** 与源窗口一致时新窗口进入专注模式 */
+  focusMode?: boolean
 }): BrowserWindow | null {
-  const { tabData, position, width, height } = params
+  const { tabData, position, width, height, focusMode } = params
+  const initialFocusMode = !!(focusMode ?? tabData?.sourceFocusMode)
   const win = pool.shift()
   if (!win || win.isDestroyed()) {
     return null
@@ -137,7 +140,11 @@ export function acquirePoolWindow(params: {
 
   win.setBounds({ x, y, width, height })
   win.show()
-  win.webContents.send('add-tab-from-drag', { tabData, insertIndex: 0 })
+  win.webContents.send('add-tab-from-drag', {
+    tabData,
+    insertIndex: 0,
+    initialFocusMode
+  })
   win.focus()
 
   logger.info(`窗口池: 使用预加载窗口 ${getWindowId(win)}, Tab: ${tabData?.tab?.id || 'unknown'}`)

@@ -73,6 +73,7 @@
           v-if="isOpen"
           ref="popupRef"
           class="ui-sub-menu__popup"
+          :class="popupClass"
           :style="popupStyle"
           @mouseenter="handlePopupMouseEnter"
           @mouseleave="handlePopupMouseLeave"
@@ -96,7 +97,9 @@ import {
   onBeforeUnmount,
   onMounted,
   watch,
-  type ComputedRef
+  toValue,
+  type ComputedRef,
+  type MaybeRefOrGetter
 } from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
@@ -117,13 +120,19 @@ const props = withDefaults(
     trigger?: 'click' | 'hover'
     level?: number
     disabled?: boolean
+    /** aside：在触发项右侧弹出（侧栏）；below：在触发项下方左对齐（顶栏下拉） */
+    popupPlacement?: 'aside' | 'below'
+    /** 附加到弹出层根节点，便于顶栏菜单去分割线等 */
+    popupClass?: string
   }>(),
   {
     title: '',
     tooltip: '',
     trigger: 'click',
     level: 1,
-    disabled: false
+    disabled: false,
+    popupPlacement: 'aside',
+    popupClass: ''
   }
 )
 
@@ -132,7 +141,9 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-const collapse = inject<boolean>('menuCollapse', false)
+/** provide 可能是 Ref<boolean>（LeftMenu）或 boolean；script 中必须用 unref */
+const menuCollapseInjected = inject<MaybeRefOrGetter<boolean>>('menuCollapse', false)
+const collapse = computed(() => toValue(menuCollapseInjected))
 const hasOpenSubMenu = inject<ComputedRef<boolean>>(
   'hasOpenSubMenu',
   computed(() => false)
@@ -145,7 +156,7 @@ const shouldShowTitle = computed(() => {
     return true
   }
   // 否则，根据 collapse 状态决定
-  return !collapse
+  return !collapse.value
 })
 const closeAllClickSubMenus = inject<(() => void) | undefined>('closeAllClickSubMenus', undefined)
 const registerClickSubMenu = inject<((closeFn: () => void) => void) | undefined>(
@@ -174,13 +185,15 @@ const popupStyle = computed(() => {
   const baseBg = themeState.currentTheme.background2nd
   // 使用与 HeadMenu 一致的 active 背景色作为 hover 颜色
   const hoverColor = activeBackgroundColor.value
+  const zBelowTopChrome =
+    props.popupPlacement === 'below' ? 100_050 : 2000 + props.level
   return {
     top: `${popupPosition.value.top}px`,
     left: `${popupPosition.value.left}px`,
     '--sub-menu-bg': baseBg,
     '--sub-menu-hover': hoverColor,
     backgroundColor: baseBg,
-    zIndex: 2000 + props.level
+    zIndex: zBelowTopChrome
   }
 })
 
@@ -192,24 +205,44 @@ const updatePopupPosition = async () => {
   const titleRect = subMenuRef.value.getBoundingClientRect()
   const popupRect = popupRef.value.getBoundingClientRect()
 
-  let left = titleRect.right + 12
-  let top = titleRect.top
-
-  // 确保不超出视口
   const padding = 8
-  const maxLeft = window.innerWidth - popupRect.width - padding
-  const maxTop = window.innerHeight - popupRect.height - padding
+  let left: number
+  let top: number
 
-  if (left > maxLeft) {
-    left = titleRect.left - popupRect.width - 12
-  }
+  if (props.popupPlacement === 'below') {
+    const gap = 4
+    top = titleRect.bottom + gap
+    left = titleRect.left
+    if (left + popupRect.width > window.innerWidth - padding) {
+      left = Math.max(padding, window.innerWidth - popupRect.width - padding)
+    }
+    if (left < padding) {
+      left = padding
+    }
+    if (top + popupRect.height > window.innerHeight - padding) {
+      top = Math.max(padding, titleRect.top - popupRect.height - gap)
+    }
+    if (top < padding) {
+      top = padding
+    }
+  } else {
+    left = titleRect.right + 12
+    top = titleRect.top
 
-  if (top + popupRect.height > window.innerHeight - padding) {
-    top = window.innerHeight - popupRect.height - padding
-  }
+    const maxLeft = window.innerWidth - popupRect.width - padding
+    const maxTop = window.innerHeight - popupRect.height - padding
 
-  if (top < padding) {
-    top = padding
+    if (left > maxLeft) {
+      left = titleRect.left - popupRect.width - 12
+    }
+
+    if (top + popupRect.height > window.innerHeight - padding) {
+      top = window.innerHeight - popupRect.height - padding
+    }
+
+    if (top < padding) {
+      top = padding
+    }
   }
 
   popupPosition.value = { top, left }
@@ -232,6 +265,12 @@ const openPopup = async () => {
     // 如果还没有渲染，等待一下再更新位置
     await nextTick()
     updatePopupPosition()
+  }
+  // 顶栏 below：首帧布局后尺寸才稳定，再对齐一次
+  if (props.popupPlacement === 'below') {
+    requestAnimationFrame(() => {
+      updatePopupPosition()
+    })
   }
 
   // 如果是 click 触发的，注册关闭函数

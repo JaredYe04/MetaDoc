@@ -6100,7 +6100,20 @@ function bindWindowManagementHandlers(): void {
     'create-window-with-tab',
     async (
       event: IpcMainInvokeEvent,
-      { tabData, position }: { tabData: any; position?: { x: number; y: number } }
+      {
+        tabData,
+        position,
+        width: invokeWidth,
+        height: invokeHeight,
+        focusMode: invokeFocusMode
+      }: {
+        tabData: any
+        position?: { x: number; y: number }
+        width?: number
+        height?: number
+        /** 显式指定；未传时回退 tabData.sourceFocusMode（拖出会话） */
+        focusMode?: boolean
+      }
     ): Promise<{ windowId: number; tabId: string; isExisting: boolean } | number> => {
       try {
         const sourceWindow = BrowserWindow.fromWebContents(event.sender)
@@ -6150,9 +6163,11 @@ function bindWindowManagementHandlers(): void {
         const sourceBounds = sourceWindow.getBounds()
         const isMaximized = sourceWindow.isMaximized()
 
-        // 如果源窗口是最大化的，使用默认大小
-        const width = isMaximized ? 1366 : sourceBounds.width
-        const height = isMaximized ? 768 : sourceBounds.height
+        // 如果源窗口是最大化的，使用默认大小；invoke 传入 width/height 时优先（如拖出）
+        const width = invokeWidth ?? (isMaximized ? 1366 : sourceBounds.width)
+        const height = invokeHeight ?? (isMaximized ? 768 : sourceBounds.height)
+
+        const resolvedFocusMode = invokeFocusMode ?? !!tabData?.sourceFocusMode
 
         const cursorPos = position ?? screen.getCursorScreenPoint()
         const x = Math.max(10, cursorPos.x)
@@ -6163,7 +6178,8 @@ function bindWindowManagementHandlers(): void {
           tabData,
           position: { x, y },
           width,
-          height
+          height,
+          focusMode: resolvedFocusMode
         })
 
         if (poolWindow) {
@@ -6260,8 +6276,12 @@ function bindWindowManagementHandlers(): void {
           setTimeout(() => resolve(), 3000)
         })
 
-        // 传递Tab数据到新窗口
-        newWindow.webContents.send('add-tab-from-drag', { tabData, insertIndex: 0 })
+        // 传递Tab数据到新窗口（initialFocusMode：拖出/新窗口与源窗口专注模式一致）
+        newWindow.webContents.send('add-tab-from-drag', {
+          tabData,
+          insertIndex: 0,
+          initialFocusMode: resolvedFocusMode
+        })
 
         newWindow.focus()
 

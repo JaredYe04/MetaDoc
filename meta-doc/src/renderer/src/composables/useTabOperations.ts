@@ -3,6 +3,7 @@ import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
 import eventBus from '../utils/event-bus'
 import messageBridge from '../bridge/message-bridge'
+import { useFocusMode } from './useFocusMode'
 
 const logger = createRendererLogger('useTabOperations')
 
@@ -28,6 +29,7 @@ export interface OpenTabOptions {
 
 export const useTabOperations = () => {
   const workspace = useWorkspace()
+  const { isFocusMode } = useFocusMode()
   const ipc = messageBridge.getIpc()
 
   const isOperating = ref(false)
@@ -161,7 +163,10 @@ export const useTabOperations = () => {
       }
 
       // 创建新窗口
-      const newWindowId = await messageBridge.invoke('create-window-with-tab', { tabData })
+      const newWindowId = await messageBridge.invoke('create-window-with-tab', {
+        tabData,
+        focusMode: isFocusMode.value
+      })
 
       // 从当前窗口移除
       workspace.removeTab(tabId)

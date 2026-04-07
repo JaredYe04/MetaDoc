@@ -1,5 +1,15 @@
 {
   "lang": "ru_RU",
+  "markdownEditor": {
+    "outlineMenu": {
+      "optimizeSection": "Оптимизировать текущий раздел",
+      "copySection": "Копировать содержимое раздела",
+      "generateIllustration": "Создать иллюстрацию",
+      "addToMaterialBasket": "Добавить в корзину материалов",
+      "emptySection": "Нет содержимого для копирования",
+      "copyFailed": "Не удалось скопировать"
+    }
+  },
   "aIService": {
     "cancelled": "Отменено",
     "clear": "Очистить",
@@ -1890,6 +1900,12 @@
       }
     }
   },
+  "focusMode": {
+    "enterTooltip": "Включить режим фокусировки",
+    "exitTooltip": "Выключить режим фокусировки",
+    "pdfPreviewHint": "Это режим предварительного просмотра PDF",
+    "convertToMarkdown": "Конвертировать в Markdown для редактирования"
+  },
   "fomulaRecognition": {
     "copyFailed": "Не удалось скопировать",
     "deleteFailed": "Не удалось удалить",
@@ -3703,7 +3719,8 @@
         "redo": "Повторить",
         "zoomIn": "Увеличить",
         "zoomOut": "Уменьшить",
-        "zoomReset": "Сбросить масштаб"
+        "zoomReset": "Сбросить масштаб",
+        "toggleFocusMode": "Переключить режим фокусировки"
       }
     },
     "cancel": "Отмена",

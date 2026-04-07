@@ -14,7 +14,11 @@
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
-import { renderMarkdownPreview, local2fileProtocol } from '../utils/md-utils'
+import {
+  renderMarkdownPreview,
+  local2fileProtocol,
+  normalizeMarkdownLeadingArtifacts
+} from '../utils/md-utils'
 import eventBus from '../utils/event-bus'
 import { Skeleton } from '@renderer/components/ui/skeleton'
 
@@ -34,11 +38,6 @@ const emit = defineEmits<{ rendered: [container: HTMLElement] }>()
 const containerRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
 let linkClickHandler: ((e: MouseEvent) => void) | null = null
-
-// 清理 markdown 开头的 BOM/零宽字符，避免首行标题“# ...”被当作普通文本
-const normalizeMarkdownInput = (markdown: string) => {
-  return markdown.replace(/^[\uFEFF\u200B\u2060]+/, '')
-}
 
 // 设置链接点击事件处理器
 const setupLinkClickHandler = (container: HTMLElement | null) => {
@@ -111,7 +110,7 @@ const renderMarkdown = async () => {
     // 处理 markdown
     console.log('[VditorPreview] Processing markdown...')
     const processedMarkdown = await local2fileProtocol(
-      normalizeMarkdownInput(props.markdown),
+      normalizeMarkdownLeadingArtifacts(props.markdown),
       props.docPath
     )
     console.log('[VditorPreview] Markdown processed, length:', processedMarkdown.length)

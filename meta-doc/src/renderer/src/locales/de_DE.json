@@ -1,4 +1,14 @@
 {
+  "markdownEditor": {
+    "outlineMenu": {
+      "optimizeSection": "Aktuellen Abschnitt optimieren",
+      "copySection": "Abschnittsinhalt kopieren",
+      "generateIllustration": "Illustration erzeugen",
+      "addToMaterialBasket": "Zum Materialkorb hinzufügen",
+      "emptySection": "Kein Inhalt zum Kopieren",
+      "copyFailed": "Kopieren fehlgeschlagen"
+    }
+  },
   "aiChat": {
     "defaultTitle": "Gespräch mit KI-Assistenten",
     "deleteCurrent": "Aktuelles Gespräch löschen",
@@ -1138,7 +1148,8 @@
         "redo": "Wiederholen",
         "zoomIn": "Vergrößern",
         "zoomOut": "Verkleinern",
-        "zoomReset": "Zoom zurücksetzen"
+        "zoomReset": "Zoom zurücksetzen",
+        "toggleFocusMode": "Fokusmodus umschalten"
       }
     },
     "chatSuffix": "URL-Suffix für Chat-Vervollständigung (optional)",
@@ -4457,6 +4468,12 @@
       },
       "objectTypeField": "Objekttypfeld"
     }
+  },
+  "focusMode": {
+    "enterTooltip": "Fokusmodus aktivieren",
+    "exitTooltip": "Fokusmodus deaktivieren",
+    "pdfPreviewHint": "Dies ist der PDF-Vorschaumodus",
+    "convertToMarkdown": "In Markdown konvertieren und bearbeiten"
   },
   "fomulaRecognition": {
     "copyFailed": "Kopieren fehlgeschlagen",

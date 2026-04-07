@@ -1,5 +1,6 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { useWorkspace, type WorkspaceTab, type WorkspaceTabKind } from '../stores/workspace'
+import { useFocusMode } from './useFocusMode'
 import { createRendererLogger } from '../utils/logger'
 import { themeState } from '../utils/themes'
 import messageBridge from '../bridge/message-bridge'
@@ -99,6 +100,8 @@ export interface SerializedTabData {
   sourceWindowId: number
   sourceTabCount: number
   canDragToOtherWindow: boolean
+  /** 拖出时由当前窗口写入，供新窗口继承专注模式 */
+  sourceFocusMode?: boolean
 }
 
 /**
@@ -368,6 +371,7 @@ export const checkCanDragToOtherWindow = (_tab: WorkspaceTab): boolean => {
  */
 export const useTabDrag = (options: UseTabDragOptions = {}) => {
   const workspace = useWorkspace()
+  const { isFocusMode } = useFocusMode()
 
   const { onDragStart, onDragEnd, onDrop } = options
 
@@ -427,6 +431,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
         // 获取当前窗口 ID
         const sourceWindowId = await getCurrentWindowId()
         tabData.sourceWindowId = sourceWindowId
+        tabData.sourceFocusMode = isFocusMode.value
 
         // 调用主进程创建拖拽会话
         const result = await messageBridge.invoke('drag:start', {

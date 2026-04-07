@@ -131,7 +131,8 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   document.addEventListener('mousedown', handleDocumentPointer)
-  window.addEventListener('scroll', closeMenu, true)
+  // 仅监听窗口自身滚动；捕获阶段会收到可滚动子元素上的 scroll，导致从大纲移入菜单途中菜单被误关
+  window.addEventListener('scroll', closeMenu, false)
   window.addEventListener('resize', closeMenu)
   window.addEventListener('keydown', handleKeydown)
   nextTick(adjustWithinViewport)
@@ -139,7 +140,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleDocumentPointer)
-  window.removeEventListener('scroll', closeMenu, true)
+  window.removeEventListener('scroll', closeMenu, false)
   window.removeEventListener('resize', closeMenu)
   window.removeEventListener('keydown', handleKeydown)
 })
@@ -171,7 +172,7 @@ const menuStyle = computed(() => {
     borderRadius: '10px',
     padding: '4px 0',
     minWidth: '184px',
-    zIndex: 2000
+    zIndex: 12000
   }
   style['--menu-divider-color'] = dividerColor
   return style
@@ -254,7 +255,7 @@ const onMenuItemMouseDown = (item: ContextMenuItem) => {
   left: 100%;
   top: 0;
   margin-left: 2px;
-  z-index: 2100;
+  z-index: 12100;
 }
 
 .context-menu__item--submenu-parent {

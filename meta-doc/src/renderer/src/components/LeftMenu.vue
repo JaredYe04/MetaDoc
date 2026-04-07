@@ -1,5 +1,9 @@
 <template>
+  <Teleport v-if="isFocusMode" to="#main-tabs-focus-menu-host">
+    <FocusModeTabBarMenus />
+  </Teleport>
   <UIMenu
+    v-if="!isFocusMode"
     :collapse="isCollapse"
     :background-color="sidebarBackground"
     :text-color="sidebarTextColor"
@@ -999,8 +1003,12 @@ import type { ExportOptions } from '../services/export-adapters/types'
 import MenuConfigDialog, { type MenuConfigItem } from './MenuConfigDialog.vue'
 import { createAiTask, ai_types } from '../utils/ai_tasks'
 import { generateTemplateTitleDescriptionPrompt } from '../utils/prompts'
+import { useFocusMode } from '../composables/useFocusMode'
+import FocusModeTabBarMenus from './FocusModeTabBarMenus.vue'
+import { FOCUS_LEFT_MENU_API_KEY } from './focus-mode-left-menu-api'
 
 const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
+const { isFocusMode } = useFocusMode()
 const emitMenu = (name: string, ...args: any[]) => {
   if (props.mode === 'demo') return
   // mitt 的 emit 只接受两个参数，将多个参数合并为一个对象
@@ -1300,6 +1308,15 @@ const sidebarBackground = computed(
 const sidebarTextColor = computed(
   () => themeState.currentTheme.SideTextColor || themeState.currentTheme.textColor
 )
+/** 与 MainTabs.vue tabsContainerBackgroundColor 一致（整条标签栏容器底，非单个 tab） */
+const focusToolbarStripBackground = computed(() => {
+  try {
+    return mixColors(themeState.currentTheme.background, '#888888', 0.3)
+  } catch {
+    return '#f5f5f5'
+  }
+})
+const focusToolbarStripTextColor = computed(() => themeState.currentTheme.textColor)
 const sidebarActiveTextColor = computed(
   () => themeState.currentTheme.SideActiveTextColor || themeState.currentTheme.textColor
 )
@@ -1342,7 +1359,11 @@ const toggleUserProfile = () => {
 const { activeDocument, activeTab } = useActiveDocument()
 
 // 当前 tab 是否为文档 tab（md/tex 等），用于控制保存/另存为/导出/导出为模板 的可用性
-const isDocumentTab = computed(() => activeTab.value?.kind === 'file')
+const isDocumentTab = computed(
+  () =>
+    activeTab.value?.kind === 'file' ||
+    (activeTab.value?.kind === 'new' && !!activeDocument.value?.format)
+)
 const canExportAsTemplate = computed(
   () =>
     isDocumentTab.value &&
@@ -1641,6 +1662,47 @@ function confirmExportAsTemplate() {
   })
   showExportAsTemplateDialog.value = false
 }
+
+provide(FOCUS_LEFT_MENU_API_KEY, {
+  demoMode: () => props.mode === 'demo',
+  getMenuOrder,
+  isMenuItemVisible,
+  t,
+  newDoc,
+  openDoc,
+  saveAll,
+  emitMenu,
+  openWorkspaceFromMenu,
+  addFolderToWorkspaceFromMenu,
+  closeWorkspaceFoldersFromMenu,
+  handleExportClick,
+  exportOptions,
+  exportOptionLabel,
+  openExportAsTemplateDialog,
+  canExportAsTemplate,
+  refreshRecentDocs,
+  recentDocs,
+  openRecentDoc,
+  askSave,
+  basename,
+  toggleAgentSidebarPanel,
+  toggleWorkspaceExplorer,
+  toggleWorkspaceGrep,
+  openKnowledgeBase,
+  openAgent,
+  openDebugTools,
+  openLlmStatistics,
+  openUserFeedback,
+  openUserManual,
+  openGlobalHome,
+  openMenuConfigDialog,
+  toggleUserProfile,
+  isDocumentTab,
+  SHOW_LEFT_MENU_USER_PROFILE,
+  isDev,
+  toolbarMenuBackground: focusToolbarStripBackground,
+  toolbarMenuTextColor: focusToolbarStripTextColor
+})
 </script>
 
 <style scoped>

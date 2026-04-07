@@ -1,4 +1,14 @@
 {
+  "markdownEditor": {
+    "outlineMenu": {
+      "optimizeSection": "Optimiser la section actuelle",
+      "copySection": "Copier le contenu de la section",
+      "generateIllustration": "Générer une illustration",
+      "addToMaterialBasket": "Ajouter au panier de matériaux",
+      "emptySection": "Aucun contenu à copier",
+      "copyFailed": "Échec de la copie"
+    }
+  },
   "aiChat": {
     "defaultTitle": "Parlez à l'assistant de l'IA",
     "deleteCurrent": "Supprimer le dialogue actuel",
@@ -1100,7 +1110,8 @@
         "redo": "Rétablir",
         "zoomIn": "Agrandir",
         "zoomOut": "Rétrécir",
-        "zoomReset": "Réinitialiser le zoom"
+        "zoomReset": "Réinitialiser le zoom",
+        "toggleFocusMode": "Basculer le mode concentration"
       }
     },
     "chatSuffix": "Suffixe d'URL pour la fonction de complétion de dialogue (Chat) (optionnel)",
@@ -3615,6 +3626,12 @@
       "generate": "Générer",
       "reset": "Réinitialiser"
     }
+  },
+  "focusMode": {
+    "enterTooltip": "Activer le mode concentration",
+    "exitTooltip": "Quitter le mode concentration",
+    "pdfPreviewHint": "Ceci est le mode aperçu PDF",
+    "convertToMarkdown": "Convertir en Markdown pour éditer"
   },
   "fontSize": {
     "chuhao": "Corps 72",

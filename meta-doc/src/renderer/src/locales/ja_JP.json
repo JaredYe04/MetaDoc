@@ -1,5 +1,15 @@
 {
   "lang": "ja_JP",
+  "markdownEditor": {
+    "outlineMenu": {
+      "optimizeSection": "現在の段落を最適化",
+      "copySection": "段落をコピー",
+      "generateIllustration": "挿絵を生成",
+      "addToMaterialBasket": "素材バスケットに追加",
+      "emptySection": "コピーできる内容がありません",
+      "copyFailed": "コピーに失敗しました"
+    }
+  },
   "selectionTranslate": {
     "title": "選択テキストを翻訳",
     "targetLanguage": "目標言語",
@@ -1166,7 +1176,8 @@
         "redo": "やり直す",
         "zoomIn": "拡大",
         "zoomOut": "縮小",
-        "zoomReset": "ズームをリセット"
+        "zoomReset": "ズームをリセット",
+        "toggleFocusMode": "集中モード切替"
       }
     },
     "llm": "LLM設定",
@@ -3703,6 +3714,12 @@
       "generate": "生成する",
       "reset": "リセット"
     }
+  },
+  "focusMode": {
+    "enterTooltip": "集中モードに入る",
+    "exitTooltip": "集中モードを終了",
+    "pdfPreviewHint": "PDF プレビューモードです",
+    "convertToMarkdown": "Markdown に変換して編集"
   },
   "fontSize": {
     "chuhao": "初号",

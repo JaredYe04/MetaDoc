@@ -24,6 +24,17 @@ function getLogger() {
   }
   return loggerInstance
 }
+
+/**
+ * 去掉文档开头的 BOM / 零宽字符，避免首行「# 标题」被 Lute 当成普通文本（与 VditorPreview 一致）。
+ * @param {string} markdown
+ * @returns {string}
+ */
+export function normalizeMarkdownLeadingArtifacts(markdown) {
+  if (typeof markdown !== 'string') return ''
+  return markdown.replace(/^[\uFEFF\u200B\u2060]+/, '')
+}
+
 // 1. 从 Markdown 文本中提取所有标题，生成大纲树，同时记录 title_level
 
 export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
@@ -1776,6 +1787,8 @@ export async function local2fileProtocolForHtmlInHtml(html) {
  */
 export async function renderMarkdownPreview(container, markdown, options = {}) {
   const { linkBase = '', renderCode = true, renderMath = true, applyMermaidTheme = false } = options
+
+  markdown = normalizeMarkdownLeadingArtifacts(typeof markdown === 'string' ? markdown : '')
 
   // 获取 CDN
   const cdn = isElectronEnv() ? getLocalVditorCDN() : vditorCDN

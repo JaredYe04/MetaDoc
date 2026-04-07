@@ -328,6 +328,8 @@ const workspaceFolders = ref<string[]>([]) // 支持多个工作文件夹
 const workspaceFolderNodes = ref<Map<string, FileNode>>(new Map()) // 工作文件夹根节点（key 为原始路径）
 /** 树结构版本：递增后强制整棵树重渲染，解决普通对象节点深层次变更 Vue 不追踪导致界面不刷新的问题 */
 const treeVersion = ref(0)
+const hasLoadedWorkspaceFolders = ref(false)
+const autoWorkspaceAddInFlight = ref(false)
 // 路径索引：key 为 normalizePathForCompare(path)，O(1) 查找节点，对齐 VS Code 设计
 const nodeMap = new Map<string, FileNode>()
 
@@ -784,15 +786,23 @@ const addWorkspaceFolder = async () => {
     })) as { canceled: boolean; filePaths?: string[] }
 
     if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
-      const newFolder = result.filePaths[0]
+      const newFolder = normalizePathForCompare(result.filePaths[0])
 
       await ensureMetadocInWorkspaceRoot(newFolder)
 
-      // 检查是否已存在
-      if (workspaceFolders.value.includes(newFolder)) {
+      // 检查是否已存在（规范化比较）
+      const existed = workspaceFolders.value.some(
+        (folder) => normalizePathForCompare(folder) === newFolder
+      )
+      if (existed) {
         eventBus.emit('show-warning', { message: t('workspaceExplorer.folderAlreadyAdded') })
         emitFocusWorkspaceSidebar()
         return
+      }
+
+      // 当前产品约束：只允许一个工作区根
+      if (workspaceFolders.value.length > 0) {
+        await closeAllWorkspaceFolders()
       }
 
       // 先创建工作文件夹根节点
@@ -815,19 +825,30 @@ const addWorkspaceFolder = async () => {
 }
 
 const addWorkspaceFolderFromPath = async (folderPath: string) => {
-  if (!folderPath) return
+  if (!folderPath || autoWorkspaceAddInFlight.value) return
+  autoWorkspaceAddInFlight.value = true
 
-  const existed = workspaceFolders.value.some(
-    (folder) => normalizePathForCompare(folder) === normalizePathForCompare(folderPath)
-  )
-  if (existed) return
+  try {
+    const normalizedFolderPath = normalizePathForCompare(folderPath)
+    if (!normalizedFolderPath) return
 
-  await ensureMetadocInWorkspaceRoot(folderPath)
-  await createWorkspaceRootNode(folderPath)
-  workspaceFolders.value.push(folderPath)
-  startDirectoryWatcher(folderPath)
-  saveWorkspaceFolders()
-  emitFocusWorkspaceSidebar()
+    const existed = workspaceFolders.value.some(
+      (folder) => normalizePathForCompare(folder) === normalizedFolderPath
+    )
+    if (existed) return
+
+    // 当前产品约束：只允许一个工作区根
+    if (workspaceFolders.value.length > 0) return
+
+    await ensureMetadocInWorkspaceRoot(normalizedFolderPath)
+    await createWorkspaceRootNode(normalizedFolderPath)
+    workspaceFolders.value.push(normalizedFolderPath)
+    startDirectoryWatcher(normalizedFolderPath)
+    saveWorkspaceFolders()
+    emitFocusWorkspaceSidebar()
+  } finally {
+    autoWorkspaceAddInFlight.value = false
+  }
 }
 
 // 移除工作文件夹
@@ -1196,7 +1217,14 @@ const loadWorkspaceFolders = async () => {
   const saved = localStorage.getItem('workspaceFolders')
   if (saved) {
     try {
-      const folders = JSON.parse(saved) as string[]
+      const foldersRaw = JSON.parse(saved) as string[]
+      const folders = Array.from(
+        new Set(
+          foldersRaw
+            .map((p) => normalizePathForCompare(p))
+            .filter((p) => typeof p === 'string' && p.length > 0)
+        )
+      ).slice(0, 1)
 
       // 先同步创建所有根节点（不加载内容，避免阻塞）
       const successfulFolders: string[] = []
@@ -1233,7 +1261,7 @@ const loadWorkspaceFolders = async () => {
       workspaceFolders.value = successfulFolders
 
       // 如果列表有变化，保存
-      if (workspaceFolders.value.length !== folders.length) {
+      if (workspaceFolders.value.length !== foldersRaw.length) {
         saveWorkspaceFolders()
       }
 
@@ -1253,6 +1281,7 @@ const loadWorkspaceFolders = async () => {
       logger.error('加载工作文件夹列表失败:', err)
     }
   }
+  hasLoadedWorkspaceFolders.value = true
 }
 
 // 刷新所有工作文件夹（并发处理）
@@ -1495,6 +1524,7 @@ watch(
       .filter((tab) => tab.kind === 'file' && !!tab.path)
       .map((tab) => tab.path as string),
   async (filePaths) => {
+    if (!hasLoadedWorkspaceFolders.value) return
     if (workspaceFolders.value.length > 0) return
     if (!filePaths.length) return
 

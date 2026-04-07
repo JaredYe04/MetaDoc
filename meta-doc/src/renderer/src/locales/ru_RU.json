@@ -443,7 +443,8 @@
         "outputPdfPath": "Путь к выходному PDF-файлу",
         "stderr": "Стандартный поток ошибок",
         "stdout": "Стандартный поток вывода",
-        "success": "Компиляция успешно завершена"
+        "success": "Компиляция успешно завершена",
+        "clickToOpenPdf": "Нажмите, чтобы открыть полный PDF в новой вкладке"
       },
       "timestamp": {
         "current": "Текущее время",
@@ -1525,6 +1526,19 @@
     "cdFailed": "Не удалось сменить каталог",
     "invalidArgument": "Неверный аргумент"
   },
+  "selectionTranslate": {
+    "title": "Перевести выделенное",
+    "targetLanguage": "Целевой язык",
+    "targetLanguagePlaceholder": "Выберите или введите целевой язык",
+    "sourceLabel": "Исходный текст",
+    "translationLabel": "Перевод",
+    "translate": "Перевести",
+    "translating": "Перевод…",
+    "replaceSelection": "Заменить выделение",
+    "failed": "Ошибка перевода",
+    "noSelection": "Сначала выделите текст для перевода",
+    "cannotLocateRange": "Не удалось определить выделение. Повторите попытку."
+  },
   "contextMenu": {
     "aiAnalysis": "AI-анализ всего текста",
     "closeAutoCompletion": "Отключить AI-дополнение",
@@ -1540,6 +1554,7 @@
     "sectionOptimizer": "Оптимизировать текущий абзац",
     "selectAll": "Выделить всё",
     "triggerAutoCompletion": "Запустить AI-дополнение вручную",
+    "translateSelection": "Перевести выделенное",
     "undo": "Отменить"
   },
   "data-analysis-tool": {
@@ -2600,6 +2615,7 @@
       "pleaseSaveFirst": "Пожалуйста, сначала сохраните файл",
       "compileSuccess": "Компиляция успешна",
       "compileFailed": "Ошибка компиляции, код ошибки: {code}",
+      "compileInvokeFailed": "Ошибка запроса компиляции: {message}",
       "analyzingError": "Используется ИИ для анализа ошибки компиляции...",
       "errorAnalysisFailed": "Не удалось проанализировать ошибку с помощью ИИ",
       "textNotFound": "Текст не найден: {text}",
@@ -2647,6 +2663,51 @@
       "showConsole": "Показать терминал",
       "pointerMode": "Режим указателя (выбор текста)",
       "handMode": "Режим руки (перетаскивание)"
+    },
+    "compiler": {
+      "title": "Компилятор LaTeX",
+      "compiling": "Компиляция…",
+      "compile": "Скомпилировать",
+      "engine": "Движок",
+      "interaction": "Режим взаимодействия",
+      "nonstop": "Режим без остановки",
+      "batch": "Пакетный режим",
+      "scroll": "Режим прокрутки",
+      "errorstop": "Остановка по ошибке",
+      "flags": "Параметры",
+      "flagSynctex": "-synctex=1",
+      "flagShellEscape": "-shell-escape",
+      "flagDraft": "-draftmode",
+      "outputDir": "Каталог вывода",
+      "defaultOutput": "По умолчанию (папка исходника)",
+      "duration": "Длительность",
+      "output": "Вывод сборки",
+      "noOutput": "Пока нет вывода…",
+      "success": "Компиляция успешна",
+      "pdfGenerated": "PDF создан",
+      "optionsDialogTitle": "Параметры компиляции",
+      "engineFieldHint": "Tectonic встроен в приложение. XeLaTeX / pdfLaTeX / LuaLaTeX требуют дистрибутив TeX в PATH.",
+      "engineOptTectonic": "Tectonic (встроенный)",
+      "engineOptXelatex": "XeLaTeX",
+      "engineOptPdflatex": "pdfLaTeX",
+      "engineOptLualatex": "LuaLaTeX",
+      "flagSynctexHint": "Генерировать SyncTeX (только CLI; Tectonic игнорирует).",
+      "flagShellEscapeHint": "Разрешить \\write18 (только доверенные документы).",
+      "flagDraftHint": "Черновик: быстрее, может пропускать рисунки (только CLI).",
+      "tectonicCliHint": "встроенный движок; вывод рядом с .tex",
+      "engineHintTectonic": "Встроенный Tectonic; установка системного TeX не требуется.",
+      "engineHintXelatex": "Нужен дистрибутив TeX; xelatex должен быть в PATH.",
+      "engineHintPdflatex": "Нужен дистрибутив TeX; pdflatex должен быть в PATH.",
+      "engineHintLualatex": "Нужен дистрибутив TeX; lualatex должен быть в PATH.",
+      "interactionModeFieldHint": "Соответствует LaTeX `-interaction=` для CLI. Подсказка при наведении; для автоматизации — nonstop.",
+      "interactionHintNonstop": "nonstopmode: ошибки в журнале, выполнение продолжается без запросов. Удобно для редактора и CI.",
+      "interactionHintBatch": "batchmode: мало вывода в терминал; останов при фатальных ошибках. Типично для пакетов.",
+      "interactionHintScroll": "scrollmode: близко к nonstop; классическая прокрутка ошибок в терминале.",
+      "interactionHintErrorstop": "errorstopmode: стоп на первой ошибке; в настоящем терминале интерактивно, в GUI может «зависать».",
+      "cliPreviewLabel": "Эквивалентная командная строка",
+      "cliPreviewCaption": "Плейсхолдеры — каталог вывода и исходный файл; реальные пути задаются сохранением/экспортом. CLI-движки должны быть в PATH.",
+      "cliOutputDirToken": "<каталог-вывода>",
+      "cliSourceTexToken": "<исходник.tex>"
     }
   },
   "logoTab": {

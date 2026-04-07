@@ -334,8 +334,47 @@
       </div>
     </transition>
 
-    <!-- AI消息操作按钮（平铺在消息下方，仅显示删除；重新生成仅允许在用户消息下使用） -->
-    <div v-if="message.role === 'assistant' && message.type === 'chat'" class="ai-message-actions">
+    <!-- AI 消息：复制 / 插入文档 / 导出（与 AIChat 一致，不可编辑） / 删除 -->
+    <div
+      v-if="
+        message.role === 'assistant' &&
+        (message.type === 'chat' || message.type === 'thought')
+      "
+      class="ai-message-actions"
+    >
+      <Tooltip :content="t('common.copy', '复制')" placement="bottom">
+        <Button
+          variant="ghost"
+          size="small"
+          class="ai-action-btn"
+          :disabled="!assistantDocumentMarkdown"
+          @click.stop="copyAssistantContent"
+        >
+          <Copy class="h-4 w-4" />
+        </Button>
+      </Tooltip>
+      <Tooltip :content="t('aiChat.insertToDocument', '插入到文档')" placement="bottom">
+        <Button
+          variant="ghost"
+          size="small"
+          class="ai-action-btn"
+          :disabled="!assistantDocumentMarkdown"
+          @click.stop="requestInsertAssistantToDocument"
+        >
+          <FilePlus class="h-4 w-4" />
+        </Button>
+      </Tooltip>
+      <Tooltip :content="t('aiChat.exportToDocument', '导出到新文档')" placement="bottom">
+        <Button
+          variant="ghost"
+          size="small"
+          class="ai-action-btn"
+          :disabled="!assistantDocumentMarkdown"
+          @click.stop="exportAssistantToNewDocument"
+        >
+          <FolderPlus class="h-4 w-4" />
+        </Button>
+      </Tooltip>
       <Tooltip :content="t('agent.message.delete')" placement="bottom">
         <Button
           variant="ghost"
@@ -368,7 +407,7 @@ import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
 import { User, More, Check, Search, Refresh, Delete } from '@element-plus/icons-vue'
-import { ChevronDown, ChevronUp } from 'lucide-vue-next'
+import { ChevronDown, Copy, FilePlus, FolderPlus } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Avatar, AvatarFallback } from '@renderer/components/ui/avatar'
 import {
@@ -400,6 +439,8 @@ import { dayjs } from 'element-plus'
 import { agentToolManager } from '../../utils/agent-tool-manager'
 import { toolCallParserManager } from '../../utils/agent-framework/tool-call-parsers'
 import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
+import eventBus from '../../utils/event-bus'
+import { toast } from '@renderer/utils/toast'
 
 const props = withDefaults(
   defineProps<{
@@ -953,6 +994,49 @@ const hasToolCalls = computed(() => {
   return false
 })
 
+/** 复制 / 插入 / 导出使用的 Markdown（与预览语义一致：含工具调用占位说明） */
+const assistantDocumentMarkdown = computed(() => {
+  if (props.message.role !== 'assistant') return ''
+  if (props.message.type !== 'chat' && props.message.type !== 'thought') return ''
+  if (props.message.type === 'chat' && hasToolCalls.value && processedContentParts.value.length > 0) {
+    return processedContentParts.value
+      .map((p) => {
+        if (p.type === 'markdown') return (p.content || '').trim()
+        if (p.type === 'tool-call') return (p.text || '').trim()
+        return ''
+      })
+      .filter((s) => s.length > 0)
+      .join('\n\n')
+      .trim()
+  }
+  return (messageMarkdown.value || '').trim()
+})
+
+const copyAssistantContent = async () => {
+  const text = assistantDocumentMarkdown.value
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    toast.success(t('common.copySuccess', '复制成功'))
+  } catch (error) {
+    console.error('复制失败:', error)
+    toast.error(t('common.copyFailed', '复制失败'))
+  }
+}
+
+const requestInsertAssistantToDocument = () => {
+  const text = assistantDocumentMarkdown.value
+  if (!text) return
+  eventBus.emit('ai-chat-request-insert-to-document', { content: text })
+}
+
+const exportAssistantToNewDocument = () => {
+  const text = assistantDocumentMarkdown.value
+  if (!text) return
+  eventBus.emit('ai-chat-export-to-document', { content: text })
+  toast.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
+}
+
 // 检查tool_calls是否已完成（即是否有对应的tool消息）
 const toolCallsCompleted = computed(() => {
   if (!hasToolCalls.value || !props.messages || props.messageIndex === undefined) {
@@ -1349,7 +1433,9 @@ onBeforeUnmount(() => {
 /* AI消息：平铺展示，无气泡效果，无头像，占满宽度，左侧无细线 */
 .agent-message__body--flat {
   width: 100%;
-  max-width: 100%;
+  max-width: min(100%, var(--tool-message-max-width, 860px));
+  min-width: 0;
+  align-self: flex-start;
   border: none !important;
   border-left: none !important;
   border-radius: 0;
@@ -1667,20 +1753,43 @@ onBeforeUnmount(() => {
 
 .tool-message-wrapper {
   width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+  max-width: min(100%, var(--tool-message-max-width, 860px));
   margin: 0;
+  box-sizing: border-box;
+  min-width: 0;
   border: 1px solid
     v-bind(
       'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.1)"'
     );
   border-radius: 8px;
   overflow: hidden;
+  /*
+   * LaTeX 内嵌 PDF 可调参数（子树继承，可在用户 CSS 或主题里覆盖 .tool-message-wrapper）：
+   * --latex-agent-pdf-width-scale: 相对卡片内容区宽度比例（默认 0.9，保留适度边距）
+   * --latex-agent-pdf-min-width / --latex-agent-pdf-max-width: 预览宽度上下限
+   * --latex-agent-pdf-height-* / --latex-agent-pdf-min-h-*: 嵌入框高度，供 LaTeXCompileDisplay 使用
+   */
+  --latex-agent-pdf-width-scale: 0.9;
+  --latex-agent-pdf-min-width: 280px;
+  --latex-agent-pdf-max-width: 680px;
+  --latex-agent-pdf-height-compact: min(280px, 46vh);
+  --latex-agent-pdf-min-h-compact: 200px;
+  --latex-agent-pdf-height-expanded: min(360px, 52vh);
+  --latex-agent-pdf-min-h-expanded: 240px;
 }
 
 .tool-message-collapsible {
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tool-message-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -1706,27 +1815,49 @@ onBeforeUnmount(() => {
 .tool-message-content :deep([data-state]) {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tool-message-content :deep(.pb-4) {
+  width: 100%;
+  max-width: 100%;
+
   padding: 6px 12px 8px 12px;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: hidden;
+  min-width: 0;
   min-height: 0;
+  box-sizing: border-box;
   background-color: transparent;
+}
+
+/* LaTeX 内嵌 PDF：自身纵向滚动，避免外层 pb-4 的 overflow-x 拉出横向滚动条 */
+.tool-message-content :deep(.latex-compile-pdf-embed) {
+  overflow: hidden;
+  max-width: 100%;
 }
 
 /* 确保 AgentToolResultSimple 不会超出父容器 */
 .tool-message-content :deep(.tool-result-simple) {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
+  overflow: hidden;
   background-color: transparent !important;
   border-radius: 0 !important;
   border: none !important;
   padding: 4px 0 !important;
   box-shadow: none !important;
+}
+
+.tool-message-content :deep(.tool-result-simple-body) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tool-message-header-preview {

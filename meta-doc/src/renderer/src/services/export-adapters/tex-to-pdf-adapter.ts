@@ -1,12 +1,11 @@
 import { BaseExportAdapter } from './base-adapter'
-import type { PdfExportOptions, ExportOptionField } from './types'
-import type { DocumentFormat, ExportFormat } from '../../../../types'
+import type { TexPdfCompileExportOptions, ExportOptionField } from './types'
 
 /**
- * LaTeX -> PDF 导出适配器
- * 注意：这个适配器使用LaTeX编译，与MD->PDF的HTML转换方式不同
+ * LaTeX -> PDF：与工具栏「编译」、LaTeXCompilerPanel、左侧菜单「导出 PDF」共用编译选项。
+ * 输出位置由编辑器/保存对话框决定，不在此表单中配置。
  */
-export class TexToPdfAdapter extends BaseExportAdapter<'tex', 'pdf', PdfExportOptions> {
+export class TexToPdfAdapter extends BaseExportAdapter<'tex', 'pdf', TexPdfCompileExportOptions> {
   sourceFormat: 'tex' = 'tex'
   targetFormat: 'pdf' = 'pdf'
   id = 'tex-to-pdf'
@@ -15,132 +14,121 @@ export class TexToPdfAdapter extends BaseExportAdapter<'tex', 'pdf', PdfExportOp
   description = 'Export LaTeX document to PDF format (via compilation)'
   descriptionKey = 'export.adapters.texToPdf.description'
 
-  getDefaultOptions(): PdfExportOptions {
+  getDefaultOptions(): TexPdfCompileExportOptions {
     return {
-      margins: {
-        top: 1, // LaTeX默认边距通常较大
-        bottom: 1,
-        left: 1,
-        right: 1
-      },
-      pageSize: 'A4',
-      printBackground: true,
-      pdfThemeMode: 'light',
-      colorMode: 'color' // LaTeX编译的PDF可以是彩色或灰度
+      compilerEngine: 'tectonic',
+      interactionMode: 'nonstopmode',
+      synctex: true,
+      shellEscape: false,
+      draft: false
     }
   }
 
   getOptionFields(): ExportOptionField[] {
     return [
       {
-        key: 'pageSize',
-        label: '纸张大小',
-        labelKey: 'export.options.pageSize.label',
+        key: 'compilerEngine',
+        label: '编译引擎',
+        labelKey: 'latexEditor.compiler.engine',
         type: 'select',
-        default: 'A4',
-        description: '选择PDF的纸张大小（需要在LaTeX文档类中配置）',
-        descriptionKey: 'export.options.pageSize.descriptionTex',
+        default: 'tectonic',
+        descriptionKey: 'latexEditor.compiler.engineFieldHint',
         options: [
-          { label: 'A4', value: 'A4', labelKey: 'export.options.pageSize.a4' },
-          { label: 'A3', value: 'A3', labelKey: 'export.options.pageSize.a3' },
-          { label: 'A5', value: 'A5', labelKey: 'export.options.pageSize.a5' },
-          { label: 'B5', value: 'B5', labelKey: 'export.options.pageSize.b5' },
-          { label: 'Letter', value: 'Letter', labelKey: 'export.options.pageSize.letter' },
-          { label: 'Legal', value: 'Legal', labelKey: 'export.options.pageSize.legal' }
-        ]
-      },
-      {
-        key: 'colorMode',
-        label: '颜色模式',
-        labelKey: 'export.options.colorMode.label',
-        type: 'select',
-        default: 'color',
-        description: 'PDF的颜色模式（彩色或灰度）',
-        descriptionKey: 'export.options.colorMode.description',
-        options: [
-          { label: '彩色', value: 'color', labelKey: 'export.options.colorMode.color' },
-          { label: '灰度', value: 'grayscale', labelKey: 'export.options.colorMode.grayscale' }
-        ]
-      },
-      {
-        key: 'margins',
-        label: '页边距',
-        labelKey: 'export.options.margins.label',
-        type: 'object',
-        default: { top: 1, bottom: 1, left: 1, right: 1 },
-        description: 'PDF页边距设置（注意：LaTeX边距需要在文档中配置）',
-        descriptionKey: 'export.options.margins.descriptionTex',
-        fields: [
           {
-            key: 'margins.top',
-            label: '上边距（英寸）',
-            labelKey: 'export.options.marginTop.label',
-            type: 'number',
-            default: 1,
-            min: 0,
-            max: 5,
-            step: 0.1,
-            description: 'PDF上边距，单位：英寸（注意：LaTeX边距需要在文档中配置）',
-            descriptionKey: 'export.options.marginTop.descriptionTex'
+            label: 'Tectonic',
+            value: 'tectonic',
+            labelKey: 'latexEditor.compiler.engineOptTectonic',
+            hintKey: 'latexEditor.compiler.engineHintTectonic'
           },
           {
-            key: 'margins.bottom',
-            label: '下边距（英寸）',
-            labelKey: 'export.options.marginBottom.label',
-            type: 'number',
-            default: 1,
-            min: 0,
-            max: 5,
-            step: 0.1,
-            description: 'PDF下边距，单位：英寸',
-            descriptionKey: 'export.options.marginBottom.description'
+            label: 'XeLaTeX',
+            value: 'xelatex',
+            labelKey: 'latexEditor.compiler.engineOptXelatex',
+            hintKey: 'latexEditor.compiler.engineHintXelatex'
           },
           {
-            key: 'margins.left',
-            label: '左边距（英寸）',
-            labelKey: 'export.options.marginLeft.label',
-            type: 'number',
-            default: 1,
-            min: 0,
-            max: 5,
-            step: 0.1,
-            description: 'PDF左边距，单位：英寸',
-            descriptionKey: 'export.options.marginLeft.description'
+            label: 'pdfLaTeX',
+            value: 'pdflatex',
+            labelKey: 'latexEditor.compiler.engineOptPdflatex',
+            hintKey: 'latexEditor.compiler.engineHintPdflatex'
           },
           {
-            key: 'margins.right',
-            label: '右边距（英寸）',
-            labelKey: 'export.options.marginRight.label',
-            type: 'number',
-            default: 1,
-            min: 0,
-            max: 5,
-            step: 0.1,
-            description: 'PDF右边距，单位：英寸',
-            descriptionKey: 'export.options.marginRight.description'
+            label: 'LuaLaTeX',
+            value: 'lualatex',
+            labelKey: 'latexEditor.compiler.engineOptLualatex',
+            hintKey: 'latexEditor.compiler.engineHintLualatex'
           }
         ]
+      },
+      {
+        key: 'interactionMode',
+        label: '交互模式',
+        labelKey: 'latexEditor.compiler.interaction',
+        type: 'select',
+        default: 'nonstopmode',
+        descriptionKey: 'latexEditor.compiler.interactionModeFieldHint',
+        options: [
+          {
+            label: 'nonstop',
+            value: 'nonstopmode',
+            labelKey: 'latexEditor.compiler.nonstop',
+            hintKey: 'latexEditor.compiler.interactionHintNonstop'
+          },
+          {
+            label: 'batch',
+            value: 'batchmode',
+            labelKey: 'latexEditor.compiler.batch',
+            hintKey: 'latexEditor.compiler.interactionHintBatch'
+          },
+          {
+            label: 'scroll',
+            value: 'scrollmode',
+            labelKey: 'latexEditor.compiler.scroll',
+            hintKey: 'latexEditor.compiler.interactionHintScroll'
+          },
+          {
+            label: 'errorstop',
+            value: 'errorstopmode',
+            labelKey: 'latexEditor.compiler.errorstop',
+            hintKey: 'latexEditor.compiler.interactionHintErrorstop'
+          }
+        ]
+      },
+      {
+        key: 'synctex',
+        label: '-synctex=1',
+        labelKey: 'latexEditor.compiler.flagSynctex',
+        type: 'boolean',
+        default: true,
+        descriptionKey: 'latexEditor.compiler.flagSynctexHint'
+      },
+      {
+        key: 'shellEscape',
+        label: '-shell-escape',
+        labelKey: 'latexEditor.compiler.flagShellEscape',
+        type: 'boolean',
+        default: false,
+        descriptionKey: 'latexEditor.compiler.flagShellEscapeHint'
+      },
+      {
+        key: 'draft',
+        label: '-draftmode',
+        labelKey: 'latexEditor.compiler.flagDraft',
+        type: 'boolean',
+        default: false,
+        descriptionKey: 'latexEditor.compiler.flagDraftHint'
       }
     ]
   }
 
-  validateOptions(options: Partial<PdfExportOptions>): { valid: boolean; error?: string } {
-    if (options.margins) {
-      const margins = options.margins
-      if (margins.top < 0 || margins.bottom < 0 || margins.left < 0 || margins.right < 0) {
-        return { valid: false, error: '边距不能为负数' }
-      }
-      if (margins.top > 5 || margins.bottom > 5 || margins.left > 5 || margins.right > 5) {
-        return { valid: false, error: '边距不能超过5英寸' }
-      }
-    }
+  validateOptions(_options: Partial<TexPdfCompileExportOptions>): { valid: boolean; error?: string } {
     return { valid: true }
   }
 
   async prepareExportData(
     data: { md: string; json: string; tex: string },
-    options: PdfExportOptions,
-    context?: any
+    _options: TexPdfCompileExportOptions,
+    _context?: any
   ): Promise<{
     md: string
     json: string
@@ -148,23 +136,22 @@ export class TexToPdfAdapter extends BaseExportAdapter<'tex', 'pdf', PdfExportOp
     html?: string
     imageUrls?: string[]
   }> {
-    // LaTeX导出PDF不需要HTML，只需要tex内容
     return {
       ...data
     }
   }
 
   async executeExport(
-    preparedData: {
+    _preparedData: {
       md: string
       json: string
       tex: string
       html?: string
       imageUrls?: string[]
     },
-    targetPath: string,
-    options: PdfExportOptions,
-    context?: any
+    _targetPath: string,
+    _options: TexPdfCompileExportOptions,
+    _context?: any
   ): Promise<void> {
     throw new Error('executeExport should be called in main process')
   }

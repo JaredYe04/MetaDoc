@@ -6,7 +6,7 @@ import HTMLtoDOCX from 'html-to-docx'
 import JSZip from 'jszip'
 import { PDFDocument } from 'pdf-lib'
 import type { DocumentFormat, ExportFormat } from '../../types'
-import type { LaTeXCompileResult } from '../../types/utils'
+import type { LaTeXCompileResult, LaTeXCompileExtras } from '../../types/utils'
 import { getExportTargets } from '../../common/export-rules'
 import { t, getLocale } from '../i18n'
 import { compileLatexToPDF } from '../utils'
@@ -3338,6 +3338,25 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
   }
 }
 
+const VALID_TEX_ENGINES = new Set(['tectonic', 'xelatex', 'pdflatex', 'lualatex'])
+const VALID_TEX_INTERACTION = new Set(['nonstopmode', 'batchmode', 'scrollmode', 'errorstopmode'])
+
+function exportPayloadTexCompileExtras(exportOptions: unknown): LaTeXCompileExtras | undefined {
+  if (!exportOptions || typeof exportOptions !== 'object') return undefined
+  const o = exportOptions as Record<string, unknown>
+  const extras: LaTeXCompileExtras = {}
+  if (typeof o.compilerEngine === 'string' && VALID_TEX_ENGINES.has(o.compilerEngine)) {
+    extras.compilerEngine = o.compilerEngine as LaTeXCompileExtras['compilerEngine']
+  }
+  if (typeof o.interactionMode === 'string' && VALID_TEX_INTERACTION.has(o.interactionMode)) {
+    extras.interactionMode = o.interactionMode as LaTeXCompileExtras['interactionMode']
+  }
+  if (typeof o.synctex === 'boolean') extras.synctex = o.synctex
+  if (typeof o.shellEscape === 'boolean') extras.shellEscape = o.shellEscape
+  if (typeof o.draft === 'boolean') extras.draft = o.draft
+  return Object.keys(extras).length > 0 ? extras : undefined
+}
+
 const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
   tex: async ({ payload, targetPath, mainWindow }) => {
     sendProgress(mainWindow, {
@@ -3450,12 +3469,15 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       params: { format: 'PDF' }
     })
 
+    const compileExtras = exportPayloadTexCompileExtras(payload.exportOptions)
+
     const compileResult: LaTeXCompileResult = await compileLatexToPDF(
       payload.sourcePath || targetPath,
       payload.data.tex,
       path.dirname(targetPath),
       mainWindow ?? undefined,
-      path.basename(targetPath)
+      path.basename(targetPath),
+      compileExtras
     )
 
     if (compileResult.status !== 'success' || !compileResult.pdfPath) {
@@ -3500,13 +3522,6 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
     })
 
     await writePdfMetadataToFile(targetPath, meta)
-
-    // 注意：LaTeX编译的PDF颜色模式需要在LaTeX文档中配置
-    // 这里我们只是记录选项，实际的颜色模式需要在LaTeX源码中使用相应的包（如xcolor）来设置
-    if (payload.exportOptions?.colorMode === 'grayscale') {
-      logger.info('颜色模式设置为灰度，但LaTeX编译的PDF需要在LaTeX源码中配置颜色模式')
-      // 如果需要，可以在这里添加PDF后处理逻辑（但pdf-lib不支持直接转换为灰度）
-    }
 
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',

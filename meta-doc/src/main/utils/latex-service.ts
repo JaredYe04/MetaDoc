@@ -6,12 +6,15 @@
 
 import path from 'path'
 import fs from 'fs'
+import { spawn } from 'child_process'
 import { app } from 'electron'
 import type {
   FilePath,
   LaTeXCompileResult,
   LaTeXCompileConfig,
-  LaTeXService
+  LaTeXService,
+  LatexCompilerEngine,
+  LaTeXCompileExtras
 } from '../../types/utils'
 import type { BrowserWindow } from 'electron'
 import { createMainLogger } from '../logger'
@@ -75,6 +78,130 @@ class LaTeXServiceImpl implements LaTeXService {
   }
 
   /**
+   * 使用系统安装的 xelatex / pdflatex / lualatex 编译（需在 PATH 中可用）
+   */
+  private compileWithCliEngine(
+    config: LaTeXCompileConfig,
+    engine: Exclude<LatexCompilerEngine, 'tectonic'>,
+    normalizedTexPath: string,
+    actualOutputDir: string,
+    outputFile: string,
+    mainWindow: BrowserWindow | undefined
+  ): Promise<LaTeXCompileResult> {
+    const interaction = config.interactionMode ?? 'nonstopmode'
+    const synctex = config.synctex !== false
+    const shellEscape = Boolean(config.shellEscape)
+    const draft = Boolean(config.draft)
+
+    const args: string[] = [`-interaction=${interaction}`, '-file-line-error']
+    if (synctex) args.push('-synctex=1')
+    if (shellEscape) args.push('-shell-escape')
+    if (draft) args.push('-draftmode')
+    args.push(`-output-directory=${actualOutputDir}`)
+    args.push(normalizedTexPath)
+
+    const texDir = path.dirname(normalizedTexPath)
+    const jobPdf = path.join(
+      actualOutputDir,
+      path.basename(normalizedTexPath, path.extname(normalizedTexPath)) + '.pdf'
+    )
+
+    return new Promise((resolve) => {
+      const child = spawn(engine, args, {
+        cwd: texDir,
+        env: process.env,
+        windowsHide: true,
+        shell: process.platform === 'win32'
+      })
+
+      const stdoutBuffer: string[] = []
+      const stderrBuffer: string[] = []
+
+      const forward = (data: Buffer, channel: 'stdout' | 'stderr') => {
+        const s = data.toString()
+        if (channel === 'stdout') stdoutBuffer.push(s)
+        else stderrBuffer.push(s)
+        if (mainWindow) {
+          mainWindow.webContents.send(channel === 'stdout' ? 'console-out' : 'console-err', {
+            key: 'latex',
+            content: s,
+            type: channel === 'stdout' ? 'out' : 'err'
+          })
+        }
+      }
+
+      child.stdout?.on('data', (d) => forward(d, 'stdout'))
+      child.stderr?.on('data', (d) => forward(d, 'stderr'))
+
+      child.on('error', (err) => {
+        const errText = (err?.message ?? String(err)) + '\n'
+        if (mainWindow) {
+          mainWindow.webContents.send('console-err', {
+            key: 'latex',
+            content: errText,
+            type: 'err'
+          })
+        }
+        resolve({
+          status: 'failed',
+          exitCode: -1,
+          stderr: stderrBuffer.join('') + errText.trimEnd(),
+          stdout: stdoutBuffer.join('')
+        })
+      })
+
+      child.on('close', (code) => {
+        const stdout = stdoutBuffer.join('')
+        const stderr = stderrBuffer.join('')
+        try {
+          if (code === 0 && fs.existsSync(jobPdf)) {
+            if (jobPdf !== outputFile) {
+              if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
+              try {
+                fs.renameSync(jobPdf, outputFile)
+              } catch (err: unknown) {
+                const errno =
+                  err && typeof err === 'object' && 'code' in err
+                    ? (err as NodeJS.ErrnoException).code
+                    : undefined
+                if (errno === 'EXDEV') {
+                  fs.copyFileSync(jobPdf, outputFile)
+                  fs.unlinkSync(jobPdf)
+                } else {
+                  throw err
+                }
+              }
+            }
+            resolve({
+              status: 'success',
+              pdfPath: outputFile,
+              stderr: stderr || undefined,
+              stdout: stdout || undefined
+            })
+            return
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          resolve({
+            status: 'failed',
+            exitCode: code ?? -1,
+            stderr: (stderr || '') + msg,
+            stdout
+          })
+          return
+        }
+
+        resolve({
+          status: 'failed',
+          exitCode: code ?? -1,
+          stderr: stderr || undefined,
+          stdout: stdout || undefined
+        })
+      })
+    })
+  }
+
+  /**
    * 编译 LaTeX 文件生成 PDF
    * @param config 编译配置
    * @returns 编译结果
@@ -117,6 +244,26 @@ class LaTeXServiceImpl implements LaTeXService {
       if (normalizedTexPath) {
         this.ensureDirectoryExists(path.dirname(normalizedTexPath))
         fs.writeFileSync(normalizedTexPath, tex, 'utf-8')
+      }
+
+      const engine: LatexCompilerEngine = config.compilerEngine ?? 'tectonic'
+      if (engine !== 'tectonic') {
+        if (!normalizedTexPath) {
+          return {
+            status: 'failed',
+            exitCode: -1,
+            stderr:
+              '使用 XeLaTeX / pdfLaTeX / LuaLaTeX 时需要已保存的 .tex 文件路径（请先保存文档）。'
+          }
+        }
+        return this.compileWithCliEngine(
+          config,
+          engine,
+          normalizedTexPath,
+          actualOutputDir,
+          outputFile,
+          mainWindow
+        )
       }
 
       // 准备输出流处理器
@@ -300,13 +447,15 @@ export const compileLatexToPDF = (
   tex: string,
   outputDir?: FilePath,
   mainWindow?: BrowserWindow,
-  customPdfFileName?: string
+  customPdfFileName?: string,
+  extras?: LaTeXCompileExtras
 ): Promise<LaTeXCompileResult> => {
   return latexService.compileLatexToPDF({
     texFilePath,
     tex,
     outputDir,
     mainWindow,
-    customPdfFileName
+    customPdfFileName,
+    ...extras
   })
 }

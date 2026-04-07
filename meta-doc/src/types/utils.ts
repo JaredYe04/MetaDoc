@@ -120,6 +120,12 @@ export interface LaTeXCompileResult {
   stdout?: string
 }
 
+/** LaTeX 编译引擎（与 LaTeXCompilerPanel / 导出选项一致） */
+export type LatexCompilerEngine = 'tectonic' | 'xelatex' | 'pdflatex' | 'lualatex'
+
+/** TeX 交互模式 */
+export type LatexInteractionMode = 'nonstopmode' | 'batchmode' | 'scrollmode' | 'errorstopmode'
+
 /** LaTeX 编译配置 */
 export interface LaTeXCompileConfig {
   texFilePath: FilePath
@@ -127,7 +133,19 @@ export interface LaTeXCompileConfig {
   outputDir?: FilePath
   mainWindow?: BrowserWindow
   customPdfFileName?: string
+  /** 未指定时主进程使用内置 Tectonic（node-latex-compiler） */
+  compilerEngine?: LatexCompilerEngine
+  interactionMode?: LatexInteractionMode
+  synctex?: boolean
+  shellEscape?: boolean
+  draft?: boolean
 }
+
+/** compileLatexToPDF 位置参数之外的编译偏好 */
+export type LaTeXCompileExtras = Pick<
+  LaTeXCompileConfig,
+  'compilerEngine' | 'interactionMode' | 'synctex' | 'shellEscape' | 'draft'
+>
 
 // ============ 文件转换相关类型 ============
 

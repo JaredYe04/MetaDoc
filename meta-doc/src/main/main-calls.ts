@@ -121,7 +121,7 @@ import { bindAgentCapabilitiesHandlers } from './utils/agent-capabilities-handle
 import ocrService from './utils/ocr-service'
 import { performSpellCheck, type SpellCheckParams } from './utils/spell-check-service'
 import { addWordToDictionary, addWordsToDictionary } from './utils/spell-check-dictionary'
-import type { LaTeXCompileResult } from '../types/utils'
+import type { LaTeXCompileResult, LaTeXCompileExtras } from '../types/utils'
 import type { DocumentFormat, ExportFormat } from '../types'
 import {
   performExportRequest,
@@ -401,6 +401,11 @@ interface CompileTexData {
   tex: string
   outputDir?: string
   customPdfFileName?: string
+  compilerEngine?: 'tectonic' | 'xelatex' | 'pdflatex' | 'lualatex'
+  interactionMode?: 'nonstopmode' | 'batchmode' | 'scrollmode' | 'errorstopmode'
+  synctex?: boolean
+  shellEscape?: boolean
+  draft?: boolean
 }
 
 interface QueryKnowledgeBaseParams {
@@ -3866,12 +3871,20 @@ function bindKnowledgeHandlers(): void {
     'compile-tex',
     async (event: IpcMainInvokeEvent, data: CompileTexData): Promise<LaTeXCompileResult> => {
       try {
+        const extras: LaTeXCompileExtras = {}
+        if (data.compilerEngine != null) extras.compilerEngine = data.compilerEngine
+        if (data.interactionMode != null) extras.interactionMode = data.interactionMode
+        if (data.synctex !== undefined) extras.synctex = data.synctex
+        if (data.shellEscape !== undefined) extras.shellEscape = data.shellEscape
+        if (data.draft !== undefined) extras.draft = data.draft
+
         const result = await compileLatexToPDF(
           data.texPath,
           data.tex,
           data.outputDir,
           mainWindow ?? undefined,
-          data.customPdfFileName
+          data.customPdfFileName,
+          Object.keys(extras).length > 0 ? extras : undefined
         )
 
         if (result.status === 'success') {

@@ -55,6 +55,7 @@
                                   v-for="option in getFieldOptions(subField)"
                                   :key="option.value"
                                   :value="option.value"
+                                  :title="selectOptionHint(option)"
                                 >
                                   {{ option.labelKey ? t(option.labelKey) : option.label }}
                                 </SelectItem>
@@ -179,6 +180,7 @@
                             v-for="option in getFieldOptions(field)"
                             :key="option.value"
                             :value="option.value"
+                            :title="selectOptionHint(option)"
                           >
                             {{ option.labelKey ? t(option.labelKey) : option.label }}
                           </SelectItem>
@@ -288,6 +290,7 @@
                             v-for="option in getFieldOptions(subField)"
                             :key="option.value"
                             :value="option.value"
+                            :title="selectOptionHint(option)"
                           >
                             {{ option.labelKey ? t(option.labelKey) : option.label }}
                           </SelectItem>
@@ -390,6 +393,7 @@
                         v-for="option in getFieldOptions(field)"
                         :key="option.value"
                         :value="option.value"
+                        :title="selectOptionHint(option)"
                       >
                         {{ option.labelKey ? t(option.labelKey) : option.label }}
                       </SelectItem>
@@ -458,6 +462,21 @@
             </FormField>
           </template>
         </form>
+
+        <div
+          v-if="texPdfCliPreview"
+          class="export-tex-pdf-cli-preview mx-4 mb-4 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs"
+        >
+          <div class="mb-1 font-medium text-foreground">
+            {{ t('latexEditor.compiler.cliPreviewLabel') }}
+          </div>
+          <pre
+            class="whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-muted-foreground"
+            >{{ texPdfCliPreview }}</pre>
+          <p class="mt-1.5 text-muted-foreground">
+            {{ t('latexEditor.compiler.cliPreviewCaption') }}
+          </p>
+        </div>
       </ScrollArea>
 
       <DialogFooter class="export-options-dialog-footer">
@@ -533,6 +552,8 @@ const props = defineProps<{
   adapter: ExportAdapter | null
   sourceFormat: DocumentFormat
   targetFormat: ExportFormat
+  /** 若设置则优先作为对话框标题（i18n key），例如工具栏「编译选项」 */
+  dialogTitleKey?: string
 }>()
 
 const emit = defineEmits<{
@@ -556,6 +577,7 @@ const optionsStorageFormats = computed(() => {
 })
 
 const dialogTitle = computed(() => {
+  if (props.dialogTitleKey) return t(props.dialogTitleKey)
   if (!props.adapter) return t('export.options.title')
   return props.adapter.nameKey ? t(props.adapter.nameKey) : props.adapter.name
 })
@@ -756,10 +778,32 @@ function getFieldProps(field: ExportOptionField): Record<string, any> {
   return props
 }
 
+/** 下拉项悬停提示（原生 title） */
+function selectOptionHint(option: { hintKey?: string }): string | undefined {
+  if (!option.hintKey) return undefined
+  return t(option.hintKey)
+}
+
+/** TeX→PDF 且为命令行引擎时，展示与主进程 spawn 参数一致的示意命令行 */
+const texPdfCliPreview = computed(() => {
+  if (props.adapter?.id !== 'tex-to-pdf') return ''
+  const d = formData.value
+  const eng = d?.compilerEngine
+  if (!eng || eng === 'tectonic') return ''
+  const inter = typeof d.interactionMode === 'string' ? d.interactionMode : 'nonstopmode'
+  const parts = [String(eng), `-interaction=${inter}`]
+  if (d.synctex !== false) parts.push('-synctex=1')
+  if (d.shellEscape) parts.push('-shell-escape')
+  if (d.draft) parts.push('-draftmode')
+  parts.push(`-output-directory=${t('latexEditor.compiler.cliOutputDirToken')}`)
+  parts.push(t('latexEditor.compiler.cliSourceTexToken'))
+  return parts.join(' ')
+})
+
 // 获取字段选项列表（统一处理 font、fontSize 和 select 类型）
 function getFieldOptions(
   field: ExportOptionField
-): Array<{ label: string; value: any; labelKey?: string }> {
+): Array<{ label: string; value: any; labelKey?: string; hintKey?: string }> {
   if (field.type === 'font') {
     return systemFonts.value.map((font) => ({
       label: font.displayName || font.name, // 使用本地化显示名称

@@ -167,6 +167,7 @@ const TOOL_ID_TO_RENDERER: Record<string, string> = {
   'data-analysis': 'DataAnalysisDisplay',
   'web-crawler': 'WebCrawlerDisplay',
   terminal: 'TerminalExecutionDisplay',
+  'latex-compile': 'LaTeXCompileDisplay',
   metadata: 'MetadataDisplay',
   color: 'ColorDisplay',
   rag: 'RAGToolDisplay',
@@ -201,7 +202,11 @@ function formatTimestamp(ts: string) {
 <style scoped>
 .tool-result-simple {
   width: 100%;
+  max-width: 100%;
+  margin: 0;
+  min-width: 0;
   box-sizing: border-box;
+  overflow: hidden;
   padding: 10px 12px;
   background: v-bind('themeState.currentTheme.background2nd');
   border-radius: 8px;
@@ -268,7 +273,13 @@ function formatTimestamp(ts: string) {
 }
 
 .tool-result-simple-body {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .tool-result-simple-body > * + * {

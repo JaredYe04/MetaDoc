@@ -123,7 +123,8 @@
         "failed": "编译失败",
         "outputPdfPath": "输出 PDF 路径",
         "stderr": "标准错误",
-        "stdout": "标准输出"
+        "stdout": "标准输出",
+        "clickToOpenPdf": "点击在新标签页打开完整 PDF"
       },
       "todoList": {
         "analyzing": "正在分析用户意图...",
@@ -1696,6 +1697,19 @@
     "cdFailed": "无法切换目录",
     "invalidArgument": "无效的参数"
   },
+  "selectionTranslate": {
+    "title": "翻译选中文本",
+    "targetLanguage": "目标语言",
+    "targetLanguagePlaceholder": "选择或输入目标语言",
+    "sourceLabel": "原文",
+    "translationLabel": "译文",
+    "translate": "翻译",
+    "translating": "翻译中…",
+    "replaceSelection": "替换选中文本",
+    "failed": "翻译失败",
+    "noSelection": "请先选中要翻译的文本",
+    "cannotLocateRange": "无法定位选区，请重试"
+  },
   "contextMenu": {
     "aiAnalysis": "AI全文分析",
     "closeAutoCompletion": "禁用AI补全",
@@ -1713,6 +1727,7 @@
     "selectAll": "全选",
     "addSelectionToAgent": "添加到 Agent 对话",
     "triggerAutoCompletion": "手动触发AI补全",
+    "translateSelection": "翻译选中内容",
     "undo": "撤销"
   },
   "data-analysis-tool": {
@@ -2822,6 +2837,7 @@
       "pleaseSaveFirst": "请先保存文件",
       "compileSuccess": "编译成功",
       "compileFailed": "编译失败，错误码：{code}",
+      "compileInvokeFailed": "编译请求失败：{message}",
       "analyzingError": "正在使用AI分析编译错误...",
       "errorAnalysisFailed": "AI错误分析失败",
       "textNotFound": "未找到文本：{text}",
@@ -2869,6 +2885,51 @@
       "showConsole": "显示终端",
       "pointerMode": "指针模式（文本选择）",
       "handMode": "手型模式（拖动）"
+    },
+    "compiler": {
+      "title": "LaTeX 编译器",
+      "compiling": "编译中…",
+      "compile": "编译",
+      "engine": "编译引擎",
+      "interaction": "交互模式",
+      "nonstop": "非停止模式",
+      "batch": "批处理模式",
+      "scroll": "滚动模式",
+      "errorstop": "错误停止模式",
+      "flags": "编译选项",
+      "flagSynctex": "-synctex=1",
+      "flagShellEscape": "-shell-escape",
+      "flagDraft": "-draftmode",
+      "outputDir": "输出目录",
+      "defaultOutput": "默认（与源文件同目录）",
+      "duration": "耗时",
+      "output": "编译输出",
+      "noOutput": "暂无编译输出…",
+      "success": "编译成功",
+      "pdfGenerated": "PDF 已生成",
+      "optionsDialogTitle": "编译选项",
+      "engineFieldHint": "Tectonic 为应用内置。选择 XeLaTeX / pdfLaTeX / LuaLaTeX 需在系统 PATH 中安装对应发行版。",
+      "engineOptTectonic": "Tectonic（内置）",
+      "engineOptXelatex": "XeLaTeX",
+      "engineOptPdflatex": "pdfLaTeX",
+      "engineOptLualatex": "LuaLaTeX",
+      "flagSynctexHint": "生成 SyncTeX 便于 PDF 与源码对应（命令行引擎有效；Tectonic 忽略此项）。",
+      "flagShellEscapeHint": "允许 \\write18，仅用于可信文档。",
+      "flagDraftHint": "草稿模式：编译更快，可能跳过图表（仅命令行引擎）。",
+      "tectonicCliHint": "内置引擎，输出与 .tex 同目录",
+      "engineHintTectonic": "应用内置 Tectonic，无需系统安装 TeX。",
+      "engineHintXelatex": "需已安装 TeX 发行版，且可在终端执行 xelatex（已加入 PATH）。",
+      "engineHintPdflatex": "需已安装 TeX 发行版，且可在终端执行 pdflatex（已加入 PATH）。",
+      "engineHintLualatex": "需已安装 TeX 发行版，且可在终端执行 lualatex（已加入 PATH）。",
+      "interactionModeFieldHint": "对应 LaTeX 的 -interaction=（命令行引擎）。下拉各项悬停可看说明；无人值守编译建议「非停止模式」。",
+      "interactionHintNonstop": "nonstopmode：遇错写入日志并尽量继续，不向终端索取输入。适合编辑器与自动化。",
+      "interactionHintBatch": "batchmode：抑制终端输出、遇致命错误即停；适合日志最少的批处理。",
+      "interactionHintScroll": "scrollmode：行为接近非停止，错误以终端滚动方式呈现。",
+      "interactionHintErrorstop": "errorstopmode：遇错立即停止；传统终端可交互排错，在图形界面中易表现为无响应。",
+      "cliPreviewLabel": "命令行等价示意",
+      "cliPreviewCaption": "占位符表示输出目录与源文件路径；实际以保存位置与导出目标为准。命令行引擎须在 PATH 中可执行。",
+      "cliOutputDirToken": "<输出目录>",
+      "cliSourceTexToken": "<源文件.tex>"
     }
   },
   "logoTab": {

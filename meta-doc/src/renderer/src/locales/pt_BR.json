@@ -443,7 +443,8 @@
         "outputPdfPath": "Caminho do PDF de saída",
         "stderr": "Erro padrão",
         "stdout": "Saída padrão",
-        "success": "Compilação bem-sucedida"
+        "success": "Compilação bem-sucedida",
+        "clickToOpenPdf": "Clique para abrir o PDF completo em uma nova aba"
       },
       "timestamp": {
         "current": "Hora atual",
@@ -1526,6 +1527,19 @@
     "cdFailed": "Não foi possível alterar o diretório",
     "invalidArgument": "Argumento inválido"
   },
+  "selectionTranslate": {
+    "title": "Traduzir seleção",
+    "targetLanguage": "Idioma de destino",
+    "targetLanguagePlaceholder": "Escolha ou digite o idioma de destino",
+    "sourceLabel": "Original",
+    "translationLabel": "Tradução",
+    "translate": "Traduzir",
+    "translating": "Traduzindo…",
+    "replaceSelection": "Substituir seleção",
+    "failed": "Falha na tradução",
+    "noSelection": "Selecione primeiro o texto a traduzir",
+    "cannotLocateRange": "Não foi possível localizar a seleção. Tente novamente."
+  },
   "contextMenu": {
     "aiAnalysis": "Análise Completa por IA",
     "closeAutoCompletion": "Desativar Conclusão por IA",
@@ -1541,6 +1555,7 @@
     "sectionOptimizer": "Otimizar Parágrafo Atual",
     "selectAll": "Selecionar Tudo",
     "triggerAutoCompletion": "Acionar Conclusão por IA Manualmente",
+    "translateSelection": "Traduzir seleção",
     "undo": "Desfazer"
   },
   "data-analysis-tool": {
@@ -2601,6 +2616,7 @@
       "pleaseSaveFirst": "Por favor, salve o arquivo primeiro",
       "compileSuccess": "Compilação bem-sucedida",
       "compileFailed": "Falha na compilação, código de erro: {code}",
+      "compileInvokeFailed": "Falha na solicitação de compilação: {message}",
       "analyzingError": "Analisando erro de compilação com IA...",
       "errorAnalysisFailed": "Falha na análise de erro pela IA",
       "textNotFound": "Texto não encontrado: {text}",
@@ -2648,6 +2664,51 @@
       "showConsole": "Mostrar terminal",
       "pointerMode": "Modo ponteiro (seleção de texto)",
       "handMode": "Modo mão (arrastar)"
+    },
+    "compiler": {
+      "title": "Compilador LaTeX",
+      "compiling": "Compilando…",
+      "compile": "Compilar",
+      "engine": "Motor",
+      "interaction": "Modo de interação",
+      "nonstop": "Modo sem parar",
+      "batch": "Modo em lote",
+      "scroll": "Modo de rolagem",
+      "errorstop": "Modo parar em erro",
+      "flags": "Opções",
+      "flagSynctex": "-synctex=1",
+      "flagShellEscape": "-shell-escape",
+      "flagDraft": "-draftmode",
+      "outputDir": "Diretório de saída",
+      "defaultOutput": "Padrão (mesma pasta da origem)",
+      "duration": "Duração",
+      "output": "Saída da compilação",
+      "noOutput": "Ainda não há saída…",
+      "success": "Compilação bem-sucedida",
+      "pdfGenerated": "O PDF foi gerado",
+      "optionsDialogTitle": "Opções de compilação",
+      "engineFieldHint": "Tectonic vem no app. XeLaTeX / pdfLaTeX / LuaLaTeX exigem uma distribuição TeX no PATH.",
+      "engineOptTectonic": "Tectonic (integrado)",
+      "engineOptXelatex": "XeLaTeX",
+      "engineOptPdflatex": "pdfLaTeX",
+      "engineOptLualatex": "LuaLaTeX",
+      "flagSynctexHint": "Gerar SyncTeX (apenas motores CLI; Tectonic ignora).",
+      "flagShellEscapeHint": "Permitir \\write18 (apenas documentos confiáveis).",
+      "flagDraftHint": "Modo rascunho: mais rápido, pode omitir figuras (só CLI).",
+      "tectonicCliHint": "motor integrado; saída ao lado do .tex",
+      "engineHintTectonic": "Tectonic incluído no app; não exige TeX no sistema.",
+      "engineHintXelatex": "Exige distribuição TeX; xelatex deve estar no PATH.",
+      "engineHintPdflatex": "Exige distribuição TeX; pdflatex deve estar no PATH.",
+      "engineHintLualatex": "Exige distribuição TeX; lualatex deve estar no PATH.",
+      "interactionModeFieldHint": "Equivale a `-interaction=` nos motores CLI. Passe o cursor para ver detalhes; sem parar para builds desatendidos.",
+      "interactionHintNonstop": "nonstopmode: erros no log e continua sem prompt. Bom para editor e automação.",
+      "interactionHintBatch": "batchmode: pouca saída no terminal; para em erros fatais. Comum em lotes.",
+      "interactionHintScroll": "scrollmode: parecido com sem parar; rolagem clássica de erros.",
+      "interactionHintErrorstop": "errorstopmode: para no primeiro erro; interativo no terminal real, em GUI pode parecer travado.",
+      "cliPreviewLabel": "Linha de comando equivalente",
+      "cliPreviewCaption": "Marcadores para pasta de saída e arquivo fonte; caminhos reais seguem salvar/exportar. Motores CLI no PATH.",
+      "cliOutputDirToken": "<dir-saída>",
+      "cliSourceTexToken": "<fonte.tex>"
     }
   },
   "logoTab": {

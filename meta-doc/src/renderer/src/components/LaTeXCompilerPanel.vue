@@ -31,9 +31,22 @@
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="xelatex">XeLaTeX</SelectItem>
-            <SelectItem value="pdflatex">pdfLaTeX</SelectItem>
-            <SelectItem value="lualatex">LuaLaTeX</SelectItem>
+            <SelectItem
+              value="tectonic"
+              :title="$t('latexEditor.compiler.engineHintTectonic')"
+              >{{ $t('latexEditor.compiler.engineOptTectonic') || 'Tectonic（内置）' }}</SelectItem>
+            <SelectItem
+              value="xelatex"
+              :title="$t('latexEditor.compiler.engineHintXelatex')"
+              >{{ $t('latexEditor.compiler.engineOptXelatex') || 'XeLaTeX' }}</SelectItem>
+            <SelectItem
+              value="pdflatex"
+              :title="$t('latexEditor.compiler.engineHintPdflatex')"
+              >{{ $t('latexEditor.compiler.engineOptPdflatex') || 'pdfLaTeX' }}</SelectItem>
+            <SelectItem
+              value="lualatex"
+              :title="$t('latexEditor.compiler.engineHintLualatex')"
+              >{{ $t('latexEditor.compiler.engineOptLualatex') || 'LuaLaTeX' }}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -47,18 +60,22 @@
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="nonstopmode">{{
-              $t('latexEditor.compiler.nonstop') || '非停止模式'
-            }}</SelectItem>
-            <SelectItem value="batchmode">{{
-              $t('latexEditor.compiler.batch') || '批处理模式'
-            }}</SelectItem>
-            <SelectItem value="scrollmode">{{
-              $t('latexEditor.compiler.scroll') || '滚动模式'
-            }}</SelectItem>
-            <SelectItem value="errorstopmode">{{
-              $t('latexEditor.compiler.errorstop') || '错误停止模式'
-            }}</SelectItem>
+            <SelectItem
+              value="nonstopmode"
+              :title="$t('latexEditor.compiler.interactionHintNonstop')"
+              >{{ $t('latexEditor.compiler.nonstop') || '非停止模式' }}</SelectItem>
+            <SelectItem
+              value="batchmode"
+              :title="$t('latexEditor.compiler.interactionHintBatch')"
+              >{{ $t('latexEditor.compiler.batch') || '批处理模式' }}</SelectItem>
+            <SelectItem
+              value="scrollmode"
+              :title="$t('latexEditor.compiler.interactionHintScroll')"
+              >{{ $t('latexEditor.compiler.scroll') || '滚动模式' }}</SelectItem>
+            <SelectItem
+              value="errorstopmode"
+              :title="$t('latexEditor.compiler.interactionHintErrorstop')"
+              >{{ $t('latexEditor.compiler.errorstop') || '错误停止模式' }}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -92,21 +109,15 @@
           </label>
         </div>
       </div>
+    </div>
 
-      <div class="setting-row">
-        <label class="setting-label">{{
-          $t('latexEditor.compiler.outputDir') || '输出目录'
-        }}</label>
-        <div class="output-dir-input">
-          <input
-            v-model="outputDir"
-            type="text"
-            :placeholder="$t('latexEditor.compiler.defaultOutput') || '默认（与源文件同目录）'"
-            :disabled="isCompiling || mode === 'demo'"
-            class="dir-input"
-          />
-        </div>
-      </div>
+    <div
+      v-if="compilerEngine !== 'tectonic'"
+      class="cli-command-preview"
+      :title="$t('latexEditor.compiler.cliPreviewCaption')"
+    >
+      <div class="cli-command-label">{{ $t('latexEditor.compiler.cliPreviewLabel') }}</div>
+      <pre class="cli-command-text">{{ getCommandLine }}</pre>
     </div>
 
     <!-- Progress Bar -->
@@ -190,9 +201,8 @@ const props = withDefaults(
 )
 
 // Compiler settings
-const compilerEngine = ref('xelatex')
+const compilerEngine = ref('tectonic')
 const interactionMode = ref('nonstopmode')
-const outputDir = ref('')
 const flags = ref({
   synctex: true,
   shellEscape: false,
@@ -223,7 +233,7 @@ const consoleRef = ref<HTMLDivElement | null>(null)
 // Mock compilation log messages
 const mockLogMessages = [
   { prefix: '[INFO]', content: 'Starting compilation...', type: 'info' as const },
-  { prefix: '[INFO]', content: 'Engine: XeLaTeX', type: 'info' as const },
+  { prefix: '[INFO]', content: 'Engine: Tectonic / XeLaTeX / … (see toolbar options)', type: 'info' as const },
   { prefix: '[INFO]', content: 'Document class: article', type: 'info' as const },
   { prefix: '[INFO]', content: 'Loading packages...', type: 'info' as const },
   { prefix: '[INFO]', content: 'Package: fontspec 2024/01/01', type: 'info' as const },
@@ -303,13 +313,16 @@ if (props.mode === 'demo') {
 }
 
 const getCommandLine = computed(() => {
+  if (compilerEngine.value === 'tectonic') {
+    return `tectonic "document.tex"  # ${t('latexEditor.compiler.tectonicCliHint')}`
+  }
   const parts = [compilerEngine.value]
   parts.push(`-interaction=${interactionMode.value}`)
   if (flags.value.synctex) parts.push('-synctex=1')
   if (flags.value.shellEscape) parts.push('-shell-escape')
   if (flags.value.draft) parts.push('-draftmode')
-  if (outputDir.value) parts.push(`-output-directory=${outputDir.value}`)
-  parts.push('document.tex')
+  parts.push(`-output-directory=${t('latexEditor.compiler.cliOutputDirToken')}`)
+  parts.push(t('latexEditor.compiler.cliSourceTexToken'))
   return parts.join(' ')
 })
 
@@ -380,6 +393,31 @@ defineExpose({
   color: var(--compiler-text-secondary, v-bind('themeState.currentTheme.textColor2'));
 }
 
+.cli-command-preview {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--compiler-border, v-bind('themeState.currentTheme.borderColor'));
+  background: var(--compiler-bg-muted, v-bind('themeState.currentTheme.background2nd'));
+}
+
+.cli-command-label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--compiler-text-secondary, v-bind('themeState.currentTheme.textColor2'));
+}
+
+.cli-command-text {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--compiler-text, v-bind('themeState.currentTheme.textColor'));
+}
+
 .flags-container {
   display: flex;
   gap: 16px;
@@ -401,29 +439,6 @@ defineExpose({
 
 .flag-item input[type='checkbox']:disabled + span {
   opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.output-dir-input {
-  flex: 1;
-  max-width: 300px;
-}
-
-.dir-input {
-  width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--compiler-border, v-bind('themeState.currentTheme.borderColor'));
-  border-radius: 4px;
-  font-size: 13px;
-  background-color: var(
-    --compiler-input-bg,
-    v-bind('themeState.currentTheme.inputBackgroundColor')
-  );
-  color: var(--compiler-text, v-bind('themeState.currentTheme.textColor'));
-}
-
-.dir-input:disabled {
-  opacity: 0.6;
   cursor: not-allowed;
 }
 

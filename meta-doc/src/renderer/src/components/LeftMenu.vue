@@ -195,7 +195,10 @@
           {{ $t('leftMenu.chatWithAI') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="BookOpen" @click="emitMenu('fomula-recognition')">
+        <UISubMenuItem
+          :icon-image="(themeState.currentTheme as any).MathIcon"
+          @click="emitMenu('fomula-recognition')"
+        >
           {{ $t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>
 
@@ -636,7 +639,10 @@
           {{ $t('leftMenu.chatWithAI') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="BookOpen" @click="emitMenu('fomula-recognition')">
+        <UISubMenuItem
+          :icon-image="(themeState.currentTheme as any).MathIcon"
+          @click="emitMenu('fomula-recognition')"
+        >
           {{ $t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>
 

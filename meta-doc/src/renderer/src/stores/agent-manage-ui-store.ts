@@ -55,6 +55,10 @@ function ensureActiveSessionAfterListChange(
   }
 }
 
+function createImportedSessionId(): string {
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
 export const useAgentManageUiStore = defineStore('agent-manage-ui', () => {
   const showManageDialog = ref(false)
   const manageDialogType = ref<AgentManageDialogType>(null)
@@ -91,8 +95,11 @@ export const useAgentManageUiStore = defineStore('agent-manage-ui', () => {
           overwriteDependencies: false
         })
 
+        const existingIds = new Set(agentStore.sessions.map((s) => s.id))
+        const importedSessionId = existingIds.has(session.id) ? createImportedSessionId() : session.id
+
         const legacySession: AgentSession = {
-          id: session.id,
+          id: importedSessionId,
           title: session.title,
           description: session.description,
           createdAt: new Date(session.createdAt).toISOString(),
@@ -109,7 +116,11 @@ export const useAgentManageUiStore = defineStore('agent-manage-ui', () => {
 
         agentStore.setSessions([legacySession, ...agentStore.sessions])
         ensureActiveSessionAfterListChange(agentStore)
-        agentStore.setActiveSessionId(session.id)
+        agentStore.setActiveSessionId(importedSessionId)
+        agentStore.setOpenTabIds([
+          importedSessionId,
+          ...agentStore.openTabIds.filter((id) => id !== importedSessionId)
+        ])
         agentStore.touchSession()
         notifySuccess(i18n.global.t('agent.sessions.importSuccess'))
       } catch (error) {

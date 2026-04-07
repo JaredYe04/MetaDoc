@@ -54,6 +54,7 @@ import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { convertLatexToMarkdown } from '../utils/latex-utils'
 import { svgContentToDataUrl } from '../utils/file-display-utils'
+import messageBridge from '../bridge/message-bridge'
 import {
   HomePdfAdapter,
   HomeRenderableAdapter,
@@ -108,12 +109,159 @@ const plainTextContent = computed(
   () => (activeDocument.value?.format === 'txt' ? (activeDocument.value?.markdown ?? '') : '')
 )
 
-const previewMarkdown = computed(() => {
-  const doc = activeDocument.value
-  if (!doc) return ''
-  if (doc.format === 'tex') return convertLatexToMarkdown(doc.tex ?? '')
-  return doc.markdown ?? ''
-})
+const previewMarkdown = ref('')
+
+const MAX_LATEX_INPUT_EXPAND_DEPTH = 12
+
+function normalizeFsPath(path: string): string {
+  let decoded = path || ''
+  try {
+    decoded = decodeURIComponent(decoded)
+  } catch {
+    // 非法 URI 编码时保留原值，避免影响预览流程
+  }
+  const withoutFilePrefix = decoded.replace(/^file:\/\/\//, '')
+  return withoutFilePrefix.replace(/\\/g, '/')
+}
+
+function isAbsolutePath(path: string): boolean {
+  return /^([A-Za-z]:\/|\/)/.test(path)
+}
+
+function dirname(path: string): string {
+  const normalized = normalizeFsPath(path)
+  const index = normalized.lastIndexOf('/')
+  return index >= 0 ? normalized.slice(0, index) : ''
+}
+
+function joinPath(baseDir: string, target: string): string {
+  const normalizedBase = normalizeFsPath(baseDir).replace(/\/+$/, '')
+  const normalizedTarget = normalizeFsPath(target).replace(/^\/+/, '')
+  if (!normalizedBase) return normalizedTarget
+  return `${normalizedBase}/${normalizedTarget}`
+}
+
+function resolveRelativePath(baseDir: string, targetPath: string): string {
+  const direct = isAbsolutePath(targetPath) ? normalizeFsPath(targetPath) : joinPath(baseDir, targetPath)
+  const segments = direct.split('/')
+  const stack: string[] = []
+  for (const segment of segments) {
+    if (!segment || segment === '.') continue
+    if (segment === '..') {
+      if (stack.length > 1 || (stack.length > 0 && !/^[A-Za-z]:$/.test(stack[0]))) {
+        stack.pop()
+      }
+      continue
+    }
+    stack.push(segment)
+  }
+  return stack.join('/')
+}
+
+async function readFileContent(filePath: string): Promise<string | null> {
+  if (!messageBridge.getIpc()?.invoke) return null
+  try {
+    const content = await messageBridge.invoke('read-file-content', filePath)
+    return typeof content === 'string' ? content : null
+  } catch {
+    return null
+  }
+}
+
+async function readTexWithFallbackExtensions(pathWithoutExt: string): Promise<{ path: string; content: string } | null> {
+  const candidates = pathWithoutExt.toLowerCase().endsWith('.tex')
+    ? [pathWithoutExt]
+    : [pathWithoutExt, `${pathWithoutExt}.tex`]
+  for (const candidate of candidates) {
+    const content = await readFileContent(candidate)
+    if (typeof content === 'string') {
+      return { path: candidate, content }
+    }
+  }
+  return null
+}
+
+async function expandLatexInputs(
+  latex: string,
+  sourceFilePath: string,
+  visited: Set<string>,
+  depth = 0
+): Promise<string> {
+  if (!latex || !sourceFilePath) return latex
+  if (depth >= MAX_LATEX_INPUT_EXPAND_DEPTH) return latex
+
+  const inputRegex = /\\(input|include)\s*\{([^}\r\n]+)\}/g
+  let output = ''
+  let lastIndex = 0
+  const baseDir = dirname(sourceFilePath)
+
+  for (const match of latex.matchAll(inputRegex)) {
+    const fullMatch = match[0]
+    const targetRaw = (match[2] || '').trim()
+    const start = match.index ?? -1
+    if (start < 0) continue
+
+    output += latex.slice(lastIndex, start)
+    lastIndex = start + fullMatch.length
+
+    if (!targetRaw) {
+      output += fullMatch
+      continue
+    }
+
+    const resolvedTarget = resolveRelativePath(baseDir, targetRaw)
+    const fileData = await readTexWithFallbackExtensions(resolvedTarget)
+    if (!fileData) {
+      output += fullMatch
+      continue
+    }
+
+    const normalizedResolvedPath = normalizeFsPath(fileData.path)
+    if (visited.has(normalizedResolvedPath)) {
+      output += fullMatch
+      continue
+    }
+
+    visited.add(normalizedResolvedPath)
+    const expanded = await expandLatexInputs(fileData.content, normalizedResolvedPath, visited, depth + 1)
+    output += expanded
+  }
+
+  output += latex.slice(lastIndex)
+  return output
+}
+
+let previewRenderToken = 0
+
+watch(
+  [activeDocument, currentFilePath],
+  async () => {
+    const token = ++previewRenderToken
+    const doc = activeDocument.value
+    if (!doc) {
+      previewMarkdown.value = ''
+      return
+    }
+
+    if (doc.format !== 'tex') {
+      previewMarkdown.value = doc.markdown ?? ''
+      return
+    }
+
+    const rawTex = doc.tex ?? ''
+    const texPath = currentFilePath.value
+    let texForPreview = rawTex
+
+    if (rawTex && texPath && messageBridge.getIpc()?.invoke) {
+      const visited = new Set<string>([normalizeFsPath(texPath)])
+      texForPreview = await expandLatexInputs(rawTex, texPath, visited)
+    }
+
+    if (token !== previewRenderToken) return
+    previewMarkdown.value = convertLatexToMarkdown(texForPreview)
+  },
+  { immediate: true }
+)
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd || themeState.currentTheme.background,

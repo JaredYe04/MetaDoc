@@ -814,6 +814,22 @@ const addWorkspaceFolder = async () => {
   }
 }
 
+const addWorkspaceFolderFromPath = async (folderPath: string) => {
+  if (!folderPath) return
+
+  const existed = workspaceFolders.value.some(
+    (folder) => normalizePathForCompare(folder) === normalizePathForCompare(folderPath)
+  )
+  if (existed) return
+
+  await ensureMetadocInWorkspaceRoot(folderPath)
+  await createWorkspaceRootNode(folderPath)
+  workspaceFolders.value.push(folderPath)
+  startDirectoryWatcher(folderPath)
+  saveWorkspaceFolders()
+  emitFocusWorkspaceSidebar()
+}
+
 // 移除工作文件夹
 const removeWorkspaceFolder = async (
   folderPath: string,
@@ -1472,6 +1488,28 @@ onMounted(async () => {
   // 目录变化由 ViewMenuContainer 收 IPC 后 eventBus 转发，此处只订阅 eventBus（否则 v-if 未挂载时收不到）
   eventBus.on('directory-changed', handleDirectoryChange)
 })
+
+watch(
+  () =>
+    workspace.tabs
+      .filter((tab) => tab.kind === 'file' && !!tab.path)
+      .map((tab) => tab.path as string),
+  async (filePaths) => {
+    if (workspaceFolders.value.length > 0) return
+    if (!filePaths.length) return
+
+    const firstPath = filePaths[0]
+    const folderPath = dirname(firstPath)
+    if (!folderPath) return
+
+    try {
+      await addWorkspaceFolderFromPath(folderPath)
+    } catch (err) {
+      logger.warn('根据首个打开文档自动添加工作区失败', { folderPath, error: err })
+    }
+  },
+  { immediate: true }
+)
 
 onBeforeUnmount(() => {
   for (const folderPath of workspaceFolders.value) {

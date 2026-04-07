@@ -92,6 +92,9 @@ app.use(router)
   } catch (e) {
     console.error('Apply theme before mount failed:', e)
   }
+  // 必须在 mount 之前注册：LaTeX 编辑器等在挂载时通过 computed 读取 exportAdapterRegistry；
+  // 若推迟到 requestIdleCallback，首次求值得到 undefined 且注册表非响应式，编译选项对话框会永远为空。
+  registerAllAdapters()
   app.use(i18n).mount('#app')
   __startupMark('after_mount')
 
@@ -100,7 +103,6 @@ app.use(router)
     initInputContextMenuHandler()
     initSelectionContextMenuHandler()
     initServiceStatusWatcher()
-    registerAllAdapters()
     initializeAgentTools()
     initializeWorkspaceBroadcastListeners()
     registerUnitTests()

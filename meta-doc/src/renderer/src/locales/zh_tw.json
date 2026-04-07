@@ -453,7 +453,8 @@
         "outputPdfPath": "輸出 PDF 路徑",
         "stderr": "標準錯誤",
         "stdout": "標準輸出",
-        "success": "編譯成功"
+        "success": "編譯成功",
+        "clickToOpenPdf": "點擊在新分頁開啟完整 PDF"
       }
     },
     "error": {
@@ -1534,6 +1535,19 @@
     "cdFailed": "無法切換目錄",
     "invalidArgument": "無效的參數"
   },
+  "selectionTranslate": {
+    "title": "翻譯選取文字",
+    "targetLanguage": "目標語言",
+    "targetLanguagePlaceholder": "選擇或輸入目標語言",
+    "sourceLabel": "原文",
+    "translationLabel": "譯文",
+    "translate": "翻譯",
+    "translating": "翻譯中…",
+    "replaceSelection": "取代選取文字",
+    "failed": "翻譯失敗",
+    "noSelection": "請先選取要翻譯的文字",
+    "cannotLocateRange": "無法定位選取範圍，請重試"
+  },
   "contextMenu": {
     "aiAnalysis": "AI全文分析",
     "closeAutoCompletion": "停用AI補全",
@@ -1549,6 +1563,7 @@
     "sectionOptimizer": "最佳化目前段落",
     "selectAll": "全選",
     "triggerAutoCompletion": "手動觸發AI補全",
+    "translateSelection": "翻譯選取內容",
     "undo": "復原"
   },
   "data-analysis-tool": {
@@ -2646,6 +2661,7 @@
       "pleaseSaveFirst": "請先儲存檔案",
       "compileSuccess": "編譯成功",
       "compileFailed": "編譯失敗，錯誤碼：{code}",
+      "compileInvokeFailed": "編譯請求失敗：{message}",
       "analyzingError": "正在使用AI分析編譯錯誤...",
       "errorAnalysisFailed": "AI錯誤分析失敗",
       "textNotFound": "未找到文字：{text}",
@@ -2693,6 +2709,51 @@
       "showConsole": "顯示終端機",
       "pointerMode": "指標模式（文字選取）",
       "handMode": "手型模式（拖曳）"
+    },
+    "compiler": {
+      "title": "LaTeX 編譯器",
+      "compiling": "編譯中…",
+      "compile": "編譯",
+      "engine": "編譯引擎",
+      "interaction": "互動模式",
+      "nonstop": "非停止模式",
+      "batch": "批次模式",
+      "scroll": "捲動模式",
+      "errorstop": "錯誤停止模式",
+      "flags": "編譯選項",
+      "flagSynctex": "-synctex=1",
+      "flagShellEscape": "-shell-escape",
+      "flagDraft": "-draftmode",
+      "outputDir": "輸出目錄",
+      "defaultOutput": "預設（與來源檔同目錄）",
+      "duration": "耗時",
+      "output": "編譯輸出",
+      "noOutput": "尚無編譯輸出…",
+      "success": "編譯成功",
+      "pdfGenerated": "PDF 已產生",
+      "optionsDialogTitle": "編譯選項",
+      "engineFieldHint": "Tectonic 為應用程式內建。選擇 XeLaTeX / pdfLaTeX / LuaLaTeX 需在系統 PATH 安裝對應發行版。",
+      "engineOptTectonic": "Tectonic（內建）",
+      "engineOptXelatex": "XeLaTeX",
+      "engineOptPdflatex": "pdfLaTeX",
+      "engineOptLualatex": "LuaLaTeX",
+      "flagSynctexHint": "產生 SyncTeX 以利 PDF 與原始碼對應（命令列引擎有效；Tectonic 忽略）。",
+      "flagShellEscapeHint": "允許 \\write18，僅用於可信文件。",
+      "flagDraftHint": "草稿模式：較快，可能略過圖表（僅命令列引擎）。",
+      "tectonicCliHint": "內建引擎，輸出與 .tex 同目錄",
+      "engineHintTectonic": "應用程式內建 Tectonic，無需另行安裝 TeX。",
+      "engineHintXelatex": "需已安裝 TeX 發行版，且終端機可執行 xelatex（已加入 PATH）。",
+      "engineHintPdflatex": "需已安裝 TeX 發行版，且終端機可執行 pdflatex（已加入 PATH）。",
+      "engineHintLualatex": "需已安裝 TeX 發行版，且終端機可執行 lualatex（已加入 PATH）。",
+      "interactionModeFieldHint": "對應 LaTeX 的 -interaction=（命令列引擎）。下拉各項懸停可看說明；無人值守建議「非停止模式」。",
+      "interactionHintNonstop": "nonstopmode：遇錯寫入日誌並盡量繼續，不向終端機索取輸入。適合編輯器與自動化。",
+      "interactionHintBatch": "batchmode：抑制終端機輸出、遇致命錯誤即停；適合日誌最少的批次處理。",
+      "interactionHintScroll": "scrollmode：行為接近非停止，錯誤以終端機捲動方式呈現。",
+      "interactionHintErrorstop": "errorstopmode：遇錯立即停止；傳統終端可互動除錯，在圖形介面中可能像卡住。",
+      "cliPreviewLabel": "命令列等價示意",
+      "cliPreviewCaption": "占位符表示輸出目錄與來源路徑；實際以儲存位置與匯出目標為準。命令列引擎須在 PATH 中可執行。",
+      "cliOutputDirToken": "<輸出目錄>",
+      "cliSourceTexToken": "<來源.tex>"
     }
   },
   "logoTab": {

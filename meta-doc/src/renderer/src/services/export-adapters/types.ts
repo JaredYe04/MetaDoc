@@ -113,6 +113,17 @@ export interface MarkdownExportOptions extends BaseExportOptions {
 }
 
 /**
+ * TeX → PDF：与 LaTeXCompilerPanel / compile-tex 一致（引擎、交互模式、标志位）
+ */
+export interface TexPdfCompileExportOptions extends BaseExportOptions {
+  compilerEngine: 'tectonic' | 'xelatex' | 'pdflatex' | 'lualatex'
+  interactionMode: 'nonstopmode' | 'batchmode' | 'scrollmode' | 'errorstopmode'
+  synctex: boolean
+  shellEscape: boolean
+  draft: boolean
+}
+
+/**
  * LaTeX导出选项
  */
 export interface LatexExportOptions extends BaseExportOptions {
@@ -145,6 +156,7 @@ export type ExportOptions =
   | HtmlExportOptions
   | MarkdownExportOptions
   | LatexExportOptions
+  | TexPdfCompileExportOptions
   | BaseExportOptions
 
 /**
@@ -159,8 +171,8 @@ export interface ExportOptionField {
   default: any
   description?: string
   descriptionKey?: string // i18n key
-  // 对于select类型
-  options?: Array<{ label: string; value: any; labelKey?: string }>
+  // 对于select类型（hintKey：下拉项悬停说明，对应 latexEditor.compiler.* 等 i18n）
+  options?: Array<{ label: string; value: any; labelKey?: string; hintKey?: string }>
   // 对于number类型
   min?: number
   max?: number

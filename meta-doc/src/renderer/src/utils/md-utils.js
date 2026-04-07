@@ -1993,70 +1993,39 @@ export async function ConvertMarkdownToHtmlVditor(md) {
   return await Vditor.md2html(md, { cdn: cdn })
 }
 
-/** 与 Vditor.highlightRender 一致：不参与 hljs 的围栏语言（公式/图表等） */
-const DOCX_HLJS_SKIP_LANGS = new Set([
-  'math',
-  'mermaid',
-  'flowchart',
-  'echarts',
-  'mindmap',
-  'plantuml',
-  'markmap',
-  'abc',
-  'graphviz',
-  'smiles'
-])
-
 /**
- * 在 md2html 结果上为围栏代码块注入 highlight.js 高亮（不调用 mathRender / preview，避免公式双份）。
- * 供 DOCX 导出；主进程再将 hljs class 转为内联 color 以适配 html-to-docx。
- * @param {string} html - Vditor.md2html 输出片段
+ * 为 DOCX 导出场景增强 md2html 结果：
+ * - 保证代码块的 <pre><code> 含有 hljs class，便于后续 HTML->DOCX 样式映射
+ * - 保持函数幂等，多次调用不会重复注入 hljs
+ * @param {string} html
  * @returns {Promise<string>}
  */
 export async function enhanceMd2htmlWithHljsForDocx(html) {
-  if (!html || typeof html !== 'string') return html
-  const wrap = document.createElement('div')
-  wrap.innerHTML = html
-  const blocks = wrap.querySelectorAll('pre > code')
-  if (blocks.length === 0) return html
-
-  let hljs
-  try {
-    const mod = await import('highlight.js')
-    hljs = mod.default
-  } catch (e) {
-    getLogger().warn('DOCX 代码高亮：highlight.js 加载失败，将使用无高亮 HTML', e)
+  if (!html || typeof html !== 'string') {
     return html
   }
 
-  blocks.forEach((block) => {
-    if (!(block instanceof HTMLElement)) return
-    if (block.classList.contains('language-math')) return
-    const langClass = [...block.classList].find((c) => c.startsWith('language-'))
-    if (!langClass) return
-    const lang = langClass.slice('language-'.length)
-    if (!lang || DOCX_HLJS_SKIP_LANGS.has(lang)) return
-
-    let language = lang
-    if (!hljs.getLanguage(language)) {
-      language = 'plaintext'
+  // 1) 处理已有 class 的代码块：补齐 hljs（若缺失）
+  let enhanced = html.replace(
+    /<pre>\s*<code\b([^>]*?)\bclass=(["'])([^"']*)\2([^>]*)>/gi,
+    (match, beforeClass, quote, classNames, afterClass) => {
+      const classes = String(classNames)
+        .split(/\s+/)
+        .filter(Boolean)
+      if (!classes.includes('hljs')) {
+        classes.push('hljs')
+      }
+      return `<pre><code${beforeClass}class=${quote}${classes.join(' ')}${quote}${afterClass}>`
     }
+  )
 
-    let codeText = block.textContent ?? ''
-    if (codeText.endsWith('\n')) {
-      codeText = codeText.slice(0, -1)
-    }
+  // 2) 处理没有 class 的代码块：补上 class="hljs"
+  enhanced = enhanced.replace(
+    /<pre>\s*<code\b((?:(?!\bclass=)[^>])*)>/gi,
+    '<pre><code$1 class="hljs">'
+  )
 
-    try {
-      const { value } = hljs.highlight(codeText, { language, ignoreIllegals: true })
-      block.innerHTML = value
-      block.classList.add('hljs')
-    } catch (err) {
-      getLogger().warn(`DOCX 代码高亮失败 (${lang})，保留纯文本`, err)
-    }
-  })
-
-  return wrap.innerHTML
+  return enhanced
 }
 
 /**
@@ -2068,13 +2037,11 @@ export async function enhanceMd2htmlWithHljsForDocx(html) {
  * @param md - Markdown 文本
  * @param convertImagesToBase64 - 是否将图片转为 base64
  * @param docPath - 可选，当前文档路径，用于解析相对图片路径（如 images/xxx.png）
- * @param {{ fragmentOnly?: boolean }} [options] - fragmentOnly: 仅返回正文 HTML 片段（供 DOCX 等），不包装完整文档与内嵌 CSS
  */
 export async function ConvertMarkdownToHtmlManually(
   md,
   convertImagesToBase64 = true,
-  docPath = '',
-  options = {}
+  docPath = ''
 ) {
   const contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
   const codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
@@ -2518,10 +2485,6 @@ export async function ConvertMarkdownToHtmlManually(
       })
     }
 
-    if (options.fragmentOnly) {
-      return finalHtml
-    }
-
     // 第四步：获取并内嵌 Vditor CSS
     let vditorCss = ''
     try {
@@ -2687,9 +2650,8 @@ export const ConvertHtmlForPdf = async (md, pdfOptions = {}) => {
     getLogger().warn(`检测到 ${plantumlBlockCount} 个未预渲染的 PlantUML 代码块，可能预渲染失败`)
   }
 
-  // 用 Base64 传入内联脚本：Markdown 中的 </script>（如 Vue SFC）会提前结束 HTML 的 <script>，导致 Vditor 只收到半截源码、代码挤一行且无高亮
-  const pdfMarkdownBase64 = btoa(unescape(encodeURIComponent(processedMd)))
-  const safeMdB64 = JSON.stringify(pdfMarkdownBase64)
+  // 使用 JSON.stringify 对处理后的 md 进行转义
+  const safeMarkdown = JSON.stringify(processedMd)
 
   const pdfThemeMode = pdfOptions.pdfThemeMode ?? 'light'
   const contentSetting = await getSetting('contentTheme')
@@ -2994,9 +2956,9 @@ export const ConvertHtmlForPdf = async (md, pdfOptions = {}) => {
     <script>
             // 等待页面加载后，渲染 markdown 内容
             window.onload = function() {
+                // 使用转义后的 md 内容
                 const previewElement = document.getElementById('preview');
-                var __pdfMd = decodeURIComponent(escape(atob(${safeMdB64})));
-                Vditor.preview(previewElement, __pdfMd, {
+                Vditor.preview(previewElement, ${safeMarkdown}, {
                     cdn: ${safeCdn},
                     mode: ${safeVditorMode},
                     theme: {

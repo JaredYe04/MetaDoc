@@ -1,7 +1,0 @@
-{
-  "fixture": "export-batch",
-  "items": [
-    { "id": 1, "name": "alpha" },
-    { "id": 2, "name": "beta" }
-  ]
-}

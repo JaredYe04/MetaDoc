@@ -1,57 +1,61 @@
-node_modules
-meta-doc/src/main/models/nomic-embed-text-v1.5.Q8_0.gguf
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part03
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part02
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part01
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part01
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part03
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part02
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part01
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part02
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part03
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part03
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part02
-meta-doc/resources/bce-embedding-base_v1-Q8_0.gguf.part01
-meta-doc/resources/llm-statistics.json
-meta-doc/.env
-meta-doc/code-audit-report.md
-meta-doc/resources_disabled/bce-embedding-base_v1-Q8_0.gguf
+# ==========================================
+# 1. 核心依赖与环境配置 (Dependencies & Env)
+# ==========================================
+node_modules/
+.env
+.test-release/
+.test-workflow/
+
+# ==========================================
+# 2. AI 模型与大体积资源 (AI Models & Data)
+# ==========================================
+*.gguf
+**/*.gguf
 *.traineddata
-meta-doc/resources/version.json
-meta-doc/version.json
-meta-doc/package.json
-/.test-release
-/.test-workflow
-issues.md
+meta-doc/resources/llm-statistics.json
+meta-doc/resources_disabled/
+
+# ==========================================
+# 3. 调试、日志与导出产物 (Debug & Artifacts)
+# ==========================================
+**/debug/
+meta-doc/startup-profile-report.json
+meta-doc/code-audit-report.md
+*.log
+
+
+# ==========================================
+# 4. 项目文档与元数据 (Docs & Metadata)
+# ==========================================
+*.meta
 .issues.md.meta
 .开发进度.md.meta
+issues.md
 开发进度.md
+meta-doc/version.json
+meta-doc/resources/version.json
 
-# IDE 配置文件
-.idea/
-.vscode/
+# ==========================================
+# 5. MetaDoc 应用用户数据 (App User Data)
+# ==========================================
+docs/.metadoc/agent/sessions/
+docs/.metadoc/agent/sessions.json
+docs/.metadoc/agent/sessions-index.json
 
-# Eclipse IDE 配置
+# ==========================================
+# 6. IDE 与编辑器配置 (IDE Settings)
+# ==========================================
+.idea
+.vscode
+.devcontainer/
 *.project
 *.settings/
 
-# Dev Container
-.devcontainer/
-
-# OS 生成的文件
+# ==========================================
+# 7. 系统生成文件与临时媒体 (OS & Media)
+# ==========================================
 .DS_Store
 Thumbs.db
 *.png
-
-# MetaDoc 用户数据
-docs/.metadoc/agent/sessions.json
-docs/.metadoc/agent/sessions-index.json
-docs/.metadoc/agent/sessions/
-/meta-doc/debug
-/debug/resume-pdf
-/debug/compile-pdf
-/debug/out
-*.meta
-meta-doc/startup-profile-report.json
-/debug/export-multi-format/output
+__pycache__
+*.pyc

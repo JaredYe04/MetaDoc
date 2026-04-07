@@ -22,6 +22,7 @@ export type ShortcutActionId =
   | 'zoomIn'
   | 'zoomOut'
   | 'zoomReset'
+  | 'toggleFocusMode'
 
 /** 所有可配置动作的列表（用于遍历与默认值） */
 export const SHORTCUT_ACTION_IDS: ShortcutActionId[] = [
@@ -39,7 +40,8 @@ export const SHORTCUT_ACTION_IDS: ShortcutActionId[] = [
   'redo',
   'zoomIn',
   'zoomOut',
-  'zoomReset'
+  'zoomReset',
+  'toggleFocusMode'
 ]
 
 /** 单个快捷键的存储格式：修饰键 + 主键，如 "Ctrl+Shift+S"、"F1" */

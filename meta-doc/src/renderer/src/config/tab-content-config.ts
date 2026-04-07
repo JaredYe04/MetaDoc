@@ -20,13 +20,18 @@ import AigcDetectionWindow from '../views/AigcDetectionWindow.vue'
 import UserFeedbackView from '../views/UserFeedbackView.vue'
 import AgentView from '../views/AgentView.vue'
 import AgentReviewView from '../views/AgentReviewView.vue'
+import UserManual from '../views/UserManual.vue'
 
 export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   '/global-home': GlobalHome,
   '/knowledge-base': KnowledgeBase,
   '/debug': DebugView,
   '/dummy': DummyView,
-  '/agent': AgentView
+  '/agent': AgentView,
+  /** 以下路由由 openSystemTab 打开为 system Tab，需显式映射，避免依赖嵌套 router-view（Main 不在 App 的 router-view 树内） */
+  '/user-manual': UserManual,
+  '/user-feedback': UserFeedbackView,
+  '/llm-statistics': LlmStatisticsView
 }
 
 export const TOOL_TAB_COMPONENTS: Record<string, Component> = {

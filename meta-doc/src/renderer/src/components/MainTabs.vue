@@ -10,6 +10,9 @@
     <!-- macOS 平台：左边预留空间给原生按钮 -->
     <div v-if="isMac" class="macos-traffic-lights-spacer"></div>
 
+    <!-- 专注模式：LeftMenu 通过 Teleport 注入顶栏菜单（与标签栏平级） -->
+    <div id="main-tabs-focus-menu-host" class="main-tabs-focus-menu-host"></div>
+
     <!-- Tab 区域：包含可滚动的 tab 列表 + 固定的新建按钮 -->
     <div class="tab-region">
       <div ref="tabsViewportRef" class="tabs-viewport" @wheel.prevent="handleTabWheel">
@@ -71,6 +74,20 @@
         :title="$t('mainTabs.newDocumentTooltip')"
       >
         <el-icon><Plus /></el-icon>
+      </div>
+      <!-- 专注模式切换按钮 -->
+      <div
+        class="focus-mode-button"
+        :class="{ 'is-locked': isLockedEffective }"
+        @click="handleToggleFocusMode"
+        :title="isFocusMode ? $t('focusMode.exitTooltip') : $t('focusMode.enterTooltip')"
+      >
+        <img
+          class="focus-mode-button-icon"
+          :src="focusModeButtonIconSrc"
+          alt=""
+          aria-hidden="true"
+        />
       </div>
     </div>
 
@@ -256,6 +273,7 @@ import {
 import { useTabAnimation } from '../composables/useTabAnimation'
 import GlobalMessageBox from './global/GlobalMessageBox.vue'
 import GlobalToast from './global/GlobalToast.vue'
+import { useFocusMode } from '../composables/useFocusMode'
 
 // 主题中的窗口控制图标（themes.js 中注册，TS 无类型声明故用 Record 访问）
 const windowControlIcons = computed(() => {
@@ -277,6 +295,18 @@ const tabsListRef = ref<HTMLElement | null>(null)
 
 const { checkCanCloseTab, doRemoveTab, isLocked } = useCloseTab()
 const isLockedEffective = computed<boolean>(() => props.mode === 'demo' || isLocked.value)
+
+const { isFocusMode, toggleFocusMode, enterFocusMode } = useFocusMode()
+
+const focusModeButtonIconSrc = computed(() => {
+  const t = themeState.currentTheme as unknown as Record<string, string>
+  return isFocusMode.value ? t.MinimapOnIcon : t.MinimapOffIcon
+})
+
+const handleToggleFocusMode = () => {
+  if (isLockedEffective.value) return
+  toggleFocusMode()
+}
 
 const DEMO_TABS = computed<WorkspaceTab[]>(() => [
   {
@@ -510,7 +540,11 @@ const handleOpenInNewWindow = async (tab: WorkspaceTab) => {
   }
 
   try {
-    await messageBridge.invoke('create-window-with-tab', { tabData, position })
+    await messageBridge.invoke('create-window-with-tab', {
+      tabData,
+      position,
+      focusMode: isFocusMode.value
+    })
     await removeTabAfterDrag(tab.id, myWindowId)
     logger.info(`Tab ${tab.id} 已在新窗口中打开`)
   } catch (error) {
@@ -671,27 +705,21 @@ const handleMaximize = () => {
   }
 }
 
-// 双击标题栏最大化/还原
-let lastClickTime = 0
+// 双击标题栏空白区域最大化/还原
 const handleDoubleClick = (event: MouseEvent) => {
-  // 检查是否在空白区域（不是可交互元素）
   const target = event.target as HTMLElement
   if (
     target.closest('.tab-item') ||
     target.closest('.window-controls') ||
-    target.closest('.main-tab-label')
+    target.closest('.main-tab-label') ||
+    target.closest('.main-tabs-focus-menu-host') ||
+    target.closest('.focus-tab-bar-menus-root') ||
+    target.closest('.new-tab-button') ||
+    target.closest('.focus-mode-button')
   ) {
     return
   }
-
-  const currentTime = Date.now()
-  if (currentTime - lastClickTime < 300) {
-    // 双击
-    handleMaximize()
-    lastClickTime = 0
-  } else {
-    lastClickTime = currentTime
-  }
+  handleMaximize()
 }
 
 const handleClose = () => {
@@ -1444,6 +1472,9 @@ onMounted(async () => {
           return
         }
         await addTabFromDrag(tabData, insertIndex)
+        if (data.initialFocusMode) {
+          enterFocusMode()
+        }
         logger.info('成功添加Tab到新窗口:', tabData.tab.id)
       } catch (error) {
         logger.error('添加Tab失败:', error)
@@ -1465,12 +1496,13 @@ onMounted(async () => {
 
     handlerDragCreateDetached = async (_event: any, data: any) => {
       try {
-        const { tabData, position, width, height } = data
+        const { tabData, position, width, height, focusMode } = data
         const newWindowId = await messageBridge.invoke('create-window-with-tab', {
           tabData,
           position,
           width,
-          height
+          height,
+          focusMode: !!focusMode
         })
         logger.info('通过拖拽分离创建新窗口:', newWindowId)
       } catch (error) {
@@ -1629,7 +1661,7 @@ onUnmounted(() => {
   background-color: v-bind('tabsContainerBackgroundColor');
   user-select: none;
   -webkit-user-select: none;
-  /* -webkit-app-region: drag; */
+  -webkit-app-region: drag;
   position: relative;
   box-sizing: border-box;
   z-index: 99999;
@@ -1639,6 +1671,7 @@ onUnmounted(() => {
 .main-tabs-wrapper .window-controls,
 .main-tabs-wrapper .window-control-btn,
 .main-tabs-wrapper .new-tab-button,
+.main-tabs-wrapper .focus-mode-button,
 .main-tabs-wrapper .tab-item {
   -webkit-app-region: no-drag !important;
   position: relative;
@@ -1678,6 +1711,15 @@ onUnmounted(() => {
   -webkit-app-region: drag;
 }
 
+.main-tabs-focus-menu-host {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  max-height: 40px;
+  -webkit-app-region: no-drag;
+}
+
 /* Tab 区域：占满 spacer/window-controls 之间的空间 */
 .tab-region {
   flex: 1;
@@ -1699,6 +1741,8 @@ onUnmounted(() => {
   overflow-y: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--el-border-color-darker, rgba(0, 0, 0, 0.2)) transparent;
+  /* 标签未铺满时，视口内空白区可拖动窗口（专注模式无 Logo 时尤其需要） */
+  -webkit-app-region: drag;
 }
 
 .tabs-viewport::-webkit-scrollbar {
@@ -1722,7 +1766,6 @@ onUnmounted(() => {
   margin: 0;
   padding: 0;
   background-color: v-bind('tabsContainerBackgroundColor');
-  -webkit-app-region: drag;
 }
 
 /* 单个 Tab 项 —— 统一 flex 规则：未溢出时等分，溢出时自然滚动 */
@@ -2041,6 +2084,51 @@ onUnmounted(() => {
   font-weight: 600;
   line-height: 0;
   display: block;
+}
+
+.focus-mode-button {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  margin: 0 0 0 4px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: none !important;
+  color: var(--el-text-color-primary);
+  user-select: none;
+  -webkit-user-select: none;
+  flex-shrink: 0;
+  background-color: v-bind('tabItemBackgroundColor');
+}
+
+.focus-mode-button:hover:not(.is-locked) {
+  background-color: v-bind('brutalistHoverBackgroundColor');
+  border: 1px solid transparent;
+}
+
+.focus-mode-button:active:not(.is-locked) {
+  border: 1px solid transparent !important;
+  background-color: v-bind('brutalistActiveBackgroundColor') !important;
+  box-shadow: none !important;
+}
+
+.focus-mode-button-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.focus-mode-button.is-locked {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Tab 右键菜单 - 参考 SessionList.item-menu 样式 */

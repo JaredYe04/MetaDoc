@@ -69,6 +69,8 @@ provide('unregisterClickSubMenu', unregisterClickSubMenu)
 provide('registerSubMenu', registerSubMenu)
 provide('unregisterSubMenu', unregisterSubMenu)
 provide('hasOpenSubMenu', hasOpenSubMenu)
+
+defineExpose({ closeAllClickSubMenus })
 </script>
 
 <style scoped>

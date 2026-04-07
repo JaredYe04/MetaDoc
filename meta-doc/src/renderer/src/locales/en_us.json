@@ -1,5 +1,15 @@
 {
   "lang": "en_US",
+  "markdownEditor": {
+    "outlineMenu": {
+      "optimizeSection": "Optimize current section",
+      "copySection": "Copy section content",
+      "generateIllustration": "Generate illustration",
+      "addToMaterialBasket": "Add to material basket",
+      "emptySection": "No content to copy for this section",
+      "copyFailed": "Copy failed"
+    }
+  },
   "editorModeFirstTime": {
     "title": "Select Default Editor Mode",
     "message": "Select your preferred Markdown editor mode. You can change it later in Settings.",
@@ -1183,7 +1193,8 @@
         "redo": "Redo",
         "zoomIn": "Zoom in",
         "zoomOut": "Zoom out",
-        "zoomReset": "Reset zoom"
+        "zoomReset": "Reset zoom",
+        "toggleFocusMode": "Toggle Focus Mode"
       }
     },
     "llm": "LLM Settings",
@@ -4118,6 +4129,12 @@
     "taskPhaseDone": "Done",
     "taskPhaseFailed": "Failed",
     "taskCancel": "Cancel"
+  },
+  "focusMode": {
+    "enterTooltip": "Enter Focus Mode",
+    "exitTooltip": "Exit Focus Mode",
+    "pdfPreviewHint": "This is PDF preview mode",
+    "convertToMarkdown": "Convert to Markdown for editing"
   },
   "fontSize": {
     "chuhao": "Initial",

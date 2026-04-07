@@ -1,5 +1,15 @@
 {
   "lang": "es_ES",
+  "markdownEditor": {
+    "outlineMenu": {
+      "optimizeSection": "Optimizar sección actual",
+      "copySection": "Copiar contenido de la sección",
+      "generateIllustration": "Generar ilustración",
+      "addToMaterialBasket": "Añadir a la cesta de materiales",
+      "emptySection": "No hay contenido para copiar",
+      "copyFailed": "Error al copiar"
+    }
+  },
   "aIService": {
     "cancelled": "Cancelado",
     "clear": "Vaciar",
@@ -1878,6 +1888,12 @@
       }
     }
   },
+  "focusMode": {
+    "enterTooltip": "Activar modo concentración",
+    "exitTooltip": "Desactivar modo concentración",
+    "pdfPreviewHint": "Este es el modo de vista previa PDF",
+    "convertToMarkdown": "Convertir a Markdown para editar"
+  },
   "fomulaRecognition": {
     "copyFailed": "Copia fallida",
     "deleteFailed": "Eliminación fallida",
@@ -3689,7 +3705,8 @@
         "redo": "Rehacer",
         "zoomIn": "Ampliar",
         "zoomOut": "Reducir",
-        "zoomReset": "Restablecer zoom"
+        "zoomReset": "Restablecer zoom",
+        "toggleFocusMode": "Alternar modo concentración"
       }
     },
     "cancel": "Cancelar",

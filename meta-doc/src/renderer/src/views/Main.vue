@@ -1,52 +1,55 @@
 <template>
-  <div class="common-layout">
+  <div class="common-layout" :class="{ 'is-focus-mode': isFocusMode }">
     <!-- 占位：保持布局，实际内容通过 Teleport 渲染到 body 以始终置顶 -->
     <div class="top-header-container top-header-placeholder" :class="{ 'is-mac': isMac }" />
     <!-- 顶部区域：Logo + MainTabs，Teleport 到 body 确保无条件始终在最顶层 -->
     <Teleport to="body">
-      <div class="top-header-container top-header-floating" :class="{ 'is-mac': isMac }">
-        <LogoTab v-if="!isMac" />
+      <div class="top-header-container top-header-floating" :class="{ 'is-mac': isMac, 'is-focus-mode': isFocusMode }">
+        <LogoTab v-if="!isMac && !isFocusMode" />
         <el-header class="top-header">
           <MainTabs />
         </el-header>
-        <LogoTab v-if="isMac" />
+        <LogoTab v-if="isMac && !isFocusMode" />
       </div>
     </Teleport>
     <!-- 主内容区域：左边LeftMenu，中间ViewMenuContainer，右边内容 -->
     <el-container class="main-shell">
-      <el-aside class="side-menu">
+      <!-- v-show：专注模式下仍挂载 LeftMenu，以便 Teleport 顶栏菜单与对话框逻辑可用 -->
+      <el-aside v-show="!isFocusMode" class="side-menu">
         <LeftMenu />
       </el-aside>
-      <!-- ViewMenuContainer：包含工作目录菜单和主内容区 -->
-      <ViewMenuContainer>
+      <!-- 不用 el-main：避免 Element Plus 默认 flex 与 min-height 导致专注模式下主内容区高度为 0 白屏 -->
+      <div class="view-menu-main-wrap">
+        <ViewMenuContainer :sidebar-on-left="isFocusMode">
         <div class="content-area-wrapper">
-          <el-container class="content-area">
-            <!-- 子视图菜单（仅在文档相关视图显示） -->
-            <el-aside
-              v-if="showSubViewMenu"
+          <!-- 不用 el-container：EP 默认 flex-direction:row，与主内容区「整列铺满」冲突，易出现 content-main 左右大块留白 -->
+          <div class="content-area">
+            <aside
+              v-if="showSubViewMenu && !isFocusMode"
               class="sub-view-menu-aside"
               :class="{ 'is-collapsed': viewMenuCollapsed }"
             >
               <ViewMenu />
-            </el-aside>
-            <el-container class="content-shell">
-              <el-main class="content-main">
+            </aside>
+            <div class="content-shell">
+              <!-- 不用 el-main：见上注释 -->
+              <div class="content-main">
                 <UserProfileCard
                   v-if="showUserProfileCard"
                   @close="showUserProfileCard = false"
                   class="user-profile-card"
                   :position="menuPosition"
                 />
-                <!-- Tab内容区域 - 使用TabContentRenderer组件处理所有Tab渲染 -->
                 <TabContentRenderer />
-              </el-main>
-            </el-container>
-          </el-container>
+              </div>
+            </div>
+          </div>
         </div>
       </ViewMenuContainer>
+      </div>
     </el-container>
-    <!-- BottomMenu放在最下侧，在所有内容之上 -->
-    <el-footer class="bottom-footer">
+    <!-- BottomMenu放在最下侧，专注模式下隐藏 -->
+    <el-footer v-if="!isFocusMode" class="bottom-footer">
       <BottomMenu />
     </el-footer>
     <!-- 固定底部菜单 -->
@@ -223,6 +226,7 @@ import { Empty } from '../components/ui/empty'
 import { FileText, Folder } from 'lucide-vue-next'
 import { useTabSwitcher } from '../composables/useTabSwitcher'
 import { useCloseTab } from '../composables/useCloseTab'
+import { useFocusMode } from '../composables/useFocusMode'
 import messageBridge from '../bridge/message-bridge'
 
 // ============================================================================
@@ -235,6 +239,7 @@ const logger = createRendererLogger('Main', {
 const workspace = useWorkspace()
 const tabSwitcher = useTabSwitcher()
 const { checkCanCloseTab, doRemoveTab } = useCloseTab()
+const { isFocusMode } = useFocusMode()
 
 // ============================================================================
 // 计算属性和状态
@@ -255,12 +260,8 @@ const {
   updateDocumentLastView
 } = workspace
 
-// 判断是否显示子视图菜单（仅在文档相关视图显示）
-const showSubViewMenu = computed(() => {
-  const activeTab = workspace.tabs.find((t) => t.id === workspace.activeTabId.value)
-  if (!activeTab) return false
-  return activeTab.kind === 'file' || activeTab.kind === 'new'
-})
+// 文档 Tab 主区仅通过 Editor → WorkspaceTabPane → 各格式编辑器展示，不提供侧栏「主页/大纲/可视化」等多视图切换
+const showSubViewMenu = computed(() => false)
 
 // 工作区 grep 跳转：若打开文档尚未完成则暂存，待 open-doc-success 后执行
 const pendingGrepGoto = ref<{
@@ -1766,13 +1767,41 @@ onBeforeUnmount(() => {
   flex: 1;
   display: flex;
   flex-direction: row; /* 确保水平排列 */
+  min-height: 0; /* flex 子项默认可收缩，避免内层高度为 0 白屏 */
   height: calc(100vh - 40px - 30px); /* 减去顶部Logo和底部BottomMenu的高度 */
   overflow: hidden;
   background-color: var(--el-bg-color, #ffffff);
 }
 
+/* 主内容外壳：占满 main-shell 剩余空间；用 min-height 兜底防止 flex 链断裂白屏 */
+.view-menu-main-wrap {
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
+
+.common-layout.is-focus-mode .view-menu-main-wrap {
+  min-height: calc(100vh - 40px);
+}
+
+.common-layout:not(.is-focus-mode) .view-menu-main-wrap {
+  min-height: calc(100vh - 40px - 30px);
+}
+
+.view-menu-main-wrap > .view-menu-container-wrapper {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+}
+
 .content-area-wrapper {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1781,8 +1810,13 @@ onBeforeUnmount(() => {
 }
 
 .content-area {
-  flex: 1;
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
   display: flex;
+  flex-direction: row;
+  align-items: stretch;
   height: 100%;
   overflow: hidden;
 }
@@ -1799,18 +1833,35 @@ onBeforeUnmount(() => {
 .content-shell {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
   height: 100%;
   overflow: hidden;
-  flex: 1;
   background-color: var(--el-bg-color-page, #f5f7fa);
 }
 
 .content-main {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  align-self: stretch;
   padding: 0;
   margin: 0;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* TabContentRenderer 根节点在 flex 列里占满高度，避免 height:100% 在部分链路上无法解析成像素导致白屏 */
+.content-main :deep(.tab-content-wrapper) {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: auto;
 }
 
 .content-main > :deep(.el-scrollbar__wrap),
@@ -1959,5 +2010,16 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 40px 16px;
   min-height: 200px;
+}
+
+/* 专注模式：底部栏隐藏时主区域占满剩余高度 */
+.common-layout.is-focus-mode .main-shell {
+  height: calc(100vh - 40px);
+}
+
+.common-layout.is-focus-mode .content-main {
+  max-width: none;
+  width: 100%;
+  margin: 0;
 }
 </style>

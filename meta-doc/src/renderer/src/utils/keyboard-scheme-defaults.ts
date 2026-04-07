@@ -18,10 +18,10 @@ const DEFAULT_WIN_LINUX: ShortcutBindings = {
   paste: ['Ctrl+V'],
   undo: ['Ctrl+Z'],
   redo: ['Ctrl+Shift+Z'],
-  // 默认缩放：键盘与滚轮
   zoomIn: ['Ctrl+=', 'Ctrl+Plus', 'Ctrl+WheelUp'],
   zoomOut: ['Ctrl+-', 'Ctrl+Minus', 'Ctrl+WheelDown'],
-  zoomReset: ['Ctrl+0']
+  zoomReset: ['Ctrl+0'],
+  toggleFocusMode: ['Ctrl+Shift+J']
 }
 
 const DEFAULT_MAC: ShortcutBindings = {
@@ -39,7 +39,8 @@ const DEFAULT_MAC: ShortcutBindings = {
   redo: ['Meta+Shift+Z'],
   zoomIn: ['Meta+=', 'Meta+Plus', 'Meta+WheelUp'],
   zoomOut: ['Meta+-', 'Meta+Minus', 'Meta+WheelDown'],
-  zoomReset: ['Meta+0']
+  zoomReset: ['Meta+0'],
+  toggleFocusMode: ['Meta+Shift+J']
 }
 
 export const BUILTIN_SCHEME_IDS = {

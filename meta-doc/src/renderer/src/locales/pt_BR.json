@@ -1,5 +1,15 @@
 {
   "lang": "pt_BR",
+  "markdownEditor": {
+    "outlineMenu": {
+      "optimizeSection": "Otimizar seção atual",
+      "copySection": "Copiar conteúdo da seção",
+      "generateIllustration": "Gerar ilustração",
+      "addToMaterialBasket": "Adicionar à cesta de materiais",
+      "emptySection": "Não há conteúdo para copiar",
+      "copyFailed": "Falha ao copiar"
+    }
+  },
   "aIService": {
     "cancelled": "Cancelado",
     "clear": "Limpar",
@@ -1891,6 +1901,12 @@
       }
     }
   },
+  "focusMode": {
+    "enterTooltip": "Ativar modo de foco",
+    "exitTooltip": "Desativar modo de foco",
+    "pdfPreviewHint": "Este é o modo de visualização PDF",
+    "convertToMarkdown": "Converter para Markdown para edição"
+  },
   "fomulaRecognition": {
     "copyFailed": "Cópia falhou",
     "deleteFailed": "Exclusão falhou",
@@ -3706,7 +3722,8 @@
         "redo": "Refazer",
         "zoomIn": "Ampliar",
         "zoomOut": "Reduzir",
-        "zoomReset": "Redefinir zoom"
+        "zoomReset": "Redefinir zoom",
+        "toggleFocusMode": "Alternar modo de foco"
       }
     },
     "cancel": "Cancelar",

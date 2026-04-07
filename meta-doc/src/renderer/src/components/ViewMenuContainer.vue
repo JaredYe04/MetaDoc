@@ -1,5 +1,8 @@
 <template>
-  <div class="view-menu-container-wrapper">
+  <div
+    class="view-menu-container-wrapper"
+    :class="{ 'is-sidebar-on-left': sidebarOnLeft }"
+  >
     <ResizableContainer
       ref="viewSidebarResizableRef"
       v-if="hasVisibleMenus"
@@ -11,6 +14,7 @@
       :divider-size="5"
       :show-sidebar="hasVisibleMenus"
       :sidebar-position="'start'"
+      :sidebar-on-left="sidebarOnLeft"
       :collapsible="true"
       :show-collapse-button="true"
       :auto-collapse-width="0"
@@ -164,6 +168,14 @@ import { useWorkspace } from '../stores/workspace'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils'
 import { extractOutlineTreeFromLatex } from '../utils/latex-utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+
+withDefaults(
+  defineProps<{
+    /** 专注模式：侧栏在左、分割条在右（与默认「侧栏在右」镜像） */
+    sidebarOnLeft?: boolean
+  }>(),
+  { sidebarOnLeft: false }
+)
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -517,11 +529,22 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .view-menu-container-wrapper {
-  flex: 1;
+  flex: 1 1 0%;
   display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  width: 100%;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   min-width: 0; /* 确保 flex 子元素可以收缩 */
+}
+
+.view-menu-container-wrapper > :deep(.resizable-container),
+.view-menu-container-wrapper > .view-menu-container-main-only {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 .view-menu-container-sidebar {
@@ -530,11 +553,16 @@ onBeforeUnmount(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  /* 左侧：与 LeftMenu 分界，固定中性灰 */
+  /* 默认侧栏在右：左缘与主内容区分 */
   border-left: 1px solid v-bind('sidebarLeftBorderColor');
-  /* 右侧：与主内容区分，固定中性灰 */
+  /* 右缘靠窗口 */
   border-right: 1px solid rgba(128, 128, 128, 0.2);
   background-color: v-bind('sidebarPanelBackground');
+}
+
+/* 专注模式侧栏在左：左缘靠窗口，不设与 LeftMenu 的左分界；右缘与主内容区分 */
+.view-menu-container-wrapper.is-sidebar-on-left .view-menu-container-sidebar {
+  border-left: none;
 }
 
 .sidebar-tabs {

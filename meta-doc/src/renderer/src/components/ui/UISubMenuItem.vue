@@ -168,6 +168,22 @@ const handleMouseLeave = () => {
   opacity: 0.8;
 }
 
+/* 标题行等使用 slot 自定义图标时，避免 Teleport 弹出层未继承 LeftMenu 的 .menu-title-icon 而撑爆 */
+.ui-sub-menu-item__content :deep(img) {
+  width: 16px;
+  height: 16px;
+  max-width: 16px;
+  max-height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.ui-sub-menu-item__content :deep(svg) {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0;
+}
+
 .ui-sub-menu-item__label {
   font-size: 13px;
   text-align: left;

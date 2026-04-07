@@ -1,5 +1,15 @@
 {
   "lang": "ko_KR",
+  "markdownEditor": {
+    "outlineMenu": {
+      "optimizeSection": "현재 단락 최적화",
+      "copySection": "단락 내용 복사",
+      "generateIllustration": "삽화 생성",
+      "addToMaterialBasket": "소재 바구니에 추가",
+      "emptySection": "복사할 내용이 없습니다",
+      "copyFailed": "복사 실패"
+    }
+  },
   "selectionTranslate": {
     "title": "선택 텍스트 번역",
     "targetLanguage": "대상 언어",
@@ -1180,7 +1190,8 @@
         "redo": "다시 실행",
         "zoomIn": "확대",
         "zoomOut": "축소",
-        "zoomReset": "확대/축소 초기화"
+        "zoomReset": "확대/축소 초기화",
+        "toggleFocusMode": "집중 모드 전환"
       }
     },
     "llm": "LLM 설정",
@@ -3633,6 +3644,12 @@
       "generate": "생성",
       "reset": "초기화"
     }
+  },
+  "focusMode": {
+    "enterTooltip": "집중 모드 시작",
+    "exitTooltip": "집중 모드 종료",
+    "pdfPreviewHint": "PDF 미리보기 모드입니다",
+    "convertToMarkdown": "Markdown으로 변환하여 편집"
   },
   "fontSize": {
     "chuhao": "초호",

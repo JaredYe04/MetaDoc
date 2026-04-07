@@ -70,6 +70,11 @@ import MaximizeIconBlack from '../assets/icons/maximize-black.svg'
 import MaximizeIconWhite from '../assets/icons/maximize-white.svg'
 import RestoreIconBlack from '../assets/icons/restore-black.svg'
 import RestoreIconWhite from '../assets/icons/restore-white.svg'
+// 专注模式（标签栏 minimap 开关）
+import MinimapOffBlack from '../assets/icons/minimap-off-black.svg'
+import MinimapOffWhite from '../assets/icons/minimap-off-white.svg'
+import MinimapOnBlack from '../assets/icons/minimap-on-black.svg'
+import MinimapOnWhite from '../assets/icons/minimap-on-white.svg'
 // PDF查看模式图标导入
 import CursorIconBlack from '../assets/icons/cursor-black.svg'
 import CursorIconWhite from '../assets/icons/cursor-white.svg'
@@ -391,6 +396,14 @@ const generateThemeIcons = (isDarkMode) => {
       dark: MaximizeIconWhite
     }),
     RestoreIcon: selectIconByTheme(isDarkMode, { light: RestoreIconBlack, dark: RestoreIconWhite }),
+    MinimapOffIcon: selectIconByTheme(isDarkMode, {
+      light: MinimapOffBlack,
+      dark: MinimapOffWhite
+    }),
+    MinimapOnIcon: selectIconByTheme(isDarkMode, {
+      light: MinimapOnBlack,
+      dark: MinimapOnWhite
+    }),
     MathIcon: selectIconByTheme(isDarkMode, { light: MathIconBlack, dark: MathIconWhite }),
     WriteIcon: selectIconByTheme(isDarkMode, { light: WriteIconBlack, dark: WriteIconWhite }),
     MultiWriteIcon: selectIconByTheme(isDarkMode, {

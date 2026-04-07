@@ -8,9 +8,14 @@
         :show-author-meta="true"
       />
       <div class="document-content-section">
-        <Skeleton v-show="isRendering" :rows="15" animated class="content-preview-skeleton" />
+        <Skeleton
+          v-show="isRendering || props.isLoading"
+          :rows="15"
+          animated
+          class="content-preview-skeleton"
+        />
         <div
-          v-show="!isRendering"
+          v-show="!isRendering && !props.isLoading"
           ref="previewContainerRef"
           class="content-preview"
           :class="themeState.currentTheme.mdeditorClass"
@@ -35,6 +40,7 @@ const { t } = useI18n()
 
 const props = defineProps<{
   markdown: string
+  isLoading?: boolean
   linkBase: string
   docPath: string
   metaTitle?: string
@@ -61,6 +67,11 @@ let handleZoomShortcut: ((payload?: unknown) => void) | null = null
 
 const renderPreview = async () => {
   if (!previewContainerRef.value) return
+
+  if (props.isLoading) {
+    isRendering.value = false
+    return
+  }
 
   let markdown = props.markdown
 
@@ -206,7 +217,7 @@ const renderPreview = async () => {
 }
 
 watch(
-  () => [props.markdown, props.docPath, props.linkBase],
+  () => [props.markdown, props.docPath, props.linkBase, props.isLoading],
   () => renderPreview(),
   { immediate: false }
 )

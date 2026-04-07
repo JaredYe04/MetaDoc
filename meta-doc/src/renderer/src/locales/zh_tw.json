@@ -1,5 +1,15 @@
 {
   "lang": "zh_TW",
+  "markdownEditor": {
+    "outlineMenu": {
+      "optimizeSection": "優化目前段落",
+      "copySection": "複製本段內容",
+      "generateIllustration": "產生插圖",
+      "addToMaterialBasket": "新增至素材籃",
+      "emptySection": "此段落暫無內容可複製",
+      "copyFailed": "複製失敗"
+    }
+  },
   "aIService": {
     "cancelled": "取消",
     "clear": "清空",
@@ -1906,6 +1916,12 @@
       }
     }
   },
+  "focusMode": {
+    "enterTooltip": "進入專注模式",
+    "exitTooltip": "退出專注模式",
+    "pdfPreviewHint": "此為 PDF 預覽模式",
+    "convertToMarkdown": "轉換為 Markdown 編輯"
+  },
   "fomulaRecognition": {
     "copyFailed": "複製失敗",
     "deleteFailed": "刪除失敗",
@@ -3752,7 +3768,8 @@
         "redo": "重做",
         "zoomIn": "放大",
         "zoomOut": "縮小",
-        "zoomReset": "重置縮放"
+        "zoomReset": "重置縮放",
+        "toggleFocusMode": "切換專注模式"
       }
     },
     "cancel": "取消",

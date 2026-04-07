@@ -80,16 +80,6 @@
         @close="handleSearchReplaceClose"
       />
 
-      <!-- 右键菜单组件 -->
-      <ContextMenu
-        :x="menuX"
-        :y="menuY"
-        :items="articleContextMenuItems"
-        v-if="contextMenuVisible"
-        @trigger="handleMenuClick"
-        class="context-menu"
-        @close="contextMenuVisible = false"
-      />
       <GraphQuickDialog
         v-model:open="graphQuickDialogOpen"
         :selection-text="graphQuickSelection"
@@ -132,6 +122,17 @@
           }"
         ></div>
       </div>
+
+      <!-- 右键菜单放在编辑器之后，避免被 .editor 叠在下面导致移入菜单时命中编辑器而误关 -->
+      <ContextMenu
+        :x="menuX"
+        :y="menuY"
+        :items="articleContextMenuItems"
+        v-if="contextMenuVisible"
+        @trigger="handleMenuClick"
+        class="context-menu"
+        @close="onContextMenuClose"
+      />
     </div>
   </div>
 </template>
@@ -184,16 +185,19 @@ import AISuggestionGhost from '../components/AISuggestionGhost.vue'
 import { aiCompletionService } from '../utils/ai-completion-service'
 import { VditorEditorAdapter } from '../utils/editor-adapters'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
+import { getMarkdownOutlineContextMenuItems } from '../components/contextMenus/MarkdownOutlineContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
 import GraphQuickDialog from '../components/GraphQuickDialog.vue'
 import SelectionTranslateDialog from '../components/SelectionTranslateDialog.vue'
 import { useWorkspace } from '../stores/workspace'
-import type { ArticleMetaData, DocumentOutlineNode } from '../../../types'
+import type { ArticleMetaData, DocumentOutlineNode, MaterialBasketItem } from '../../../types'
+import type { SectionInfo } from '../components/section-optimizer/types'
 import { debounce } from 'lodash'
 import { createVditorAdapter } from '../editor/vditor-adapter'
 import type { TextEditorAdapter, TextRange } from '../editor/text-editor-types'
 import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { TitleIndex } from '../utils/title-index'
+import { normalizeMarkdownLeadingArtifacts } from '../utils/md-utils'
 
 const MARKDOWN_LAYOUT = {
   editorMinWidth: 700,
@@ -585,6 +589,18 @@ const currentTitlePath = ref('')
 const contextMenuVisible = ref(false) // 右键菜单可见性
 const menuX = ref(0) // 菜单 X 坐标
 const menuY = ref(0) // 菜单 Y 坐标
+/** 大纲面板上右键时，记录当前条目以便使用独立菜单项 */
+const outlineContextSection = ref<{
+  path: string
+  title: string
+  sectionInfo: SectionInfo | null
+} | null>(null)
+
+const onContextMenuClose = () => {
+  outlineContextSection.value = null
+  contextMenuVisible.value = false
+}
+
 const graphQuickDialogOpen = ref(false)
 const graphQuickSelection = ref('')
 const selectionTranslateOpen = ref(false)
@@ -612,7 +628,9 @@ type SetValueOptions = {
   preserveTheme?: boolean // 是否在设置值后保留主题（防止主题被重置）
 }
 
-const normalizeMdForCompare = (s: string) => s.replace(/\r\n/g, '\n')
+/** 与 Vditor 写入内容对齐：统一换行并去掉开头 BOM/零宽符，避免工作区仍带 BOM 时与 lastApplied 永久不等 */
+const normalizeMdForCompare = (s: string) =>
+  normalizeMarkdownLeadingArtifacts((s ?? '').replace(/\r\n/g, '\n'))
 
 const flushPendingExternalUpdate = () => {
   const pending = pendingExternalUpdate
@@ -651,7 +669,7 @@ const markEditorInteraction = () => {
 const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
   // 保存流程期间禁止任何 Vditor 写操作
   if (isSaveInProgress.value) return
-  const normalized = value ?? ''
+  const normalized = normalizeMarkdownLeadingArtifacts(value ?? '')
   if (!vditor.value) return
   // 检查 Vditor 实例是否已完全初始化（是否有 vditor 内部实例）
   if (!vditor.value.vditor || !vditor.value.vditor.ir) {
@@ -661,7 +679,7 @@ const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
     }, 100)
     return
   }
-  if (normalized === lastAppliedContent.value) return
+  if (normalizeMdForCompare(normalized) === normalizeMdForCompare(lastAppliedContent.value)) return
 
   // 检查用户是否正在交互，如果是则缓存更新请求（避免打断用户输入）
   if (isEditorInteracting.value) {
@@ -780,12 +798,106 @@ function getMarkdownEditorSelectionText(): string {
   return sel.toString()
 }
 
+/** 根据大纲 path / 标题构建与长按优化一致的章节信息 */
+async function buildSectionInfoForOutlineItem(
+  title: string,
+  path: string
+): Promise<SectionInfo | null> {
+  const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value, true)
+  if (!outline || !path) return null
+  const { searchNode } = await import('../utils/outline-helpers')
+  const node = searchNode(path, outline)
+  if (!node) return null
+
+  const lines = currentMarkdown.value.split('\n')
+  let titleLine = -1
+  let titleLevel = 6
+  let endLine = lines.length - 1
+
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].match(/^(#{1,6})\s+(.+)$/)
+    if (match && match[2].trim() === title) {
+      titleLine = i
+      titleLevel = match[1].length
+      break
+    }
+  }
+
+  if (titleLine >= 0) {
+    for (let i = titleLine + 1; i < lines.length; i++) {
+      const line = lines[i]
+      const match = line.match(/^(#{1,6})\s+/)
+      if (match) {
+        const level = match[1].length
+        if (level <= titleLevel) {
+          endLine = i - 1
+          break
+        }
+      }
+    }
+  }
+
+  let content = node.text || ''
+  const nodeLines = content.split('\n')
+  let titleIndex = -1
+  for (let i = 0; i < nodeLines.length; i++) {
+    const match = nodeLines[i].match(/^(#{1,6})\s+(.+)$/)
+    if (match && match[2].trim() === title) {
+      titleIndex = i
+      break
+    }
+  }
+  if (titleIndex >= 0) {
+    content = nodeLines.slice(titleIndex + 1).join('\n').trim()
+  } else if (nodeLines.length > 0 && nodeLines[0].match(/^(#{1,6})\s+/)) {
+    content = nodeLines.slice(1).join('\n').trim()
+  } else {
+    content = content.trim()
+  }
+
+  if (!content && titleLine >= 0) {
+    const contentLines = lines.slice(titleLine + 1, endLine + 1)
+    content = contentLines.join('\n').trim()
+  }
+
+  return {
+    title,
+    path,
+    content,
+    range:
+      titleLine >= 0
+        ? {
+            start: { line: titleLine, column: 0 },
+            end: { line: endLine, column: lines[endLine]?.length || 0 }
+          }
+        : undefined
+  }
+}
+
 // 打开右键菜单
 const openContextMenu = async (event: MouseEvent) => {
   event.preventDefault()
   menuX.value = event.clientX
   menuY.value = event.clientY
-  await refreshContextMenu()
+  outlineContextSection.value = null
+
+  const target = event.target as HTMLElement | null
+  const inOutlineContent = target?.closest?.('.vditor-outline__content')
+  if (inOutlineContent) {
+    const pathEl = target?.closest?.('[path]') as HTMLElement | null
+    const path = pathEl?.getAttribute('path')
+    if (path && pathEl) {
+      const title = pathEl.innerText?.trim() || ''
+      const sectionInfo = await buildSectionInfoForOutlineItem(title, path)
+      outlineContextSection.value = { path, title, sectionInfo }
+      articleContextMenuItems.value = getMarkdownOutlineContextMenuItems()
+    } else {
+      await refreshContextMenu()
+    }
+  } else {
+    await refreshContextMenu()
+  }
+
   contextMenuVisible.value = true
 }
 
@@ -880,6 +992,79 @@ const handleEditorCommand = (payload: { command?: string; tabId?: string }) => {
 // 菜单项点击事件处理
 const handleMenuClick = async (item: string) => {
   switch (item) {
+    case 'outline-section-optimizer': {
+      const ctx = outlineContextSection.value
+      if (ctx?.sectionInfo && props.tabId) {
+        sectionOptimizerAdapter.value = new MarkdownSectionAdapter(props.tabId)
+        currentSectionTitle.value = ctx.title
+        currentTitlePath.value = ctx.path
+        currentSectionInfo.value = ctx.sectionInfo
+        sectionOptimizerPosition.value = {
+          top: window.innerHeight / 2,
+          left: window.innerWidth / 2
+        }
+        showSectionOptimizer.value = true
+      }
+      break
+    }
+    case 'outline-copy-section': {
+      const ctx = outlineContextSection.value
+      const text = ctx?.sectionInfo?.content?.trim() || ctx?.title?.trim() || ''
+      if (!text) {
+        eventBus.emit(
+          'show-warning',
+          t('markdownEditor.outlineMenu.emptySection', '该段落暂无内容可复制')
+        )
+        break
+      }
+      try {
+        await navigator.clipboard.writeText(text)
+        notifySuccess(t('common.success'))
+      } catch {
+        notifyError(t('markdownEditor.outlineMenu.copyFailed', '复制失败'))
+      }
+      break
+    }
+    case 'outline-generate-illustration': {
+      const ctx = outlineContextSection.value
+      const body = ctx?.sectionInfo?.content?.trim() || ''
+      const h = ctx?.title?.trim() || ''
+      const sel = [h, body].filter(Boolean).join('\n\n').trim()
+      if (!sel) {
+        eventBus.emit(
+          'show-warning',
+          t('graph.selectTextForIllustration', '请先选中要生成插图的文本')
+        )
+        break
+      }
+      graphQuickSelection.value = sel
+      graphQuickDialogOpen.value = true
+      break
+    }
+    case 'outline-add-material-basket': {
+      const ctx = outlineContextSection.value
+      if (!props.tabId || !ctx) break
+      const outlineTree = extractOutlineTreeFromMarkdown(currentMarkdown.value, true)
+      const { searchNode } = await import('../utils/outline-helpers')
+      const node = ctx.path && outlineTree ? searchNode(ctx.path, outlineTree) : null
+      const id =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `mb-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const basketItem: MaterialBasketItem = {
+        id,
+        title: ctx.title || t('article.untitled_document', '未命名文档'),
+        text: ctx.sectionInfo?.content ?? node?.text ?? '',
+        title_level: node?.title_level ?? 1,
+        createdAt: Date.now()
+      }
+      workspace.updateDocumentMeta(props.tabId, (meta) => {
+        const list = Array.isArray(meta.materialBasket) ? meta.materialBasket : []
+        meta.materialBasket = JSON.parse(JSON.stringify([...list, basketItem])) as MaterialBasketItem[]
+      })
+      notifyInfo(`${t('outline.materialBasket.moveToBasket')} ${t('common.success')}`)
+      break
+    }
     case 'ai-assistant':
       let text = currentMarkdown.value
       const bypassCodeBlock = await getSetting('bypassCodeBlock')
@@ -994,6 +1179,7 @@ const handleMenuClick = async (item: string) => {
       }
       break
   }
+  outlineContextSection.value = null
   await refreshContextMenu()
   contextMenuVisible.value = false
 }
@@ -1003,93 +1189,11 @@ const handleClick = async (event: MouseEvent, title: string, path: string) => {
   // 使用新的 SectionOptimizer 而不是旧的 TitleMenu
   if (!props.tabId) return
 
-  // 创建适配器
   const adapter = new MarkdownSectionAdapter(props.tabId)
   sectionOptimizerAdapter.value = adapter
 
-  // 从大纲树中获取节点信息
-  const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value, true)
-  let sectionInfo: any = null
+  const sectionInfo = await buildSectionInfoForOutlineItem(title, path)
 
-  if (outline && path) {
-    const { searchNode } = await import('../utils/outline-helpers')
-    const node = searchNode(path, outline)
-    if (node) {
-      // 获取标题在文档中的位置
-      const lines = currentMarkdown.value.split('\n')
-      let titleLine = -1
-      let titleLevel = 6
-      let endLine = lines.length - 1
-
-      // 查找标题行
-      for (let i = 0; i < lines.length; i++) {
-        const match = lines[i].match(/^(#{1,6})\s+(.+)$/)
-        if (match && match[2].trim() === title) {
-          titleLine = i
-          titleLevel = match[1].length
-          break
-        }
-      }
-
-      // 查找章节结束位置
-      if (titleLine >= 0) {
-        for (let i = titleLine + 1; i < lines.length; i++) {
-          const line = lines[i]
-          const match = line.match(/^(#{1,6})\s+/)
-          if (match) {
-            const level = match[1].length
-            if (level <= titleLevel) {
-              endLine = i - 1
-              break
-            }
-          }
-        }
-      }
-
-      // 获取节点内容（去掉标题部分）
-      let content = node.text || ''
-      const nodeLines = content.split('\n')
-      let titleIndex = -1
-      for (let i = 0; i < nodeLines.length; i++) {
-        const match = nodeLines[i].match(/^(#{1,6})\s+(.+)$/)
-        if (match && match[2].trim() === title) {
-          titleIndex = i
-          break
-        }
-      }
-      if (titleIndex >= 0) {
-        content = nodeLines
-          .slice(titleIndex + 1)
-          .join('\n')
-          .trim()
-      } else if (nodeLines.length > 0 && nodeLines[0].match(/^(#{1,6})\s+/)) {
-        content = nodeLines.slice(1).join('\n').trim()
-      } else {
-        content = content.trim()
-      }
-
-      // 如果内容为空，从源码提取
-      if (!content && titleLine >= 0) {
-        const contentLines = lines.slice(titleLine + 1, endLine + 1)
-        content = contentLines.join('\n').trim()
-      }
-
-      sectionInfo = {
-        title: title,
-        path: path,
-        content: content,
-        range:
-          titleLine >= 0
-            ? {
-                start: { line: titleLine, column: 0 },
-                end: { line: endLine, column: lines[endLine]?.length || 0 }
-              }
-            : undefined
-      }
-    }
-  }
-
-  // 设置标题和路径
   currentSectionTitle.value = title
   currentTitlePath.value = path
   currentSectionInfo.value = sectionInfo
@@ -1924,6 +2028,8 @@ const bindTitleMenu = async () => {
     //添加tooltip
     target.setAttribute('title', t('article.click_jump_long_press_optimize'))
   })
+
+  debouncedSyncOutlineActive()
 }
 
 // 鼠标事件处理
@@ -1931,6 +2037,8 @@ let pressTimer: NodeJS.Timeout | null = null
 let isLongPress = false
 
 const outlineMouseDownEvent = (event: MouseEvent, section: HTMLElement) => {
+  if (event.button !== 0) return
+
   const editorRoot = getEditorRoot()
   if (!editorRoot || !vditor.value) return
 
@@ -2067,7 +2175,7 @@ const mouseDownEvent = (event: MouseEvent, section: HTMLElement) => {
 const mouseUpEvent = (event: MouseEvent, section: HTMLElement) => {
   if (pressTimer) clearTimeout(pressTimer)
   if (isLongPress) {
-    section.style.cursor = 'text'
+    section.style.cursor = 'pointer'
     const title = section.innerText
     const path = section.getAttribute('path')
     if (path) {
@@ -2082,7 +2190,7 @@ const mouseUpEvent = (event: MouseEvent, section: HTMLElement) => {
 const mouseLeaveEvent = (event: MouseEvent, section: HTMLElement) => {
   if (pressTimer) clearTimeout(pressTimer)
   section.style.filter = 'brightness(1)'
-  section.style.cursor = 'text'
+  section.style.cursor = 'pointer'
 }
 
 // 监听 Tab 键，插入制表符
@@ -2131,6 +2239,47 @@ const handleTab = (event: KeyboardEvent) => {
   }
 }
 
+const OUTLINE_CURRENT_CLASS = 'metadoc-outline-row--current'
+
+async function syncOutlineActiveHighlight() {
+  if (!isActive.value || !vditor.value) return
+  const root = getEditorRoot()
+  const oc = root?.querySelector('.vditor-outline__content')
+  if (!oc) return
+
+  oc.querySelectorAll(`.${OUTLINE_CURRENT_CLASS}`).forEach((el) =>
+    el.classList.remove(OUTLINE_CURRENT_CLASS)
+  )
+
+  if (!props.tabId) return
+  const range = textEditorAdapter.value?.getSelectionRange?.()
+  if (!range) return
+  const adapter = new MarkdownSectionAdapter(props.tabId)
+  const section = await adapter.getSectionAtCursor({
+    line: range.start.line,
+    column: range.start.column
+  })
+  const path = section?.path
+  if (!path) return
+
+  const esc =
+    typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+      ? CSS.escape(path)
+      : path.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  const inner = oc.querySelector(`[path="${esc}"]`) as HTMLElement | null
+  const row = inner?.parentElement as HTMLElement | null
+  row?.classList.add(OUTLINE_CURRENT_CLASS)
+}
+
+const debouncedSyncOutlineActive = debounce(() => {
+  void syncOutlineActiveHighlight()
+}, 120)
+
+function onDocumentSelectionChangeForOutline() {
+  if (!isActive.value) return
+  debouncedSyncOutlineActive()
+}
+
 const refreshContextMenu = async () => {
   const sel = getMarkdownEditorSelectionText().trim()
   const hasTextSelection = sel.length > 0
@@ -2155,6 +2304,9 @@ function onSelectionTranslateReplace(text: string) {
 onMounted(async () => {
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', updateSearchMenuPosition)
+  }
+  if (typeof document !== 'undefined') {
+    document.addEventListener('selectionchange', onDocumentSelectionChangeForOutline)
   }
   await nextTick()
   if (containerRef.value) {
@@ -2535,7 +2687,7 @@ onMounted(async () => {
       customWysiwygToolbar: () => {
         // 空函数，不使用自定义工具栏
       },
-      value: currentMarkdown.value,
+      value: normalizeMarkdownLeadingArtifacts(currentMarkdown.value ?? ''),
       input: async (value) => {
         markEditorInteraction()
         lastAppliedContent.value = value
@@ -2564,6 +2716,7 @@ onMounted(async () => {
         // 移除 syncOutlineFromMarkdown 调用，因为 workspace.updateDocumentMarkdown 已经自动同步大纲
         // 只在需要重新绑定标题菜单时调用 bindTitleMenu（延迟执行，避免频繁调用）
         bindTitleMenu()
+        debouncedSyncOutlineActive()
       },
       after: async () => {
         //logger.log(themeState);
@@ -2577,17 +2730,17 @@ onMounted(async () => {
             const desired = currentMarkdown.value ?? ''
             // 初始化时设置 lastAppliedContent，确保后续watch能正确检测变化
             if (lastAppliedContent.value === '') {
-              lastAppliedContent.value = desired
+              lastAppliedContent.value = normalizeMarkdownLeadingArtifacts(desired)
             }
             // 如果内容不一致，同步到编辑器
             // 注意：scheduleSetValue 内部会在 setValue 后自动重新应用主题
-            if (desired !== lastAppliedContent.value) {
+            if (normalizeMdForCompare(desired) !== normalizeMdForCompare(lastAppliedContent.value)) {
               await nextTick()
               scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0, preserveTheme: false })
             } else {
               // 即使内容相同，也确保编辑器显示正确的内容
               const currentValue = vditor.value.getValue()
-              if (currentValue !== desired) {
+              if (normalizeMdForCompare(currentValue) !== normalizeMdForCompare(desired)) {
                 await nextTick()
                 scheduleSetValue(desired, {
                   clearHistory: true,
@@ -2870,7 +3023,7 @@ onMounted(async () => {
       syncMarkdown: (markdown: string) => {
         // 与 Vditor input 回调一致：先对齐 lastAppliedContent，避免 watch(currentMarkdown) 误判为
         // 「外部更新」而 scheduleSetValue(clearHistory)，清空撤销栈并重绘（查找替换面板位置/尺寸也会被牵连）。
-        lastAppliedContent.value = markdown ?? ''
+        lastAppliedContent.value = normalizeMarkdownLeadingArtifacts(markdown ?? '')
         workspace.updateDocumentMarkdown(props.tabId, markdown)
       },
       getTitleIndex: () => titleIndex.value as TitleIndex | null
@@ -2951,6 +3104,10 @@ onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', updateSearchMenuPosition)
   }
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('selectionchange', onDocumentSelectionChangeForOutline)
+  }
+  debouncedSyncOutlineActive.cancel()
 })
 
 const handleSyncEditorTheme = async (payload?: unknown) => {
@@ -3010,14 +3167,14 @@ watch(
     // 由 sync-active-editor 触发的 updateDocumentMarkdown 导致的变化：不写回 Vditor，编辑器已有该内容
     if (skipNextWatchFromSync.value) {
       skipNextWatchFromSync.value = false
-      lastAppliedContent.value = incoming
+      lastAppliedContent.value = normalizeMarkdownLeadingArtifacts(incoming)
       return
     }
     if (isSavingFromEditor) {
-      lastAppliedContent.value = incoming
+      lastAppliedContent.value = normalizeMarkdownLeadingArtifacts(incoming)
       return
     }
-    if (incoming !== lastAppliedContent.value) {
+    if (normalizeMdForCompare(incoming) !== normalizeMdForCompare(lastAppliedContent.value)) {
       // 注意：scheduleSetValue 内部会在 setValue 后自动重新应用主题
       // 关键修复：使用 timeoutMs: 0 立即执行，避免 requestIdleCallback 延迟导致主题应用延迟
       // 这里才是真正的"外部更新"（如打开文件、大纲同步、Tab 切换等），需要回写到编辑器
@@ -3077,12 +3234,12 @@ watch(
     const desired = currentMarkdown.value ?? ''
     // 保存期间禁止 scheduleSetValue，由 isSaveInProgress 统一控制
     if (isSaveInProgress.value) return
-    if (desired !== lastAppliedContent.value) {
+    if (normalizeMdForCompare(desired) !== normalizeMdForCompare(lastAppliedContent.value)) {
       scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 })
     } else if (vditor.value && vditor.value.vditor && vditor.value.vditor.ir) {
       try {
         const currentValue = vditor.value.getValue()
-        if (currentValue !== desired) {
+        if (normalizeMdForCompare(currentValue) !== normalizeMdForCompare(desired)) {
           scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 })
         }
       } catch (error) {
@@ -3345,7 +3502,110 @@ watch(
 
 .context-menu {
   position: fixed;
-  z-index: 1000;
+  z-index: 12000;
+}
+
+/* MetaDoc：Vditor 工具栏按钮质感 */
+.editor :deep(.vditor-toolbar) {
+  background: var(--toolbar-background-color) !important;
+  background-color: var(--toolbar-background-color) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--editor-text-color) 14%, transparent) !important;
+  box-shadow: none !important;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+
+.editor :deep(.vditor-toolbar__item) {
+  margin: 0 1px;
+}
+
+.editor :deep(.vditor-toolbar__item .vditor-menu > button),
+.editor :deep(.vditor-toolbar__item > button) {
+  border-radius: 6px !important;
+  border: 1px solid transparent !important;
+  background: color-mix(in srgb, var(--editor-text-color) 6%, transparent) !important;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.08s ease,
+    box-shadow 0.15s ease;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--editor-text-color) 12%, transparent);
+}
+
+.editor :deep(.vditor-toolbar__item .vditor-menu > button:hover:not(.vditor-menu--disabled)),
+.editor :deep(.vditor-toolbar__item > button:hover:not(.vditor-menu--disabled)) {
+  background: color-mix(in srgb, var(--editor-text-color) 12%, transparent) !important;
+  border-color: color-mix(in srgb, var(--editor-text-color) 10%, transparent) !important;
+}
+
+.editor :deep(.vditor-toolbar__item .vditor-menu > button:active:not(.vditor-menu--disabled)),
+.editor :deep(.vditor-toolbar__item > button:active:not(.vditor-menu--disabled)) {
+  transform: translateY(1px);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--editor-text-color) 18%, transparent) !important;
+}
+
+.editor :deep(.vditor-toolbar__item .vditor-menu--current > button),
+.editor :deep(.vditor-toolbar__item > button.vditor-menu--current) {
+  background: color-mix(in srgb, var(--editor-text-color) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--editor-text-color) 12%, transparent) !important;
+}
+
+.editor :deep(.vditor-toolbar__item .vditor-menu--disabled > button),
+.editor :deep(.vditor-toolbar__item > button.vditor-menu--disabled) {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.editor :deep(.vditor-panel.vditor-hint) {
+  border-radius: 8px !important;
+  border: 1px solid color-mix(in srgb, var(--editor-text-color) 15%, transparent) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, #000000 22%, transparent) !important;
+  overflow: hidden;
+}
+
+.editor :deep(.vditor-panel.vditor-hint button) {
+  border-radius: 6px;
+  margin: 2px 4px;
+  transition: background-color 0.12s ease;
+}
+
+.editor :deep(.vditor-panel.vditor-hint button:hover) {
+  background: color-mix(in srgb, var(--editor-text-color) 10%, transparent) !important;
+}
+
+/* 大纲：圆角行、hover / 当前段、按下（与 SessionList 列表项一致的风格） */
+.editor :deep(.vditor-outline__title) {
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 10px !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--editor-text-color) 12%, transparent) !important;
+}
+
+.editor :deep(.vditor-outline__content li > span) {
+  border-radius: 6px;
+  margin: 2px 6px;
+  padding: 6px 8px !important;
+  transition:
+    background-color 0.15s ease,
+    transform 0.08s ease;
+}
+
+.editor :deep(.vditor-outline__content li > span:hover) {
+  background-color: color-mix(in srgb, var(--editor-text-color) 8%, transparent) !important;
+}
+
+.editor :deep(.vditor-outline__content li > span:active) {
+  transform: scale(0.98);
+}
+
+.editor :deep(.vditor-outline__content li > span.metadoc-outline-row--current) {
+  background-color: color-mix(in srgb, var(--editor-text-color) 13%, transparent) !important;
+}
+
+.editor :deep(.vditor-outline__content li > span .language-math),
+.editor :deep(.vditor-outline__content li > span .katex) {
+  color: inherit;
 }
 
 /* 大纲 + 右侧 resize 条：wrapper 让手柄在滚动条右边，始终可见 */

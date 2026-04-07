@@ -392,7 +392,8 @@ export function registerDragManagerIPC(): void {
             tabData: session.tabData,
             position: cursorPos,
             width,
-            height
+            height,
+            focusMode: !!session.tabData?.sourceFocusMode
           })
 
           if (poolWindow) {
@@ -409,7 +410,8 @@ export function registerDragManagerIPC(): void {
             tabData: session.tabData,
             position: cursorPos,
             width,
-            height
+            height,
+            focusMode: !!session.tabData?.sourceFocusMode
           })
 
           return { action: 'detach' }
@@ -441,7 +443,8 @@ export function registerDragManagerIPC(): void {
                 tabData: session.tabData,
                 position: cursorPos,
                 width,
-                height
+                height,
+                focusMode: !!session.tabData?.sourceFocusMode
               })
 
               if (poolWindow) {
@@ -458,7 +461,8 @@ export function registerDragManagerIPC(): void {
                 tabData: session.tabData,
                 position: cursorPos,
                 width,
-                height
+                height,
+                focusMode: !!session.tabData?.sourceFocusMode
               })
 
               return { action: 'detach' }

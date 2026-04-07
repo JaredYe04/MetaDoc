@@ -7,6 +7,13 @@
 
     <!-- 如果已选择格式，显示文档预览 -->
     <div v-else-if="showDocumentPreview" class="home-panel" :style="panelStyle">
+      <!-- 专注模式下 PDF 提供转换为 MD 编辑的入口 -->
+      <div v-if="isFocusMode && isPdfTab" class="focus-pdf-convert-bar">
+        <span class="focus-pdf-convert-hint">{{ $t('focusMode.pdfPreviewHint') }}</span>
+        <button class="focus-pdf-convert-btn" @click="handleFocusPdfConvert">
+          {{ $t('focusMode.convertToMarkdown') }}
+        </button>
+      </div>
       <HomePdfAdapter v-if="isPdfTab" :pdf-url="pdfUrlForHome" class="home-panel-adapter" />
       <HomeRenderableAdapter
         v-else-if="isRenderableFormat"
@@ -36,6 +43,7 @@
         v-else
         class="home-panel-adapter"
         :markdown="previewMarkdown"
+        :is-loading="isLatexPreviewLoading"
         :link-base="currentLinkBase"
         :doc-path="currentFilePath"
         :meta-title="metaTitle"
@@ -62,6 +70,7 @@ import {
   HomeMarkdownAdapter
 } from './home/adapters'
 import { useHomeDocumentPreview } from './home/useHomeDocumentPreview'
+import { useFocusMode } from '../composables/useFocusMode'
 
 const {
   activeDocument,
@@ -88,6 +97,13 @@ const {
 } = useHomeDocumentPreview({ windowTypeProvider: () => getWindowType() })
 
 const { activeTabId, openSystemTab } = workspace
+const { isFocusMode } = useFocusMode()
+
+const handleFocusPdfConvert = () => {
+  if (activeTabId.value) {
+    eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: activeTabId.value })
+  }
+}
 
 const pdfUrlForHome = computed(() => {
   if (!currentFilePath.value || !isPdfTab.value) return ''
@@ -110,6 +126,7 @@ const plainTextContent = computed(
 )
 
 const previewMarkdown = ref('')
+const isLatexPreviewLoading = ref(false)
 
 const MAX_LATEX_INPUT_EXPAND_DEPTH = 12
 
@@ -244,21 +261,28 @@ watch(
     }
 
     if (doc.format !== 'tex') {
+      isLatexPreviewLoading.value = false
       previewMarkdown.value = doc.markdown ?? ''
       return
     }
 
+    isLatexPreviewLoading.value = true
     const rawTex = doc.tex ?? ''
     const texPath = currentFilePath.value
     let texForPreview = rawTex
 
-    if (rawTex && texPath && messageBridge.getIpc()?.invoke) {
-      const visited = new Set<string>([normalizeFsPath(texPath)])
-      texForPreview = await expandLatexInputs(rawTex, texPath, visited)
+    try {
+      if (rawTex && texPath && messageBridge.getIpc()?.invoke) {
+        const visited = new Set<string>([normalizeFsPath(texPath)])
+        texForPreview = await expandLatexInputs(rawTex, texPath, visited)
+      }
+      if (token !== previewRenderToken) return
+      previewMarkdown.value = convertLatexToMarkdown(texForPreview)
+    } finally {
+      if (token === previewRenderToken) {
+        isLatexPreviewLoading.value = false
+      }
     }
-
-    if (token !== previewRenderToken) return
-    previewMarkdown.value = convertLatexToMarkdown(texForPreview)
   },
   { immediate: true }
 )
@@ -353,5 +377,37 @@ onBeforeUnmount(() => {
     margin: 16px;
     border-radius: 12px;
   }
+}
+
+.focus-pdf-convert-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(79, 140, 255, 0.08);
+  border-bottom: 1px solid rgba(79, 140, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.focus-pdf-convert-hint {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.focus-pdf-convert-btn {
+  padding: 4px 14px;
+  border: 1px solid rgba(79, 140, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(79, 140, 255, 0.1);
+  color: #4f8cff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.focus-pdf-convert-btn:hover {
+  background: rgba(79, 140, 255, 0.18);
+  border-color: rgba(79, 140, 255, 0.5);
 }
 </style>

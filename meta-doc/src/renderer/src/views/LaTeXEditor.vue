@@ -58,6 +58,21 @@
         :document-title="graphQuickDocumentTitle"
         :source-tab-id="props.tabId"
       />
+      <SelectionTranslateDialog
+        v-model:open="selectionTranslateOpen"
+        :source-text="selectionTranslateText"
+        document-kind="latex"
+        :source-tab-id="props.tabId || ''"
+        @apply-replace="onSelectionTranslateReplace"
+      />
+      <ExportOptionsDialog
+        v-model="showCompileOptionsDialog"
+        :adapter="texPdfCompileAdapter"
+        source-format="tex"
+        target-format="pdf"
+        dialog-title-key="latexEditor.compiler.optionsDialogTitle"
+        @confirm="onCompileOptionsConfirm"
+      />
       <AISuggestionGhost
         :key="editorKey"
         :editorId="editorId"
@@ -139,7 +154,7 @@
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <div class="toolbar-icon" @click="toggleRowNumber">
-                        <icon name="numbers-1" />
+                        <ListOrdered class="w-4 h-4" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -151,7 +166,7 @@
                     <TooltipTrigger as-child>
                       <div class="toolbar-icon" @click="toggleMinimap">
                         <el-icon>
-                          <Memo />
+                          <Eye class="w-4 h-4" />
                         </el-icon>
                       </div>
                     </TooltipTrigger>
@@ -165,7 +180,7 @@
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <div class="toolbar-icon" @click="togglePdf">
-                        <icon name="terminal" />
+                        <FileText class="w-4 h-4" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -176,7 +191,7 @@
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <div class="toolbar-icon" @click="toggleConsole">
-                        <icon name="terminal-rectangle" />
+                        <Terminal class="w-4 h-4" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -189,10 +204,10 @@
                         class="toolbar-icon"
                         :class="{ 'is-compiling': isCompiling }"
                         :aria-disabled="isCompiling"
-                        @click="!isCompiling && compile()"
+                        @click="!isCompiling && requestToolbarCompile()"
                       >
                         <RefreshCw v-if="isCompiling" class="w-4 h-4 animate-spin" />
-                        <icon v-else name="code" />
+                        <Code2 v-else class="w-4 h-4" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -279,7 +294,6 @@ import {
 } from 'vue'
 import { ElButton, ElLoading, ElScrollbar } from 'element-plus'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
-import { Icon } from 'tdesign-icons-vue-next'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { Divider } from '@renderer/components/ui/separator'
 
@@ -309,8 +323,12 @@ import ResizableContainer from '../components/base/ResizableContainer.vue'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
 import GraphQuickDialog from '../components/GraphQuickDialog.vue'
+import SelectionTranslateDialog from '../components/SelectionTranslateDialog.vue'
 import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
 import XtermConsoleLatex from '../components/XtermConsoleLatex.vue'
+import ExportOptionsDialog from '../components/ExportOptionsDialog.vue'
+import { exportAdapterRegistry } from '../services/export-adapters'
+import type { ExportOptions, TexPdfCompileExportOptions } from '../services/export-adapters/types'
 
 import { createRendererLogger } from '../utils/logger.ts'
 import { waitForService } from '../utils/service-status.ts'
@@ -320,11 +338,23 @@ import { useWorkspace } from '../stores/workspace'
 import { dirname } from '../utils/path-utils'
 
 import 'monaco-latex'
-import { ArrowLeft, ArrowRight, RefreshCw, ZoomIn, ZoomOut } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  ArrowRight,
+  RefreshCw,
+  ZoomIn,
+  ZoomOut,
+  ListOrdered,
+  Eye,
+  FileText,
+  Terminal,
+  Code2
+} from 'lucide-vue-next'
 import { Loading } from '@element-plus/icons-vue'
 import { debounce } from 'lodash'
 import messageBridge from '../bridge/message-bridge'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
+import type { TextRange } from '../editor/text-editor-types'
 import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config'
 import { createAiTask, ai_types, cancelAiTask } from '../utils/ai_tasks'
@@ -456,6 +486,9 @@ const menuX = ref(0) // 菜单 X 坐标
 const menuY = ref(0) // 菜单 Y 坐标
 const graphQuickDialogOpen = ref(false)
 const graphQuickSelection = ref('')
+const selectionTranslateOpen = ref(false)
+const selectionTranslateText = ref('')
+const selectionTranslateRange = ref<TextRange | null>(null)
 
 // PDF右键菜单
 const pdfContextMenuVisible = ref(false)
@@ -757,6 +790,23 @@ let errorAnalysisWatchStop: (() => void) | null = null
 let currentAiTaskHandle: string | null = null // 当前AI任务的handle
 const enableAiAnalysis = ref(false) // AI分析开关（默认关闭）
 const isCompiling = ref(false) // 编译中状态，防止重复点击
+const showCompileOptionsDialog = ref(false)
+const texPdfCompileAdapter = computed(() => exportAdapterRegistry.get('tex', 'pdf') ?? null)
+
+function requestToolbarCompile() {
+  if (isCompiling.value) return
+  if (isDemo.value) {
+    showCompileOptionsDialog.value = true
+    return
+  }
+  if (!messageBridge.getIpc()) return
+  showCompileOptionsDialog.value = true
+}
+
+function onCompileOptionsConfirm(options: ExportOptions) {
+  showCompileOptionsDialog.value = false
+  void compile(options as TexPdfCompileExportOptions)
+}
 
 // 收集编译过程中的 console 输出
 let compileConsoleOutput: { stdout: string; stderr: string } = { stdout: '', stderr: '' }
@@ -2322,7 +2372,7 @@ function togglePdf() {
   showPdfPanel.value = !showPdfPanel.value
 }
 
-const compile = async () => {
+const compile = async (prefs?: TexPdfCompileExportOptions) => {
   if (!editor.value || isCompiling.value) return
 
   // Demo mode: simulate compilation
@@ -2404,10 +2454,15 @@ const compile = async () => {
 
   try {
     const compileResult: any = await messageBridge.invoke('compile-tex', {
-      tex: currentTex.value,
       texPath: currentPath.value ?? '',
-      outputDir: '', //todo:用户后续可以设置保存在哪
-      customPdfFileName: '' //todo
+      tex: currentTex.value,
+      outputDir: '',
+      customPdfFileName: '',
+      compilerEngine: prefs?.compilerEngine,
+      interactionMode: prefs?.interactionMode,
+      synctex: prefs?.synctex,
+      shellEscape: prefs?.shellEscape,
+      draft: prefs?.draft
     })
 
     editor.value.updateOptions({
@@ -2445,11 +2500,15 @@ const compile = async () => {
         // 忽略 loadPdf 错误，面板已显示，PdfPreviewPanel 会自行加载
       }
     } else {
+      const exitCode = compileResult?.exitCode ?? compileResult?.code
+      const stderrRaw =
+        typeof compileResult?.stderr === 'string' ? compileResult.stderr.trim() : ''
+      const stderrSnippet =
+        stderrRaw.length > 320 ? `${stderrRaw.slice(0, 320)}…` : stderrRaw
+      const baseMsg = t('latexEditor.notification.compileFailed', { code: exitCode })
       eventBus.emit(
         'show-error',
-        t('latexEditor.notification.compileFailed', {
-          code: compileResult?.exitCode || compileResult?.code
-        })
+        stderrSnippet ? `${baseMsg}\n${stderrSnippet}` : baseMsg
       )
 
       // 如果编译失败，使用AI分析错误（在移除监听器之前调用，确保能收集到所有输出）
@@ -2478,6 +2537,17 @@ const compile = async () => {
 
     editor.value.updateOptions({
       readOnly: false
+    })
+
+    const msg = error instanceof Error ? error.message : String(error)
+    eventBus.emit(
+      'show-error',
+      t('latexEditor.notification.compileInvokeFailed', { message: msg })
+    )
+    eventBus.emit('console-err', {
+      key: 'latex',
+      content: `${msg}\n`,
+      type: 'err'
     })
 
     logger.error('编译过程出错', error)
@@ -3382,6 +3452,26 @@ const handleMenuClick = async (item: string) => {
     case 'insert-graph':
       await handleInsertGraph()
       break
+    case 'translate-selection': {
+      const text = selectionTranslateText.value.trim()
+      const range = selectionTranslateRange.value
+      if (!text) {
+        eventBus.emit(
+          'show-warning',
+          t('selectionTranslate.noSelection', '请先选中要翻译的文本')
+        )
+        break
+      }
+      if (!range) {
+        eventBus.emit(
+          'show-warning',
+          t('selectionTranslate.cannotLocateRange', '无法定位选区，请重试')
+        )
+        break
+      }
+      selectionTranslateOpen.value = true
+      break
+    }
     case 'quick-graph-from-selection': {
       const sel = getLatexEditorSelectionText().trim()
       if (!sel) {
@@ -3893,11 +3983,26 @@ function scrollConsoleToBottom() {
 }
 
 const refreshContextMenu = async () => {
-  const hasTextSelection = getLatexEditorSelectionText().trim().length > 0
+  const sel = getLatexEditorSelectionText().trim()
+  const hasTextSelection = sel.length > 0
   articleContextMenuItems.value = (await getArticleContextMenuItems({
     isLatexEditor: true,
     hasTextSelection
   })) as any[]
+  if (hasTextSelection) {
+    selectionTranslateText.value = sel
+    selectionTranslateRange.value = textEditorAdapter.value?.getSelectionRange?.() ?? null
+  } else {
+    selectionTranslateText.value = ''
+    selectionTranslateRange.value = null
+  }
+}
+
+function onSelectionTranslateReplace(text: string) {
+  const range = selectionTranslateRange.value
+  const adapter = textEditorAdapter.value
+  if (!range || !adapter || !text) return
+  adapter.replaceRange(range, text)
 }
 
 const handleInsertGraph = async () => {

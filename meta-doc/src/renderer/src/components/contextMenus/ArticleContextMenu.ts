@@ -50,10 +50,16 @@ export async function getArticleContextMenuItems(
       { type: 'divider' }
     )
     if (hasTextSelection) {
-      items.push({
-        label: 'contextMenu.generateIllustrationFromSelection',
-        value: 'quick-graph-from-selection'
-      })
+      items.push(
+        {
+          label: 'contextMenu.translateSelection',
+          value: 'translate-selection'
+        },
+        {
+          label: 'contextMenu.generateIllustrationFromSelection',
+          value: 'quick-graph-from-selection'
+        }
+      )
     } else {
       items.push({ label: 'contextMenu.insertGraph', value: 'insert-graph' })
     }

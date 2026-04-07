@@ -97,6 +97,13 @@
         :document-title="graphQuickDocumentTitle"
         :source-tab-id="props.tabId"
       />
+      <SelectionTranslateDialog
+        v-model:open="selectionTranslateOpen"
+        :source-text="selectionTranslateText"
+        document-kind="markdown"
+        :source-tab-id="props.tabId || ''"
+        @apply-replace="onSelectionTranslateReplace"
+      />
       <AISuggestionGhost
         v-if="vditor"
         format="md"
@@ -179,11 +186,12 @@ import { VditorEditorAdapter } from '../utils/editor-adapters'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
 import GraphQuickDialog from '../components/GraphQuickDialog.vue'
+import SelectionTranslateDialog from '../components/SelectionTranslateDialog.vue'
 import { useWorkspace } from '../stores/workspace'
 import type { ArticleMetaData, DocumentOutlineNode } from '../../../types'
 import { debounce } from 'lodash'
 import { createVditorAdapter } from '../editor/vditor-adapter'
-import type { TextEditorAdapter } from '../editor/text-editor-types'
+import type { TextEditorAdapter, TextRange } from '../editor/text-editor-types'
 import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { TitleIndex } from '../utils/title-index'
 
@@ -579,6 +587,9 @@ const menuX = ref(0) // 菜单 X 坐标
 const menuY = ref(0) // 菜单 Y 坐标
 const graphQuickDialogOpen = ref(false)
 const graphQuickSelection = ref('')
+const selectionTranslateOpen = ref(false)
+const selectionTranslateText = ref('')
+const selectionTranslateRange = ref<TextRange | null>(null)
 
 const vditorEl = ref<HTMLElement | null>(null)
 const lastAppliedContent = ref('')
@@ -911,6 +922,26 @@ const handleMenuClick = async (item: string) => {
     case 'insert-graph':
       await handleInsertGraph()
       break
+    case 'translate-selection': {
+      const text = selectionTranslateText.value.trim()
+      const range = selectionTranslateRange.value
+      if (!text) {
+        eventBus.emit(
+          'show-warning',
+          t('selectionTranslate.noSelection', '请先选中要翻译的文本')
+        )
+        break
+      }
+      if (!range) {
+        eventBus.emit(
+          'show-warning',
+          t('selectionTranslate.cannotLocateRange', '无法定位选区，请重试')
+        )
+        break
+      }
+      selectionTranslateOpen.value = true
+      break
+    }
     case 'quick-graph-from-selection': {
       const sel = getMarkdownEditorSelectionText().trim()
       if (!sel) {
@@ -2101,8 +2132,23 @@ const handleTab = (event: KeyboardEvent) => {
 }
 
 const refreshContextMenu = async () => {
-  const hasTextSelection = getMarkdownEditorSelectionText().trim().length > 0
+  const sel = getMarkdownEditorSelectionText().trim()
+  const hasTextSelection = sel.length > 0
   articleContextMenuItems.value = await getArticleContextMenuItems({ hasTextSelection })
+  if (hasTextSelection) {
+    selectionTranslateText.value = sel
+    selectionTranslateRange.value = textEditorAdapter.value?.getSelectionRange?.() ?? null
+  } else {
+    selectionTranslateText.value = ''
+    selectionTranslateRange.value = null
+  }
+}
+
+function onSelectionTranslateReplace(text: string) {
+  const range = selectionTranslateRange.value
+  const adapter = textEditorAdapter.value
+  if (!range || !adapter || !text) return
+  adapter.replaceRange(range, text)
 }
 
 // 编辑器初始化

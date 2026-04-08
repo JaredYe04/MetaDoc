@@ -2,10 +2,47 @@ import { resolve } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 
+/** Rollup 的 id 在 Windows 上也可能含反斜杠，统一后再匹配 */
+function nm(id) {
+  return id.split('\\').join('/')
+}
+
+/**
+ * 将超大依赖拆成独立 chunk，降低单次打包时 Rollup/V8 的峰值内存（对弱机器更友好）。
+ * 仅匹配 node_modules，其余走默认分包策略。
+ */
+function metaDocRendererManualChunks(id) {
+  const x = nm(id)
+  if (!x.includes('/node_modules/')) return
+  if (x.includes('/node_modules/monaco-editor/') || x.includes('/node_modules/monaco-')) {
+    return 'chunk-monaco'
+  }
+  if (x.includes('/node_modules/mermaid/')) return 'chunk-mermaid'
+  if (x.includes('/node_modules/echarts/') || x.includes('/node_modules/zrender/')) {
+    return 'chunk-echarts'
+  }
+  if (x.includes('/node_modules/pdfjs-dist/')) return 'chunk-pdfjs'
+  if (x.includes('/node_modules/three/')) return 'chunk-three'
+  if (x.includes('/node_modules/ag-grid')) return 'chunk-ag-grid'
+  if (x.includes('/node_modules/vditor/')) return 'chunk-vditor'
+  if (x.includes('/node_modules/md-editor-v3/')) return 'chunk-md-editor'
+  if (x.includes('/node_modules/tdesign-vue-next/') || x.includes('/node_modules/tdesign-icons-vue-next/')) {
+    return 'chunk-tdesign'
+  }
+  if (x.includes('/node_modules/d3/') || x.includes('/node_modules/d3-')) return 'chunk-d3'
+  if (x.includes('/node_modules/natural/')) return 'chunk-natural'
+  if (x.includes('/node_modules/tesseract.js/')) return 'chunk-tesseract'
+  if (x.includes('/node_modules/@codemirror/') || x.includes('/node_modules/codemirror/')) {
+    return 'chunk-codemirror'
+  }
+}
+
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     build: {
+      // 关闭构建结束时的 gzip 体积统计，可显著降低内存与耗时
+      reportCompressedSize: false,
       rollupOptions: {
         // 双入口：bootstrap 先做单实例检测再加载 index，减少第二实例无谓加载
         input: {
@@ -21,7 +58,10 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      reportCompressedSize: false
+    }
   },
   renderer: {
     base: './',
@@ -59,12 +99,14 @@ export default defineConfig({
     build: {
       chunkSizeWarningLimit: 1000, // 增大警告阈值，因为monaco-editor等库本身就很大
       assetsInlineLimit: 0, // 不内联字体文件（TTF太大）
+      reportCompressedSize: false,
       rollupOptions: {
         input: {
           index: resolve('src/renderer/index.html'),
           skeleton: resolve('src/renderer/skeleton.html')
         },
         output: {
+          manualChunks: metaDocRendererManualChunks,
           assetFileNames: (assetInfo) => {
             const info = assetInfo.name.split('.')
             const ext = info[info.length - 1]

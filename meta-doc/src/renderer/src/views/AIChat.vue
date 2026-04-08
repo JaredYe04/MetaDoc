@@ -65,7 +65,6 @@
                 class="conversation-bottom-spacer"
                 :class="{ 'has-references': referenceStore && referenceStore.length > 0 }"
               />
-              <ScrollBar />
             </ScrollArea>
             <div class="composer-wrapper">
               <ReferenceDisplay
@@ -158,7 +157,7 @@ import MessageBubble from '../components/MessageBubble.vue'
 //import { bindCode } from "../assets/aichat_legacy/utils";
 import SessionList from '../components/common/SessionList.vue'
 import { Button } from '@renderer/components/ui/button'
-import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
   Dialog,
@@ -1200,17 +1199,20 @@ const handleSessionDelete = (item: SessionListItem) => {
   padding-right: 4px;
 }
 
-.conversation-scroll :deep([data-radix-scroll-area-viewport]) {
+.conversation-scroll :deep([data-reka-scroll-area-viewport]) {
   overflow-x: hidden;
 }
 
+/* 与 AgentView 一致：为底部绝对定位的 composer 预留可滚动空白，避免挡住最后一条消息 */
 .conversation-bottom-spacer {
-  height: 120px;
+  height: 10vh;
   flex-shrink: 0;
+  min-height: 140px;
 }
 
 .conversation-bottom-spacer.has-references {
-  height: 160px; /* 如果有引用列表，增加底部空间 */
+  height: 15vh;
+  min-height: 200px;
 }
 
 .composer-wrapper {

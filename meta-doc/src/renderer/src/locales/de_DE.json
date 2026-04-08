@@ -57,7 +57,14 @@
     "selectDocumentTitle": "Dokument zum Einfügen auswählen",
     "sendTooltip": "Nachricht senden",
     "today": "Heute",
-    "yesterday": "Gestern"
+    "yesterday": "Gestern",
+    "deselectAll": "Alle abwählen",
+    "insertingToManyDocuments": "Wird in {n} Dokumente eingefügt...",
+    "pickDocToInsert": "Bitte wählen Sie das einzufügende Dokument aus",
+    "queueSendTooltip": "Zur Sendewarteschlange hinzufügen",
+    "reasoningToggleTooltip": "Tiefes Nachdenken",
+    "selectAll": "Alle auswählen",
+    "selectedDocCount": "{n} Dokumente ausgewählt"
   },
   "aiTask": {
     "cancel": "Abbrechen",
@@ -350,7 +357,13 @@
     },
     "logSaveFailed": "Protokollspeicherung fehlgeschlagen",
     "cdFailed": "Verzeichniswechsel fehlgeschlagen",
-    "invalidArgument": "Ungültiges Argument"
+    "invalidArgument": "Ungültiges Argument",
+    "closeSession": "Sitzung schließen",
+    "compileSessionLimit": "Kompilierungsinformationen beibehalten",
+    "newSession": "Neue Sitzung",
+    "scrollToNextCommand": "Zum nächsten Befehl scrollen",
+    "scrollToPreviousCommand": "Zum vorherigen Befehl scrollen",
+    "shell": "Shell"
   },
   "selectionTranslate": {
     "title": "Auswahl übersetzen",
@@ -381,7 +394,9 @@
     "translateSelection": "Auswahl übersetzen",
     "insertGraph": "Diagramm einfügen",
     "redo": "Wiederholen",
-    "undo": "Rückgängig"
+    "undo": "Rückgängig",
+    "addSelectionToAgent": "Zum Agenten-Dialog hinzufügen",
+    "generateIllustrationFromSelection": "Auswahl als Illustration generieren"
   },
   "formulaRecognition": {
     "brush_size": "Pinselstärke",
@@ -646,6 +661,18 @@
       "p98": "🍜 Meal-Prep-Ideen für eine Woche",
       "p99": "🎓 Typischer Aufbau eines Exposés",
       "p100": "🌙 Beispiel-Tagesplan mit Pomodoro"
+    },
+    "suggestion": {
+      "apiDocumentation": "API-Dokumentation",
+      "blogPost": "Blogbeitrag",
+      "meetingMinutes": "Protokoll",
+      "productIntroduction": "Produktvorstellung",
+      "projectSummary": "Projektzusammenfassung",
+      "releaseNotes": "Versionshinweise",
+      "researchOutline": "Forschungsgliederung",
+      "technicalTutorial": "Technisches Tutorial",
+      "userGuide": "Benutzerhandbuch",
+      "weeklyReport": "Wochenbericht"
     }
   },
   "mainTabs": {
@@ -775,7 +802,10 @@
     "settingsPanel:": "Einstellungsfenster",
     "smartDrawingAssistant:": "Intelligenter Zeichenassistent",
     "workspaceExplorer:": "Arbeitsverzeichnis",
-    "workspaceGrep:": "Arbeitsbereich durchsuchen"
+    "workspaceGrep:": "Arbeitsbereich durchsuchen",
+    "addFolderToWorkspace": "Ordner zum Arbeitsbereich hinzufügen",
+    "closeWorkspace": "Aktuellen Arbeitsbereich schließen",
+    "openWorkspace": "Arbeitsbereich öffnen"
   },
   "llmDialog": {
     "acceptTooltip": "Akzeptieren",
@@ -1164,7 +1194,8 @@
         "zoomOut": "Verkleinern",
         "zoomReset": "Zoom zurücksetzen",
         "toggleFocusMode": "Fokusmodus umschalten"
-      }
+      },
+      "keyBindings": "Tastenkürzel"
     },
     "chatSuffix": "URL-Suffix für Chat-Vervollständigung (optional)",
     "chooseLlm": "Sprachmodell auswählen",
@@ -1492,7 +1523,17 @@
       "startupProfile": "Startzeitanalyse",
       "startupProfileHint": "Setzen Sie ENABLE_STARTUP_PROFILE=1 beim Start, um die Dauer der einzelnen Phasen zu erfassen. Hauptprozessdaten werden über IPC abgerufen, Renderer-Daten stammen von den Zeitmarken dieses Ladevorgangs.",
       "startupProfileMain": "Hauptprozess",
-      "startupProfileRenderer": "Renderer-Prozess"
+      "startupProfileRenderer": "Renderer-Prozess",
+      "exportFixtureBatch": "Batch-Export von Testfällen",
+      "exportFixtureBatchIntro": "Durchsucht das \"Beispielverzeichnis\" nach md / json / py / vue / html / png / tex und erzeugt für jede Datei PDF und DOCX über dieselbe Export-Pipeline wie die Hauptoberfläche. Jede Quelldatei erhält im \"Ausgabeverzeichnis\" einen eigenen Unterordner, benannt nach dem vollständigen Dateinamen (mit Erweiterung), z.B. sample.vue, sample.py, um Überschreibungen bei gleichem Namen aber unterschiedlicher Erweiterung zu vermeiden. Standardpfade sind debug-export/fixtures und debug-export/output im Repository (output ist in .gitignore und wird nicht eingecheckt).",
+      "exportFixtureComplete": "Batch-Export abgeschlossen",
+      "exportFixtureFixturesDir": "Beispielverzeichnis",
+      "exportFixtureNoFiles": "Keine exportierbaren Dateien im Beispielverzeichnis gefunden (Erweiterung muss md, json, py, vue, html, png oder tex sein)",
+      "exportFixtureOutputDir": "Ausgabeverzeichnis",
+      "exportFixtureReadDirFail": "Beispielverzeichnis konnte nicht gelesen werden: {msg}",
+      "exportFixtureResolveFail": "Datei konnte nicht als Exportdokument verarbeitet werden",
+      "exportFixtureRun": "PDF + DOCX mit einem Klick exportieren",
+      "exportFixtureRunning": "Export läuft… ({current} / {total})"
     },
     "autoCompletionMaxTokens": "Maximale Tokenzahl für Autovervollständigung",
     "autoCompletionMaxTokensHint": "Begrenzt die maximale Tokenzahl für die KI-Autovervollständigung. Minimum 20, 0 bedeutet unbegrenzt.",
@@ -1801,7 +1842,50 @@
     "configDescription": "Beschreibung",
     "configDescriptionPlaceholder": "Optional, zur Anzeige einer Notiz auf der Karte",
     "copyConfig": "Konfiguration kopieren",
-    "copyConfigSuccess": "Konfiguration kopiert"
+    "copyConfigSuccess": "Konfiguration kopiert",
+    "builtinFreeApiKeyHint": "Der Standard-Key für das integrierte kostenlose Modell unterstützt kein Kopieren und dient nur für ein sehr geringes kostenloses Kontingent. Es wird empfohlen, Ihren eigenen LLM-API-Key zu konfigurieren.",
+    "builtinFreeConfigCannotCopy": "Die Konfiguration des integrierten kostenlosen Modells kann nicht kopiert werden.",
+    "builtinFreeConfigCannotExport": "Die Konfiguration des integrierten kostenlosen Modells kann nicht exportiert werden.",
+    "defaultConfigBuiltinFree": "Kostenloses Modell (integriert)",
+    "llmApiErrorDialog": "LLM-Fehlerdialog",
+    "llmApiErrorDialogHint": "Zeigt bei einem LLM-API-Fehler ein Dialogfenster mit der aktuellen Konfiguration an und leitet zur Handbuchkonsultation an.",
+    "readFileFailed": "Datei konnte nicht gelesen werden",
+    "cleanupExpiredFiles": "Abgelaufene Dateien bereinigen",
+    "cleanupExpiredHintAgentOnly": "Hier wird nur der aktuelle Arbeitsbereich beeinflusst: \"Abgelaufene Dateien bereinigen\" bereinigt Anhänge in diesem Arbeitsbereich gemäß den Regeln; die rote Schaltfläche leert nur .metadoc/attachments und lässt das globale Referenzverzeichnis unberührt.",
+    "cleanupExpiredHintGlobalWithWorkspace": "\"Abgelaufene Dateien bereinigen\" verarbeitet globale und Arbeitsbereichsdateien gemäß den obigen Regeln; \"Alle Caches leeren\" leert gleichzeitig das globale Referenzverzeichnis und .metadoc/attachments im aktuellen Arbeitsbereich.",
+    "cleanupExpiredHintNoWorkspace": "Löscht abgelaufene Dateien gemäß der oben festgelegten \"Älter als N Tage\"-Regel; \"Alle Caches leeren\" leert nur das globale Referenzverzeichnis (da kein Arbeitsbereichsordner vorhanden ist, werden keine Arbeitsbereichsanhänge bereinigt).",
+    "cleanupExpiredSectionTitle": "Abgelaufene Dateien bereinigen",
+    "clearAgentAttachmentsConfirm": "Sind Sie sicher, dass Sie das Agent-Anhangsverzeichnis im aktuellen Arbeitsbereich leeren möchten? Dieser Vorgang löscht alle Dateien in .metadoc/attachments und kann nicht rückgängig gemacht werden.",
+    "clearAgentAttachmentsDir": "Anhangsverzeichnis leeren",
+    "clearAgentAttachmentsFailed": "Leeren der Arbeitsbereichsanhänge fehlgeschlagen",
+    "clearAgentAttachmentsSuccess": "Arbeitsbereichs-Anhangsverzeichnis wurde geleert",
+    "clearAgentWorkspaceOnly": "Arbeitsbereichsanhänge leeren",
+    "clearAllReferenceCaches": "Alle Caches leeren",
+    "clearAllReferenceCachesConfirmFull": "Dadurch wird das globale Referenzverzeichnis geleert und alle Anhänge unter .metadoc/attachments im aktuellen Arbeitsbereich gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden. Fortfahren?",
+    "clearAllReferenceCachesConfirmGlobalOnly": "Dadurch wird das globale Referenzverzeichnis geleert (da kein Arbeitsbereich vorhanden ist, werden keine Arbeitsbereichsanhänge bereinigt). Dieser Vorgang kann nicht rückgängig gemacht werden. Fortfahren?",
+    "clearAllReferenceCachesFailed": "Leeren des Caches fehlgeschlagen",
+    "clearAllReferenceCachesSuccess": "Alle relevanten Caches wurden geleert",
+    "referenceAgentAutoPrune": "Automatische Bereinigung von Arbeitsbereichsanhängen (älter als)",
+    "referenceAgentNoWorkspace": "Anhänge können ohne ausgewählten Arbeitsbereich hier nicht gezählt oder bereinigt werden.",
+    "referenceAgentSection": "Agent-Arbeitsbereichsanhänge",
+    "referenceAgentSectionDesc": "Sitzungsanhänge im aktuellen Arbeitsbereich unter .metadoc/attachments (werden über Pfad für Werkzeuge bereitgestellt).",
+    "referenceAutoPrune14d": "Vor 14 Tagen",
+    "referenceAutoPrune180d": "Vor einem halben Jahr (180 Tage)",
+    "referenceAutoPrune1d": "Vor 1 Tag",
+    "referenceAutoPrune30d": "Vor 30 Tagen",
+    "referenceAutoPrune365d": "Vor einem Jahr (365 Tage)",
+    "referenceAutoPrune3d": "Vor 3 Tagen",
+    "referenceAutoPrune7d": "Vor 7 Tagen",
+    "referenceAutoPrune90d": "Vor 90 Tagen",
+    "referenceAutoPruneOff": "Deaktiviert",
+    "referenceGlobalAutoPrune": "Automatische Bereinigung (älter als)",
+    "referenceGlobalSection": "Globales Referenzverzeichnis",
+    "referenceGlobalSectionDesc": "Referenz-Cache im Anwendungsdatenverzeichnis (z.B. temporäre Dateien beim Parsen von Uploads).",
+    "referencePruneDone": "Abgelaufene Referenzdateien wurden gemäß Regel bereinigt.",
+    "referencePruneFailed": "Bereinigung fehlgeschlagen",
+    "referencePruneNoRule": "Bitte setzen Sie zuerst unter \"Automatische Bereinigung\" mindestens eine Option (global oder Arbeitsbereich) auf \"älter als N Tage\" (oder verwenden Sie direkt \"Gesamten Cache leeren\").",
+    "resetConfigSuccess": "Wurde auf voreingestellten Zustand zurückgesetzt",
+    "resetConfigToPreset": "Auf voreingestellten Zustand zurücksetzen"
   },
   "titleMenu": {
     "contextMarks": {
@@ -2663,7 +2747,8 @@
       "none": "Wählen Sie eine Unterhaltung aus oder erstellen Sie eine neue, um zu beginnen.",
       "tools": "{count} Werkzeuge aktiv",
       "references": "{count} Referenzen vorhanden",
-      "referencesTooltip": "Zum Verwalten der Referenzen klicken"
+      "referencesTooltip": "Zum Verwalten der Referenzen klicken",
+      "openToolsDialog": "Klicken, um die Liste der verfügbaren Tools anzuzeigen"
     },
     "roles": {
       "assistant": "Assistent",
@@ -2701,7 +2786,8 @@
       "atLeastOneRequired": "Mindestens eine Sitzung muss beibehalten werden",
       "noAgentConfig": "Sitzung ist nicht mit Agent-Konfiguration verknüpft",
       "engineNotFound": "Ausgewählte Engine nicht gefunden",
-      "agentConfigNotFound": "Agent-Konfiguration nicht gefunden"
+      "agentConfigNotFound": "Agent-Konfiguration nicht gefunden",
+      "alreadyGenerating": "Eine Antwort wird bereits für diese Sitzung generiert. Bitte versuchen Sie es später erneut."
     },
     "tool": {
       "status": {
@@ -3184,7 +3270,15 @@
         "hideContent": "Vollständigen Inhalt ausblenden",
         "linesRange": "Zeilen {start}–{end} (von {total} Zeilen)",
         "totalLines": "{count} Zeilen insgesamt",
-        "error": "Fehler beim Lesen der Arbeitsbereichsdateien"
+        "error": "Fehler beim Lesen der Arbeitsbereichsdateien",
+        "targetPath": "Zielpfad",
+        "truncated": "Abgeschnitten",
+        "directoryListing": "Verzeichnisliste",
+        "directoryListingsCount": "{count} Verzeichnislisten",
+        "entries": "Einträge",
+        "message": "Hinweis",
+        "operationsCount": "{count} Operationen",
+        "operationsTitle": "Datei-/Verzeichnisoperationsergebnis"
       },
       "edit": {
         "completed": "Bearbeitung abgeschlossen",
@@ -3413,7 +3507,9 @@
         "toolCollectionHint:": "Bei mehreren Werkzeugsammlungen werden die Schnittmengen der verfügbaren Werkzeuge verwendet.",
         "isSubagent": "Als Subagent",
         "isSubagentHint": "Wenn aktiviert, wird diese Konfiguration wie ein Werkzeug für den Haupt-Agent verfügbar gemacht. Der Haupt-Agent kann den Subagent über Werkzeugaufrufe ausführen, um Unteraufgaben parallel zu erledigen. Standard-Agent-Konfigurationen können nicht als Subagent festgelegt werden.",
-        "isSubagentLabel": "Als Subagent (nur vom Haupt-Agent aufrufbar)"
+        "isSubagentLabel": "Als Subagent (nur vom Haupt-Agent aufrufbar)",
+        "setAsDefault": "Als Standard festlegen",
+        "setAsDefaultSuccess": "Als Standardkonfiguration für neue Sitzungen festgelegt"
       },
       "agentEngine": {
         "title": "Agent-Engine-Verwaltung",
@@ -3465,7 +3561,110 @@
         "builtIn:": "Integriert (Built-in)",
         "cannotDeleteBuiltIn:": "Integrierte (Built-in) Engine kann nicht gelöscht werden",
         "cannotEditBuiltIn:": "Integrierte (Built-in) Engine kann nicht bearbeitet werden"
-      }
+      },
+      "capabilities": {
+        "title": "Regeln, Fähigkeiten und MCP-Tools",
+        "titleMcp": "MCP-Tool-Verwaltung",
+        "titleRules": "Regelverwaltung",
+        "titleSkills": "Fähigkeitsverwaltung",
+        "activate": "Aktivieren",
+        "addRule": "Neue Regel erstellen",
+        "aiAssistCreate": "Mit KI-Unterstützung erstellen",
+        "aiSessionTitleRule": "Neue Regel (KI)",
+        "aiSessionTitleSkill": "Neue Fähigkeit (KI)",
+        "applyMetadataToDoc": "Formular in Dokument schreiben (Frontmatter aktualisieren)",
+        "approve": "Genehmigen",
+        "colApproval": "Genehmigung",
+        "colDescription": "Beschreibung",
+        "colEnabled": "Aktiviert",
+        "colFolder": "Ordner",
+        "colName": "Name",
+        "colPermission": "Berechtigung",
+        "colPriority": "Priorität",
+        "colScope": "Bereich",
+        "colServer": "Server",
+        "colStatus": "Status",
+        "colTitle": "Titel",
+        "colTool": "Werkzeug",
+        "confirmDeleteRule": "Regel \"{title}\" wirklich löschen?",
+        "confirmDeleteSkill": "Fähigkeit \"{name}\" wirklich löschen? Der gesamte Fähigkeitsordner (inkl. SKILL.md) wird gelöscht.",
+        "editRule": "Regel bearbeiten",
+        "editSkill": "Fähigkeit bearbeiten",
+        "loadFailed": "Laden fehlgeschlagen",
+        "mcpActiveUrl": "Aktuelle Verbindung",
+        "mcpAddConnection": "Verbindung hinzufügen",
+        "mcpBaseUrl": "Verbindungs-URL",
+        "mcpConfigColMessage": "Nachricht",
+        "mcpConfigColServer": "Dienst",
+        "mcpConfigColStatus": "Status",
+        "mcpConfigColTools": "Anzahl Werkzeuge",
+        "mcpConfigExport": "JSON exportieren",
+        "mcpConfigImport": "JSON importieren",
+        "mcpConfigIntro": "Verwenden Sie eine einzelne JSON-Konfigurationsdatei (im Stil von Cursor/Claude Desktop): Obenstehend \"mcpServers\", jeder Eintrag ist stdio (command + args) oder HTTP (url). Änderungen werden automatisch gespeichert. Klicken Sie auf \"Synchronisieren\", um Verbindungen zu den Diensten herzustellen und das lokale Register zu aktualisieren: Entfernte Dienste werden gelöscht, erfolgreich verbundene Dienste aktualisieren ihre Werkzeugliste. Links der Konfigurationseditor, rechts der Baum der registrierten Werkzeuge; klicken Sie auf einen Werkzeugnamen für Details.",
+        "mcpConfigPath": "Pfad zur Konfigurationsdatei",
+        "mcpConfigProbe": "Konnektivität prüfen",
+        "mcpConfigProbeDone": "Konnektivitätsprüfung abgeschlossen",
+        "mcpConfigProbeFailed": "Konnektivitätsprüfung fehlgeschlagen",
+        "mcpConfigProbeTitle": "Konnektivitätsergebnis",
+        "mcpConfigSaveFailed": "Automatische Speicherung fehlgeschlagen",
+        "mcpConfigSavedAt": "Automatisch gespeichert ({time})",
+        "mcpConfigStatusFail": "Fehlgeschlagen",
+        "mcpConfigStatusOk": "OK",
+        "mcpConfigStructureErrors": "Konfigurationsstrukturvalidierung nicht bestanden",
+        "mcpConfigSyncDone": "{n} Werkzeuge in die Registrierung synchronisiert",
+        "mcpConfigSyncTools": "Werkzeuge in Bibliothek synchronisieren",
+        "mcpConnections": "MCP-Verbindungen",
+        "mcpDeleteConnection": "Löschen",
+        "mcpEditConnection": "MCP-Verbindung bearbeiten",
+        "mcpHint": "Die folgenden Einträge wurden von der MCP-Adapterebene registriert (syncMcpToolsToRegistry). Die Liste kann leer sein, wenn keine MCP-Verbindung besteht.",
+        "mcpLabel": "Anzeigename",
+        "mcpRefreshTools": "Werkzeugliste aktualisieren",
+        "mcpSaveConnection": "Speichern",
+        "mcpSetActive": "Als aktuell festlegen",
+        "mcpSyncButton": "Synchronisieren",
+        "mcpSyncPartial": "{n} Werkzeuge geschrieben; Verbindung oder Abruf für folgende Dienste fehlgeschlagen: {servers}",
+        "mcpSyncUnknownServer": "(Unbekannt)",
+        "mcpToolDetailInputSchema": "Eingabe-JSON-Schema",
+        "mcpToolsTreeEmpty": "Noch keine registrierten Werkzeuge. Bitte bearbeiten Sie die linke Konfiguration und klicken Sie auf \"Synchronisieren\".",
+        "mcpToolsTreeHint": "Registrierte Werkzeuge (nach MCP-Dienst gruppiert; klicken Sie auf den Werkzeugnamen für Details)",
+        "menuMcp": "MCP-Werkzeugverwaltung",
+        "menuRules": "Regelverwaltung",
+        "menuSkills": "Skill-Verwaltung",
+        "menuTitle": "Regel- / Skill- / MCP-Verwaltung",
+        "newSkill": "Neuen Skill erstellen",
+        "noWorkspace": "Bitte fügen Sie zuerst einen Arbeitsbereichsordner hinzu, um .metadoc/skills zu scannen.",
+        "openFolderFailed": "Ordner konnte nicht geöffnet werden",
+        "openSkillFolder": "Im Explorer öffnen",
+        "priorityHint": "Bereich 0–100, höhere Zahl = höhere Priorität (wird zuerst in Systemprompt injiziert). Standard bei Neuerstellung ist 90.",
+        "refresh": "Aktualisieren",
+        "refreshSkillsList": "Liste aktualisieren (zuerst Festplatte synchronisieren)",
+        "reject": "Ablehnen",
+        "ruleContent": "Regeltext",
+        "saveFailed": "Vorgang fehlgeschlagen",
+        "saveOk": "Gespeichert",
+        "skillDescription": "Beschreibung (Frontmatter)",
+        "skillDraft": "Entwurf (draft)",
+        "skillEntry": "Einstiegsdatei",
+        "skillFolder": "Skill-Verzeichnisname",
+        "skillFolderPlaceholder": "z.B. my-skill",
+        "skillReadFailed": "SKILL.md konnte nicht gelesen werden",
+        "skillSavedReindexed": "Gespeichert und Index/Vektoren aktualisiert",
+        "skillTags": "Tags",
+        "skillTagsHint": "Komma-getrennt, z.B. a, b",
+        "skillWorkspace": "Arbeitsbereichs-Stammverzeichnis",
+        "skillsDbOnly": "Nur Datenbank laden",
+        "skillsRefreshHint": "\"Aktualisieren\" synchronisiert zuerst .metadoc/skills auf der Festplatte und lädt dann die Skill-Liste aus der Datenbank.",
+        "syncDone": "{scanned} Skill-Verzeichnisse gescannt, {upserted} Vektoren aktualisiert",
+        "syncFormFromEditor": "Von Textkörper zu Formular synchronisieren",
+        "syncMetaFromBody": "Formular basierend auf dem untenstehenden Textkörper aktualisieren",
+        "syncMetaFromForm": "Textkörper basierend auf dem obenstehenden Formular aktualisieren",
+        "syncMetaMenu": "Metadaten synchronisieren",
+        "syncSkills": "Skill-Index aus Arbeitsbereich synchronisieren",
+        "tabMcp": "MCP-Werkzeuge",
+        "tabRules": "Regeln",
+        "tabSkills": "Skills"
+      },
+      "settingsMenu": "Agent-Einstellungen"
     },
     "message": {
       "edit": "Bearbeiten",
@@ -3486,14 +3685,22 @@
       "noToolsNeeded": "Für diese Anfrage sind keine Tools erforderlich.",
       "reasoning": "Überlegungen:",
       "confirmRegenerate": "Die Neuberechnung löscht alle Inhalte nach dieser Nachricht (einschließlich KI-Antworten, Tool-Aufrufe, Intent-Erkennung etc.) und generiert sie basierend auf dieser Nutzernachricht neu. Fortfahren?",
-      "confirmRegenerateTitle": "Neuberechnung bestätigen"
+      "confirmRegenerateTitle": "Neuberechnung bestätigen",
+      "reasoningBlock": "Denkprozess"
     },
     "attachment": {
       "untitled": "Unbenannt"
     },
     "composer": {
       "atTagRemove": "Entfernen",
-      "attachmentsOnlyUserMessage": "Bitte antworten Sie anhand der angehängten Referenzen."
+      "attachmentsOnlyUserMessage": "Bitte antworten Sie anhand der angehängten Referenzen.",
+      "queuedHint": "Zur Warteschlange hinzugefügt. Wird automatisch gesendet, nachdem die aktuelle Runde abgeschlossen ist.",
+      "sendQueueAttachments": "{count} Anhänge",
+      "sendQueueEdit": "Bearbeiten",
+      "sendQueueEditTitle": "Ausstehende Nachricht bearbeiten",
+      "sendQueueHint": "Die folgenden Nachrichten werden automatisch in der angegebenen Reihenfolge gesendet, nachdem der Agent die aktuelle Antwort und Werkzeugaufrufe abgeschlossen hat.",
+      "sendQueueRemove": "Entfernen",
+      "sendQueueTitle": "Ausstehend"
     },
     "reference": {
       "title": "Referenzmaterial verwalten",
@@ -3633,7 +3840,8 @@
       "urlRequired:": "URL darf nicht leer sein.",
       "workspaceFiles:": "Arbeitsbereichdateien",
       "directory": "Verzeichnis",
-      "workspaceDirs": "Arbeitsbereichsverzeichnisse"
+      "workspaceDirs": "Arbeitsbereichsverzeichnisse",
+      "removeFromComposer": "Anhang entfernen"
     },
     "userLabel": "Benutzer",
     "assistantLabel": "Assistent",
@@ -3769,7 +3977,41 @@
       "workspace": {
         "description": "Liest Arbeitsbereichsdateien, führt unscharfe Suche nach Pfad/Namen durch oder listet das Stammverzeichnis auf",
         "name": "Arbeitsbereichsdateilesen"
+      },
+      "create_dynamic_rule": {
+        "description": "Dynamische Agent-Regel in die Anwendungsdatenbank einfügen (in Systemprompt schreiben), nicht durch Arbeitsbereichsdateien ersetzen",
+        "name": "Dynamische Regel erstellen"
+      },
+      "create_workspace_skill": {
+        "description": "In .metadoc/skills/<Verzeichnis>/SKILL.md schreiben und sofort in Datenbank und Embedding aufnehmen",
+        "name": "Arbeitsbereichs-Skill erstellen"
+      },
+      "load_skill": {
+        "description": "Vollständigen SKILL.md-Text eines aktivierten Skills anhand der skillId laden",
+        "name": "Skill laden"
+      },
+      "search_skill": {
+        "description": "Vektorsuche für aktivierte Skills unter .metadoc/skills im Arbeitsbereich durchführen, nur Zusammenfassung zurückgeben",
+        "name": "Skill-Suche"
+      },
+      "sync_workspace_skills": {
+        "description": ".metadoc/skills in allen Arbeitsbereichen scannen und SQLite sowie Vektoren (für aktive Skills) aktualisieren",
+        "name": "Arbeitsbereichs-Skill-Index synchronisieren"
+      },
+      "update_dynamic_rule": {
+        "description": "Vorhandene dynamische Regel anhand der ruleId aktualisieren (Titel, Text oder Priorität)",
+        "name": "Dynamische Regel aktualisieren"
       }
+    },
+    "jsonExplorer": {
+      "json": "JSON",
+      "nonJsonHint": "Kann nicht als JSON geparst werden, hier ist der Originaltext",
+      "tree": "Baumansicht"
+    },
+    "selectionRef": {
+      "chipLabel": "Auswahl: {detail}",
+      "noSession": "Hinzufügen nicht möglich: Bitte zuerst Agent konfigurieren.",
+      "unknown": "Auswahl (ungültig)"
     }
   },
   "agent-engine-executor": {
@@ -4291,6 +4533,30 @@
       "texToTex": {
         "name": "LaTeX zu LaTeX",
         "description": "LaTeX-Dokumente exportieren"
+      },
+      "texToDocx": {
+        "description": "LaTeX in Markdown konvertieren und als DOCX exportieren",
+        "name": "LaTeX zu DOCX"
+      },
+      "texToHtml": {
+        "description": "LaTeX in Markdown konvertieren und als HTML exportieren",
+        "name": "LaTeX zu HTML"
+      },
+      "txtToDocx": {
+        "description": "Reinen Text oder Code in Markdown konvertieren und als DOCX exportieren",
+        "name": "Reiner Text zu DOCX"
+      },
+      "txtToHtml": {
+        "description": "Reinen Text oder Code in Markdown konvertieren und als HTML exportieren",
+        "name": "Reiner Text zu HTML"
+      },
+      "txtToMd": {
+        "description": "Reinen Text oder Code als Markdown exportieren",
+        "name": "Reiner Text zu Markdown"
+      },
+      "txtToPdf": {
+        "description": "Reinen Text oder Code in Markdown konvertieren und als PDF exportieren",
+        "name": "Reiner Text zu PDF"
       }
     },
     "options": {
@@ -4482,8 +4748,21 @@
         "label": "Bild",
         "description": "Standardname für Bilder (wenn Bild keinen Namen hat)"
       },
-      "objectTypeField": "Objekttypfeld"
-    }
+      "objectTypeField": "Objekttypfeld",
+      "pdfThemeMode": {
+        "dark": "Dunkel",
+        "description": "Hell: Weißer Hintergrund mit hellem Text und Code-Syntaxhervorhebung. Dunkel: Dunkler Hintergrund (wie der Standard-Dunkelmodus des Editors) mit dunklen Stilen. Folgen: Der Hintergrund entspricht der Farbe des Markdown-Editors (Themenfarbe), Inhalt und Code folgen den Theme-Einstellungen. Standardmäßig hell.",
+        "follow": "Theme folgen",
+        "label": "PDF-Erscheinungsbild",
+        "light": "Hell"
+      }
+    },
+    "taskCancel": "Abbrechen",
+    "taskPhaseDone": "Abgeschlossen",
+    "taskPhaseFailed": "Fehlgeschlagen",
+    "taskPhasePickPath": "Speicherort auswählen…",
+    "taskPhasePreparing": "Wird vorbereitet…",
+    "taskTitle": "Exportvorgang"
   },
   "focusMode": {
     "enterTooltip": "Fokusmodus aktivieren",
@@ -5206,9 +5485,11 @@
     "sidebar": {
       "recommendedList": "Empfohlenes Lernen",
       "onlyRecommended": "Nur empfohlenen Pfad anzeigen",
-      "onlyRecommendedTip": "Bei Deaktivierung wird das vollständige Handbuchverzeichnis angezeigt"
+      "onlyRecommendedTip": "Bei Deaktivierung wird das vollständige Handbuchverzeichnis angezeigt",
+      "learningPathTooltip": "Ihren Lernfortschritt und empfohlene Lernpfade anzeigen"
     },
-    "title": "Benutzerhandbuch"
+    "title": "Benutzerhandbuch",
+    "exportPureMarkdown": "Reinen Markdown exportieren"
   },
   "versionInfoPanel": {
     "buildEnvironment": "Build-Umgebung",
@@ -5233,7 +5514,14 @@
     "expand": "Ausklappen",
     "metaInfo": "Metadaten",
     "workspace": "Arbeitsbereich",
-    "workspaceGrep": "Arbeitsbereich durchsuchen"
+    "workspaceGrep": "Arbeitsbereich durchsuchen",
+    "documentOutline": "Dokumentgliederung",
+    "outlineDocSearchPlaceholder": "In diesem Dokument suchen…",
+    "outlineFilterPlaceholder": "Aktuelle Dokumentüberschriften filtern…",
+    "outlineSearchDocStart": "Dokumentanfang",
+    "outlineSearchHint": "Geben Sie einen Suchbegriff ein. Die Ergebnisse werden nach Gliederungskapiteln gruppiert.",
+    "outlineSearchNeedMarkdown": "Bitte öffnen und fokussieren Sie ein Markdown-Dokument, um darin zu suchen.",
+    "outlineSearchNoHeading": "Fließtext"
   },
   "workspaceExplorer": {
     "addFolder": "Arbeitsordner hinzufügen",
@@ -5293,7 +5581,8 @@
     "renameSuccess": "Umbenennung erfolgreich",
     "selectFolder": "Arbeitsordner auswählen",
     "title": "Arbeitsverzeichnis",
-    "moveFailed": "Verschieben fehlgeschlagen"
+    "moveFailed": "Verschieben fehlgeschlagen",
+    "openWorkspaceDialogTitle": "Arbeitsbereich öffnen – Ordner auswählen (schließt den aktuellen Arbeitsbereich und ersetzt ihn durch den ausgewählten Ordner)"
   },
   "workspaceGrep": {
     "activeWorkspaceCount": "{count} Arbeitsbereiche geöffnet",
@@ -5355,5 +5644,24 @@
       "resetConfigSuccess": "Erfolgreich auf voreingestellten Zustand zurückgesetzt",
       "resetConfigToPreset": "Auf voreingestellten Zustand zurücksetzen"
     }
+  },
+  "llmErrorDialog": {
+    "apiKey": "API-Schlüssel",
+    "apiKeyBuiltinHidden": "(Integrierter Schlüssel verborgen)",
+    "apiKeyEmpty": "(Nicht ausgefüllt)",
+    "baseUrl": "Basis-URL",
+    "builtinFreeIntro": "Sie verwenden derzeit die integrierte kostenlose Modellkonfiguration von MetaDoc.",
+    "builtinFreeQuotaHint": "Dieses kostenlose Kontingent ist sehr gering und kann jederzeit gedrosselt oder aufgebraucht werden. Es wird empfohlen, schnellstmöglich Ihren eigenen LLM-API-Schlüssel zu konfigurieren.",
+    "configType": "Typ",
+    "currentConfig": "Aktuelle LLM-Konfiguration",
+    "dontShowAgain": "Nicht mehr anzeigen",
+    "errorDetails": "Fehlermeldung",
+    "errorType": "Fehlertyp",
+    "learnHowToConfigure": "Konfigurationsanleitung ansehen",
+    "message": "Hinweis",
+    "model": "Modell",
+    "originalException": "Ursprüngliche Ausnahme (zum Anzeigen erweitern)",
+    "title": "LLM-Aufruf fehlgeschlagen",
+    "titleBuiltinFree": "Kostenloses Modell vorübergehend nicht verfügbar"
   }
 }

@@ -1,26 +1,13 @@
 <template>
-  <div class="section-optimizer" :style="menuStyles" @mousedown.prevent="onMouseDown">
-    <div
-      v-if="props.mode !== 'demo'"
-      style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px"
-    >
-      <Button
-        variant="destructive"
-        size="icon"
-        class="aero-btn h-8 w-8"
-        style="float: inline-start"
-        @click="$emit('close')"
-        @mousedown.prevent
-      >
-      </Button>
-    </div>
-
-    <p style="font-weight: bold" @mousedown.stop>
-      {{ props.title ? props.title : t('sectionOptimizer.defaultTitle') }}
-    </p>
-
+  <!-- modal=false：否则 DismissableLayer 会拦截挂到 body 的 Popover/应用内 ContextMenu 的指针事件 -->
+  <Dialog v-if="props.mode !== 'demo'" v-model:open="dialogOpen" :modal="false">
+    <DialogContent class="w-[min(92vw,800px)] sm:max-w-[800px]">
+      <DialogHeader class="pr-10 shrink-0 pb-0">
+        <DialogTitle>{{ titleText }}</DialogTitle>
+      </DialogHeader>
+      <div class="section-optimizer flex flex-col gap-4 min-h-0 pt-1">
     <!-- 内容预览区域 -->
-    <div class="content-preview" @mousedown.stop>
+    <div class="content-preview content-preview-below-title">
       <!-- Markdown预览 -->
       <MarkdownItEditor
         v-if="language === 'markdown' && !generated && !generating"
@@ -43,32 +30,16 @@
     <div class="prompt-input-wrapper" @mousedown.stop>
       <div
         class="composer-shell"
-        :class="{ 'is-multiline': isMultiline }"
+        :class="{
+          'is-multiline': isMultiline,
+          'has-trailing-presets': showPresetButton
+        }"
         :style="{
           backgroundColor: themeState.currentTheme.background,
           color: themeState.currentTheme.textColor,
           borderColor: themeState.currentTheme.background2nd ?? 'rgba(0,0,0,0.08)'
         }"
       >
-        <div class="composer-leading">
-          <Tooltip v-if="showPresetButton">
-            <TooltipTrigger as-child>
-              <Button
-                variant="secondary"
-                size="icon"
-                class="composer-btn h-9 w-9"
-                :disabled="disabled"
-                @click.prevent="showPresets = !showPresets"
-              >
-                <Plus class="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {{ t('sectionOptimizer.showPresets') }}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-
         <el-scrollbar
           ref="scrollbarRef"
           class="composer-scroll"
@@ -84,149 +55,385 @@
             rows="1"
             @input="handleInput"
             @keydown="handleKeydown"
+            @contextmenu="onPromptContextMenu"
           />
         </el-scrollbar>
 
-        <div class="composer-actions">
-          <Tooltip>
-            <TooltipTrigger as-child>
+        <div v-if="showPresetButton" class="composer-actions">
+          <PopoverRoot v-model:open="presetsOpen">
+            <PopoverTrigger as-child>
               <Button
                 variant="secondary"
                 size="icon"
-                class="composer-btn h-9 w-9"
-                :disabled="disabled || !userPrompt.trim().length"
-                @click.prevent="userPrompt = ''"
+                type="button"
+                class="preset-toggle-btn composer-btn h-9 w-9 shrink-0"
+                :disabled="disabled"
+                :aria-expanded="presetsOpen"
+                :title="t('sectionOptimizer.showPresets')"
+                :aria-label="t('sectionOptimizer.showPresets')"
               >
-                <RefreshCw class="h-4 w-4" />
+                <ChevronUp v-if="presetsOpen" class="h-4 w-4 shrink-0 opacity-80" />
+                <ChevronDown v-else class="h-4 w-4 shrink-0 opacity-80" />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {{ t('sectionOptimizer.clear') }}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
-
-      <!-- 预设提示词下拉列表 -->
-      <div v-if="showPresets" class="preset-suggestions">
-        <div
-          v-for="(preset, index) in presetPrompts"
-          :key="index"
-          class="preset-item"
-          @click="selectPreset(preset.value)"
-        >
-          {{ preset.label || preset.value }}
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              side="bottom"
+              :side-offset="6"
+              class="section-optimizer-presets-popover z-[100070] w-[min(92vw,320px)] max-h-[min(280px,40vh)] overflow-hidden p-0 shadow-lg"
+            >
+              <div class="max-h-[min(272px,38vh)] overflow-y-auto py-1">
+                <button
+                  v-for="(preset, index) in presetPrompts"
+                  :key="index"
+                  type="button"
+                  class="section-optimizer-preset-row w-full px-3 py-2.5 text-left text-sm hover:bg-muted"
+                  @click="selectPreset(preset.value)"
+                >
+                  {{ preset.label || preset.value }}
+                </button>
+              </div>
+            </PopoverContent>
+          </PopoverRoot>
         </div>
       </div>
     </div>
 
-    <div @mousedown.stop style="align-items: center; margin-top: 20px">
-      <div
-        class="flex flex-col items-center"
-        style="width: 60%; margin-left: 20%; margin-right: 20%"
-      >
+    <div
+      class="context-and-actions-row flex flex-wrap items-end gap-4 w-full min-w-0"
+    >
+      <div class="context-slider-block flex-1 min-w-[200px] flex flex-col gap-2 min-h-0">
+        <div class="flex flex-col gap-0.5">
+          <span class="text-sm font-medium leading-tight">{{
+            t('sectionOptimizer.contextScopeTitle')
+          }}</span>
+          <span class="text-xs text-muted-foreground leading-snug">{{
+            contextScopeHint
+          }}</span>
+        </div>
         <Slider v-model="context_mode" :step="1" :min="0" :max="2" class="w-full" />
-        <div class="flex justify-between w-full text-xs text-muted-foreground mt-2">
+        <div class="flex justify-between w-full gap-1 text-xs text-muted-foreground">
           <span>{{ t('sectionOptimizer.contextMarks.none') }}</span>
           <span>{{ t('sectionOptimizer.contextMarks.chapter') }}</span>
           <span>{{ t('sectionOptimizer.contextMarks.full') }}</span>
         </div>
       </div>
+      <div class="action-buttons flex flex-wrap items-center justify-end gap-2 shrink-0">
+        <Tooltip v-if="generated">
+          <TooltipTrigger as-child>
+            <Button
+              variant="outline"
+              size="icon"
+              class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
+              @click.prevent="reset"
+            >
+              <Undo2 class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('sectionOptimizer.tooltips.reset') }}
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip v-if="generated">
+          <TooltipTrigger as-child>
+            <Button
+              variant="outline"
+              size="icon"
+              class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
+              @click.prevent="chat"
+            >
+              <MessageCircle class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('sectionOptimizer.tooltips.chat') }}
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip v-if="generated">
+          <TooltipTrigger as-child>
+            <Button
+              variant="outline"
+              size="icon"
+              class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
+              @click.prevent="accept(false)"
+            >
+              <Check class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('sectionOptimizer.tooltips.acceptReplace') }}
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip v-if="generated">
+          <TooltipTrigger as-child>
+            <Button
+              variant="outline"
+              size="icon"
+              class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
+              @click.prevent="accept(true)"
+            >
+              <Plus class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('sectionOptimizer.tooltips.acceptAppend') }}
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              variant="default"
+              size="icon"
+              class="h-9 w-9"
+              @click.prevent="generate"
+              :disabled="generating || generated || userPrompt.length === 0"
+            >
+              <Send class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {{ t('sectionOptimizer.tooltips.generate') }}
+          </TooltipContent>
+        </Tooltip>
+      </div>
     </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+  <div
+    v-else
+    class="section-optimizer-container section-optimizer rounded-lg border border-border bg-background p-6 shadow-sm max-w-3xl mx-auto w-full max-h-[min(600px,85vh)] overflow-y-auto flex flex-col gap-4"
+  >
+    <p class="text-lg font-semibold tracking-tight shrink-0">{{ titleText }}</p>
+    <div class="section-optimizer flex flex-col gap-4 min-h-0">
+      <!-- 内容预览区域 -->
+      <div class="content-preview content-preview-below-title">
+        <!-- Markdown预览 -->
+        <MarkdownItEditor
+          v-if="language === 'markdown' && !generated && !generating"
+          :source="articleContent"
+          class="preview-container"
+        />
+        <MarkdownItEditor
+          v-if="language === 'markdown' && (generated || generating)"
+          :source="generatedText"
+          class="preview-container"
+        />
+        <!-- LaTeX预览（使用Monaco） -->
+        <div v-if="language === 'latex'" class="preview-container monaco-preview">
+          <!-- 使用独立内层容器创建 Monaco，避免与 Monaco 内部 context 冲突 -->
+          <div ref="previewContainerRef" class="monaco-preview-inner"></div>
+        </div>
+      </div>
 
-    <div @mousedown.stop class="action-buttons">
-      <Tooltip>
-        <TooltipTrigger as-child>
-          <Button
-            variant="default"
-            size="icon"
-            class="h-9 w-9"
-            @click.prevent="generate"
-            :disabled="generating || generated || userPrompt.length === 0"
+      <!-- 改进的提示词输入框，参考ChatComposer -->
+      <div class="prompt-input-wrapper" @mousedown.stop>
+        <div
+          class="composer-shell"
+          :class="{
+            'is-multiline': isMultiline,
+            'has-trailing-presets': showPresetButton
+          }"
+          :style="{
+            backgroundColor: themeState.currentTheme.background,
+            color: themeState.currentTheme.textColor,
+            borderColor: themeState.currentTheme.background2nd ?? 'rgba(0,0,0,0.08)'
+          }"
+        >
+          <el-scrollbar
+            ref="scrollbarRef"
+            class="composer-scroll"
+            :wrap-style="scrollbarWrapStyle"
+            :view-class="'composer-scroll-view'"
           >
-            <Send class="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          {{ t('sectionOptimizer.tooltips.generate') }}
-        </TooltipContent>
-      </Tooltip>
+            <textarea
+              ref="textareaRef"
+              :value="userPrompt"
+              class="composer-textarea"
+              :placeholder="t('sectionOptimizer.inputPlaceholder')"
+              :disabled="disabled"
+              rows="1"
+              @input="handleInput"
+              @keydown="handleKeydown"
+              @contextmenu="onPromptContextMenu"
+            />
+          </el-scrollbar>
 
-      <Tooltip v-if="generated">
-        <TooltipTrigger as-child>
-          <Button
-            variant="outline"
-            size="icon"
-            class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
-            @click.prevent="reset"
-          >
-            <Undo2 class="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          {{ t('sectionOptimizer.tooltips.reset') }}
-        </TooltipContent>
-      </Tooltip>
+          <div v-if="showPresetButton" class="composer-actions">
+            <PopoverRoot v-model:open="presetsOpen">
+              <PopoverTrigger as-child>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  type="button"
+                  class="preset-toggle-btn composer-btn h-9 w-9 shrink-0"
+                  :disabled="disabled"
+                  :aria-expanded="presetsOpen"
+                  :title="t('sectionOptimizer.showPresets')"
+                  :aria-label="t('sectionOptimizer.showPresets')"
+                >
+                  <ChevronUp v-if="presetsOpen" class="h-4 w-4 shrink-0 opacity-80" />
+                  <ChevronDown v-else class="h-4 w-4 shrink-0 opacity-80" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                side="bottom"
+                :side-offset="6"
+                class="section-optimizer-presets-popover z-[100070] w-[min(92vw,320px)] max-h-[min(280px,40vh)] overflow-hidden p-0 shadow-lg"
+              >
+                <div class="max-h-[min(272px,38vh)] overflow-y-auto py-1">
+                  <button
+                    v-for="(preset, index) in presetPrompts"
+                    :key="index"
+                    type="button"
+                    class="section-optimizer-preset-row w-full px-3 py-2.5 text-left text-sm hover:bg-muted"
+                    @click="selectPreset(preset.value)"
+                  >
+                    {{ preset.label || preset.value }}
+                  </button>
+                </div>
+              </PopoverContent>
+            </PopoverRoot>
+          </div>
+        </div>
+      </div>
 
-      <Tooltip v-if="generated">
-        <TooltipTrigger as-child>
-          <Button
-            variant="outline"
-            size="icon"
-            class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
-            @click.prevent="chat"
-          >
-            <MessageCircle class="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          {{ t('sectionOptimizer.tooltips.chat') }}
-        </TooltipContent>
-      </Tooltip>
+      <div
+        class="context-and-actions-row flex flex-wrap items-end gap-4 w-full min-w-0"
+      >
+        <div class="context-slider-block flex-1 min-w-[200px] flex flex-col gap-2 min-h-0">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-sm font-medium leading-tight">{{
+              t('sectionOptimizer.contextScopeTitle')
+            }}</span>
+            <span class="text-xs text-muted-foreground leading-snug">{{
+              contextScopeHint
+            }}</span>
+          </div>
+          <Slider v-model="context_mode" :step="1" :min="0" :max="2" class="w-full" />
+          <div class="flex justify-between w-full gap-1 text-xs text-muted-foreground">
+            <span>{{ t('sectionOptimizer.contextMarks.none') }}</span>
+            <span>{{ t('sectionOptimizer.contextMarks.chapter') }}</span>
+            <span>{{ t('sectionOptimizer.contextMarks.full') }}</span>
+          </div>
+        </div>
+        <div class="action-buttons flex flex-wrap items-center justify-end gap-2 shrink-0">
+          <Tooltip v-if="generated">
+            <TooltipTrigger as-child>
+              <Button
+                variant="outline"
+                size="icon"
+                class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
+                @click.prevent="reset"
+              >
+                <Undo2 class="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('sectionOptimizer.tooltips.reset') }}
+            </TooltipContent>
+          </Tooltip>
 
-      <Tooltip v-if="generated">
-        <TooltipTrigger as-child>
-          <Button
-            variant="outline"
-            size="icon"
-            class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
-            @click.prevent="accept(false)"
-          >
-            <Check class="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          {{ t('sectionOptimizer.tooltips.acceptReplace') }}
-        </TooltipContent>
-      </Tooltip>
+          <Tooltip v-if="generated">
+            <TooltipTrigger as-child>
+              <Button
+                variant="outline"
+                size="icon"
+                class="h-9 w-9 border-blue-500 text-blue-500 hover:bg-blue-50"
+                @click.prevent="chat"
+              >
+                <MessageCircle class="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('sectionOptimizer.tooltips.chat') }}
+            </TooltipContent>
+          </Tooltip>
 
-      <Tooltip v-if="generated">
-        <TooltipTrigger as-child>
-          <Button
-            variant="outline"
-            size="icon"
-            class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
-            @click.prevent="accept(true)"
-          >
-            <Plus class="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          {{ t('sectionOptimizer.tooltips.acceptAppend') }}
-        </TooltipContent>
-      </Tooltip>
+          <Tooltip v-if="generated">
+            <TooltipTrigger as-child>
+              <Button
+                variant="outline"
+                size="icon"
+                class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
+                @click.prevent="accept(false)"
+              >
+                <Check class="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('sectionOptimizer.tooltips.acceptReplace') }}
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip v-if="generated">
+            <TooltipTrigger as-child>
+              <Button
+                variant="outline"
+                size="icon"
+                class="h-9 w-9 border-green-500 text-green-500 hover:bg-green-50"
+                @click.prevent="accept(true)"
+              >
+                <Plus class="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('sectionOptimizer.tooltips.acceptAppend') }}
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <Button
+                variant="default"
+                size="icon"
+                class="h-9 w-9"
+                @click.prevent="generate"
+                :disabled="generating || generated || userPrompt.length === 0"
+              >
+                <Send class="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {{ t('sectionOptimizer.tooltips.generate') }}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
-import { Plus, RefreshCw } from 'lucide-vue-next'
-import { Send, Undo2, MessageCircle, Check } from 'lucide-vue-next'
+import {
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  Send,
+  Undo2,
+  MessageCircle,
+  Check
+} from 'lucide-vue-next'
+import {
+  SECTION_OPTIMIZER_FALLBACK_LATEX,
+  SECTION_OPTIMIZER_FALLBACK_MARKDOWN
+} from './section-optimizer/fallback-presets'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@renderer/components/ui/button'
 import { Slider } from '@renderer/components/ui/slider'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
 import { themeState } from '../utils/themes'
 import type { ScrollbarInstance } from 'element-plus'
 import type { SectionOptimizerAdapter, SectionInfo } from './section-optimizer/types'
@@ -234,7 +441,6 @@ import { sectionChangePrompt } from '../utils/prompts'
 import eventBus from '../utils/event-bus'
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils'
 import { ai_types, createAiTask } from '../utils/ai_tasks'
-import { getSetting } from '../utils/settings'
 import { useWorkspace } from '../stores/workspace'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { searchNode } from '../utils/outline-helpers'
@@ -244,8 +450,26 @@ import type { AIDialogMessage } from '../../../types'
 import MarkdownItEditor from 'vue3-markdown-it'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config'
+import { PopoverRoot, PopoverTrigger } from 'reka-ui'
+import { PopoverContent } from '@renderer/components/ui/popover'
 
-const { t } = useI18n()
+const { t, tm } = useI18n()
+
+function normalizeRawPresets(raw: unknown): { value: string; label: string }[] {
+  let prompts: unknown = raw
+  if (typeof prompts === 'string') {
+    try {
+      prompts = JSON.parse(prompts) as unknown
+    } catch {
+      return []
+    }
+  }
+  if (!Array.isArray(prompts)) return []
+  return prompts.map((p: any) => ({
+    value: typeof p === 'string' ? p : p.value,
+    label: typeof p === 'string' ? p : p.label || p.value
+  }))
+}
 
 const props = withDefaults(
   defineProps<{
@@ -264,7 +488,24 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'accept', payload: { append: boolean; content: string; sectionInfo?: SectionInfo }): void
+  /** 交给外层编辑器打开文章右键菜单（与 Vditor/Monaco 一致，且层级正确） */
+  (e: 'prompt-contextmenu', ev: MouseEvent): void
 }>()
+
+const onPromptContextMenu = (ev: MouseEvent) => {
+  if (props.mode === 'demo') return
+  ev.preventDefault()
+  emit('prompt-contextmenu', ev)
+}
+
+const dialogOpen = ref(true)
+watch(dialogOpen, (open) => {
+  if (!open) emit('close')
+})
+
+const titleText = computed(() =>
+  props.title ? props.title : t('sectionOptimizer.defaultTitle')
+)
 
 const workspace = useWorkspace()
 const { activeTabId, updateDocumentAiDialogs } = workspace
@@ -276,16 +517,17 @@ const currentTex = computed(() => activeDocument.value?.tex ?? '')
 
 const context_mode = ref(1)
 const presetPrompts = computed(() => {
-  const prompts =
+  const key =
     props.language === 'latex'
-      ? t('sectionOptimizer.presetPrompts.latex', { returnObjects: true })
-      : t('sectionOptimizer.presetPrompts.markdown', { returnObjects: true })
-  return Array.isArray(prompts)
-    ? prompts.map((p: any) => ({
-        value: typeof p === 'string' ? p : p.value,
-        label: typeof p === 'string' ? p : p.label || p.value
-      }))
-    : []
+      ? 'sectionOptimizer.presetPrompts.latex'
+      : 'sectionOptimizer.presetPrompts.markdown'
+  const fromTm = normalizeRawPresets(tm(key))
+  if (fromTm.length) return fromTm
+  const fromT = normalizeRawPresets(t(key, { returnObjects: true }))
+  if (fromT.length) return fromT
+  return props.language === 'latex'
+    ? SECTION_OPTIMIZER_FALLBACK_LATEX
+    : SECTION_OPTIMIZER_FALLBACK_MARKDOWN
 })
 
 const pushDialogToDocument = (dialog: any) => {
@@ -480,7 +722,8 @@ const chat = async () => {
 
 const selectPreset = (value: string) => {
   userPrompt.value = value
-  showPresets.value = false
+  presetsOpen.value = false
+  nextTick(() => autoResize())
 }
 
 const reset = () => {
@@ -493,8 +736,15 @@ const userPrompt = ref('')
 const generatedText = ref('')
 const generated = ref(false)
 const articleContent = ref('')
-const showPresets = ref(false)
+const presetsOpen = ref(false)
 const showPresetButton = computed(() => presetPrompts.value.length > 0)
+
+const contextScopeHint = computed(() => {
+  const m = context_mode.value
+  if (m === 0) return t('sectionOptimizer.contextTooltips.none')
+  if (m === 1) return t('sectionOptimizer.contextTooltips.chapter')
+  return t('sectionOptimizer.contextTooltips.full')
+})
 
 const language = computed(() => props.language)
 
@@ -571,44 +821,6 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 }
 
-const menuStyles = computed(() => {
-  if (props.mode === 'demo') {
-    // Demo 模式：嵌入文档流，不悬浮
-    return {
-      position: 'relative' as const,
-      border: '1px solid #ccc',
-      padding: '10px',
-      boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
-      minWidth: '500px',
-      maxWidth: '800px',
-      maxHeight: '600px',
-      overflow: 'auto',
-      color: themeState.currentTheme.textColor2,
-      backdropFilter: 'blur(5px)',
-      background: themeState.currentTheme.titleMenuBackground,
-      margin: '20px auto'
-    }
-  }
-  // 正常模式：固定定位，可拖拽
-  return {
-    position: 'fixed' as const,
-    top: `${menuPosition.value.top}px`,
-    left: `${menuPosition.value.left}px`,
-    transform: 'translate(-50%, -50%)',
-    border: '1px solid #ccc',
-    padding: '10px',
-    boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
-    minWidth: '500px',
-    maxWidth: '800px',
-    maxHeight: '90vh',
-    overflow: 'auto',
-    zIndex: 1000,
-    color: themeState.currentTheme.textColor2,
-    backdropFilter: 'blur(5px)',
-    background: themeState.currentTheme.titleMenuBackground
-  }
-})
-
 const refreshContent = async () => {
   // 优先使用传入的 sectionInfo 的内容
   if (props.sectionInfo && props.sectionInfo.content) {
@@ -666,34 +878,6 @@ const refreshContent = async () => {
   }
 
   articleContent.value = ''
-}
-
-const menuPosition = ref({ top: props.position.top, left: props.position.left })
-const isDragging = ref(false)
-const dragStart = ref({ x: 0, y: 0 })
-const onMouseDown = (event: MouseEvent) => {
-  if (props.mode === 'demo') return
-  isDragging.value = true
-  dragStart.value = {
-    x: event.clientX - menuPosition.value.left,
-    y: event.clientY - menuPosition.value.top
-  }
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
-}
-
-const onMouseMove = (event: MouseEvent) => {
-  if (!isDragging.value) return
-  menuPosition.value = {
-    top: event.clientY - dragStart.value.y,
-    left: event.clientX - dragStart.value.x
-  }
-}
-
-const onMouseUp = () => {
-  isDragging.value = false
-  document.removeEventListener('mousemove', onMouseMove)
-  document.removeEventListener('mouseup', onMouseUp)
 }
 
 // 初始化Monaco预览编辑器（用于LaTeX）
@@ -819,10 +1003,14 @@ watch(
   max-height: 400px;
   overflow: auto;
   padding: 10px;
-  border: 1px solid #cccccc36;
-  backdrop-filter: blur(20px) brightness(1.05);
-  border-radius: 10px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
   margin-bottom: 10px;
+  background: hsl(var(--muted) / 0.35);
+}
+
+.content-preview-below-title {
+  margin-top: 14px;
 }
 
 .preview-container {
@@ -858,7 +1046,7 @@ watch(
   border: 1px solid transparent;
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr;
   gap: 12px;
   padding: 16px;
   align-items: flex-end;
@@ -871,18 +1059,16 @@ watch(
   box-sizing: border-box;
 }
 
+.composer-shell.has-trailing-presets {
+  grid-template-columns: 1fr auto;
+}
+
 .composer-shell.is-multiline {
-  grid-template-columns: auto 1fr;
   align-items: stretch;
 }
 
-.composer-leading {
-  display: flex;
-  align-items: center;
-}
-
-.composer-shell.is-multiline .composer-leading {
-  align-self: flex-start;
+.composer-shell.is-multiline .composer-actions {
+  align-self: flex-end;
 }
 
 .composer-scroll {
@@ -954,29 +1140,9 @@ watch(
   cursor: not-allowed;
 }
 
-.preset-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 4px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color);
-  border-radius: 8px;
-  max-height: 200px;
-  overflow-y: auto;
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.preset-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.preset-item:hover {
-  background-color: var(--el-fill-color-light);
+.section-optimizer-preset-row:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
 }
 
 .action-buttons {

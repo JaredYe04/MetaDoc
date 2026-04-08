@@ -52,7 +52,7 @@
             await acceptGeneratedText(payload)
           }
         "
-        style="max-width: 500px"
+        @prompt-contextmenu="openContextMenu"
       />
       <!-- 保留TitleMenu以兼容旧代码 -->
       <TitleMenu
@@ -110,8 +110,12 @@
           :id="props.editorDomId"
           ref="vditorEl"
           class="editor"
+          :class="{
+            'editor--focus-hide-vditor-local-outline': isFocusMode,
+            'editor--focus-hide-outline-toolbar-btn': isFocusMode
+          }"
           @keydown="handleTab"
-          @contextmenu.prevent="openContextMenu($event)"
+          @contextmenu.capture.prevent="openContextMenu($event)"
           :style="{
             '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
             '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
@@ -142,6 +146,7 @@ import {
   ref,
   reactive,
   onMounted,
+  onActivated,
   onBeforeUnmount,
   nextTick,
   computed,
@@ -155,6 +160,13 @@ import { Button } from '@renderer/components/ui/button'
 import { Skeleton } from '@renderer/components/ui/skeleton'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
+import '../assets/vditor-toolbar-metadoc-overrides.css'
+import { attachVditorToolbarCursorTooltip } from '../composables/useVditorToolbarCursorTooltip'
+import { useFocusMode } from '../composables/useFocusMode'
+import {
+  registerOutlineSidebarSearchAdapter,
+  unregisterOutlineSidebarSearchAdapter
+} from '../composables/outline-sidebar-search-adapter'
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
@@ -198,6 +210,7 @@ import type { TextEditorAdapter, TextRange } from '../editor/text-editor-types'
 import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { TitleIndex } from '../utils/title-index'
 import { normalizeMarkdownLeadingArtifacts } from '../utils/md-utils'
+import { buildOutlineSectionLineRanges } from '../utils/outline-section-lines'
 
 const MARKDOWN_LAYOUT = {
   editorMinWidth: 700,
@@ -211,6 +224,53 @@ const MARKDOWN_LAYOUT = {
 
 // 大纲宽度（用户可拖拽调整，从 localStorage 恢复）
 const OUTLINE_STORAGE_KEY = 'metadoc-resize-outline-width'
+
+/** 用于在编辑器内容根内 querySelector('#' + …) 定位标题 id */
+function escapeCssSelectorId(id: string): string {
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+    return CSS.escape(id)
+  }
+  return id.replace(/\\/g, '\\\\').replace(/([ !"#$%&'()*+,./:;<=>?@[\]^`{|}~])/g, '\\$1')
+}
+
+/**
+ * 对齐 Vditor outlineRender 里对 `contentElement.children` 的 hasClosestByHeadings(item)：
+ * 仅从「直接子块」向上走到 vditor-reset，路径上出现 H1–H6 才算大纲项（标题在子树内部、不在祖先链上则不算）。
+ */
+function vditorDirectChildCountsAsOutlineHeading(item: HTMLElement): boolean {
+  let e: HTMLElement | null = item
+  while (e && !e.classList.contains('vditor-reset')) {
+    const tag = e.tagName
+    if (tag && tag.length === 2 && tag.startsWith('H') && tag !== 'HR') {
+      return true
+    }
+    e = e.parentElement
+  }
+  return false
+}
+
+function collectVditorOutlineHeadingBlocks(contentEl: HTMLElement): HTMLElement[] {
+  const blocks: HTMLElement[] = []
+  for (const child of [...contentEl.children]) {
+    if (vditorDirectChildCountsAsOutlineHeading(child as HTMLElement)) {
+      blocks.push(child as HTMLElement)
+    }
+  }
+  return blocks
+}
+
+/** IR 结构偶发与「直接子块」统计不一致时，按正文内 h1–h6 文档顺序兜底滚动 */
+function scrollToNthHeadingTagInContent(contentEl: HTMLElement, index: number): boolean {
+  if (index < 0) return false
+  const hs = [...contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(
+    (h) => contentEl.contains(h) && !(h as HTMLElement).closest?.('pre, code')
+  )
+  const el = hs[index] as HTMLElement | undefined
+  if (!el) return false
+  el.scrollIntoView({ block: 'nearest', behavior: 'instant' })
+  return true
+}
+
 function loadOutlineWidth(): number {
   try {
     const raw = localStorage.getItem(OUTLINE_STORAGE_KEY)
@@ -259,6 +319,7 @@ const props = withDefaults(
 )
 
 const isActive = toRef(props, 'active')
+const { isFocusMode } = useFocusMode()
 
 let handleZoomShortcut: ((payload?: unknown) => void) | null = null
 
@@ -408,6 +469,299 @@ function setOutlineWrapperCollapsed(
   }
 }
 
+function getOutlineHostRaw(): HTMLElement | null {
+  return document.getElementById('metadoc-vditor-outline-host')
+}
+
+/** 侧栏用 v-show 隐藏时节点仍在 DOM 中，不能把大纲搬进隐藏容器，否则编辑器里「没大纲」且事件失效 */
+function isOutlineHostUsable(el: HTMLElement): boolean {
+  let cur: HTMLElement | null = el
+  while (cur) {
+    const st = window.getComputedStyle(cur)
+    if (st.display === 'none' || st.visibility === 'hidden' || st.contentVisibility === 'hidden') {
+      return false
+    }
+    cur = cur.parentElement
+  }
+  return true
+}
+
+/** 仅当「文档大纲」区域实际可见：用于挂接 Vditor 大纲 */
+function getOutlineHostElement(): HTMLElement | null {
+  const el = getOutlineHostRaw()
+  if (!el || !isOutlineHostUsable(el)) return null
+  return el
+}
+
+/**
+ * 侧栏大纲挂在 host 后，Vditor 内置点击仍用「渲染时闭包里的 contentElement + offsetTop」滚动，
+ * 改稿后若滚动容器/坐标不同步会导致无法跳转。在 host 上捕获点击，按当前 IR/WYSIWYG 根节点解析标题并 scrollIntoView。
+ */
+let vditorOutlineHostCaptureHandler: ((e: MouseEvent) => void) | null = null
+
+function unbindVditorOutlineHostClickCapture() {
+  const host = getOutlineHostRaw()
+  if (host && vditorOutlineHostCaptureHandler) {
+    host.removeEventListener('click', vditorOutlineHostCaptureHandler, true)
+    vditorOutlineHostCaptureHandler = null
+  }
+}
+
+function bindVditorOutlineHostClickCapture() {
+  unbindVditorOutlineHostClickCapture()
+  const host = getOutlineHostRaw()
+  if (!host || !isActive.value || activeTabIdRef.value !== props.tabId) return
+  const iv = vditor.value?.vditor
+  if (!iv) return
+
+  const tabId = props.tabId
+  vditorOutlineHostCaptureHandler = (e: MouseEvent) => {
+    if (activeTabIdRef.value !== tabId) return
+    const inst = vditor.value?.vditor
+    if (!inst) return
+    const rawHost = getOutlineHostRaw()
+    if (!rawHost) return
+
+    const t = e.target as HTMLElement | null
+    if (!t?.closest || !rawHost.contains(t)) return
+    if (t.closest('.vditor-outline__action')) return
+
+    const outlineContent = t.closest('.vditor-outline__content') as HTMLElement | null
+    const li = t.closest('li') as HTMLElement | null
+    if (!outlineContent || !li || !rawHost.contains(outlineContent)) return
+
+    const md = currentMarkdown.value ?? ''
+    const ranges = buildOutlineSectionLineRanges(md).filter((r) => r.path !== '')
+    const lis = [...outlineContent.querySelectorAll('li')]
+    const idx = lis.findIndex((n) => n === li)
+    if (idx < 0) return
+
+    const mode = inst.currentMode as string
+    const modeKey = mode as 'ir' | 'wysiwyg' | 'sv'
+    const contentEl =
+      mode === 'sv'
+        ? ((inst.sv?.element ?? inst.ir?.element) as HTMLElement | undefined)
+        : (inst[modeKey as 'ir' | 'wysiwyg']?.element as HTMLElement | undefined)
+    if (!contentEl) return
+
+    const scrollOpts: ScrollIntoViewOptions = { block: 'nearest', behavior: 'instant' }
+
+    const tryScrollById = (): boolean => {
+      const holder = li.querySelector('[data-target-id]') as HTMLElement | null
+      const targetId = holder?.getAttribute?.('data-target-id')
+      if (!targetId) return false
+      const esc = escapeCssSelectorId(targetId)
+      let heading =
+        (contentEl.querySelector(`#${esc}`) as HTMLElement | null) ||
+        (document.getElementById(targetId) as HTMLElement | null)
+      if (!heading) return false
+      heading.scrollIntoView(scrollOpts)
+      return true
+    }
+
+    e.preventDefault()
+    e.stopImmediatePropagation()
+
+    if (mode !== 'sv') {
+      const blocks = collectVditorOutlineHeadingBlocks(contentEl)
+      if (idx < blocks.length) {
+        blocks[idx].scrollIntoView(scrollOpts)
+        return
+      }
+      if (scrollToNthHeadingTagInContent(contentEl, idx)) {
+        return
+      }
+    }
+
+    if (idx < ranges.length) {
+      const adapter = textEditorAdapter.value
+      if (adapter?.kind === 'vditor') {
+        adapter.goTo({ line: ranges[idx].titleLine, column: 1 })
+        requestAnimationFrame(() => {
+          const an = window.getSelection()?.anchorNode
+          const pel =
+            an && (an.nodeType === Node.TEXT_NODE ? (an.parentElement as HTMLElement) : (an as HTMLElement))
+          pel?.scrollIntoView?.(scrollOpts)
+        })
+        return
+      }
+    }
+
+    void tryScrollById()
+  }
+
+  host.addEventListener('click', vditorOutlineHostCaptureHandler, true)
+}
+
+function refreshVditorOutlineHostClickCapture() {
+  unbindVditorOutlineHostClickCapture()
+  if (!isActive.value || activeTabIdRef.value !== props.tabId) return
+  if (!getOutlineHostRaw() || !vditor.value?.vditor) return
+  bindVditorOutlineHostClickCapture()
+}
+
+function outlineBelongsToThisEditor(outlineRoot: HTMLElement | null): boolean {
+  if (!outlineRoot) return false
+  const editorRoot = getEditorRoot()
+  const host = getOutlineHostRaw()
+  return Boolean(
+    (editorRoot && editorRoot.contains(outlineRoot)) || (host && host.contains(outlineRoot))
+  )
+}
+
+function clearOutlineHostLayoutStyles(node: HTMLElement) {
+  node.style.flex = ''
+  node.style.minHeight = ''
+  node.style.width = ''
+  node.style.minWidth = ''
+  node.style.overflow = ''
+  const oe = node.classList.contains('vditor-outline')
+    ? node
+    : (node.querySelector('.vditor-outline') as HTMLElement | null)
+  if (oe) {
+    oe.style.width = ''
+    oe.style.maxWidth = ''
+  }
+  const host = getOutlineHostRaw()
+  if (host) {
+    host.style.display = ''
+    host.style.flex = ''
+    host.style.flexDirection = ''
+    host.style.minHeight = ''
+    host.style.minWidth = ''
+  }
+}
+
+function applyOutlineInFocusSidebar(
+  nodeToMove: HTMLElement,
+  outlineEl: HTMLElement,
+  outlineVisible: boolean
+) {
+  const host = getOutlineHostElement()
+  if (host) {
+    host.style.display = 'flex'
+    host.style.flexDirection = 'column'
+    host.style.flex = '1'
+    host.style.minHeight = '0'
+    host.style.minWidth = '0'
+  }
+  nodeToMove.style.flex = '1'
+  nodeToMove.style.minHeight = '0'
+  nodeToMove.style.width = '100%'
+  nodeToMove.style.minWidth = '0'
+  outlineEl.style.width = '100%'
+  outlineEl.style.maxWidth = 'none'
+  if (nodeToMove.classList.contains('outline-resize-wrapper')) {
+    setOutlineWrapperCollapsed(nodeToMove, outlineEl, !outlineVisible)
+    if (outlineVisible) {
+      outlineEl.style.width = '100%'
+      outlineEl.style.maxWidth = 'none'
+    }
+  }
+}
+
+/** 移除编辑器根内除主大纲外的其它 .vditor-outline，避免搬到侧栏后 Vditor 再插一份导致双大纲 */
+function removeDuplicateVditorOutlines(editorRoot: HTMLElement, primaryOutline: HTMLElement) {
+  for (const n of [...editorRoot.querySelectorAll('.vditor-outline')]) {
+    if (n === primaryOutline || primaryOutline.contains(n)) continue
+    try {
+      n.parentElement?.removeChild(n)
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+/**
+ * 侧栏要展示 Vditor 大纲时，确保已 render 并展开；否则用户从未点工具栏「大纲」时 .vditor-outline 可能无条目或 display:none。
+ */
+function ensureVditorOutlineRenderedForHost() {
+  const inst = vditor.value as { vditor?: { outline?: any; options?: { outline?: { enable?: boolean } } } } | null
+  const iv = inst?.vditor
+  if (!iv?.outline || typeof iv.outline.render !== 'function') return
+  try {
+    const opt = iv.options?.outline
+    if (opt && typeof opt === 'object') {
+      opt.enable = true
+    }
+    iv.outline.render(iv)
+    if (typeof iv.outline.toggle === 'function') {
+      iv.outline.toggle(iv, true, false)
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 把 Vditor 大纲挂到侧栏 #metadoc-vditor-outline-host（专注模式或普通模式「文档大纲」Tab） */
+function syncVditorOutlineToFocusHost() {
+  try {
+    if (!isActive.value) return
+    const host = getOutlineHostElement()
+    const editorRoot = vditor.value?.vditor?.element as HTMLElement | undefined
+    if (!host || !editorRoot) return
+
+    const outlineInEditor = editorRoot.querySelector('.vditor-outline') as HTMLElement | null
+    const outlineInHost = host.querySelector('.vditor-outline') as HTMLElement | null
+
+    // 编辑后 Vditor 常在编辑器根下重新插入新的大纲节点；侧栏若仍保留旧 DOM，会导致无法点击/右键
+    if (outlineInEditor && outlineInHost && outlineInEditor !== outlineInHost) {
+      while (host.firstChild) {
+        host.removeChild(host.firstChild)
+      }
+      outlineRelocation = null
+    }
+
+    let outlineEl = outlineInEditor ?? (host.querySelector('.vditor-outline') as HTMLElement | null)
+    if (!outlineEl) return
+
+    const nodeToMove = outlineEl.parentElement?.classList.contains('outline-resize-wrapper')
+      ? (outlineEl.parentElement as HTMLElement)
+      : outlineEl
+
+    const outlineVisible =
+      outlineEl.classList.contains('vditor-outline--show') ||
+      (outlineEl.style.display !== 'none' && outlineEl.style.display !== '')
+
+    if (nodeToMove.parentElement === host) {
+      removeDuplicateVditorOutlines(editorRoot, outlineEl)
+      applyOutlineInFocusSidebar(nodeToMove, outlineEl, outlineVisible)
+      return
+    }
+
+    if (!outlineRelocation && nodeToMove.parentElement) {
+      outlineRelocation = {
+        node: nodeToMove,
+        parent: nodeToMove.parentElement,
+        next: nodeToMove.nextSibling
+      }
+    }
+
+    host.appendChild(nodeToMove)
+    removeDuplicateVditorOutlines(editorRoot, outlineEl)
+    applyOutlineInFocusSidebar(nodeToMove, outlineEl, outlineVisible)
+  } finally {
+    refreshVditorOutlineHostClickCapture()
+  }
+}
+
+function restoreVditorOutlineFromFocusHost() {
+  const saved = outlineRelocation
+  if (!saved) return
+  const { node, parent, next } = saved
+  try {
+    if (next && next.parentNode === parent) {
+      parent.insertBefore(node, next)
+    } else {
+      parent.appendChild(node)
+    }
+  } catch {
+    parent.appendChild(node)
+  }
+  outlineRelocation = null
+  clearOutlineHostLayoutStyles(node)
+}
+
 /**
  * 为 vditor 大纲面板注入可拖拽调整宽度的分割线
  * 用 wrapper 包裹大纲，手柄放在大纲右侧（滚动条右边），始终可见、易操作
@@ -416,6 +770,11 @@ function setOutlineWrapperCollapsed(
 function setupOutlineResizer() {
   const editorElement = vditor.value?.vditor?.element
   if (!editorElement) return
+
+  if (getOutlineHostElement()) {
+    syncVditorOutlineToFocusHost()
+    return
+  }
 
   const outlineEl = editorElement.querySelector('.vditor-outline') as HTMLElement
   if (!outlineEl) return
@@ -506,11 +865,69 @@ const searchReplaceDialogVisible = ref(false)
 const vditor = ref<Vditor | null>(null) // Vditor 实例
 const articleContextMenuItems = ref<any[]>([]) //右键菜单项
 const textEditorAdapter = shallowRef<TextEditorAdapter | null>(null)
+
+watch(
+  () => ({ active: isActive.value, adapter: textEditorAdapter.value, tabId: props.tabId }),
+  ({ active, adapter, tabId }) => {
+    if (active && adapter) {
+      registerOutlineSidebarSearchAdapter(tabId, adapter)
+    } else {
+      unregisterOutlineSidebarSearchAdapter(tabId)
+    }
+  },
+  { immediate: true }
+)
+
 const titleIndex = ref<TitleIndex | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 const containerWidth = ref(0)
 const vditorInnerLayoutObserver = shallowRef<ResizeObserver | null>(null)
 let layoutObserver: ResizeObserver | null = null
+
+type OutlineRelocationState = {
+  node: HTMLElement
+  parent: HTMLElement
+  next: ChildNode | null
+}
+let outlineRelocation: OutlineRelocationState | null = null
+let detachVditorToolbarTooltip: (() => void) | null = null
+
+/** 侧栏 host：正文或 Vditor 重绘后重新挂接大纲，避免陈旧 DOM */
+const debouncedSyncVditorOutlineToFocusHost = debounce(() => {
+  if (!isActive.value) return
+  syncVditorOutlineToFocusHost()
+}, 120)
+
+/** Vditor 会整体替换 .vditor-outline 节点，原先挂在旧节点上的 MutationObserver 会失效；改监听整个编辑器根 */
+function teardownFocusHostOutlineMutationObserver() {
+  const inst = vditor.value as { _focusHostOutlineMo?: MutationObserver } | null
+  if (inst?._focusHostOutlineMo) {
+    inst._focusHostOutlineMo.disconnect()
+    inst._focusHostOutlineMo = undefined
+  }
+}
+
+function ensureFocusHostOutlineMutationObserver() {
+  if (!isActive.value) {
+    teardownFocusHostOutlineMutationObserver()
+    return
+  }
+  const editorRoot = vditor.value?.vditor?.element as HTMLElement | undefined
+  if (!editorRoot || !vditor.value) return
+  const needObserver =
+    (isFocusMode.value && isActive.value) || Boolean(getOutlineHostElement())
+  if (!needObserver) {
+    teardownFocusHostOutlineMutationObserver()
+    return
+  }
+  teardownFocusHostOutlineMutationObserver()
+  const mo = new MutationObserver(() => {
+    if (!isActive.value) return
+    debouncedSyncVditorOutlineToFocusHost()
+  })
+  mo.observe(editorRoot, { childList: true, subtree: true })
+  ;(vditor.value as { _focusHostOutlineMo?: MutationObserver })._focusHostOutlineMo = mo
+}
 
 /** Vditor 的 setPadding 只响应 window.resize；侧栏/大纲改变 .vditor-ir 宽度时若不触发，版心左右留白会卡在旧值 */
 const syncVditorPaddingAfterLayout = debounce(() => {
@@ -621,6 +1038,8 @@ let isSavingFromEditor = false
 // 当 updateDocumentMarkdown 由 sync-active-editor 调用时，watch 必须跳过 scheduleSetValue。
 // 使用 ref 确保 watch 运行时（无论何时 flush）都能读到，避免 isSavingFromEditor 的时序竞态。
 const skipNextWatchFromSync = ref(false)
+/** 下一条因 workspace markdown 变化触发的 watch 回写 Vditor 时保留撤销栈（段落优化器等通过适配器 updateDocumentMarkdown 同步） */
+const preserveVditorUndoOnNextWorkspaceMarkdown = ref(false)
 
 type SetValueOptions = {
   clearHistory?: boolean
@@ -720,6 +1139,9 @@ const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
       // 执行 setValue（这可能会重置主题）
       vditor.value?.setValue(normalized, options.clearHistory ?? true)
       lastAppliedContent.value = normalized
+      if (isActive.value) {
+        debouncedSyncVditorOutlineToFocusHost()
+      }
 
       // 关键修复：setValue 后立即（同步）重新应用主题，避免闪烁
       // 使用同步方式应用主题，不要延迟，确保在浏览器渲染前主题已经正确
@@ -874,30 +1296,108 @@ async function buildSectionInfoForOutlineItem(
   }
 }
 
-// 打开右键菜单
+/** Vditor 标准 TOC 用 data-target-id 指向正文标题，无 [path]；与 buildOutlineSectionLineRanges 先序对齐得到 path */
+function resolveVditorOutlineLiToPathAndTitle(
+  outlineContentRoot: HTMLElement,
+  li: HTMLElement,
+  markdown: string
+): { path: string; title: string } | null {
+  const ranges = buildOutlineSectionLineRanges(markdown).filter((r) => r.path !== '')
+  if (!ranges.length) return null
+  const lis = [...outlineContentRoot.querySelectorAll('li')]
+  const idx = lis.findIndex((n) => n === li)
+  if (idx >= 0 && idx < ranges.length) {
+    const r = ranges[idx]
+    return { path: r.path, title: r.title }
+  }
+  const holder = li.querySelector('[data-target-id]') as HTMLElement | null
+  const roughTitle = holder?.innerText?.replace(/\s+/g, ' ').trim() ?? ''
+  if (roughTitle) {
+    for (const r of ranges) {
+      const t = r.title.trim()
+      if (!t) continue
+      if (roughTitle === t || roughTitle.endsWith(t)) {
+        return { path: r.path, title: r.title }
+      }
+    }
+  }
+  return null
+}
+
+/** Vditor 大纲右键（含专注侧栏 host 内、因不在 .editor 内需 document 捕获兜底） */
+async function tryOpenVditorOutlineContextMenu(event: MouseEvent): Promise<boolean> {
+  const target = event.target as HTMLElement | null
+  const inOutlineContent = target?.closest?.('.vditor-outline__content') as HTMLElement | null
+  if (!inOutlineContent || !vditor.value || !target) return false
+  const outlineRoot = target.closest('.vditor-outline') as HTMLElement | null
+  if (!outlineBelongsToThisEditor(outlineRoot)) return false
+  const li = target?.closest?.('.vditor-outline__content li') as HTMLElement | null
+  if (!li) return false
+
+  let path = ''
+  let title = ''
+  const pathEl = li.querySelector?.('[path]') as HTMLElement | null
+  const legacyPath = pathEl?.getAttribute?.('path')
+  if (legacyPath) {
+    path = legacyPath
+    title = pathEl?.innerText?.trim() || ''
+  } else {
+    const resolved = resolveVditorOutlineLiToPathAndTitle(
+      inOutlineContent,
+      li,
+      currentMarkdown.value
+    )
+    if (!resolved?.path) return false
+    path = resolved.path
+    title = resolved.title
+  }
+  if (!path) return false
+  const sectionInfo = await buildSectionInfoForOutlineItem(title, path)
+  outlineContextSection.value = { path, title, sectionInfo }
+  articleContextMenuItems.value = getMarkdownOutlineContextMenuItems()
+  menuX.value = event.clientX
+  menuY.value = event.clientY
+  contextMenuVisible.value = true
+  return true
+}
+
+function onDocumentVditorOutlineContextMenuCapture(event: MouseEvent) {
+  if (!isActive.value || activeTabIdRef.value !== props.tabId || !vditor.value) return
+  const target = event.target as HTMLElement | null
+  const inOutlineContent = target?.closest?.('.vditor-outline__content') as HTMLElement | null
+  if (!inOutlineContent || !target) return
+  const outlineRoot = target.closest('.vditor-outline') as HTMLElement | null
+  if (!outlineBelongsToThisEditor(outlineRoot)) return
+  const li = target?.closest?.('.vditor-outline__content li') as HTMLElement | null
+  if (!li) return
+  const pathEl = li.querySelector?.('[path]') as HTMLElement | null
+  const legacyPath = pathEl?.getAttribute?.('path')
+  if (!legacyPath) {
+    const resolved = resolveVditorOutlineLiToPathAndTitle(
+      inOutlineContent,
+      li,
+      currentMarkdown.value
+    )
+    if (!resolved?.path) return
+  }
+  event.preventDefault()
+  event.stopPropagation()
+  void (async () => {
+    outlineContextSection.value = null
+    await tryOpenVditorOutlineContextMenu(event)
+  })()
+}
+
+// 打开右键菜单（capture：先于子节点；Vditor 标准 TOC 无 [path]，须用 li 先序或 data-target-id 解析）
 const openContextMenu = async (event: MouseEvent) => {
   event.preventDefault()
   menuX.value = event.clientX
   menuY.value = event.clientY
   outlineContextSection.value = null
 
-  const target = event.target as HTMLElement | null
-  const inOutlineContent = target?.closest?.('.vditor-outline__content')
-  if (inOutlineContent) {
-    const pathEl = target?.closest?.('[path]') as HTMLElement | null
-    const path = pathEl?.getAttribute('path')
-    if (path && pathEl) {
-      const title = pathEl.innerText?.trim() || ''
-      const sectionInfo = await buildSectionInfoForOutlineItem(title, path)
-      outlineContextSection.value = { path, title, sectionInfo }
-      articleContextMenuItems.value = getMarkdownOutlineContextMenuItems()
-    } else {
-      await refreshContextMenu()
-    }
-  } else {
-    await refreshContextMenu()
-  }
+  if (await tryOpenVditorOutlineContextMenu(event)) return
 
+  await refreshContextMenu()
   contextMenuVisible.value = true
 }
 
@@ -908,9 +1408,8 @@ const insertText = (text: string) => {
 
 // 使用 document.execCommand 触发复制/剪切/粘贴（需焦点在当前模式的真实可编辑区）
 const executeEditorCommand = (command: string) => {
-  if (!vditor.value) return
-  // 与 Vditor 内部一致：按当前模式聚焦 ir/sv/wysiwyg，避免只 focus 外层容器导致 execCommand 失败（尤其剪切）
-  vditor.value.focus()
+  const inst = vditor.value
+  if (!inst) return
 
   const editorRoot = getEditorRoot()
   if (!editorRoot) return
@@ -921,6 +1420,14 @@ const executeEditorCommand = (command: string) => {
     editorRoot.querySelector('.vditor-wysiwyg') ||
     editorRoot.querySelector('.vditor-sv') ||
     editorRoot
+
+  // Vditor.focus() 会读内部 ivditor.currentMode；初始化未完成、销毁中或实例未就绪时 ivditor 可能为空，会抛错
+  const iv = (inst as any).vditor
+  if (iv) {
+    inst.focus()
+  } else {
+    ;(editableElement as HTMLElement)?.focus?.()
+  }
 
   // 使用 document.execCommand，Vditor 会自动处理这些命令
   // 对于 Vditor，execCommand 会触发其内部的粘贴处理逻辑（包括图片）
@@ -1023,6 +1530,64 @@ const handleMenuClick = async (item: string) => {
       } catch {
         notifyError(t('markdownEditor.outlineMenu.copyFailed', '复制失败'))
       }
+      break
+    }
+    case 'outline-copy-title': {
+      const ctx = outlineContextSection.value
+      const title = ctx?.title?.trim() || ''
+      if (!title) {
+        eventBus.emit(
+          'show-warning',
+          t('markdownEditor.outlineMenu.emptyTitle', '暂无标题可复制')
+        )
+        break
+      }
+      try {
+        await navigator.clipboard.writeText(title)
+        notifySuccess(t('common.success'))
+      } catch {
+        notifyError(t('markdownEditor.outlineMenu.copyFailed', '复制失败'))
+      }
+      break
+    }
+    case 'outline-delete-section': {
+      const ctx = outlineContextSection.value
+      if (!ctx || !props.tabId) break
+      const r = ctx.sectionInfo?.range
+      if (!r) {
+        eventBus.emit(
+          'show-warning',
+          t('markdownEditor.outlineMenu.noRangeToDelete', '无法定位该段落范围，删除已取消')
+        )
+        break
+      }
+      try {
+        await messageBox.confirm(
+          t('markdownEditor.outlineMenu.deleteSectionConfirm'),
+          t('markdownEditor.outlineMenu.deleteSectionTitle'),
+          {
+            confirmButtonText: t('common.confirm'),
+            cancelButtonText: t('common.cancel'),
+            type: 'warning'
+          }
+        )
+      } catch {
+        break
+      }
+      const md = (currentMarkdown.value ?? '').replace(/\r\n/g, '\n')
+      const lines = md.split('\n')
+      const start = r.start.line
+      const end = r.end.line
+      if (start < 0 || end < start || end >= lines.length) {
+        eventBus.emit(
+          'show-warning',
+          t('markdownEditor.outlineMenu.noRangeToDelete', '无法定位该段落范围，删除已取消')
+        )
+        break
+      }
+      const next = [...lines.slice(0, start), ...lines.slice(end + 1)].join('\n')
+      workspace.updateDocumentMarkdown(props.tabId, next)
+      notifySuccess(t('common.success'))
       break
     }
     case 'outline-generate-illustration': {
@@ -1282,6 +1847,41 @@ watch(isActive, (active) => {
   }
 })
 
+watch(
+  () => [isFocusMode.value, isActive.value] as const,
+  async () => {
+    await nextTick()
+    if (!vditor.value?.vditor?.element) return
+    if (!isActive.value) {
+      teardownFocusHostOutlineMutationObserver()
+      restoreVditorOutlineFromFocusHost()
+      unbindVditorOutlineHostClickCapture()
+      syncVditorPaddingAfterLayout()
+      return
+    }
+    if (isFocusMode.value) {
+      ensureVditorOutlineRenderedForHost()
+      await nextTick()
+      syncVditorOutlineToFocusHost()
+      ensureFocusHostOutlineMutationObserver()
+      syncVditorPaddingAfterLayout()
+      return
+    }
+    teardownFocusHostOutlineMutationObserver()
+    restoreVditorOutlineFromFocusHost()
+    await nextTick()
+    if (getOutlineHostElement()) {
+      ensureVditorOutlineRenderedForHost()
+      await nextTick()
+      syncVditorOutlineToFocusHost()
+      ensureFocusHostOutlineMutationObserver()
+    } else {
+      setupOutlineResizer()
+    }
+    syncVditorPaddingAfterLayout()
+  }
+)
+
 const handleSyncWithHtml = () => {
   if (!isActive.value) return
   if (!vditor.value) return
@@ -1291,6 +1891,50 @@ const handleSyncWithHtml = () => {
   scheduleSetValue(markdown, { clearHistory: true, timeoutMs: 0 })
 }
 eventBus.on('vditor-sync-with-html', handleSyncWithHtml)
+
+/** 普通模式侧栏「文档大纲」Tab 挂载 host 后同步 Vditor 大纲 */
+const handleSyncVditorOutlineSidebarHost = () => {
+  if (!isActive.value) return
+  ensureVditorOutlineRenderedForHost()
+  void nextTick(() => {
+    void nextTick(() => {
+      syncVditorOutlineToFocusHost()
+      ensureFocusHostOutlineMutationObserver()
+    })
+  })
+}
+
+/** 离开侧栏大纲 Tab 或侧栏壳卸载前：大纲回到编辑器，避免 host 销毁带走 DOM */
+const handleRestoreVditorOutlineSidebarHost = () => {
+  restoreVditorOutlineFromFocusHost()
+  teardownFocusHostOutlineMutationObserver()
+  // 专注模式：离开「文档大纲」Tab 后 host 隐藏，但需继续观察编辑器根，否则改稿后大纲 DOM 替换不同步
+  if (isFocusMode.value && isActive.value) {
+    ensureFocusHostOutlineMutationObserver()
+  }
+  if (vditor.value?.vditor?.element && !getOutlineHostElement()) {
+    setupOutlineResizer()
+  }
+}
+eventBus.on('sync-vditor-outline-sidebar-host', handleSyncVditorOutlineSidebarHost)
+eventBus.on('restore-vditor-outline-sidebar-host', handleRestoreVditorOutlineSidebarHost)
+
+/** 普通模式左侧「大纲树」：在编辑器内展开 Vditor 大纲（无右侧专注侧栏 host） */
+const handleRevealVditorOutlineInEditor = () => {
+  if (!isActive.value) return
+  ensureVditorOutlineRenderedForHost()
+  void nextTick(() => {
+    restoreVditorOutlineFromFocusHost()
+    if (getOutlineHostElement()) {
+      syncVditorOutlineToFocusHost()
+    } else {
+      setupOutlineResizer()
+    }
+    ensureFocusHostOutlineMutationObserver()
+    syncVditorPaddingAfterLayout()
+  })
+}
+eventBus.on('reveal-vditor-outline-in-editor', handleRevealVditorOutlineInEditor)
 
 const handleEditorGotoPosition = (payload: {
   tabId?: string
@@ -1372,11 +2016,13 @@ const acceptGeneratedText = async (payload: any) => {
   // 如果有sectionInfo，使用适配器来应用内容
   if (sectionInfo && sectionOptimizerAdapter.value) {
     try {
+      preserveVditorUndoOnNextWorkspaceMarkdown.value = true
       await sectionOptimizerAdapter.value.applyContent(sectionInfo, content, append)
       showSectionOptimizer.value = false
       sectionOptimizerAdapter.value = null
       return
     } catch (e) {
+      preserveVditorUndoOnNextWorkspaceMarkdown.value = false
       console.warn('Failed to apply content via adapter:', e)
     }
   }
@@ -2028,8 +2674,6 @@ const bindTitleMenu = async () => {
     //添加tooltip
     target.setAttribute('title', t('article.click_jump_long_press_optimize'))
   })
-
-  debouncedSyncOutlineActive()
 }
 
 // 鼠标事件处理
@@ -2127,7 +2771,7 @@ const outlineMouseDownEvent = (event: MouseEvent, section: HTMLElement) => {
 
   if (title) {
     // 聚焦到这个元素（在编辑器内容区域内）
-    title.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' })
+    title.scrollIntoView({ behavior: 'instant', block: 'start', inline: 'nearest' })
 
     // 如果是IR或SV模式，尝试将光标定位到标题
     if (currentMode === 'ir' || currentMode === 'sv') {
@@ -2239,47 +2883,6 @@ const handleTab = (event: KeyboardEvent) => {
   }
 }
 
-const OUTLINE_CURRENT_CLASS = 'metadoc-outline-row--current'
-
-async function syncOutlineActiveHighlight() {
-  if (!isActive.value || !vditor.value) return
-  const root = getEditorRoot()
-  const oc = root?.querySelector('.vditor-outline__content')
-  if (!oc) return
-
-  oc.querySelectorAll(`.${OUTLINE_CURRENT_CLASS}`).forEach((el) =>
-    el.classList.remove(OUTLINE_CURRENT_CLASS)
-  )
-
-  if (!props.tabId) return
-  const range = textEditorAdapter.value?.getSelectionRange?.()
-  if (!range) return
-  const adapter = new MarkdownSectionAdapter(props.tabId)
-  const section = await adapter.getSectionAtCursor({
-    line: range.start.line,
-    column: range.start.column
-  })
-  const path = section?.path
-  if (!path) return
-
-  const esc =
-    typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
-      ? CSS.escape(path)
-      : path.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-  const inner = oc.querySelector(`[path="${esc}"]`) as HTMLElement | null
-  const row = inner?.parentElement as HTMLElement | null
-  row?.classList.add(OUTLINE_CURRENT_CLASS)
-}
-
-const debouncedSyncOutlineActive = debounce(() => {
-  void syncOutlineActiveHighlight()
-}, 120)
-
-function onDocumentSelectionChangeForOutline() {
-  if (!isActive.value) return
-  debouncedSyncOutlineActive()
-}
-
 const refreshContextMenu = async () => {
   const sel = getMarkdownEditorSelectionText().trim()
   const hasTextSelection = sel.length > 0
@@ -2300,28 +2903,28 @@ function onSelectionTranslateReplace(text: string) {
   adapter.replaceRange(range, text)
 }
 
-// 编辑器初始化
-onMounted(async () => {
-  if (typeof window !== 'undefined') {
-    window.addEventListener('resize', updateSearchMenuPosition)
+/**
+ * Vditor 初始化（耗时较长）。若在 await 期间用户切换到其他标签，KeepAlive 会把本实例 DOM 移出 document，
+ * 此时用字符串 id 调用 `new Vditor(id)` 会触发 “Failed to get element by id”。因此：
+ * 1）构造前用 getElementById + isConnected 校验；
+ * 2）传入 HTMLElement 而非 id，避免 Vditor 内部再次 getElementById 失败；
+ * 3）未就绪时由 onActivated 再次调用本函数。
+ */
+let vditorInitPromise: Promise<void> | null = null
+
+async function runMarkdownVditorInit() {
+  if (vditor.value) return
+  if (vditorInitPromise) {
+    await vditorInitPromise
+    if (!vditor.value) {
+      return runMarkdownVditorInit()
+    }
+    return
   }
-  if (typeof document !== 'undefined') {
-    document.addEventListener('selectionchange', onDocumentSelectionChangeForOutline)
-  }
-  await nextTick()
-  if (containerRef.value) {
-    layoutObserver = new ResizeObserver((entries) => {
-      if (!entries.length) return
-      const width = entries[0].contentRect.width
-      containerWidth.value = width
-      syncVditorPaddingAfterLayout()
-    })
-    layoutObserver.observe(containerRef.value)
-    containerWidth.value = containerRef.value.clientWidth
-  }
-  try {
-    await waitForService('express')
-    await refreshContextMenu()
+  vditorInitPromise = (async () => {
+    try {
+      await waitForService('express')
+      await refreshContextMenu()
     let cdn = ''
     if (isElectronEnv()) {
       cdn = getLocalVditorCDN()
@@ -2439,7 +3042,16 @@ onMounted(async () => {
     const mathIconUrl = (themeState.currentTheme as any).MathIcon
     const mathIconSvg = await getSvgIconContent(mathIconUrl)
 
-    vditor.value = new Vditor(props.editorDomId, {
+    await nextTick()
+    const vditorMountEl = document.getElementById(props.editorDomId)
+    if (!vditorMountEl?.isConnected) {
+      logger.warn(
+        `[MarkdownEditor] Vditor 挂载点 #${props.editorDomId} 不在文档中（常见于 KeepAlive 非激活标签或初始化较慢时切换标签），将延后到标签再次显示时再初始化。`
+      )
+      return
+    }
+
+    vditor.value = new Vditor(vditorMountEl, {
       lang: supportedLang.includes(t('lang') as string) ? (t('lang') as any) : 'en_US',
       mode: vditorMode as 'wysiwyg' | 'ir' | 'sv',
       toolbarConfig: { pin: true },
@@ -2666,7 +3278,7 @@ onMounted(async () => {
         },
         {
           name: 'ai-assistant',
-          tip: t('article.toolbar.ai_assistant'),
+          tip: t('article.toolbar.ai_full_document_analysis'),
           tipPosition: 's',
           className: 'right',
           icon: `<svg width="20" height="20" viewBox="0 0 100 100" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill-rule="evenodd" d="m76.91 56.516c-2.5586 3.8086-5.6523 7.582-9.2344 11.16-5.1484 5.1523-10.699 9.3008-16.168 12.305-7.5703 4.1562-15.02 6.125-21.129 5.7188-4.5664-0.30078-8.4453-1.8945-11.316-4.7656-3.7188-3.7188-5.3047-9.1836-4.6836-15.605 0.16406-1.7148 1.6953-2.9805 3.4102-2.8164 1.7148 0.16406 2.9805 1.6953 2.8086 3.4141-0.41797 4.3242 0.37891 8.082 2.8867 10.59 2.3516 2.3516 5.8164 3.1914 9.8125 2.9453 4.6016-0.28516 9.8516-2.0234 15.199-4.9609 4.9922-2.7461 10.059-6.5391 14.762-11.242 4.2305-4.2305 7.7266-8.7539 10.383-13.258-2.6562-4.5039-6.1523-9.0273-10.383-13.258-1.1016-1.1016-2.2188-2.1484-3.3516-3.1484-1.293-1.1367-1.4219-3.1172-0.28125-4.4102 1.1406-1.2891 3.1211-1.418 4.4102-0.27734 1.2344 1.0859 2.4492 2.2227 3.6406 3.4141 5.1484 5.1484 9.293 10.703 12.297 16.168l0.003906 0.003907c4.1602 7.5742 6.1289 15.02 5.7188 21.129-0.30078 4.5664-1.8945 8.4492-4.7617 11.312-3.7188 3.7227-9.1875 5.3047-15.609 4.6875-1.7148-0.16406-2.9727-1.6914-2.8125-3.4102 0.16797-1.7188 1.6953-2.9805 3.4141-2.8086 4.3242 0.41016 8.0859-0.37891 10.59-2.8867 2.3555-2.3516 3.1914-5.8203 2.9414-9.8125-0.19141-3.1523-1.0664-6.6055-2.5469-10.188zm-56.887-5.0078c-4.1602-7.5742-6.1289-15.02-5.7188-21.129 0.30078-4.5664 1.8906-8.4492 4.7578-11.316 3.7227-3.7188 9.1875-5.3008 15.609-4.6836 1.7188 0.16406 2.9766 1.6914 2.8164 3.4102-0.16797 1.7188-1.6953 2.9766-3.4141 2.8086-4.3242-0.41406-8.0859 0.375-10.594 2.8828-2.3516 2.3555-3.1875 5.8203-2.9414 9.8164 0.19531 3.1523 1.0703 6.6055 2.5469 10.184 2.5625-3.8047 5.6562-7.5781 9.2383-11.156 5.1484-5.1523 10.699-9.3008 16.168-12.305 7.5703-4.1562 15.02-6.125 21.129-5.7188 4.5664 0.30078 8.4453 1.8945 11.312 4.7617 3.7227 3.7227 5.3047 9.1875 4.6875 15.609-0.16797 1.7148-1.6953 2.9805-3.4102 2.8164-1.7148-0.16797-2.9805-1.6953-2.8125-3.4141 0.42187-4.3242-0.375-8.0859-2.8828-10.59-2.3516-2.3516-5.8203-3.1914-9.8164-2.9453-4.5977 0.28516-9.8477 2.0234-15.195 4.9609-4.9922 2.7461-10.062 6.5391-14.762 11.242-4.2344 4.2305-7.7305 8.7539-10.383 13.258 2.6523 4.5039 6.1523 9.0273 10.383 13.258 1.0977 1.1016 2.2148 2.1445 3.3516 3.1445 1.293 1.1406 1.4219 3.1172 0.28125 4.4141-1.1445 1.2891-3.1211 1.4141-4.4141 0.27734-1.2305-1.0859-2.4492-2.2266-3.6406-3.418-5.1445-5.1445-9.2891-10.699-12.293-16.164zm31.867-11.762s1.8672 4.1602 3.0273 5.3242c1.1641 1.1641 5.3398 3.043 5.3398 3.043 0.73047 0.33984 1.2031 1.0781 1.1992 1.8867 0.003907 0.8125-0.46875 1.5508-1.2031 1.8906 0 0-4.1562 1.8672-5.3281 3.0234-1.1641 1.168-3.0391 5.3438-3.0391 5.3438-0.33594 0.73047-1.0781 1.1992-1.8906 1.1992-0.80469 0.003907-1.543-0.46875-1.8828-1.1992 0 0-1.8789-4.1758-3.043-5.3398-1.1641-1.1602-5.3242-3.0273-5.3242-3.0273-0.73438-0.34375-1.207-1.082-1.207-1.8906 0.003907-0.80859 0.47266-1.5508 1.207-1.8906 0 0 4.1562-1.8672 5.3242-3.0273 1.168-1.1641 3.0391-5.3398 3.0391-5.3398 0.33984-0.73047 1.082-1.1992 1.8906-1.2031 0.80859 0 1.5469 0.47266 1.8906 1.207z"/></svg>`,
@@ -2716,7 +3328,9 @@ onMounted(async () => {
         // 移除 syncOutlineFromMarkdown 调用，因为 workspace.updateDocumentMarkdown 已经自动同步大纲
         // 只在需要重新绑定标题菜单时调用 bindTitleMenu（延迟执行，避免频繁调用）
         bindTitleMenu()
-        debouncedSyncOutlineActive()
+        if (isActive.value) {
+          debouncedSyncVditorOutlineToFocusHost()
+        }
       },
       after: async () => {
         //logger.log(themeState);
@@ -2845,22 +3459,26 @@ onMounted(async () => {
                     // 等待大纲显示/隐藏动画完成
                     await new Promise((resolve) => setTimeout(resolve, 300))
                     await nextTick()
-                    // 确保 wrapper 折叠状态与大纲可见性一致（用宽度折叠，不用 display）
-                    const outlineEl = editorElement.querySelector('.vditor-outline') as HTMLElement
-                    if (outlineEl) {
-                      const wrapper = outlineEl.parentElement?.classList.contains(
-                        'outline-resize-wrapper'
-                      )
-                        ? (outlineEl.parentElement as HTMLElement)
-                        : null
-                      if (wrapper) {
-                        const isVisible =
-                          outlineEl.classList.contains('vditor-outline--show') ||
-                          (outlineEl.style.display !== 'none' && outlineEl.style.display !== '')
-                        setOutlineWrapperCollapsed(wrapper, outlineEl, !isVisible)
+                    if (getOutlineHostElement()) {
+                      syncVditorOutlineToFocusHost()
+                      ensureFocusHostOutlineMutationObserver()
+                    } else {
+                      const outlineEl = editorElement.querySelector('.vditor-outline') as HTMLElement
+                      if (outlineEl) {
+                        const wrapper = outlineEl.parentElement?.classList.contains(
+                          'outline-resize-wrapper'
+                        )
+                          ? (outlineEl.parentElement as HTMLElement)
+                          : null
+                        if (wrapper) {
+                          const isVisible =
+                            outlineEl.classList.contains('vditor-outline--show') ||
+                            (outlineEl.style.display !== 'none' && outlineEl.style.display !== '')
+                          setOutlineWrapperCollapsed(wrapper, outlineEl, !isVisible)
+                        }
                       }
+                      setupOutlineResizer()
                     }
-                    setupOutlineResizer()
                     bindTitleMenu()
                     syncVditorPaddingAfterLayout()
                   })
@@ -2875,6 +3493,15 @@ onMounted(async () => {
                   const isVisible =
                     el.classList.contains('vditor-outline--show') ||
                     (el.style.display !== 'none' && el.style.display !== '')
+
+                  if (getOutlineHostElement()) {
+                    await nextTick()
+                    await new Promise((resolve) => setTimeout(resolve, 100))
+                    syncVditorOutlineToFocusHost()
+                    bindTitleMenu()
+                    syncVditorPaddingAfterLayout()
+                    return
+                  }
 
                   const w = el.parentElement
                   if (w?.classList.contains('outline-resize-wrapper')) {
@@ -2900,9 +3527,16 @@ onMounted(async () => {
                 ;(vditor.value as any)._outlineObserver = outlineObserver
               }
 
-              // 初始化时设置大纲宽度拖拽
-              setupOutlineResizer()
+              // 初始化：专注或侧栏已有 host 则挂大纲，否则编辑器内 resizer
+              if (isActive.value && getOutlineHostElement()) {
+                syncVditorOutlineToFocusHost()
+                ensureFocusHostOutlineMutationObserver()
+              } else {
+                setupOutlineResizer()
+              }
               attachVditorInnerLayoutObservers(editorElement)
+              detachVditorToolbarTooltip?.()
+              detachVditorToolbarTooltip = attachVditorToolbarCursorTooltip(editorElement)
               syncVditorPaddingAfterLayout()
             }
           }
@@ -3055,6 +3689,32 @@ onMounted(async () => {
       }
     }
     eventBus.on('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
+    } finally {
+      vditorInitPromise = null
+    }
+  })()
+  await vditorInitPromise
+}
+
+onMounted(async () => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', updateSearchMenuPosition)
+    document.addEventListener('contextmenu', onDocumentVditorOutlineContextMenuCapture, true)
+  }
+  await nextTick()
+  if (containerRef.value) {
+    layoutObserver = new ResizeObserver((entries) => {
+      if (!entries.length) return
+      const width = entries[0].contentRect.width
+      containerWidth.value = width
+      syncVditorPaddingAfterLayout()
+    })
+    layoutObserver.observe(containerRef.value)
+    containerWidth.value = containerRef.value.clientWidth
+  }
+  isVditorLoading.value = true
+  try {
+    await runMarkdownVditorInit()
   } catch (e) {
     logger.error(e)
     eventBus.emit('show-error', t('article.vditor_init_failed') + e)
@@ -3062,9 +3722,28 @@ onMounted(async () => {
     isVditorLoading.value = false
   }
 })
+
+onActivated(async () => {
+  if (vditor.value) return
+  isVditorLoading.value = true
+  try {
+    await runMarkdownVditorInit()
+  } catch (e) {
+    logger.error(e)
+    eventBus.emit('show-error', t('article.vditor_init_failed') + e)
+  } finally {
+    isVditorLoading.value = false
+  }
+})
+
 // 清理资源
 onBeforeUnmount(() => {
+  unregisterOutlineSidebarSearchAdapter(props.tabId)
   flushOutlineSync()
+  unbindVditorOutlineHostClickCapture()
+  restoreVditorOutlineFromFocusHost()
+  detachVditorToolbarTooltip?.()
+  detachVditorToolbarTooltip = null
 
   // 移除编辑器适配器
   aiCompletionService.removeAdapter()
@@ -3076,6 +3755,10 @@ onBeforeUnmount(() => {
       if ((instance as any)._outlineObserver) {
         ;(instance as any)._outlineObserver.disconnect()
         ;(instance as any)._outlineObserver = null
+      }
+      if ((instance as any)._focusHostOutlineMo) {
+        ;(instance as any)._focusHostOutlineMo.disconnect()
+        ;(instance as any)._focusHostOutlineMo = null
       }
       instance.destroy()
     } catch (error) {
@@ -3091,6 +3774,9 @@ onBeforeUnmount(() => {
   }
   eventBus.off('search-replace')
   eventBus.off('vditor-sync-with-html', handleSyncWithHtml)
+  eventBus.off('sync-vditor-outline-sidebar-host', handleSyncVditorOutlineSidebarHost)
+  eventBus.off('restore-vditor-outline-sidebar-host', handleRestoreVditorOutlineSidebarHost)
+  eventBus.off('reveal-vditor-outline-in-editor', handleRevealVditorOutlineInEditor)
   eventBus.off('editor-goto-position', handleEditorGotoPosition as (payload?: unknown) => void)
   eventBus.off('sync-editor-theme', handleSyncEditorTheme)
   vditorInnerLayoutObserver.value?.disconnect()
@@ -3103,11 +3789,8 @@ onBeforeUnmount(() => {
   textEditorAdapter.value = null
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', updateSearchMenuPosition)
+    document.removeEventListener('contextmenu', onDocumentVditorOutlineContextMenuCapture, true)
   }
-  if (typeof document !== 'undefined') {
-    document.removeEventListener('selectionchange', onDocumentSelectionChangeForOutline)
-  }
-  debouncedSyncOutlineActive.cancel()
 })
 
 const handleSyncEditorTheme = async (payload?: unknown) => {
@@ -3178,9 +3861,16 @@ watch(
       // 注意：scheduleSetValue 内部会在 setValue 后自动重新应用主题
       // 关键修复：使用 timeoutMs: 0 立即执行，避免 requestIdleCallback 延迟导致主题应用延迟
       // 这里才是真正的"外部更新"（如打开文件、大纲同步、Tab 切换等），需要回写到编辑器
-      scheduleSetValue(incoming, { clearHistory: true, timeoutMs: 0 })
+      const keepVditorUndo = preserveVditorUndoOnNextWorkspaceMarkdown.value
+      if (keepVditorUndo) {
+        preserveVditorUndoOnNextWorkspaceMarkdown.value = false
+      }
+      scheduleSetValue(incoming, { clearHistory: !keepVditorUndo, timeoutMs: 0 })
       bindTitleMenu()
+    } else if (preserveVditorUndoOnNextWorkspaceMarkdown.value) {
+      preserveVditorUndoOnNextWorkspaceMarkdown.value = false
     }
+    debouncedSyncVditorOutlineToFocusHost()
   }
 )
 
@@ -3500,44 +4190,72 @@ watch(
   background-color: var(--el-bg-color, #fff);
 }
 
-.context-menu {
-  position: fixed;
-  z-index: 12000;
-}
+/* 右键菜单 z-index 由 ContextMenu 内联样式统一为 100060（高于 Dialog / GlobalMessageBox） */
 
-/* MetaDoc：Vditor 工具栏按钮质感 */
+/* MetaDoc：Vditor 工具栏 — 正方形按钮、较小图标、常规字重（覆盖 Vditor 默认窄宽+高条） */
 .editor :deep(.vditor-toolbar) {
   background: var(--toolbar-background-color) !important;
   background-color: var(--toolbar-background-color) !important;
   border-bottom: 1px solid color-mix(in srgb, var(--editor-text-color) 14%, transparent) !important;
   box-shadow: none !important;
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
+  padding: 4px 6px !important;
+  line-height: 1 !important;
 }
 
 .editor :deep(.vditor-toolbar__item) {
-  margin: 0 1px;
+  margin: 0 2px;
 }
 
+.editor :deep(.vditor-toolbar__item .vditor-tooltipped),
 .editor :deep(.vditor-toolbar__item .vditor-menu > button),
 .editor :deep(.vditor-toolbar__item > button) {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
   border-radius: 6px !important;
   border: 1px solid transparent !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 400 !important;
+  font-size: 0 !important;
   background: color-mix(in srgb, var(--editor-text-color) 6%, transparent) !important;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
     transform 0.08s ease,
     box-shadow 0.15s ease;
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--editor-text-color) 12%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--editor-text-color) 10%, transparent);
 }
 
+.editor :deep(.vditor-toolbar__item input) {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+}
+
+.editor :deep(.vditor-toolbar__item svg) {
+  width: 13px !important;
+  height: 13px !important;
+  max-width: 13px !important;
+  max-height: 13px !important;
+  flex-shrink: 0;
+  stroke-width: 0 !important;
+  font-weight: 400 !important;
+}
+
+.editor :deep(.vditor-toolbar__item .vditor-tooltipped:hover:not(.vditor-menu--disabled)),
 .editor :deep(.vditor-toolbar__item .vditor-menu > button:hover:not(.vditor-menu--disabled)),
 .editor :deep(.vditor-toolbar__item > button:hover:not(.vditor-menu--disabled)) {
   background: color-mix(in srgb, var(--editor-text-color) 12%, transparent) !important;
   border-color: color-mix(in srgb, var(--editor-text-color) 10%, transparent) !important;
 }
 
+.editor :deep(.vditor-toolbar__item .vditor-tooltipped:active:not(.vditor-menu--disabled)),
 .editor :deep(.vditor-toolbar__item .vditor-menu > button:active:not(.vditor-menu--disabled)),
 .editor :deep(.vditor-toolbar__item > button:active:not(.vditor-menu--disabled)) {
   transform: translateY(1px);
@@ -3546,35 +4264,90 @@ watch(
 }
 
 .editor :deep(.vditor-toolbar__item .vditor-menu--current > button),
+.editor :deep(.vditor-toolbar__item .vditor-menu--current.vditor-tooltipped),
 .editor :deep(.vditor-toolbar__item > button.vditor-menu--current) {
   background: color-mix(in srgb, var(--editor-text-color) 14%, transparent) !important;
   border-color: color-mix(in srgb, var(--editor-text-color) 12%, transparent) !important;
 }
 
 .editor :deep(.vditor-toolbar__item .vditor-menu--disabled > button),
+.editor :deep(.vditor-toolbar__item .vditor-tooltipped.vditor-menu--disabled),
 .editor :deep(.vditor-toolbar__item > button.vditor-menu--disabled) {
   opacity: 0.45;
   box-shadow: none;
 }
 
-.editor :deep(.vditor-panel.vditor-hint) {
-  border-radius: 8px !important;
+/* 工具栏下拉 / 模式菜单等：类名为 vditor-hint（可与 vditor-panel--arrow 并存，未必含 .vditor-panel） */
+.editor :deep(.vditor-hint) {
+  border-radius: 10px !important;
+  padding: 4px !important;
   border: 1px solid color-mix(in srgb, var(--editor-text-color) 15%, transparent) !important;
-  box-shadow: 0 8px 24px color-mix(in srgb, #000000 22%, transparent) !important;
+  box-shadow:
+    0 4px 6px color-mix(in srgb, #000000 8%, transparent),
+    0 12px 28px color-mix(in srgb, #000000 18%, transparent) !important;
+  background-color: var(--panel-background-color) !important;
+  color: var(--editor-text-color) !important;
+  min-width: 168px !important;
+  max-width: min(320px, 92vw) !important;
+  overflow: hidden;
+  line-height: 1.35 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+}
+
+.editor :deep(.vditor-hint.vditor-panel--arrow::before) {
+  display: none !important;
+}
+
+.editor :deep(.vditor-hint button) {
+  display: block !important;
+  width: calc(100% - 8px) !important;
+  margin: 2px 4px !important;
+  padding: 7px 10px !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  border-radius: 6px !important;
+  background-color: transparent !important;
+  color: inherit !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   overflow: hidden;
 }
 
-.editor :deep(.vditor-panel.vditor-hint button) {
-  border-radius: 6px;
-  margin: 2px 4px;
-  transition: background-color 0.12s ease;
+.editor :deep(.vditor-hint button:hover:not(.vditor-menu--disabled)),
+.editor :deep(.vditor-hint button:focus-visible) {
+  background-color: color-mix(in srgb, var(--editor-text-color) 10%, transparent) !important;
+  outline: none !important;
 }
 
-.editor :deep(.vditor-panel.vditor-hint button:hover) {
-  background: color-mix(in srgb, var(--editor-text-color) 10%, transparent) !important;
+.editor :deep(.vditor-hint button:active:not(.vditor-menu--disabled)) {
+  background-color: color-mix(in srgb, var(--editor-text-color) 14%, transparent) !important;
 }
 
-/* 大纲：圆角行、hover / 当前段、按下（与 SessionList 列表项一致的风格） */
+.editor :deep(.vditor-hint button.vditor-menu--current),
+.editor :deep(.vditor-hint--current) {
+  background-color: color-mix(in srgb, var(--editor-text-color) 12%, transparent) !important;
+}
+
+/* 专注模式：大纲仅在侧栏 host，编辑区内不显示 Vditor 原生大纲，避免叠层抢点击 */
+.editor.editor--focus-hide-vditor-local-outline :deep(.outline-resize-wrapper),
+.editor.editor--focus-hide-vditor-local-outline :deep(.vditor-outline) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* 专注模式：大纲由侧栏承担，隐藏工具栏「大纲」开关，避免误关后与侧栏脱节 */
+.editor.editor--focus-hide-outline-toolbar-btn :deep(.vditor-toolbar__item:has([data-type='outline'])) {
+  display: none !important;
+}
+
+/* 大纲：圆角行、hover / 按下（对齐 SessionList 列表质感） */
 .editor :deep(.vditor-outline__title) {
   font-weight: 600;
   font-size: 13px;
@@ -3597,10 +4370,6 @@ watch(
 
 .editor :deep(.vditor-outline__content li > span:active) {
   transform: scale(0.98);
-}
-
-.editor :deep(.vditor-outline__content li > span.metadoc-outline-row--current) {
-  background-color: color-mix(in srgb, var(--editor-text-color) 13%, transparent) !important;
 }
 
 .editor :deep(.vditor-outline__content li > span .language-math),

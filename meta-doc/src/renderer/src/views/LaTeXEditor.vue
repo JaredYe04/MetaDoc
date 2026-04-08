@@ -17,7 +17,7 @@
             await acceptGeneratedText(payload)
           }
         "
-        style="max-width: 500px"
+        @prompt-contextmenu="openContextMenu"
       />
       <!-- 保留TitleMenu以兼容旧代码 -->
       <TitleMenu
@@ -309,6 +309,7 @@ import { getOutlineAdapter } from '../utils/outline-adapters'
 import TitleMenu from '../components/TitleMenu.vue'
 import SectionOptimizer from '../components/SectionOptimizer.vue'
 import { LaTeXSectionAdapter } from '../components/section-optimizer/adapters/latex-adapter'
+import type { SectionInfo } from '../components/section-optimizer/types'
 import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
 import AiLogo from '../assets/ai-logo.svg'
 import AiLogoWhite from '../assets/ai-logo-white.svg'
@@ -354,7 +355,11 @@ import { Loading } from '@element-plus/icons-vue'
 import { debounce } from 'lodash'
 import messageBridge from '../bridge/message-bridge'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
-import type { TextRange } from '../editor/text-editor-types'
+import type { TextEditorAdapter, TextRange } from '../editor/text-editor-types'
+import {
+  registerOutlineSidebarSearchAdapter,
+  unregisterOutlineSidebarSearchAdapter
+} from '../composables/outline-sidebar-search-adapter'
 import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config'
 import { createAiTask, ai_types, cancelAiTask } from '../utils/ai_tasks'
@@ -455,7 +460,7 @@ const continueContentDialogVisible = ref(false)
 const searchReplaceDialogVisible = ref(false)
 const editor = ref<monaco.editor.IStandaloneCodeEditor | null>(null)
 const articleContextMenuItems = ref<any[]>([]) //右键菜单项
-const textEditorAdapter = shallowRef<any>(null)
+const textEditorAdapter = shallowRef<TextEditorAdapter | null>(null)
 
 const loadingInstance = ElLoading.service({ fullscreen: false })
 const showTitleMenu = ref(false)
@@ -684,18 +689,19 @@ function getEditorFontFamily(): string {
 
 let handleFontSettingsChanged: (() => void) | null = null
 let handleSyncActiveEditorLaTeX: ((payload?: { tabId?: string }) => void) | null = null
+let handleFocusLatexOutlineSectionOptimizer: ((payload?: unknown) => void) | null = null
+let handleFocusLatexOutlineGraphQuick: ((payload?: unknown) => void) | null = null
 
-// 文本到大纲的同步（类似 MarkdownEditor）
+// 文本到大纲的同步（类似 MarkdownEditor）：与 Monaco→tex 的防抖同次提交，避免再叠一层防抖导致晚 200ms+ 才更新
 let suppressOutlineSync = false
-const syncOutlineFromTex = debounce(() => {
+function syncOutlineFromTex(opts?: { ignoreView?: boolean }) {
   if (suppressOutlineSync) return
-  if (!isActive.value) return
 
-  // 只在编辑器视图时才同步大纲，避免在outline视图时触发不必要的同步
-  const currentView = documentRef.value.lastView ?? 'editor'
-  // 兼容旧的'article'值（已被'editor'替代）
-  if (currentView !== 'editor' && (currentView as string) !== 'article') {
-    return
+  if (!opts?.ignoreView) {
+    const currentView = documentRef.value.lastView ?? 'editor'
+    if (currentView !== 'editor' && (currentView as string) !== 'article') {
+      return
+    }
   }
 
   try {
@@ -705,7 +711,7 @@ const syncOutlineFromTex = debounce(() => {
   } catch (error) {
     logger.warn('从 LaTeX 同步大纲树失败', error)
   }
-}, 200)
+}
 
 const undo = () => editor.value?.trigger('keyboard', 'undo', null)
 const redo = () => editor.value?.trigger('keyboard', 'redo', null)
@@ -1711,6 +1717,8 @@ watch(
 
     // 触发重新建立映射
     rebuildMappingDebounced()
+    // 外部写入 tex（如同步、协作）时 onDidChange 可能带 isUpdatingFromExternal 跳过 debounceSync，需在此补大纲
+    syncOutlineFromTex({ ignoreView: true })
   }
 )
 
@@ -4048,6 +4056,24 @@ const handleInsertGraph = async () => {
 
 let contentChangeListener: monaco.IDisposable | null = null
 const editorId = ref<string | null>(null)
+
+watch(
+  () => ({
+    active: isActive.value,
+    adapter: textEditorAdapter.value,
+    tabId: props.tabId,
+    monacoId: editorId.value
+  }),
+  ({ active, adapter, tabId, monacoId }) => {
+    if (active && adapter) {
+      registerOutlineSidebarSearchAdapter(tabId, adapter, { monacoEditorId: monacoId })
+    } else {
+      unregisterOutlineSidebarSearchAdapter(tabId)
+    }
+  },
+  { immediate: true }
+)
+
 // Demo LaTeX content
 const demoLatexContent = `\\documentclass{article}
 \\usepackage[utf8]{inputenc}
@@ -4191,7 +4217,6 @@ const initEditor = () => {
   const debounceSync = debounce(() => {
     if (currentTex.value !== textBuffer) {
       currentTex.value = textBuffer
-      // 同步大纲树
       syncOutlineFromTex()
     }
   }, 100)
@@ -4328,6 +4353,43 @@ onMounted(async () => {
     eventBus.on('sync-active-editor', handleSyncActiveEditorLaTeX as (payload?: unknown) => void)
     eventBus.on('editor-command', handleEditorCommand as (payload?: unknown) => void)
 
+    handleFocusLatexOutlineSectionOptimizer = (payload?: unknown) => {
+      const p = payload as {
+        tabId?: string
+        sectionInfo?: SectionInfo | null
+        clientX?: number
+        clientY?: number
+      }
+      if (p?.tabId !== props.tabId || !editorId.value) return
+      const adapter = new LaTeXSectionAdapter(props.tabId, editorId.value)
+      adapter.setEditorId(editorId.value)
+      sectionOptimizerAdapter.value = adapter
+      currentSectionTitle.value = p.sectionInfo?.title ?? ''
+      currentTitlePath.value = p.sectionInfo?.path ?? ''
+      currentSectionInfo.value = p.sectionInfo ?? null
+      sectionOptimizerPosition.value = {
+        top: p.clientY ?? window.innerHeight / 2,
+        left: p.clientX ?? window.innerWidth / 2
+      }
+      showSectionOptimizer.value = true
+    }
+    handleFocusLatexOutlineGraphQuick = (payload?: unknown) => {
+      const p = payload as { tabId?: string; selection?: string }
+      if (p?.tabId !== props.tabId) return
+      const sel = p.selection?.trim() ?? ''
+      if (!sel) {
+        eventBus.emit(
+          'show-warning',
+          t('graph.selectTextForIllustration', '请先选中要生成插图的文本')
+        )
+        return
+      }
+      graphQuickSelection.value = sel
+      graphQuickDialogOpen.value = true
+    }
+    eventBus.on('focus-latex-outline-section-optimizer', handleFocusLatexOutlineSectionOptimizer)
+    eventBus.on('focus-latex-outline-graph-quick', handleFocusLatexOutlineGraphQuick)
+
     handleZoomShortcut = (payload?: unknown) => {
       const p = payload as { action?: 'zoomIn' | 'zoomOut' | 'zoomReset' } | undefined
       if (!p?.action) return
@@ -4401,6 +4463,8 @@ onUnmounted(() => {
   //logger.debug("LaTeXEditor onUnmounted")
   // 设置卸载标志，防止后续操作
   isComponentUnmounted = true
+
+  unregisterOutlineSidebarSearchAdapter(props.tabId)
 
   if (mainObserver) {
     mainObserver.disconnect()
@@ -4507,6 +4571,14 @@ onUnmounted(() => {
   if (handleSyncActiveEditorLaTeX) {
     eventBus.off('sync-active-editor', handleSyncActiveEditorLaTeX as (payload?: unknown) => void)
     handleSyncActiveEditorLaTeX = null
+  }
+  if (handleFocusLatexOutlineSectionOptimizer) {
+    eventBus.off('focus-latex-outline-section-optimizer', handleFocusLatexOutlineSectionOptimizer)
+    handleFocusLatexOutlineSectionOptimizer = null
+  }
+  if (handleFocusLatexOutlineGraphQuick) {
+    eventBus.off('focus-latex-outline-graph-quick', handleFocusLatexOutlineGraphQuick)
+    handleFocusLatexOutlineGraphQuick = null
   }
   eventBus.off('editor-command', handleEditorCommand as (payload?: unknown) => void)
 
@@ -4914,8 +4986,5 @@ function onCancelSuggestion() {
   text-align: center;
 }
 
-.context-menu {
-  position: fixed;
-  z-index: 1000;
-}
+/* 右键菜单 z-index 由 ContextMenu 内联样式统一为 100060 */
 </style>

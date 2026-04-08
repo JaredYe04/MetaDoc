@@ -1378,9 +1378,14 @@ function createDocumentSnapshotFromTemplate(
     tex: texContent
   }
 
-  // 根据模板内容决定初始视图
+  // 根据模板内容决定初始视图（TeX/纯文本始终进编辑器，避免模板有正文时 lastView 落在 home）
   const hasContent = hasDocumentContent(tempDoc)
-  const initialView: DocumentView = hasContent ? 'home' : 'editor'
+  const initialView: DocumentView =
+    formatId === 'tex' || formatId === 'txt' || formatId === 'text'
+      ? 'editor'
+      : hasContent
+        ? 'home'
+        : 'editor'
 
   return {
     id: '',

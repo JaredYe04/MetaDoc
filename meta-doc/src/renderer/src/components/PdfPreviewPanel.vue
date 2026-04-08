@@ -136,6 +136,7 @@
       class="pdf-preview-container h-full"
       :class="{ 'hand-mode': pdfViewMode === 'hand', 'pointer-mode': pdfViewMode === 'pointer' }"
       :style="{ background: themeState.currentTheme.background }"
+      :show-horizontal-scrollbar="false"
     >
       <div
         ref="pdfPagesWrapper"
@@ -171,6 +172,7 @@
             />
             <div class="pdf-page-placeholder" aria-hidden="true" />
             <VuePdf
+              v-if="isPdfPageMounted(pageNum)"
               :key="`vue-pdf-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
               :src="pdfUrl"
               :page="pageNum"
@@ -304,6 +306,65 @@ const isValidPdfUrl = computed(() => {
   )
 })
 
+/** 仅对集合内的页挂载 VuePdf，其余格仅用占位尺寸，避免多页在同帧解析/光栅化卡死主线程 */
+const pdfMountedPages = ref<Set<number>>(new Set([1]))
+let pdfBackgroundMountRafId: number | null = null
+
+function stopBackgroundPdfMount() {
+  if (pdfBackgroundMountRafId != null) {
+    cancelAnimationFrame(pdfBackgroundMountRafId)
+    pdfBackgroundMountRafId = null
+  }
+}
+
+function isPdfPageMounted(pageNum: number): boolean {
+  return pdfMountedPages.value.has(pageNum)
+}
+
+function setPdfMountedPages(next: Set<number>) {
+  pdfMountedPages.value = next
+}
+
+/** 跳转/滚动到某页时保证该页及相邻页尽快有真实渲染，避免滚到空白格 */
+function ensurePdfPagesAround(p: number) {
+  const t = totalPdfPages.value
+  if (t < 1 || !isValidPdfUrl.value) return
+  const n = Math.min(Math.max(1, Math.floor(p)), t)
+  const prev = pdfMountedPages.value
+  const next = new Set(prev)
+  next.add(n)
+  if (n > 1) next.add(n - 1)
+  if (n < t) next.add(n + 1)
+  if (prev.size === next.size && [...next].every((x) => prev.has(x))) return
+  setPdfMountedPages(next)
+}
+
+function scheduleBackgroundPdfMount() {
+  stopBackgroundPdfMount()
+  const step = () => {
+    const t = totalPdfPages.value
+    if (t <= 1) {
+      pdfBackgroundMountRafId = null
+      return
+    }
+    const mounted = pdfMountedPages.value
+    let toAdd: number | null = null
+    for (let p = 2; p <= t; p++) {
+      if (!mounted.has(p)) {
+        toAdd = p
+        break
+      }
+    }
+    if (toAdd == null) {
+      pdfBackgroundMountRafId = null
+      return
+    }
+    setPdfMountedPages(new Set([...mounted, toAdd]))
+    pdfBackgroundMountRafId = requestAnimationFrame(step)
+  }
+  pdfBackgroundMountRafId = requestAnimationFrame(step)
+}
+
 // 有有效 URL 时至少渲染 1 页，让 VuePdf 挂载并触发 @total-pages，否则 totalPdfPages 一直为 0 会显示「请先正确编译」
 const displayPageCount = computed(() => Math.max(1, totalPdfPages.value))
 
@@ -405,6 +466,7 @@ function jumpToPage() {
 }
 
 async function scrollToPage(pageNumber: number) {
+  ensurePdfPagesAround(pageNumber)
   await nextTick()
   const pageElement = pageRefs.get(pageNumber)
   const scrollbar = pdfScrollbarRef.value
@@ -623,6 +685,7 @@ function detectCurrentPage() {
     }
   }
   if (currentPage !== currentPdfPage.value) {
+    ensurePdfPagesAround(currentPage)
     isAutoUpdatingPage = true
     currentPdfPage.value = currentPage
     inputPdfPage.value = currentPage
@@ -658,17 +721,27 @@ watch(
 
 watch(
   () => totalPdfPages.value,
-  () => nextTick(updateWrapperSize)
+  (total) => {
+    nextTick(updateWrapperSize)
+    if (total > 1 && isValidPdfUrl.value) {
+      nextTick(() => {
+        ensurePdfPagesAround(1)
+        scheduleBackgroundPdfMount()
+      })
+    }
+  }
 )
 
 watch(
   () => props.pdfUrl,
   (url) => {
+    stopBackgroundPdfMount()
     pdfRenderKey.value++
     currentPdfPage.value = 1
     inputPdfPage.value = 1
     totalPdfPages.value = 0
     pageRefs.clear()
+    setPdfMountedPages(new Set([1]))
     placeholderPageWidth.value = A4_WIDTH_PT * PDF_RENDER_SCALE
     placeholderPageHeight.value = A4_HEIGHT_PT * PDF_RENDER_SCALE
     if (
@@ -710,6 +783,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  stopBackgroundPdfMount()
   removeScrollListener()
   if (pdfPagesContainer.value) {
     pdfPagesContainer.value.removeEventListener('wheel', handlePdfWheel as any)
@@ -738,15 +812,19 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
 }
 .pdf-toolbar {
   flex-shrink: 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   flex-wrap: nowrap;
 }
 .pdf-toolbar__page {
@@ -805,17 +883,24 @@ defineExpose({
 .pdf-preview-container {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--el-border-color-lighter);
 }
+/* reka-ui 视口为 data-reka-*；旧 radix 选择器保留兼容。此前仅用 radix 时 overflow 覆盖未生效，宽 PDF 会撑破外层 flex */
+.pdf-preview-container :deep([data-reka-scroll-area-viewport]),
 .pdf-preview-container :deep([data-radix-scroll-area-viewport]) {
+  min-width: 0 !important;
+  max-width: 100%;
   overflow-x: auto !important;
   overflow-y: auto !important;
 }
+.pdf-preview-container.hand-mode :deep([data-reka-scroll-area-viewport]),
 .pdf-preview-container.hand-mode :deep([data-radix-scroll-area-viewport]) {
   overflow: hidden !important;
 }
+.pdf-preview-container.hand-mode :deep([data-reka-scroll-area-scrollbar]),
 .pdf-preview-container.hand-mode :deep([data-radix-scroll-area-scrollbar]) {
   display: none !important;
 }

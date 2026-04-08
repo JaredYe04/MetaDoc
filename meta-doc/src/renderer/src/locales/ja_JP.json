@@ -4,10 +4,16 @@
     "outlineMenu": {
       "optimizeSection": "現在の段落を最適化",
       "copySection": "段落をコピー",
+      "copyTitle": "見出しをコピー",
       "generateIllustration": "挿絵を生成",
       "addToMaterialBasket": "素材バスケットに追加",
+      "deleteSection": "この段落を削除",
+      "deleteSectionConfirm": "この段落と本文を削除しますか？元に戻せません。",
+      "deleteSectionTitle": "段落の削除",
       "emptySection": "コピーできる内容がありません",
-      "copyFailed": "コピーに失敗しました"
+      "emptyTitle": "コピーできる見出しがありません",
+      "copyFailed": "コピーに失敗しました",
+      "noRangeToDelete": "段落を特定できませんでした。削除を中止しました"
     }
   },
   "selectionTranslate": {
@@ -152,6 +158,7 @@
   },
   "mainTabs": {
     "contextMenu": {
+      "openTab": "開く",
       "pinTab": "タブを固定",
       "unpinTab": "タブの固定を解除",
       "closeTab": "タブを閉じる",
@@ -166,6 +173,12 @@
       "moveRight": "右へ移動"
     },
     "newDocumentTooltip": "新規ドキュメント",
+    "focusMode": {
+      "pickerTooltip": "開いているドキュメント一覧を開く",
+      "noDocuments": "開いているドキュメントはありません",
+      "pickDocument": "ドキュメントを選択…",
+      "emptyList": "タブがありません。メニューから新規作成または開いてください。"
+    },
     "untitled": "無題",
     "userManual": "ユーザーマニュアル",
     "closeTabTooltip": "タブを閉じる",
@@ -561,6 +574,7 @@
       "quote": "引用",
       "search_replace": "検索と置換",
       "ai_assistant": "AIアシスタント",
+      "ai_full_document_analysis": "全文AI分析",
       "mode": "編集モード",
       "convert_latex_formulas": "LaTeX数式フォーマットを変換",
       "convert_latex_formulas_title": "LaTeX数式フォーマットを変換",
@@ -3690,6 +3704,8 @@
   },
   "sectionOptimizer": {
     "clear": "クリア",
+    "contextScopeTitle": "コンテキスト参照範囲",
+    "presetPromptsButton": "プリセットプロンプト",
     "contextMarks": {
       "chapter": "この章への参照",
       "full": "全文を参照",

@@ -84,6 +84,20 @@ export function detectPlatform(): 'win' | 'linux' | 'mac' {
   return 'win'
 }
 
+/**
+ * 顶栏（交通灯占位、Logo 与标签条左右关系）用。
+ * 优先使用 Electron 的 process.platform，避免仅依赖 navigator 时与 MainTabs 不一致。
+ */
+export function isMacOSLayout(): boolean {
+  if (typeof window !== 'undefined') {
+    const ep = (window as Window & { electron?: { process?: { platform?: string } } }).electron
+      ?.process?.platform
+    if (ep === 'darwin') return true
+    if (ep === 'win32' || ep === 'linux') return false
+  }
+  return detectPlatform() === 'mac'
+}
+
 /** 首次启动时推荐的默认方案 ID */
 export function getDefaultSchemeIdForPlatform(): string {
   const platform = detectPlatform()

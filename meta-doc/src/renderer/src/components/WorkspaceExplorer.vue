@@ -2,6 +2,7 @@
   <div
     ref="workspaceExplorerRef"
     class="workspace-explorer"
+    :class="{ 'workspace-explorer--focus': props.layoutVariant === 'focus' }"
     tabindex="0"
     @keydown="handleKeyDown"
     @focus="handleFocus"
@@ -70,6 +71,7 @@
               v-if="workspaceFolderNodes.get(folderPath)"
               :key="`${folderPath}-${treeVersion}`"
               :node="workspaceFolderNodes.get(folderPath)!"
+              :layout-variant="props.layoutVariant"
               :sibling-index="index"
               :expanded-paths="expandedPaths"
               :workspace-folder="folderPath"
@@ -108,7 +110,7 @@
             :key="tab.id"
             class="opened-file-item"
             :class="{ 'is-active': tab.id === workspace.activeTabId.value }"
-            @click="workspace.activateTab(tab.id)"
+            @click="handleOpenedFileRowClick(tab.id)"
           >
             <span class="opened-file-name" :title="tab.path">{{ tab.subtitle || tab.title }}</span>
             <el-button
@@ -189,9 +191,91 @@ import { getExportOptions } from '../services/export-manager'
 import { getExportSourceFormatForPath } from '../services/export-document-resolver'
 
 const { t } = useI18n()
+
+const props = withDefaults(
+  defineProps<{
+    layoutVariant?: 'default' | 'focus'
+  }>(),
+  { layoutVariant: 'default' }
+)
+
 const logger = createRendererLogger('WorkspaceExplorer')
 const workspace = useWorkspace()
 const { closeTab } = useCloseTab()
+const { ensureDocument } = workspace
+
+function isMdOrTexPath(p: string): boolean {
+  const x = (p || '').toLowerCase()
+  return (
+    x.endsWith('.md') ||
+    x.endsWith('.markdown') ||
+    x.endsWith('.mdx') ||
+    x.endsWith('.tex') ||
+    x.endsWith('.latex') ||
+    x.endsWith('.ltx')
+  )
+}
+
+function isMdOrTexFormat(f: string | undefined): boolean {
+  const x = (f || '').toLowerCase()
+  return ['md', 'markdown', 'mdx', 'tex', 'latex', 'ltx'].includes(x)
+}
+
+/** 与 ViewMenuContainer「非专注下仅 LaTeX 显示大纲 Tab」一致 */
+function isLatexOutlineEligible(format: string | undefined, path: string): boolean {
+  const f = (format || '').toLowerCase()
+  if (f === 'tex' || f === 'latex' || f === 'ltx') return true
+  const x = (path || '').toLowerCase()
+  const pathTex = x.endsWith('.tex') || x.endsWith('.latex') || x.endsWith('.ltx')
+  const pathMd = x.endsWith('.md') || x.endsWith('.markdown') || x.endsWith('.mdx')
+  return pathTex && !pathMd
+}
+
+/**
+ * 从工作区切换/打开文档后，将侧栏切到「文档大纲」：
+ * 专注模式：Markdown / LaTeX 均适用；普通模式：仅 LaTeX（无编辑器内原生大纲）。
+ */
+function emitDocumentOutlineSidebarAfterNavigation() {
+  if (props.layoutVariant === 'focus') {
+    eventBus.emit('focus-document-outline-sidebar')
+    return
+  }
+  const doc = workspace.activeDocument.value
+  if (!doc) return
+  if (isLatexOutlineEligible(doc.format, doc.path || '')) {
+    eventBus.emit('focus-document-outline-sidebar')
+  }
+}
+
+/** 文档在 Main 中完成激活/加载后再切大纲，避免 showOutlineTab 仍为 false 而丢事件 */
+function handleOpenDocSuccessFocusOutline(payload: unknown) {
+  const p = payload as { tabId?: string; path?: string }
+  const tabId = p.tabId
+  if (!tabId) return
+  const tab = workspace.tabs.find((t) => t.id === tabId)
+  const doc = ensureDocument(tabId)
+  const path = (typeof p.path === 'string' ? p.path : '') || tab?.path || doc.path || ''
+  const fmt = tab?.format ?? doc.format
+  if (props.layoutVariant === 'focus') {
+    if (!isMdOrTexFormat(fmt) && !isMdOrTexPath(path)) return
+  } else if (!isLatexOutlineEligible(fmt, path)) {
+    return
+  }
+  void nextTick(() => {
+    void nextTick(() => {
+      void nextTick(() => {
+        emitDocumentOutlineSidebarAfterNavigation()
+      })
+    })
+  })
+}
+
+function handleOpenedFileRowClick(tabId: string) {
+  workspace.activateTab(tabId)
+  void nextTick(() => {
+    emitDocumentOutlineSidebarAfterNavigation()
+  })
+}
 
 // Logo 动画相关
 const isShaking = ref(false)
@@ -747,6 +831,11 @@ const explorerPanelBackground = computed(
 // 计算活跃 Tab 背景色（在面板背景基础上略深）
 const activeTabBackgroundColor = computed(() =>
   mixColors(explorerPanelBackground.value, '#777777', 0.3)
+)
+
+/** 与面板背景融为一体的细分隔线，避免浅色主题下出现偏白的边框 */
+const explorerPanelHairline = computed(() =>
+  mixColors(explorerPanelBackground.value, themeState.currentTheme.SideTextColor, 0.08)
 )
 
 // 确保工作区根目录下存在 .metadoc 目录（用于存放工作区级别的 AI / 配置数据）
@@ -1360,6 +1449,7 @@ const handleOpenFile = async (filePath: string, options?: { preview?: boolean })
     if (!isPreview) {
       workspace.pinTab(existingTab.id)
     }
+    emitDocumentOutlineSidebarAfterNavigation()
     eventBus.emit('open-doc-success', {
       tabId: existingTab.id,
       path: filePath,
@@ -1516,6 +1606,7 @@ onMounted(async () => {
 
   // 目录变化由 ViewMenuContainer 收 IPC 后 eventBus 转发，此处只订阅 eventBus（否则 v-if 未挂载时收不到）
   eventBus.on('directory-changed', handleDirectoryChange)
+  eventBus.on('open-doc-success', handleOpenDocSuccessFocusOutline)
 })
 
 watch(
@@ -1550,6 +1641,7 @@ onBeforeUnmount(() => {
   }
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.off('directory-changed', handleDirectoryChange)
+  eventBus.off('open-doc-success', handleOpenDocSuccessFocusOutline)
 
   // 清理 Worker
   cleanupWorker()
@@ -2819,8 +2911,41 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   background-color: v-bind('explorerPanelBackground');
-  border-right: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  border-right: 1px solid v-bind('explorerPanelHairline');
   outline: none;
+}
+
+.workspace-explorer--focus {
+  border-right: none;
+  padding: 4px 4px 8px;
+  box-sizing: border-box;
+}
+
+.workspace-explorer--focus .workspace-explorer-header {
+  padding: 6px 8px;
+  margin: 0 0 4px;
+  border-radius: 4px;
+  border: 1px solid v-bind('explorerPanelHairline');
+  min-height: 28px;
+  font-size: 12px;
+}
+
+.workspace-explorer--focus .workspace-explorer-content {
+  padding: 2px 0;
+}
+
+.workspace-explorer--focus .opened-file-item {
+  margin: 0 0 1px 0;
+  padding: 2px 8px;
+  min-height: 22px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.workspace-explorer--focus .workspace-explorer-opened-files {
+  border-top: none;
+  padding-top: 4px;
 }
 
 .workspace-explorer:focus {
@@ -2832,7 +2957,7 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  border-bottom: 1px solid v-bind('explorerPanelHairline');
   font-size: 13px;
   font-weight: 600;
   min-height: 32px;

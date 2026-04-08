@@ -4,10 +4,16 @@
     "outlineMenu": {
       "optimizeSection": "优化当前段落",
       "copySection": "复制本段内容",
+      "copyTitle": "复制标题",
       "generateIllustration": "生成插图",
       "addToMaterialBasket": "添加到素材篮",
+      "deleteSection": "删除本段",
+      "deleteSectionConfirm": "确定删除该段落及其正文吗？此操作不可撤销。",
+      "deleteSectionTitle": "删除段落",
       "emptySection": "该段落暂无内容可复制",
-      "copyFailed": "复制失败"
+      "emptyTitle": "暂无标题可复制",
+      "copyFailed": "复制失败",
+      "noRangeToDelete": "无法定位该段落范围，删除已取消"
     }
   },
   "aIService": {
@@ -1565,6 +1571,7 @@
       "convert_latex_formulas_no_match": "未找到需要转换的公式格式",
       "convert_latex_formulas_no_editor": "编辑器未就绪",
       "ai_assistant": "AI助手",
+      "ai_full_document_analysis": "AI全文分析",
       "toggle_outline": "切换大纲",
       "toggle_outline_show": "显示大纲",
       "toggle_outline_hide": "隐藏大纲"
@@ -3206,6 +3213,7 @@
     "close": "关闭",
     "closeTabTooltip": "关闭标签页",
     "contextMenu": {
+      "openTab": "打开",
       "pinTab": "固定标签页",
       "unpinTab": "取消固定标签页",
       "closeTab": "关闭标签页",
@@ -3225,6 +3233,12 @@
     "maximize": "最大化",
     "minimize": "最小化",
     "newDocumentTooltip": "新建文档",
+    "focusMode": {
+      "pickerTooltip": "打开已打开的文档列表",
+      "noDocuments": "无打开的文档",
+      "pickDocument": "选择文档…",
+      "emptyList": "暂无标签页，请从菜单新建或打开文件。"
+    },
     "text": "数据",
     "unsavedIndicator": "未保存",
     "untitled": "未命名",
@@ -3826,6 +3840,8 @@
   },
   "sectionOptimizer": {
     "clear": "清空",
+    "contextScopeTitle": "上下文参考范围",
+    "presetPromptsButton": "预制提示词",
     "contextMarks": {
       "none": "不参考",
       "chapter": "参考本章",
@@ -5134,7 +5150,14 @@
     "expand": "展开",
     "metaInfo": "元信息",
     "workspace": "工作区",
-    "workspaceGrep": "工作区搜索"
+    "workspaceGrep": "工作区搜索",
+    "documentOutline": "文档大纲",
+    "outlineFilterPlaceholder": "筛选当前文档标题…",
+    "outlineDocSearchPlaceholder": "在本文档中查找…",
+    "outlineSearchHint": "输入关键词，结果将按大纲章节分组。",
+    "outlineSearchNeedMarkdown": "请打开并聚焦 Markdown 文档以在本文档内搜索。",
+    "outlineSearchDocStart": "文档开头",
+    "outlineSearchNoHeading": "正文"
   },
   "visualize": {
     "articleOutline": "文章大纲",

@@ -10,10 +10,11 @@
         'is-workspace-root': node.isWorkspaceRoot,
         'is-directory': node.type === 'directory' || node.type === 'workspaceRoot',
         'is-drag-target': isDragTarget,
-        'is-explorer-deemphasized': isExplorerDeemphasized
+        'is-explorer-deemphasized': isExplorerDeemphasized,
+        'workspace-tree-node-item--focus': layoutVariant === 'focus'
       }"
       :style="{
-        paddingLeft: `${depth * 12 + 8}px`,
+        paddingLeft: itemPaddingLeft,
         top:
           node.type === 'directory' || node.type === 'workspaceRoot'
             ? `${getStickyTop()}px`
@@ -80,6 +81,7 @@
         :key="child.path"
         :node="child"
         :depth="depth + 1"
+        :layout-variant="layoutVariant"
         :sibling-index="index"
         :expanded-paths="expandedPaths"
         :workspace-folder="workspaceFolder"
@@ -104,7 +106,7 @@
       <div
         v-if="isCreatingParent"
         class="workspace-tree-node-item workspace-tree-node-creating"
-        :style="{ paddingLeft: `${(depth + 1) * 12 + 8}px` }"
+        :style="{ paddingLeft: creatingPaddingLeft }"
       >
         <img
           v-if="pendingCreate!.type === 'directory'"
@@ -174,11 +176,13 @@ interface Props {
   siblingIndex?: number // 同级节点中的索引（从上到下，从0开始）
   dragTargetPath?: string | null // 拖拽目标路径（用于高亮显示）
   pendingCreate?: PendingCreate | null // 内联创建（新建文件/文件夹）
+  layoutVariant?: 'default' | 'focus'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   depth: 0,
-  siblingIndex: 0
+  siblingIndex: 0,
+  layoutVariant: 'default'
 })
 
 const emit = defineEmits<{
@@ -207,6 +211,16 @@ const isExpanded = computed(() => {
 /** 点号开头的文件夹/文件（含 .metadoc）：与 VS Code 资源管理器一致略降对比度 */
 const isExplorerDeemphasized = computed(
   () => !props.node.isWorkspaceRoot && props.node.name.startsWith('.')
+)
+
+/** 专注模式与 LaTeX 侧栏大纲缩进一致：depth * 12 + 8 */
+const indentUnit = computed(() => 12)
+const indentBasePx = computed(() => 8)
+const itemPaddingLeft = computed(
+  () => `${props.depth * indentUnit.value + indentBasePx.value}px`
+)
+const creatingPaddingLeft = computed(
+  () => `${(props.depth + 1) * indentUnit.value + indentBasePx.value}px`
 )
 
 // 内联创建：当前节点是否为创建目标父节点
@@ -568,6 +582,16 @@ const handleDragEnd = (event: DragEvent) => {
   position: relative;
   margin: 0;
   line-height: 20px;
+}
+
+.workspace-tree-node-item.workspace-tree-node-item--focus {
+  margin: 0 0 1px 0;
+  padding: 2px 8px;
+  min-height: 22px;
+  height: auto;
+  line-height: 1.25;
+  font-size: 12px;
+  border-radius: 4px;
 }
 
 .workspace-tree-node-item.is-directory {

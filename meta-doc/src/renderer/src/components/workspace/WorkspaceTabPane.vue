@@ -1,12 +1,26 @@
 <template>
-  <component
-    v-if="editorComponent"
-    :is="editorComponent"
-    :tab-id="tab.id"
-    :active="active"
-    :editor-dom-id="editorDomId"
-    class="workspace-tab-pane"
+  <Home
+    v-if="showWorkspaceHomePreview"
+    :key="`workspace-home-${tab.id}`"
+    class="workspace-tab-pane workspace-tab-pane--home-preview"
   />
+  <WorkspaceDocumentViews
+    v-else-if="useDocumentMultiViewShell"
+    :key="`multiview-${tab.id}`"
+    :tab-id="tab.id"
+    :use-nested-editor="false"
+    class="workspace-tab-pane workspace-tab-pane--multiview"
+  >
+    <template #editor>
+      <component
+        :is="editorComponent"
+        :tab-id="tab.id"
+        :active="active"
+        :editor-dom-id="editorDomId"
+        class="workspace-tab-pane"
+      />
+    </template>
+  </WorkspaceDocumentViews>
 </template>
 
 <script setup lang="ts">
@@ -15,8 +29,15 @@ import MarkdownEditor from '../../views/MarkdownEditor.vue'
 import LaTeXEditor from '../../views/LaTeXEditor.vue'
 import PlainTextEditor from '../../views/PlainTextEditor.vue'
 import NewDocumentWorkspace from '../../views/NewDocumentWorkspace.vue'
+import Home from '../../views/Home.vue'
+import WorkspaceDocumentViews from './WorkspaceDocumentViews.vue'
 import type { WorkspaceTab } from '../../stores/workspace'
 import { formatRegistry } from '../../utils/format-registry'
+import { useFocusMode } from '../../composables/useFocusMode'
+import { IMAGE_EXTENSIONS, RENDERABLE_TEXT_EXTENSIONS } from '../../utils/file-display-utils'
+import { extname } from '../../utils/path-utils'
+
+const { isFocusMode } = useFocusMode()
 
 const props = withDefaults(
   defineProps<{
@@ -27,6 +48,25 @@ const props = withDefaults(
     active: true
   }
 )
+
+/**
+ * PDF 预览 tab：任意布局下用 Home（含 PDF 适配器），避免挂载 Markdown 编辑器导致空白。
+ * 专注模式下：图片 / SVG 等不可编辑资源同样走 Home，避免挂载 Vditor。
+ */
+const showWorkspaceHomePreview = computed(() => {
+  if (props.tab.kind !== 'file') return false
+  if (props.tab.format === 'pdf' && props.tab.preview === true) return true
+  if (!isFocusMode.value) return false
+  if (props.tab.format === 'pdf') return true
+  const path = props.tab.path || ''
+  const ext = extname(path).toLowerCase()
+  return IMAGE_EXTENSIONS.has(ext) || RENDERABLE_TEXT_EXTENSIONS.has(ext)
+})
+
+/** 普通文档 / 新建：按 lastView 切换主页、编辑器、大纲树、可视化、Agent、校对 */
+const useDocumentMultiViewShell = computed(() => {
+  return props.tab.kind === 'file' || props.tab.kind === 'new'
+})
 
 const editorComponent = computed(() => {
   if (props.tab.kind === 'new') return NewDocumentWorkspace

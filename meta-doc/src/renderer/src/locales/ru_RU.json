@@ -4,10 +4,16 @@
     "outlineMenu": {
       "optimizeSection": "Оптимизировать текущий раздел",
       "copySection": "Копировать содержимое раздела",
+      "copyTitle": "Копировать заголовок",
       "generateIllustration": "Создать иллюстрацию",
       "addToMaterialBasket": "Добавить в корзину материалов",
+      "deleteSection": "Удалить раздел",
+      "deleteSectionConfirm": "Удалить этот раздел и текст? Действие необратимо.",
+      "deleteSectionTitle": "Удаление раздела",
       "emptySection": "Нет содержимого для копирования",
-      "copyFailed": "Не удалось скопировать"
+      "emptyTitle": "Нет заголовка для копирования",
+      "copyFailed": "Не удалось скопировать",
+      "noRangeToDelete": "Не удалось найти раздел; удаление отменено"
     }
   },
   "aIService": {
@@ -1400,6 +1406,7 @@
       "convert_latex_formulas_no_match": "Не найдены формулы, требующие преобразования формата",
       "convert_latex_formulas_no_editor": "Редактор не готов",
       "ai_assistant": "AI-ассистент",
+      "ai_full_document_analysis": "ИИ-анализ всего документа",
       "toggle_outline": "Переключить структуру",
       "toggle_outline_show": "Показать структуру",
       "toggle_outline_hide": "Скрыть структуру"
@@ -2981,6 +2988,7 @@
     "close": "Закрыть",
     "closeTabTooltip": "Закрыть вкладку",
     "contextMenu": {
+      "openTab": "Открыть",
       "pinTab": "Закрепить вкладку",
       "unpinTab": "Открепить вкладку",
       "closeTab": "Закрыть вкладку",
@@ -3000,6 +3008,12 @@
     "maximize": "Развернуть",
     "minimize": "Свернуть",
     "newDocumentTooltip": "Новый документ",
+    "focusMode": {
+      "pickerTooltip": "Открыть список открытых документов",
+      "noDocuments": "Нет открытых документов",
+      "pickDocument": "Выбрать документ…",
+      "emptyList": "Нет открытых вкладок. Создайте или откройте файл через меню."
+    },
     "text": "Данные",
     "unsavedIndicator": "Не сохранено",
     "untitled": "Без названия",
@@ -3601,6 +3615,8 @@
   },
   "sectionOptimizer": {
     "clear": "Очистить",
+    "contextScopeTitle": "Объём контекстной ссылки",
+    "presetPromptsButton": "Готовые подсказки",
     "contextMarks": {
       "none": "Не ссылаться",
       "chapter": "Ссылаться на главу",

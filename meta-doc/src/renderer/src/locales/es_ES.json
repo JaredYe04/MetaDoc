@@ -4,10 +4,16 @@
     "outlineMenu": {
       "optimizeSection": "Optimizar sección actual",
       "copySection": "Copiar contenido de la sección",
+      "copyTitle": "Copiar título",
       "generateIllustration": "Generar ilustración",
       "addToMaterialBasket": "Añadir a la cesta de materiales",
+      "deleteSection": "Eliminar sección",
+      "deleteSectionConfirm": "¿Eliminar esta sección y su cuerpo? No se puede deshacer.",
+      "deleteSectionTitle": "Eliminar sección",
       "emptySection": "No hay contenido para copiar",
-      "copyFailed": "Error al copiar"
+      "emptyTitle": "No hay título para copiar",
+      "copyFailed": "Error al copiar",
+      "noRangeToDelete": "No se pudo ubicar la sección; eliminación cancelada"
     }
   },
   "aIService": {
@@ -1401,6 +1407,7 @@
       "convert_latex_formulas_no_match": "No se encontraron formatos de fórmula que necesiten conversión",
       "convert_latex_formulas_no_editor": "Editor no listo",
       "ai_assistant": "Asistente de IA",
+      "ai_full_document_analysis": "Análisis IA del documento completo",
       "toggle_outline": "Alternar esquema",
       "toggle_outline_show": "Mostrar esquema",
       "toggle_outline_hide": "Ocultar esquema"
@@ -2966,6 +2973,7 @@
     "close": "Cerrar",
     "closeTabTooltip": "Cerrar pestaña",
     "contextMenu": {
+      "openTab": "Abrir",
       "pinTab": "Fijar pestaña",
       "unpinTab": "Desfijar pestaña",
       "closeTab": "Cerrar pestaña",
@@ -2985,6 +2993,12 @@
     "maximize": "Maximizar",
     "minimize": "Minimizar",
     "newDocumentTooltip": "Nuevo documento",
+    "focusMode": {
+      "pickerTooltip": "Abrir la lista de documentos abiertos",
+      "noDocuments": "Sin documentos abiertos",
+      "pickDocument": "Elegir documento…",
+      "emptyList": "No hay pestañas abiertas. Cree o abra un archivo desde el menú."
+    },
     "text": "Datos",
     "unsavedIndicator": "Sin guardar",
     "untitled": "Sin título",
@@ -3587,6 +3601,8 @@
   },
   "sectionOptimizer": {
     "clear": "Borrar",
+    "contextScopeTitle": "Alcance de referencia del contexto",
+    "presetPromptsButton": "Indicaciones predefinidas",
     "contextMarks": {
       "none": "No referenciar",
       "chapter": "Referenciar este capítulo",

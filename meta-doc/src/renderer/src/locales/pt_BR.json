@@ -2903,6 +2903,7 @@
       "zoomOut": "Reduzir (Ctrl -)",
       "zoomReset": "Redefinir zoom",
       "toggleLineNumbers": "Mostrar números de linha",
+      "toggleMinimap": "Alternar minimapa",
       "togglePreview": "Mostrar visualização",
       "compile": "Compilar LaTeX",
       "showPdf": "Mostrar PDF",

@@ -78,7 +78,8 @@ import {
   compileLatexToPDF,
   setEmbeddingMode,
   getEmbeddingMode,
-  fileConversionService
+  fileConversionService,
+  ensureUtilsInitialized
 } from './utils'
 import {
   initUpdateService,
@@ -3915,6 +3916,7 @@ function bindKnowledgeHandlers(): void {
   ipcBridge.registerHandle(
     'query-knowledge-base',
     async (event: IpcMainInvokeEvent, params: QueryKnowledgeBaseParams): Promise<string[]> => {
+      await ensureUtilsInitialized()
       return await queryKnowledgeBase(params.question, params.scoreThreshold)
     }
   )
@@ -4676,6 +4678,13 @@ export function getSkeletonThemeQueryString(): string {
   params.set('list', (list || '').replace(/^#/, ''))
   params.set('content', (content || '').replace(/^#/, ''))
   params.set('tip', (tip || '').replace(/^#/, ''))
+  try {
+    if (store.get('focusMode') === true) {
+      params.set('focus', '1')
+    }
+  } catch {
+    /* ignore */
+  }
   return params.toString()
 }
 
@@ -4963,6 +4972,13 @@ async function createNewWindowForFile(filePath: string): Promise<boolean> {
  */
 export const openDoc = async (filePath?: string, targetWindowId?: number): Promise<void> => {
   if (filePath) {
+    let notifiedOpenDocSuccessToRequester = false
+    const markNotifiedOpenDocSuccessToRequester = (win: BrowserWindow | null) => {
+      if (targetWindowId && win && !win.isDestroyed() && win.id === targetWindowId) {
+        notifiedOpenDocSuccessToRequester = true
+      }
+    }
+    try {
     // 使用注册表查询文件状态
     const fileEntry = findWindowWithFile(filePath)
 
@@ -5064,6 +5080,7 @@ export const openDoc = async (filePath?: string, targetWindowId?: number): Promi
       }
 
       targetWin.webContents.send('open-doc-success', payload)
+      markNotifiedOpenDocSuccessToRequester(targetWin)
       targetWin.webContents.send('update-current-path', filePath)
     } else {
       // 其他文本文件正常读取
@@ -5077,6 +5094,7 @@ export const openDoc = async (filePath?: string, targetWindowId?: number): Promi
       }
 
       targetWin.webContents.send('open-doc-success', payload)
+      markNotifiedOpenDocSuccessToRequester(targetWin)
       targetWin.webContents.send('update-current-path', filePath)
     }
 
@@ -5087,6 +5105,14 @@ export const openDoc = async (filePath?: string, targetWindowId?: number): Promi
     targetWin.show()
     targetWin.focus()
     return
+    } finally {
+      if (targetWindowId && !notifiedOpenDocSuccessToRequester) {
+        const reqWin = getWindowById(targetWindowId)
+        if (reqWin && !reqWin.isDestroyed()) {
+          reqWin.webContents.send('open-doc-not-delivered', { path: filePath })
+        }
+      }
+    }
   }
 
   const supportedFilterName = t('main.dialogs.filters.supportedDocuments', 'MetaDoc 文档')

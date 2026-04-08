@@ -2902,6 +2902,7 @@
       "zoomOut": "缩小 (Ctrl -)",
       "zoomReset": "重置",
       "toggleLineNumbers": "行数显示",
+      "toggleMinimap": "切换小地图",
       "togglePreview": "预览显示",
       "compile": "编译 LaTeX",
       "showPdf": "显示 PDF",

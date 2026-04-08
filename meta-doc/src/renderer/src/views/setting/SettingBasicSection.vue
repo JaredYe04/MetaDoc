@@ -525,8 +525,6 @@ const isDemo = computed(() => props.mode === 'demo')
 const { t, locale } = useI18n()
 
 const applyInterfaceLanguage = (lang: string) => {
-  locale.value = lang
-  localStorage.setItem('lang', lang)
   eventBus.emit('lang-changed', lang)
 }
 

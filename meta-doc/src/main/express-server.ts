@@ -17,9 +17,9 @@ import {
   tryConvertFileToText,
   addFileToKnowledgeBase,
   clearKnowledgeBase,
-  initVectorDatabase,
   removeFromIndex,
-  renameKnowledgeFile
+  renameKnowledgeFile,
+  ensureUtilsInitialized
 } from './utils'
 import ragService from './utils/rag-service'
 import {
@@ -763,6 +763,16 @@ export const registerManualLLMResponseHandler = (
 async function setupKnowledgeAPI(): Promise<void> {
   // 先设置上传目录和路由（同步操作）
   setupKnowledgeUploadDir()
+
+  // 首次访问知识库 API 时再初始化向量库等重型工具服务
+  expressApp.use('/api/knowledge', async (_req, _res, next) => {
+    try {
+      await ensureUtilsInitialized()
+      next()
+    } catch (err) {
+      next(err as Error)
+    }
+  })
 
   const storage = multer.diskStorage({
     destination: (req: any, file: any, cb: any) => cb(null, knowledgeUploadDir),

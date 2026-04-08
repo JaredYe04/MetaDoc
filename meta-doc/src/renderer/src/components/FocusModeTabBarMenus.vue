@@ -167,6 +167,13 @@
         <UISubMenuItem :icon="MessageCircle" @click="onItem(() => api.emitMenu('ai-chat'))">
           {{ api.t('leftMenu.chatWithAI') }}
         </UISubMenuItem>
+        <UISubMenuItem
+          v-if="api.isMenuItemVisible('knowledge-base')"
+          :icon-image="(themeState.currentTheme as any).KnowledgeIcon"
+          @click="onItem(api.openKnowledgeBase)"
+        >
+          {{ api.t('leftMenu.knowledgeBase', '知识库') }}
+        </UISubMenuItem>
         <UISubMenuItem :icon="Pencil" @click="onItem(() => api.emitMenu('fomula-recognition'))">
           {{ api.t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>

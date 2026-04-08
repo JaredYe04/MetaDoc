@@ -32,6 +32,17 @@ export function isPathUnderMetadoc(filePath: string): boolean {
   return n.includes('/.metadoc/') || n.endsWith('/.metadoc')
 }
 
+/**
+ * Sidecar 元数据文件名（与主进程 getSidecarPath：`.${basename}.meta` 一致）。
+ * 例如 `note.md` → `.note.md.meta`；`a.b.tex` → `.a.b.tex.meta`
+ */
+const DOCUMENT_SIDECAR_META_NAME_RE =
+  /^\.(.+)\.(?:md|markdown|mdx|tex|latex|ltx)\.meta$/i
+
+export function isDocumentSidecarMetaFileName(name: string): boolean {
+  return DOCUMENT_SIDECAR_META_NAME_RE.test(name || '')
+}
+
 /** 是否为「路径/目录不存在」类错误（含 IPC 序列化后的普通对象） */
 export function isPathNotExistError(err: unknown): boolean {
   const code = (err as { code?: string })?.code
@@ -109,6 +120,7 @@ export function applyFsEvent(
   const children = parent.children ?? []
 
   if (eventType === 'add') {
+    if (isDocumentSidecarMetaFileName(name)) return true
     const ext = extname(filePath)
     const isDotfile = name.startsWith('.')
     const underMeta = isPathUnderMetadoc(filePath)
@@ -175,6 +187,10 @@ export function addNodeToTree(
     return false
   }
   if (nodeMap.has(normFilePath)) return true
+
+  if (type === 'file' && isDocumentSidecarMetaFileName(name)) {
+    return true
+  }
 
   const children = parent.children ?? []
   const newNode: FileNode =

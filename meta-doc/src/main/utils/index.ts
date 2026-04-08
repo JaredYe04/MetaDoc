@@ -181,6 +181,22 @@ export const initializeUtils = async (): Promise<void> => {
   await manager.initialize()
 }
 
+/** 首次需要 RAG/向量库时再初始化；并发合并为单次 Promise */
+let utilsInitPromise: Promise<void> | null = null
+
+export async function ensureUtilsInitialized(): Promise<void> {
+  if (UtilsManager.getInstance().isInitialized()) {
+    return
+  }
+  if (!utilsInitPromise) {
+    utilsInitPromise = initializeUtils().catch((err) => {
+      utilsInitPromise = null
+      throw err
+    })
+  }
+  await utilsInitPromise
+}
+
 /**
  * 获取工具服务管理器实例
  */

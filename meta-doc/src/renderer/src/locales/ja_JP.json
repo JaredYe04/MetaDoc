@@ -2175,6 +2175,7 @@
       "showConsole": "ターミナルを表示",
       "showPdf": "PDFを表示",
       "toggleLineNumbers": "行番号表示",
+      "toggleMinimap": "ミニマップを切り替え",
       "togglePreview": "プレビュー表示切替",
       "undo": "元に戻す (Ctrl+Z)",
       "zoomIn": "拡大 (Ctrl +)",

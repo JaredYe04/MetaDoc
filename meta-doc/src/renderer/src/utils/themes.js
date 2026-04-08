@@ -75,6 +75,11 @@ import MinimapOffBlack from '../assets/icons/minimap-off-black.svg'
 import MinimapOffWhite from '../assets/icons/minimap-off-white.svg'
 import MinimapOnBlack from '../assets/icons/minimap-on-black.svg'
 import MinimapOnWhite from '../assets/icons/minimap-on-white.svg'
+// 专注模式顶栏按钮（未开启 / 已开启）
+import WorkOffBlack from '../assets/icons/work-black.svg'
+import WorkOffWhite from '../assets/icons/work-white.svg'
+import WorkOnBlack from '../assets/icons/work-on-black.svg'
+import WorkOnWhite from '../assets/icons/work-on-white.svg'
 // PDF查看模式图标导入
 import CursorIconBlack from '../assets/icons/cursor-black.svg'
 import CursorIconWhite from '../assets/icons/cursor-white.svg'
@@ -403,6 +408,14 @@ const generateThemeIcons = (isDarkMode) => {
     MinimapOnIcon: selectIconByTheme(isDarkMode, {
       light: MinimapOnBlack,
       dark: MinimapOnWhite
+    }),
+    WorkOffIcon: selectIconByTheme(isDarkMode, {
+      light: WorkOffBlack,
+      dark: WorkOffWhite
+    }),
+    WorkOnIcon: selectIconByTheme(isDarkMode, {
+      light: WorkOnBlack,
+      dark: WorkOnWhite
     }),
     MathIcon: selectIconByTheme(isDarkMode, { light: MathIconBlack, dark: MathIconWhite }),
     WriteIcon: selectIconByTheme(isDarkMode, { light: WriteIconBlack, dark: WriteIconWhite }),

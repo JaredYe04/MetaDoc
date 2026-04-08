@@ -32,7 +32,6 @@ import 'element-plus/dist/index.css'
 import router from './router/router.js'
 // 引入组件库的少量全局样式变量
 import 'tdesign-vue-next/es/style/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import VueTree from '@ssthouse/vue3-tree-chart'
 import '@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css'
 import './assets/fonts/fonts.css'
@@ -44,7 +43,7 @@ import { initSelectionContextMenuHandler } from './utils/selection-context-menu-
 import { themeState, applyTheme, lightTheme, darkTheme } from './utils/themes.js'
 import { syncShadcnTheme } from './utils/shadcn-theme-bridge.js'
 import { initServiceStatusWatcher } from './utils/service-status'
-import { i18n } from './i18n.js'
+import { i18n, preloadInitialLocales } from './i18n.js'
 import { initializeAgentTools } from './utils/agent-tools'
 import { initializeWorkspaceBroadcastListeners } from './stores/workspace'
 import { registerAllAdapters } from './services/export-adapters'
@@ -92,11 +91,16 @@ app.use(router)
   } catch (e) {
     console.error('Apply theme before mount failed:', e)
   }
-  // 必须在 mount 之前注册：LaTeX 编辑器等在挂载时通过 computed 读取 exportAdapterRegistry；
-  // 若推迟到 requestIdleCallback，首次求值得到 undefined 且注册表非响应式，编译选项对话框会永远为空。
-  registerAllAdapters()
+  try {
+    await preloadInitialLocales()
+  } catch (e) {
+    console.error('Preload locale before mount failed:', e)
+  }
   app.use(i18n).mount('#app')
   __startupMark('after_mount')
+
+  // 导出适配器在首帧绘制后注册，避免阻塞 mount；首屏通常为 Home，打开导出/编译前已完成
+  void registerAllAdapters().catch((e) => console.error('registerAllAdapters failed:', e))
 
   // 挂载后再跑非关键初始化
   function runAfterMount() {
@@ -111,17 +115,6 @@ app.use(router)
     requestIdleCallback(runAfterMount, { timeout: 3000 })
   } else {
     setTimeout(runAfterMount, 0)
-  }
-
-  const registerIcons = () => {
-    for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-      app.component(key, component)
-    }
-  }
-  if (typeof requestIdleCallback !== 'undefined') {
-    requestIdleCallback(registerIcons, { timeout: 2000 })
-  } else {
-    setTimeout(registerIcons, 0)
   }
 })()
 

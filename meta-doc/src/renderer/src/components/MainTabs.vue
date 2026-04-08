@@ -460,11 +460,11 @@ const focusTriggerLogoSymbol = FIXED_LOGO_COLORS.symbolColor
 const { checkCanCloseTab, doRemoveTab, isLocked } = useCloseTab()
 const isLockedEffective = computed<boolean>(() => props.mode === 'demo' || isLocked.value)
 
-const { isFocusMode, toggleFocusMode, enterFocusMode } = useFocusMode()
+const { isFocusMode, toggleFocusMode, enterFocusMode, exitFocusMode } = useFocusMode()
 
 const focusModeButtonIconSrc = computed(() => {
   const t = themeState.currentTheme as unknown as Record<string, string>
-  return isFocusMode.value ? t.MinimapOnIcon : t.MinimapOffIcon
+  return isFocusMode.value ? t.WorkOnIcon : t.WorkOffIcon
 })
 
 const handleToggleFocusMode = () => {
@@ -1912,8 +1912,10 @@ onMounted(async () => {
           return
         }
         await addTabFromDrag(tabData, insertIndex)
-        if (data.initialFocusMode) {
+        if (data.initialFocusMode === true) {
           enterFocusMode()
+        } else if (data.initialFocusMode === false) {
+          exitFocusMode()
         }
         logger.info('成功添加Tab到新窗口:', tabData.tab.id)
       } catch (error) {

@@ -114,6 +114,151 @@
   app-region: drag;
 }
 
+/* 专注模式顶栏：默认隐藏，由 .is-focus-mode 打开 */
+.metadoc-skeleton__focus-pill-slot {
+  display: none;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.metadoc-skeleton__focus-chrome {
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  height: 40px;
+  max-height: 40px;
+  box-sizing: border-box;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.metadoc-skeleton__focus-menu-host-skel {
+  flex: 0 0 auto;
+  min-width: 6px;
+  height: 100%;
+  padding-right: 6px;
+  box-sizing: border-box;
+}
+
+.metadoc-skeleton__trailing-actions-skel {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  height: 100%;
+  gap: 0;
+}
+
+/* 与 MainTabs .new-tab-button / .focus-mode-button 尺寸与间距一致 */
+.metadoc-skeleton__skel-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  background-color: color-mix(in srgb, var(--md-skeleton-top, #f5f5f5) 80%, #888888 20%);
+  margin: 0 0 0 6px;
+  line-height: 0;
+  color: #303133;
+}
+
+.metadoc-skeleton__skel-icon-btn--narrow-gap {
+  margin-left: 4px;
+}
+
+html.dark .metadoc-skeleton__skel-icon-btn {
+  background-color: color-mix(in srgb, var(--md-skeleton-top, #2c2c2c) 78%, #888888 22%);
+  color: #bbbbbb;
+}
+
+.metadoc-skeleton__trail-plus-svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* 与 .focus-mode-button-icon 15×15 一致 */
+.metadoc-skeleton__tb-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+html:not(.dark) .metadoc-skeleton__tb-icon--dark {
+  display: none !important;
+}
+
+html.dark .metadoc-skeleton__tb-icon--light {
+  display: none !important;
+}
+
+/* 与 .focus-doc-picker-trigger（专注模式 26px 高、圆角 6px、tab 项底色）对齐 */
+.metadoc-skeleton__focus-doc-trigger {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  box-sizing: border-box;
+  background-color: color-mix(in srgb, var(--md-skeleton-top, #f5f5f5) 80%, #888888 20%);
+  color: #303133;
+  cursor: default;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+html.dark .metadoc-skeleton__focus-doc-trigger {
+  background-color: color-mix(in srgb, var(--md-skeleton-top, #2c2c2c) 78%, #888888 22%);
+  color: #e5e5e5;
+}
+
+.metadoc-skeleton__focus-doc-logo {
+  display: block;
+  flex-shrink: 0;
+}
+
+.metadoc-skeleton__focus-doc-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.metadoc-skeleton__focus-doc-chevron {
+  flex-shrink: 0;
+  display: block;
+  color: currentColor;
+}
+
+/* 专注模式：左侧 ViewMenu 条（Workspace 侧栏），默认隐藏 */
+.metadoc-skeleton__view-aside {
+  display: none;
+  width: 220px;
+  min-width: 220px;
+  flex-shrink: 0;
+  background: var(--md-skeleton-list, #f5f5f5);
+  box-sizing: border-box;
+}
+
 /* MainTabs .window-controls / .window-control-btn */
 .metadoc-skeleton__window-controls {
   display: flex;
@@ -406,6 +551,83 @@ html.dark .metadoc-skeleton__shimmer {
   100% {
     background-position: -50% 0;
   }
+}
+
+/* ========== 专注模式：与 MainTabs 34px 顶栏、ViewMenuContainerFocus 左栏对齐 ========== */
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__navbar {
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__macos-traffic-spacer {
+  height: 34px;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__tab-strip {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  padding-left: 0;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__navbar.is-mac .metadoc-skeleton__tab-strip {
+  padding-left: 4px;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__focus-pill-slot {
+  display: flex;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__focus-doc-trigger {
+  display: inline-flex;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__focus-chrome {
+  display: flex;
+  height: 34px;
+  max-height: 34px;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__window-controls {
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__logo-tab {
+  display: none !important;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__navbar.is-mac .metadoc-skeleton__focus-chrome {
+  order: 2;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__navbar:not(.is-mac) .metadoc-skeleton__tab-strip {
+  order: 0;
+  flex: 1;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__navbar:not(.is-mac) .metadoc-skeleton__focus-chrome {
+  order: 1;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__navbar:not(.is-mac) .metadoc-skeleton__window-controls {
+  order: 2;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__side {
+  display: none;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__list {
+  display: none;
+}
+
+.metadoc-skeleton.is-focus-mode .metadoc-skeleton__view-aside {
+  display: block;
 }
 
 /* 骨架屏色值由 URL 参数注入（主进程根据 globalTheme/customThemeColor 计算），此处不再用 html.dark 覆盖，以便自定义主题色正确显示 */

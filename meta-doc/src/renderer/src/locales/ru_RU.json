@@ -2902,6 +2902,7 @@
       "zoomOut": "Уменьшить (Ctrl -)",
       "zoomReset": "Сбросить масштаб",
       "toggleLineNumbers": "Показать номера строк",
+      "toggleMinimap": "Показать/скрыть мини-карту",
       "togglePreview": "Показать предпросмотр",
       "compile": "Скомпилировать LaTeX",
       "showPdf": "Показать PDF",

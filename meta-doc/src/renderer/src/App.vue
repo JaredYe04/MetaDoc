@@ -33,6 +33,10 @@ import SelectionContextMenu from './components/common/SelectionContextMenu.vue'
 
 import eventBus, { getWindowType, initWindowType } from './utils/event-bus'
 import {
+  armAwaitingGlobalHomeAfterRecentOpen,
+  registerStartupRecentHomeMainBridge
+} from './utils/startup-recent-home'
+import {
   getRecentDocs,
   getSetting,
   initCriticalSettings,
@@ -41,6 +45,7 @@ import {
 import { themeState, applyTheme } from './utils/themes'
 import { clearAiTasks } from './utils/ai_tasks'
 import { useI18n } from 'vue-i18n'
+import { setI18nLocale } from './i18n.js'
 import { createRendererLogger } from './utils/logger'
 import { initMonacoEnvironment } from './utils/monaco-worker-config'
 import { initMonacoGlobalTheme } from './utils/monaco-global-theme'
@@ -92,11 +97,10 @@ function initGlobalEventListeners() {
     aiCompletionService.cancelCurrentCompletion()
   })
 
-  // 监听语言切换事件（全局）
+  // 监听语言切换事件（全局）：异步加载语言包并切换 locale
   eventBus.on('lang-changed', (lang: unknown) => {
-    const langStr = typeof lang === 'string' ? lang : 'zh-CN'
-    locale.value = langStr
-    localStorage.setItem('lang', langStr)
+    const langStr = typeof lang === 'string' ? lang : 'zh_CN'
+    void setI18nLocale(langStr).catch((e) => console.error('setI18nLocale failed:', e))
   })
 
   // 用户模板增删后刷新新建文档模板列表
@@ -145,47 +149,10 @@ const autoOpenDoc = async () => {
     return
   }
 
-  const normalizeStartupPath = (p: string) => (p || '').replace(/\\/g, '/')
-
   const startupOption = (await getSetting('startupOption')) as string | undefined
   const lastFileMode = startupOption === 'lastFile'
   const autoOpenHomeOnStartup = (await getSetting('autoOpenHomeOnStartup')) === true
-
-  let openedRecentAtStartup = false
-  let expectedRecentPathNorm = ''
-
-  // 处理启动选项：打开最近文档
-  if (lastFileMode) {
-    const recentDocs = await getRecentDocs()
-    if (recentDocs.length > 0 && initialLoad.value) {
-      openedRecentAtStartup = true
-      expectedRecentPathNorm = normalizeStartupPath(recentDocs[0])
-      const ws = useWorkspace()
-      const newDocTabs = ws.tabs.filter(
-        (tb) => tb.kind === 'new' && (!tb.path || tb.path === '') && !tb.dirty
-      )
-      newDocTabs.forEach((newTab) => {
-        ws.removeTab(newTab.id)
-      })
-      eventBus.emit('open-doc', recentDocs[0])
-      initialLoad.value = false
-    }
-  }
-
-  // Tab 拖出创建的新窗口（skipAutoHome=1）不执行启动主页逻辑
   const skipAutoHome = route.query.skipAutoHome === '1'
-  if (skipAutoHome) return
-
-  // 是否在启动流程中打开 GlobalHome 并 focus：
-  // - 未选「打开最近文件」：始终打开主页（初始着陆）
-  // - 选了「打开最近」但本次没有可打开的最近项：打开主页
-  // - 选了「打开最近」且已发起打开 +「启动时自动打开主页」：最近打开成功后再开主页（仅匹配本次路径，避免误用后续任意 open-doc-success）
-  const shouldOpenGlobalHome =
-    startupOption !== 'lastFile' ||
-    (lastFileMode && !openedRecentAtStartup) ||
-    (openedRecentAtStartup && autoOpenHomeOnStartup)
-
-  if (!shouldOpenGlobalHome) return
 
   const openGlobalHomeTab = () => {
     const ws = useWorkspace()
@@ -199,36 +166,46 @@ const autoOpenDoc = async () => {
     }
   }
 
-  const deferHomeUntilRecentDocSuccess = openedRecentAtStartup && autoOpenHomeOnStartup
+  let openedRecentAtStartup = false
 
-  if (deferHomeUntilRecentDocSuccess && expectedRecentPathNorm) {
-    const HOME_DEFER_TIMEOUT_MS = 60000
-    let deferTimer: ReturnType<typeof setTimeout> | null = null
-    const handler = (payload: unknown) => {
-      const rawPath =
-        payload &&
-        typeof payload === 'object' &&
-        'path' in payload &&
-        typeof (payload as { path?: unknown }).path === 'string'
-          ? (payload as { path: string }).path
-          : ''
-      if (normalizeStartupPath(rawPath) !== expectedRecentPathNorm) return
-      if (deferTimer !== null) {
-        clearTimeout(deferTimer)
-        deferTimer = null
+  // 处理启动选项：打开最近文档
+  if (lastFileMode) {
+    const recentDocs = await getRecentDocs()
+    if (recentDocs.length > 0 && initialLoad.value) {
+      openedRecentAtStartup = true
+      const ws = useWorkspace()
+      const newDocTabs = ws.tabs.filter(
+        (tb) => tb.kind === 'new' && (!tb.path || tb.path === '') && !tb.dirty
+      )
+      newDocTabs.forEach((newTab) => {
+        ws.removeTab(newTab.id)
+      })
+      // 自动主页：由 Main 在打开成功/失败时经 startup-recent-home 一次性结算；主进程未向本窗投递 open-doc-success 时发 open-doc-not-delivered（无定时器）
+      if (autoOpenHomeOnStartup && !skipAutoHome) {
+        const onRecentHomeSettled = (p: unknown) => {
+          eventBus.off('startup-recent-home-settled', onRecentHomeSettled)
+          const openHome =
+            p &&
+            typeof p === 'object' &&
+            'openHome' in p &&
+            (p as { openHome: unknown }).openHome === true
+          if (openHome) nextTick(() => openGlobalHomeTab())
+        }
+        eventBus.on('startup-recent-home-settled', onRecentHomeSettled)
+        armAwaitingGlobalHomeAfterRecentOpen(recentDocs[0])
       }
-      eventBus.off('open-doc-success', handler)
-      nextTick(() => openGlobalHomeTab())
+      eventBus.emit('open-doc', recentDocs[0])
+      initialLoad.value = false
     }
-    eventBus.on('open-doc-success', handler)
-    deferTimer = setTimeout(() => {
-      deferTimer = null
-      eventBus.off('open-doc-success', handler)
-      nextTick(() => openGlobalHomeTab())
-    }, HOME_DEFER_TIMEOUT_MS)
-  } else {
-    nextTick(() => openGlobalHomeTab())
   }
+
+  if (skipAutoHome) return
+  if (!autoOpenHomeOnStartup) return
+
+  // 最近已在上方 arm：等 Main/主进程确定性结算后再决定是否打开主页
+  if (openedRecentAtStartup) return
+
+  nextTick(() => openGlobalHomeTab())
 }
 
 // 按当前语言加载文档模板（md/tex），供新建文档使用
@@ -241,6 +218,8 @@ async function loadTemplateFormats() {
 onMounted(async () => {
   // 初始化 shadcn-vue 主题桥接（同步 themes.js 到 CSS 变量）
   useShadcnTheme()
+
+  registerStartupRecentHomeMainBridge()
 
   // 初始化通知系统（不恢复上次会话的通知，每次启动从空队列开始）
   const notificationStore = useNotificationStore()
@@ -256,10 +235,16 @@ onMounted(async () => {
   // 按当前语言加载文档模板
   await loadTemplateFormats()
 
-  // 初始化 Monaco 环境（Worker 配置和 LaTeX 语言支持）
-  initMonacoEnvironment()
-  // 全局 Monaco 主题：仅 vs/vs-dark，在 sync-editor-theme 后用 nextTick 覆盖各组件自定义主题
-  initMonacoGlobalTheme()
+  // Monaco 延后到空闲再初始化，减轻首帧主线程压力；打开编辑器前 idle 通常已执行
+  const runMonacoInit = () => {
+    initMonacoEnvironment()
+    initMonacoGlobalTheme()
+  }
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(runMonacoInit, { timeout: 2500 })
+  } else {
+    setTimeout(runMonacoInit, 0)
+  }
 
   window.addEventListener('beforeunload', () => {
     clearAiTasks()

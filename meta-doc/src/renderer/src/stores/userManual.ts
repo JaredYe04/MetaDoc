@@ -84,9 +84,8 @@ function buildNavigationTree(
   }))
 }
 
-// 预加载所有文档（使用 import.meta.glob）
+// 按需加载手册 Markdown（非 eager，避免首屏整包进内存）
 const manualModules = import.meta.glob<string>('../manuals/**/*.md', {
-  eager: true,
   query: '?raw',
   import: 'default'
 })
@@ -124,27 +123,24 @@ async function loadArticleContent(articleId: string, locale: string): Promise<st
     // 构建文件路径
     const filePath = `../manuals/${targetLocale}/${article.file}`
     console.log('[userManual store] Looking for file:', filePath)
-    console.log(
-      '[userManual store] Available manual modules:',
-      Object.keys(manualModules).slice(0, 10)
-    )
 
-    // 从预加载的模块中获取
     const moduleKey = Object.keys(manualModules).find((key) =>
       key.includes(`manuals/${targetLocale}/${article.file}`)
     )
 
-    if (moduleKey && manualModules[moduleKey]) {
-      console.log('[userManual store] Found module:', moduleKey)
-      const content = manualModules[moduleKey]
-      return typeof content === 'string'
-        ? content
-        : ((content && (content as { default?: string }).default) ?? '')
+    if (moduleKey) {
+      const loader = manualModules[moduleKey]
+      if (typeof loader === 'function') {
+        console.log('[userManual store] Found module:', moduleKey)
+        const mod = await loader()
+        const raw = (mod as { default?: string })?.default ?? mod
+        return typeof raw === 'string' ? raw : ''
+      }
     }
 
     console.warn(`[userManual store] 未找到文档: ${filePath}`, {
       moduleKey,
-      hasModule: !!manualModules[moduleKey as string]
+      hasLoader: moduleKey ? typeof manualModules[moduleKey] === 'function' : false
     })
     return ''
   } catch (error) {

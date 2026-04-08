@@ -2067,6 +2067,7 @@
       "zoomIn": "Zoom In (Ctrl+=)",
       "zoomOut": "Zoom Out (Ctrl+-)",
       "toggleLineNumbers": "Toggle Line Numbers",
+      "toggleMinimap": "Toggle Minimap",
       "togglePreview": "Toggle Preview",
       "compile": "Compile LaTeX",
       "showPdf": "Show PDF",

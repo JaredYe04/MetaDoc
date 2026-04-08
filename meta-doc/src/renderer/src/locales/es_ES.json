@@ -2890,6 +2890,7 @@
       "zoomOut": "Alejar (Ctrl -)",
       "zoomReset": "Restablecer zoom",
       "toggleLineNumbers": "Mostrar números de línea",
+      "toggleMinimap": "Alternar minimapa",
       "togglePreview": "Mostrar vista previa",
       "compile": "Compilar LaTeX",
       "showPdf": "Mostrar PDF",

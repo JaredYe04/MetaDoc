@@ -2932,6 +2932,7 @@
       "zoomOut": "縮小 (Ctrl -)",
       "zoomReset": "重設縮放",
       "toggleLineNumbers": "顯示行號",
+      "toggleMinimap": "切換小地圖",
       "togglePreview": "顯示預覽",
       "compile": "編譯 LaTeX",
       "showPdf": "顯示 PDF",

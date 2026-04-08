@@ -1,8 +1,11 @@
 /**
- * 分步构建脚本：先构建 main，再构建 renderer
- * 用于减少内存峰值，避免在 CI 中内存溢出
+ * 生产构建入口（历史名称保留，避免破坏 CI / 本地脚本）。
  *
- * 直接使用 vite 命令分别构建不同的目标
+ * electron-vite 2.x 在内部已按 main → preload → renderer 顺序依次 await build，
+ * 并不会并行跑三套 Vite。此前通过 ELECTRON_VITE_BUILD_TARGET 分步调用在 2.x 中无效，
+ * 会导致完整构建重复执行三次，徒增耗时与内存压力。
+ *
+ * 低内存相关优化见 electron.vite.config.mjs（reportCompressedSize、manualChunks 等）。
  */
 
 const { execSync } = require('child_process')
@@ -10,60 +13,18 @@ const path = require('path')
 
 const rootDir = path.resolve(__dirname, '..')
 
-console.log('🚀 开始分步构建...\n')
-
-// 增强 GC 参数以减少内存使用
-// 注意：只有部分 Node.js 选项可以在 NODE_OPTIONS 中使用
-// --optimize-for-size 和 --always-compact 不能通过 NODE_OPTIONS 设置
-const enhancedNodeOptions = [process.env.NODE_OPTIONS || '', '--expose-gc']
-  .filter(Boolean)
-  .join(' ')
-
-const buildEnv = {
-  ...process.env,
-  NODE_ENV: process.env.NODE_ENV || 'production',
-  NODE_OPTIONS: enhancedNodeOptions || process.env.NODE_OPTIONS
-}
+console.log('生产构建（electron-vite：main → preload → renderer 顺序）...\n')
 
 try {
-  // 1. 构建 main 进程
-  console.log('📦 步骤 1/3: 构建 main 进程...')
   execSync('npx electron-vite build', {
     cwd: rootDir,
     stdio: 'inherit',
     env: {
-      ...buildEnv,
-      ELECTRON_VITE_BUILD_TARGET: 'main'
+      ...process.env,
+      NODE_ENV: process.env.NODE_ENV || 'production'
     }
   })
-  console.log('✅ main 进程构建完成\n')
-
-  // 2. 构建 preload
-  console.log('📦 步骤 2/3: 构建 preload...')
-  execSync('npx electron-vite build', {
-    cwd: rootDir,
-    stdio: 'inherit',
-    env: {
-      ...buildEnv,
-      ELECTRON_VITE_BUILD_TARGET: 'preload'
-    }
-  })
-  console.log('✅ preload 构建完成\n')
-
-  // 3. 构建 renderer 进程
-  console.log('📦 步骤 3/3: 构建 renderer 进程...')
-  execSync('npx electron-vite build', {
-    cwd: rootDir,
-    stdio: 'inherit',
-    env: {
-      ...buildEnv,
-      ELECTRON_VITE_BUILD_TARGET: 'renderer'
-    }
-  })
-  console.log('✅ renderer 进程构建完成\n')
-
-  console.log('🎉 所有构建步骤完成！')
-} catch (error) {
-  console.error('❌ 构建失败:', error.message)
-  process.exit(1)
+  console.log('\n构建完成')
+} catch (e) {
+  process.exit(e.status ?? 1)
 }

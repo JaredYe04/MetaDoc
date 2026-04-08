@@ -3,6 +3,7 @@
  */
 
 import * as Comlink from 'comlink'
+import { isDocumentSidecarMetaFileName } from '../workspace-tree-logic'
 
 export interface DirectoryEntry {
   name: string
@@ -64,6 +65,9 @@ function processDirectoryContent(params: ProcessDirectoryParams): FileNode[] {
         children: undefined // 懒加载：不在这里加载子目录
       })
     } else {
+      if (isDocumentSidecarMetaFileName(entry.name)) {
+        continue
+      }
       const fileExt = extname(entry.path)
       const formatId = extensionMap[fileExt]
       const isDotfile = entry.name.startsWith('.')

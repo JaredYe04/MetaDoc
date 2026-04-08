@@ -2173,6 +2173,7 @@
       "showConsole": "터미널 표시",
       "showPdf": "PDF 보기",
       "toggleLineNumbers": "줄 번호 표시",
+      "toggleMinimap": "미니맵 표시 전환",
       "togglePreview": "미리보기 표시",
       "undo": "실행 취소 (Ctrl+Z)",
       "zoomIn": "확대 (Ctrl +)",

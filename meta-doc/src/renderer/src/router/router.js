@@ -1,95 +1,114 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import Home from '../views/Home.vue'
-import GlobalHome from '../views/GlobalHome.vue'
-import About from '../views/About.vue'
-import Outline from '../views/Outline.vue'
-import MarkdownEditor from '../views/MarkdownEditor.vue'
-import Setting from '../views/Setting.vue'
-import Visualize from '../views/Visualize.vue'
-import AIChat from '../views/AIChat.vue'
-import FomulaRecognition from '../views/FomulaRecognition.vue'
-import AgentView from '../views/AgentView.vue'
-import KnowledgeBase from '../views/KnowledgeBase.vue'
-import Editor from '../views/Editor.vue'
-import DebugView from '../views/DebugView.vue'
-import DataAnalysisWindow from '../views/DataAnalysisWindow.vue'
-import OcrWindow from '../views/OcrWindow.vue'
-import AttachmentWindow from '../views/AttachmentWindow.vue'
-import GraphWindow from '../views/GraphWindow.vue'
-import ProofreadView from '../views/ProofreadView.vue'
-import DummyView from '../views/DummyView.vue'
-import LlmStatisticsView from '../views/LlmStatisticsView.vue'
-import UserFeedbackView from '../views/UserFeedbackView.vue'
-import UserManual from '../views/UserManual.vue'
 
 const pages = {
-  setting: Setting,
-  'ai-chat': AIChat,
-  'fomula-recognition': FomulaRecognition,
-  'ai-graph': GraphWindow,
-  'data-analysis': DataAnalysisWindow,
-  ocr: OcrWindow,
-  attachment: AttachmentWindow,
-  graph: GraphWindow
+  setting: () => import('../views/Setting.vue'),
+  'ai-chat': () => import('../views/AIChat.vue'),
+  'fomula-recognition': () => import('../views/FomulaRecognition.vue'),
+  'ai-graph': () => import('../views/GraphWindow.vue'),
+  'data-analysis': () => import('../views/DataAnalysisWindow.vue'),
+  ocr: () => import('../views/OcrWindow.vue'),
+  attachment: () => import('../views/AttachmentWindow.vue'),
+  graph: () => import('../views/GraphWindow.vue')
 }
 
 const routes = [
   {
     path: '/global-home',
     name: 'GlobalHome',
-    component: GlobalHome,
+    component: () => import('../views/GlobalHome.vue'),
     meta: { requiresLayout: true }
   },
-  { path: '/', name: 'Home', alias: '/home', component: Home, meta: { requiresLayout: true } },
-  { path: '/outline', name: 'Outline', component: Outline, meta: { requiresLayout: true } },
-  { path: '/about', name: 'About', component: About, meta: { requiresLayout: true } },
+  {
+    path: '/',
+    name: 'Home',
+    alias: '/home',
+    component: () => import('../views/Home.vue'),
+    meta: { requiresLayout: true }
+  },
+  {
+    path: '/outline',
+    name: 'Outline',
+    component: () => import('../views/Outline.vue'),
+    meta: { requiresLayout: true }
+  },
+  {
+    path: '/about',
+    name: 'About',
+    component: () => import('../views/About.vue'),
+    meta: { requiresLayout: true }
+  },
   {
     path: '/markdown-editor',
     name: 'MarkdownEditor',
-    component: MarkdownEditor,
+    component: () => import('../views/MarkdownEditor.vue'),
     meta: { requiresLayout: true }
   },
-  { path: '/editor', name: 'Editor', component: Editor, meta: { requiresLayout: true } },
-  { path: '/visualize', name: 'Visualize', component: Visualize, meta: { requiresLayout: true } },
+  {
+    path: '/editor',
+    name: 'Editor',
+    component: () => import('../views/Editor.vue'),
+    meta: { requiresLayout: true }
+  },
+  {
+    path: '/visualize',
+    name: 'Visualize',
+    component: () => import('../views/Visualize.vue'),
+    meta: { requiresLayout: true }
+  },
   {
     path: '/knowledge-base',
     name: 'KnowledgeBase',
-    component: KnowledgeBase,
+    component: () => import('../views/KnowledgeBase.vue'),
     meta: { requiresLayout: true }
   },
-  { path: '/agent', name: 'Agent', component: AgentView, meta: { requiresLayout: true } },
+  {
+    path: '/agent',
+    name: 'Agent',
+    component: () => import('../views/AgentView.vue'),
+    meta: { requiresLayout: true }
+  },
   {
     path: '/proofread',
     name: 'Proofread',
-    component: ProofreadView,
+    component: () => import('../views/ProofreadView.vue'),
     meta: { requiresLayout: true }
   },
-  { path: '/debug', name: 'Debug', component: DebugView, meta: { requiresLayout: true } },
-  { path: '/dummy', name: 'Dummy', component: DummyView, meta: { requiresLayout: true } },
+  {
+    path: '/debug',
+    name: 'Debug',
+    component: () => import('../views/DebugView.vue'),
+    meta: { requiresLayout: true }
+  },
+  {
+    path: '/dummy',
+    name: 'Dummy',
+    component: () => import('../views/DummyView.vue'),
+    meta: { requiresLayout: true }
+  },
   {
     path: '/llm-statistics',
     name: 'LlmStatistics',
-    component: LlmStatisticsView,
+    component: () => import('../views/LlmStatisticsView.vue'),
     meta: { requiresLayout: true }
   },
   {
     path: '/user-feedback',
     name: 'UserFeedback',
-    component: UserFeedbackView,
+    component: () => import('../views/UserFeedbackView.vue'),
     meta: { requiresLayout: true }
   },
   {
     path: '/user-manual',
     name: 'UserManual',
-    component: UserManual,
+    component: () => import('../views/UserManual.vue'),
     meta: { requiresLayout: true }
   },
-  ...Object.entries(pages).flatMap(([name, component]) => [
-    { path: `/${name}`, name: `${name}-raw`, component, meta: { requiresLayout: true } },
+  ...Object.entries(pages).flatMap(([name, loader]) => [
+    { path: `/${name}`, name: `${name}-raw`, component: loader, meta: { requiresLayout: true } },
     {
       path: `/single-page/${name}`,
       name: `${name}-with-layout`,
-      component,
+      component: loader,
       meta: { requiresLayout: true }
     }
   ])

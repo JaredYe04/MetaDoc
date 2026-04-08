@@ -2188,6 +2188,7 @@
       "showConsole": "Afficher la console",
       "showPdf": "Afficher le PDF",
       "toggleLineNumbers": "Afficher les numéros de ligne",
+      "toggleMinimap": "Basculer la mini-carte",
       "togglePreview": "Afficher l'aperçu",
       "undo": "Annuler (Ctrl+Z)",
       "zoomIn": "Zoom avant (Ctrl +)",

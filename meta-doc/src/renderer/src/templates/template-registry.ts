@@ -7,53 +7,50 @@ import type { TemplateIndex, TemplateIndexEntry } from './types'
 
 let indexCache: TemplateIndex | null = null
 
-// 预加载所有模板文件（.md / .tex），路径相对于 templates 目录
-const templateMdModules = import.meta.glob<string>('./**/*.md', {
-  eager: true,
+/** Vite 懒加载 glob + import:'default' 时，await loader() 可能是 string，也可能是 { default: string } */
+function unwrapGlobDefault(mod: unknown): string | undefined {
+  if (typeof mod === 'string') return mod
+  if (mod && typeof mod === 'object' && 'default' in mod) {
+    const d = (mod as { default: unknown }).default
+    return typeof d === 'string' ? d : undefined
+  }
+  return undefined
+}
+
+const templateMdModules = import.meta.glob('./**/*.md', {
   query: '?raw',
   import: 'default'
 })
-const templateTexModules = import.meta.glob<string>('./**/*.tex', {
-  eager: true,
+const templateTexModules = import.meta.glob('./**/*.tex', {
   query: '?raw',
   import: 'default'
 })
 
-function getTemplateContent(locale: string, formatId: string, file: string): string {
+async function getTemplateContent(locale: string, formatId: string, file: string): Promise<string> {
   const key = `./${locale}/${formatId}/${file}`
   const isTex = file.endsWith('.tex')
   const modules = isTex ? templateTexModules : templateMdModules
-  const content = modules[key as keyof typeof modules]
-  if (typeof content === 'string') return content
-  if (content && typeof content === 'object' && 'default' in content)
-    return (content as { default: string }).default
-  return ''
+  const loader = modules[key as keyof typeof modules]
+  if (typeof loader !== 'function') return ''
+  const mod = await loader()
+  return unwrapGlobDefault(mod) ?? ''
 }
 
-// 缩略图（可选）：仅当模板索引中指定 thumbnail 时加载
-const templateImageModules = import.meta.glob<string>('./**/*.png', {
-  eager: true,
+const templateImageModules = import.meta.glob('./**/*.png', {
   query: '?url',
   import: 'default'
 })
 
-function getThumbnailUrl(
+async function getThumbnailUrl(
   locale: string,
   formatId: string,
   thumbnailPath: string
-): string | undefined {
+): Promise<string | undefined> {
   const key = `./${locale}/${formatId}/${thumbnailPath}`
-  const mod = templateImageModules[key as keyof typeof templateImageModules]
-  if (typeof mod === 'string') return mod
-  if (
-    mod &&
-    typeof mod === 'object' &&
-    'default' in mod &&
-    typeof (mod as { default: string }).default === 'string'
-  ) {
-    return (mod as { default: string }).default
-  }
-  return undefined
+  const loader = templateImageModules[key as keyof typeof templateImageModules]
+  if (typeof loader !== 'function') return undefined
+  const mod = await loader()
+  return unwrapGlobDefault(mod)
 }
 
 export async function loadTemplateIndex(): Promise<TemplateIndex> {
@@ -95,21 +92,25 @@ export async function getSupportedFormatsFromTemplates(
     if (!meta) continue
 
     const entries = formatMeta.locales[normalizedLocale] ?? formatMeta.locales['zh_CN'] ?? []
-    const templates: DocumentTemplate[] = entries.map((entry: TemplateIndexEntry) => {
-      const content = getTemplateContent(normalizedLocale, formatId, entry.file)
-      const image = entry.thumbnail
-        ? getThumbnailUrl(normalizedLocale, formatId, entry.thumbnail)
-        : undefined
-      return {
-        id: entry.id,
-        label: t(entry.labelKey),
-        labelKey: entry.labelKey,
-        description: t(entry.descriptionKey),
-        descriptionKey: entry.descriptionKey,
-        image,
-        content
-      }
-    })
+    const templates: DocumentTemplate[] = await Promise.all(
+      entries.map(async (entry: TemplateIndexEntry) => {
+        const [content, image] = await Promise.all([
+          getTemplateContent(normalizedLocale, formatId, entry.file),
+          entry.thumbnail
+            ? getThumbnailUrl(normalizedLocale, formatId, entry.thumbnail)
+            : Promise.resolve(undefined)
+        ])
+        return {
+          id: entry.id,
+          label: t(entry.labelKey),
+          labelKey: entry.labelKey,
+          description: t(entry.descriptionKey),
+          descriptionKey: entry.descriptionKey,
+          image,
+          content
+        }
+      })
+    )
 
     result.push({
       id: formatId,

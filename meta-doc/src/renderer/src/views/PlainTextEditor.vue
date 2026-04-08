@@ -93,7 +93,12 @@
             <Tooltip>
               <TooltipTrigger as-child>
                 <div class="toolbar-icon" @click="toggleMinimap">
-                  <FileText class="w-4 h-4" />
+                  <img
+                    class="plaintext-toolbar-theme-icon"
+                    :src="minimapToolbarIconSrc"
+                    alt=""
+                    aria-hidden="true"
+                  />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom">
@@ -188,7 +193,7 @@ import { createRendererLogger } from '../utils/logger.ts'
 import { waitForService } from '../utils/service-status.ts'
 import * as monaco from 'monaco-editor'
 import { useWorkspace } from '../stores/workspace'
-import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, FileText } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import { debounce } from 'lodash'
 import { createMonacoAdapter } from '../editor/monaco-adapter'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
@@ -308,8 +313,13 @@ const zoomReset = () => {
   if (!editor.value) return
   editor.value.updateOptions({ fontSize: 14 })
 }
-let enableMinimap = true
+const enableMinimap = ref(true)
 let enableRowNumber = true
+
+const minimapToolbarIconSrc = computed(() => {
+  const th = themeState.currentTheme as unknown as Record<string, string>
+  return enableMinimap.value ? th.MinimapOnIcon : th.MinimapOffIcon
+})
 
 // 从用户设置中读取行号显示偏好
 const loadLineNumberSetting = async () => {
@@ -332,9 +342,9 @@ const loadLineNumberSetting = async () => {
 
 const toggleMinimap = () => {
   if (!editor.value) return
-  enableMinimap = !enableMinimap
+  enableMinimap.value = !enableMinimap.value
   editor.value.updateOptions({
-    minimap: { enabled: enableMinimap }
+    minimap: { enabled: enableMinimap.value }
   })
 }
 const toggleRowNumber = async () => {
@@ -607,7 +617,7 @@ const initEditor = async () => {
     wordWrap: 'on',
     wrappingIndent: 'same',
     lineNumbers: enableRowNumber ? 'on' : 'off', // 使用从设置中读取的值
-    minimap: { enabled: enableMinimap },
+    minimap: { enabled: enableMinimap.value },
     contextmenu: false
   })
   editorId.value = editor.value.getId()
@@ -928,6 +938,15 @@ function onCancelSuggestion() {
   cursor: pointer;
   border-radius: 4px;
   transition: background-color 0.2s;
+}
+
+.plaintext-toolbar-theme-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .toolbar-icon:hover {

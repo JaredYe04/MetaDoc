@@ -2166,6 +2166,7 @@
       "showConsole": "Terminals anzeigen",
       "showPdf": "PDF anzeigen",
       "toggleLineNumbers": "Zeilennummern ein-/ausblenden",
+      "toggleMinimap": "Minimap ein-/ausblenden",
       "togglePreview": "Vorschau ein-/ausblenden",
       "undo": "Rückgängig (Strg+Z)",
       "zoomIn": "Vergrößern (Strg++)",

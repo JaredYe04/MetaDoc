@@ -1,14 +1,37 @@
 import { ref } from 'vue'
+import { getSetting, setSetting } from '../utils/settings.js'
+
+const FOCUS_MODE_SETTING_KEY = 'focusMode'
 
 /**
- * 每个 BrowserWindow 各自一份 renderer 与模块状态，此处 ref 仅作用于当前窗口。
- * 勿用 localStorage 等跨窗口存储同步专注模式，避免多窗口互相牵连。
+ * 首帧骨架屏 URL 带 `focus=1` 时与主进程 store 一致；无该参数时（如窗口池）再读设置。
+ * 用户通过顶栏切换时写入 store，下次冷启动骨架屏与 Vue 初始状态对齐。
  */
-const isFocusMode = ref(false)
+function readFocusModeFromUrl(): boolean | null {
+  try {
+    const p = new URLSearchParams(window.location.search)
+    if (!p.has('focus')) return null
+    return p.get('focus') === '1'
+  } catch {
+    return null
+  }
+}
+
+const urlFocusMode = readFocusModeFromUrl()
+const isFocusMode = ref(urlFocusMode !== null ? urlFocusMode : false)
+
+if (urlFocusMode === null) {
+  void getSetting(FOCUS_MODE_SETTING_KEY).then((v) => {
+    if (typeof v === 'boolean') {
+      isFocusMode.value = v
+    }
+  })
+}
 
 export function useFocusMode() {
   const toggleFocusMode = () => {
     isFocusMode.value = !isFocusMode.value
+    void setSetting(FOCUS_MODE_SETTING_KEY, isFocusMode.value)
   }
   const enterFocusMode = () => {
     isFocusMode.value = true

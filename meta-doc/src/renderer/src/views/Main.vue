@@ -190,6 +190,7 @@ import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer
 import { getSetting, setSetting, updateRecentDocs } from '../utils/settings.js'
 import { isMacOSLayout } from '../utils/keyboard-scheme-defaults'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
+import { takeStartupRecentHomeGuardIfArmed } from '../utils/startup-recent-home'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
 
 // 检测是否为 macOS（顶栏布局与 MainTabs 交通灯/窗口按钮一致）
@@ -529,6 +530,11 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   let content = payload.content ?? ''
   const resolvedPath = typeof payload.path === 'string' ? payload.path : ''
 
+  const startupRecentHomeGuard = resolvedPath
+    ? takeStartupRecentHomeGuardIfArmed(resolvedPath)
+    : null
+
+  try {
   const getDisplayName = (doc: WorkspaceDocument | null | undefined, filePath: string): string => {
     const title = doc?.meta?.title?.trim()
     if (title) {
@@ -575,6 +581,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
         fileName: getDisplayName(existingDoc, resolvedPath),
         isPreview: existing.preview === true
       })
+      startupRecentHomeGuard?.markSuccess()
       eventBus.emit('is-need-save', false)
       return
     }
@@ -685,6 +692,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       fileName: getDisplayName(doc, resolvedPath),
       isPreview: true
     })
+    startupRecentHomeGuard?.markSuccess()
     eventBus.emit('is-need-save', false)
     // 文件打开成功，确认注册
     if (resolvedPath && messageBridge.getIpc()) {
@@ -731,6 +739,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
         path: '',
         fileName: getDisplayName(doc, '')
       })
+      startupRecentHomeGuard?.markSuccess()
       eventBus.emit('is-need-save', true)
       // PDF转换为MD后，MD tab是新文档（path为空），不应该占用原PDF文件的打开状态
       // 释放PDF路径的占用，允许用户再次打开原PDF文件
@@ -812,6 +821,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
           path: resolvedPath,
           fileName: getDisplayName(existingDoc, resolvedPath)
         })
+        startupRecentHomeGuard?.markSuccess()
         eventBus.emit('is-need-save', false)
         return
       }
@@ -844,6 +854,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       path: resolvedPath,
       fileName: getDisplayName(ensureDocument(tab.id), resolvedPath)
     })
+    startupRecentHomeGuard?.markSuccess()
     eventBus.emit('is-need-save', false)
 
     // 文件打开成功，确认注册
@@ -858,6 +869,9 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     if (resolvedPath && messageBridge.getIpc()) {
       await messageBridge.invoke('release-file-claim', resolvedPath)
     }
+  }
+  } finally {
+    startupRecentHomeGuard?.finalizeIfStillPending()
   }
 }
 

@@ -1,45 +1,90 @@
 import { createI18n } from 'vue-i18n'
 
-import en_US from './locales/en_us.json'
+/** 仅同步加载回退语言，其余语言按需 dynamic import */
 import zh_CN from './locales/zh_cn.json'
-import zh_TW from './locales/zh_tw.json'
-import ja_JP from './locales/ja_JP.json'
-import ko_KR from './locales/ko_KR.json'
-import de_DE from './locales/de_DE.json'
-import fr_FR from './locales/fr_FR.json'
-import es_ES from './locales/es_ES.json'
-import pt_BR from './locales/pt_BR.json'
-import ru_RU from './locales/ru_RU.json'
 
-const savedLang = localStorage.getItem('lang') || 'zh_CN'
+const FALLBACK_LOCALE = 'zh_CN'
+
+/** 与 SelectItem / localStorage 一致的下划线 locale key → 懒加载函数 */
+const LOCALE_IMPORTS = {
+  zh_CN: () => Promise.resolve({ default: zh_CN }),
+  en_US: () => import('./locales/en_us.json'),
+  zh_TW: () => import('./locales/zh_tw.json'),
+  ja_JP: () => import('./locales/ja_JP.json'),
+  ko_KR: () => import('./locales/ko_KR.json'),
+  de_DE: () => import('./locales/de_DE.json'),
+  fr_FR: () => import('./locales/fr_FR.json'),
+  es_ES: () => import('./locales/es_ES.json'),
+  pt_BR: () => import('./locales/pt_BR.json'),
+  ru_RU: () => import('./locales/ru_RU.json')
+}
+
+export function normalizeLocaleCode(raw) {
+  if (!raw || typeof raw !== 'string') return FALLBACK_LOCALE
+  return raw.replace(/-/g, '_')
+}
+
+const storedRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('lang') : null
+const normalizedStored = normalizeLocaleCode(storedRaw || FALLBACK_LOCALE)
+const initialLocale = LOCALE_IMPORTS[normalizedStored] ? normalizedStored : FALLBACK_LOCALE
 
 export const i18n = createI18n({
-  locale: savedLang,
-  fallbackLocale: 'zh_CN',
-  messages: { en_US, zh_CN, zh_TW, ja_JP, ko_KR, de_DE, fr_FR, es_ES, pt_BR, ru_RU },
-  // 禁用插值解析，避免解析代码块中的大括号
-  // 注意：这会影响所有消息，但我们可以通过直接访问messages来获取原始内容
+  locale: initialLocale,
+  fallbackLocale: FALLBACK_LOCALE,
+  messages: { [FALLBACK_LOCALE]: zh_CN },
   legacy: false,
-  // 使用composition API模式
   globalInjection: true
 })
 
-export const getLocale = () => {
-  // 获取当前语言，确保格式正确（下划线格式）
-  let locale = i18n.global.locale.value || 'zh_CN'
+const loadedLocales = new Set([FALLBACK_LOCALE])
 
-  // 标准化格式：将连字符转换为下划线（如 'zh-CN' -> 'zh_CN'）
+/**
+ * 将指定语言的 JSON 合并进 i18n（幂等）
+ */
+export async function ensureLocaleLoaded(localeCode) {
+  const key = normalizeLocaleCode(localeCode)
+  const canonical = LOCALE_IMPORTS[key] ? key : FALLBACK_LOCALE
+  if (loadedLocales.has(canonical)) return
+  const loader = LOCALE_IMPORTS[canonical]
+  if (!loader) return
+  const mod = await loader()
+  const messages = mod.default ?? mod
+  i18n.global.mergeLocaleMessage(canonical, messages)
+  loadedLocales.add(canonical)
+}
+
+/** 首屏挂载前调用：保证当前界面语言已加载（非 zh_CN 时需 await） */
+export async function preloadInitialLocales() {
+  if (initialLocale === FALLBACK_LOCALE) return
+  await ensureLocaleLoaded(initialLocale)
+}
+
+/**
+ * 切换界面语言：加载包（若未加载）并设置 locale + localStorage
+ */
+export async function setI18nLocale(localeCode) {
+  const key = normalizeLocaleCode(localeCode)
+  const canonical = LOCALE_IMPORTS[key] ? key : FALLBACK_LOCALE
+  await ensureLocaleLoaded(canonical)
+  i18n.global.locale.value = canonical
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('lang', canonical)
+  }
+}
+
+export const getLocale = () => {
+  let locale = i18n.global.locale.value || FALLBACK_LOCALE
+
   if (typeof locale === 'string') {
-    locale = locale.replace('-', '_')
+    locale = locale.replace(/-/g, '_')
   }
 
-  // 如果 i18n 中没有值，尝试从 localStorage 获取
-  if (!locale || locale === 'zh_CN') {
-    const savedLang = localStorage.getItem('lang')
+  if (!locale || locale === FALLBACK_LOCALE) {
+    const savedLang = typeof localStorage !== 'undefined' ? localStorage.getItem('lang') : null
     if (savedLang) {
-      locale = savedLang.replace('-', '_')
+      locale = normalizeLocaleCode(savedLang)
     }
   }
 
-  return locale || 'zh_CN'
+  return locale || FALLBACK_LOCALE
 }

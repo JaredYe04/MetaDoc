@@ -13,7 +13,6 @@ import fs from 'fs'
 import http from 'http'
 import os from 'os'
 import {
-  mainCalls,
   getInitialThemeClass,
   getSkeletonThemeQueryString,
   refreshMainWindowTitle,
@@ -21,6 +20,7 @@ import {
   findWindowWithToolTab,
   globalTabRegistry
 } from './main-calls'
+import { registerMainProcessIpc } from './ipc/main-process-ipc'
 import { registerDragManagerIPC } from './drag-manager'
 import { initWindowPool, destroyWindowPool } from './window-pool'
 import { startFileRegistry, stopFileRegistry } from './file-registry'
@@ -37,7 +37,6 @@ import {
   runExpressServer,
   refreshKnowledgeItems
 } from './express-server'
-import { initializeUtils } from './utils'
 import { initLogger, shutdownLogger, createMainLogger } from './logger'
 import { broadcastServiceStatus } from './service-status'
 import { initI18n, t, dispatchLanguageToWindow, setLocale, broadcastLanguage } from './i18n'
@@ -306,24 +305,17 @@ function createWindow(): void {
         ensureInitialized()
         startupProfileMark('after_ensure_initialized')
         logger.info('✅ 数据库迁移完成')
+        try {
+          refreshKnowledgeItems()
+        } catch (e) {
+          logger.warn('刷新知识库列表失败（向量库将按需初始化）', e)
+        }
       } catch (error) {
         logger.error('❌ 数据库迁移失败:', error)
       }
     })
 
-    // 初始化工具服务（包括知识库服务）
-    ;(async () => {
-      try {
-        logger.info('🚀 正在后台初始化工具服务（包括知识库服务）...')
-        await initializeUtils()
-        startupProfileMark('initialize_utils_done')
-        // 工具服务初始化完成后，刷新知识库列表
-        refreshKnowledgeItems()
-        logger.info('✅ 工具服务初始化完成，知识库列表已刷新')
-      } catch (error) {
-        logger.error('❌ 工具服务初始化失败:', error)
-      }
-    })()
+    // RAG/向量库改为首次知识库 HTTP 或 query-knowledge IPC 时再初始化（ensureUtilsInitialized）
 
     // 注释掉预加载辅助窗口的代码
     // 说明：由于已经将所有AI工具窗口和设置窗口改为在主窗口Tab中显示，不再需要独立窗口
@@ -752,7 +744,7 @@ app.whenReady().then(async () => {
   startupProfileMark('create_window_called')
   createWindow()
 
-  mainCalls()
+  registerMainProcessIpc()
   registerDragManagerIPC()
   initWindowPool()
   startFileRegistry()

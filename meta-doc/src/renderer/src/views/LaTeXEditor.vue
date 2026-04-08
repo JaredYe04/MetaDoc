@@ -165,13 +165,16 @@
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <div class="toolbar-icon" @click="toggleMinimap">
-                        <el-icon>
-                          <Eye class="w-4 h-4" />
-                        </el-icon>
+                        <img
+                          class="latex-toolbar-theme-icon"
+                          :src="minimapToolbarIconSrc"
+                          alt=""
+                          aria-hidden="true"
+                        />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                      {{ $t('latexEditor.toolbar.togglePreview') }}
+                      {{ $t('latexEditor.toolbar.toggleMinimap') }}
                     </TooltipContent>
                   </Tooltip>
 
@@ -346,7 +349,6 @@ import {
   ZoomIn,
   ZoomOut,
   ListOrdered,
-  Eye,
   FileText,
   Terminal,
   Code2
@@ -732,13 +734,17 @@ function zoomReset() {
 }
 
 let handleZoomShortcut: ((payload?: unknown) => void) | null = null
-let enableMinimap = true
+const enableMinimap = ref(true)
 let enableRowNumber = true
+const minimapToolbarIconSrc = computed(() => {
+  const th = themeState.currentTheme as unknown as Record<string, string>
+  return enableMinimap.value ? th.MinimapOnIcon : th.MinimapOffIcon
+})
 const toggleMinimap = () => {
   if (!editor.value) return
-  enableMinimap = !enableMinimap
+  enableMinimap.value = !enableMinimap.value
   editor.value.updateOptions({
-    minimap: { enabled: enableMinimap }
+    minimap: { enabled: enableMinimap.value }
   })
 }
 
@@ -747,7 +753,7 @@ let isMinimapTemporarilyDisabled = false
 
 // 重新启用 minimap 的防抖函数
 const reenableMinimap = debounce(() => {
-  if (!editor.value || !enableMinimap) return
+  if (!editor.value || !enableMinimap.value) return
 
   // 如果 minimap 原本是启用的，重新启用它
   if (isMinimapTemporarilyDisabled) {
@@ -760,7 +766,7 @@ const reenableMinimap = debounce(() => {
 
 // 暂时禁用 minimap（在 resize 开始时调用）
 const temporarilyDisableMinimap = () => {
-  if (!editor.value || !enableMinimap) return
+  if (!editor.value || !enableMinimap.value) return
 
   // 如果 minimap 当前是启用的，暂时禁用它
   if (!isMinimapTemporarilyDisabled) {
@@ -4138,7 +4144,7 @@ const initEditor = () => {
     wordWrap: 'on', // 自动换行
     wrappingIndent: 'same', // 缩进方式，"none" | "same" | "indent" | "deepIndent"
     lineNumbers: enableRowNumber ? 'on' : 'off',
-    minimap: { enabled: enableMinimap },
+    minimap: { enabled: enableMinimap.value },
     contextmenu: false,
     quickSuggestions: {
       other: true, // 在其他字符后自动显示补全建议
@@ -4557,7 +4563,7 @@ onUnmounted(() => {
   }
 
   // 如果 minimap 被暂时禁用，恢复它
-  if (isMinimapTemporarilyDisabled && editor.value && enableMinimap) {
+  if (isMinimapTemporarilyDisabled && editor.value && enableMinimap.value) {
     editor.value.updateOptions({
       minimap: { enabled: true }
     })
@@ -4700,6 +4706,15 @@ function onCancelSuggestion() {
   cursor: pointer;
   border-radius: 4px;
   transition: background-color 0.2s;
+}
+
+.latex-toolbar-theme-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .toolbar-icon:hover {

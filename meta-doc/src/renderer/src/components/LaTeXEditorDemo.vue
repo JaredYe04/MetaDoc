@@ -71,7 +71,7 @@
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom">{{
-            $t('latexEditor.toolbar.togglePreview') || '切换预览'
+            $t('latexEditor.toolbar.toggleMinimap') || '切换小地图'
           }}</TooltipContent>
         </Tooltip>
       </div>

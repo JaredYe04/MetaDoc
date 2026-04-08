@@ -69,7 +69,7 @@
       </Button>
     </div>
     <div
-      v-if="isExpanded && (node.children || isCreatingParent)"
+      v-if="isExpanded && (displayChildren.length || isCreatingParent)"
       class="workspace-tree-node-children"
       :class="{ 'is-drag-target-area': isDragTargetArea }"
       @dragover="handleChildrenDragOver"
@@ -77,7 +77,7 @@
       @drop="handleChildrenDrop"
     >
       <WorkspaceTreeNode
-        v-for="(child, index) in (node.children || [])"
+        v-for="(child, index) in displayChildren"
         :key="child.path"
         :node="child"
         :depth="depth + 1"
@@ -148,6 +148,7 @@ import { useI18n } from 'vue-i18n'
 import { themeState, mixColors } from '../utils/themes'
 import { formatRegistry } from '../utils/format-registry'
 import { extname } from '../utils/path-utils'
+import { isDocumentSidecarMetaFileName } from '../utils/workspace-tree-logic'
 
 const { t } = useI18n()
 
@@ -228,6 +229,15 @@ const isCreatingParent = computed(
   () =>
     !!props.pendingCreate && props.pendingCreate.parentPath === props.node.path
 )
+
+/** 与 WorkspaceExplorer 一致：不展示 `.${文档名}.md|tex.meta` sidecar */
+const displayChildren = computed(() => {
+  const ch = props.node.children
+  if (!ch?.length) return []
+  return ch.filter(
+    (c) => !(c.type === 'file' && isDocumentSidecarMetaFileName(c.name))
+  )
+})
 
 const creatingName = ref('')
 const creatingInputRef = ref<HTMLInputElement | null>(null)

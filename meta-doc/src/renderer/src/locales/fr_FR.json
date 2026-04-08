@@ -3,10 +3,16 @@
     "outlineMenu": {
       "optimizeSection": "Optimiser la section actuelle",
       "copySection": "Copier le contenu de la section",
+      "copyTitle": "Copier le titre",
       "generateIllustration": "Générer une illustration",
       "addToMaterialBasket": "Ajouter au panier de matériaux",
+      "deleteSection": "Supprimer la section",
+      "deleteSectionConfirm": "Supprimer cette section et son corps ? Action irréversible.",
+      "deleteSectionTitle": "Supprimer la section",
       "emptySection": "Aucun contenu à copier",
-      "copyFailed": "Échec de la copie"
+      "emptyTitle": "Aucun titre à copier",
+      "copyFailed": "Échec de la copie",
+      "noRangeToDelete": "Section introuvable ; suppression annulée"
     }
   },
   "aiChat": {
@@ -167,6 +173,7 @@
     "title": "Titre",
     "toolbar": {
       "ai_assistant": "Assistant AI",
+      "ai_full_document_analysis": "Analyse IA du document entier",
       "bold": "Plus forte",
       "code": "Bloc de code",
       "fullscreen": "Éditeur d'écran complet",
@@ -627,6 +634,7 @@
   },
   "mainTabs": {
     "contextMenu": {
+      "openTab": "Ouvrir",
       "pinTab": "Épingler l'onglet",
       "unpinTab": "Désépingler l'onglet",
       "closeTab": "Fermer l'onglet",
@@ -641,6 +649,12 @@
       "moveRight": "Déplacer vers la droite"
     },
     "newDocumentTooltip": "Nouveau document",
+    "focusMode": {
+      "pickerTooltip": "Ouvrir la liste des documents ouverts",
+      "noDocuments": "Aucun document ouvert",
+      "pickDocument": "Choisir un document…",
+      "emptyList": "Aucun onglet ouvert. Créez ou ouvrez un fichier depuis le menu."
+    },
     "untitled": "Sans titre",
     "userManual": "Manuel de l'utilisateur",
     "closeTabTooltip": "Fermer l'onglet",
@@ -3602,6 +3616,8 @@
   },
   "sectionOptimizer": {
     "clear": "Vider",
+    "contextScopeTitle": "Portée de référence du contexte",
+    "presetPromptsButton": "Invites prédéfinies",
     "contextMarks": {
       "chapter": "Références au présent chapitre",
       "full": "Référence au texte intégral",

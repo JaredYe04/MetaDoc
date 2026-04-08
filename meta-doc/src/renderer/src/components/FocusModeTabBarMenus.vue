@@ -262,8 +262,10 @@ function onItem(fn: () => void) {
 .focus-tab-bar-menus-root {
   display: flex;
   align-items: center;
-  height: 40px;
+  height: 34px;
+  max-height: 34px;
   -webkit-app-region: no-drag;
+  box-sizing: border-box;
 }
 
 /* 横向顶栏菜单：在复用 UIMenu 默认竖向样式基础上覆盖 */
@@ -272,17 +274,20 @@ function onItem(fn: () => void) {
   align-items: stretch;
   width: auto !important;
   min-width: unset !important;
-  height: 40px;
+  height: 34px;
+  max-height: 34px;
   min-height: 0 !important;
   border: none !important;
   padding: 0 4px;
   gap: 2px;
   overflow: visible;
+  box-sizing: border-box;
 }
 
 .focus-toolbar-ui-menu.ui-menu:not(.is-collapsed) {
   min-height: 0 !important;
-  height: 40px;
+  height: 34px;
+  max-height: 34px;
 }
 
 .focus-toolbar-ui-menu :deep(.ui-sub-menu) {
@@ -292,15 +297,15 @@ function onItem(fn: () => void) {
 }
 
 .focus-toolbar-ui-menu :deep(.ui-sub-menu__title) {
-  height: 32px;
-  min-height: 32px;
+  height: 28px;
+  min-height: 28px;
   padding: 0 10px;
   border-radius: 6px;
 }
 
 .focus-toolbar-ui-menu :deep(.ui-menu-item) {
-  height: 32px;
-  min-height: 32px;
+  height: 28px;
+  min-height: 28px;
   padding: 0 10px;
   border-radius: 6px;
 }

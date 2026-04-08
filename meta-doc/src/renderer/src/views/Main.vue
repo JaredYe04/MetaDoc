@@ -1,15 +1,18 @@
 <template>
   <div class="common-layout" :class="{ 'is-focus-mode': isFocusMode }">
     <!-- 占位：保持布局，实际内容通过 Teleport 渲染到 body 以始终置顶 -->
-    <div class="top-header-container top-header-placeholder" :class="{ 'is-mac': isMac }" />
+    <div
+      class="top-header-container top-header-placeholder"
+      :class="{ 'is-mac': isMac, 'is-focus-mode': isFocusMode }"
+    />
     <!-- 顶部区域：Logo + MainTabs，Teleport 到 body 确保无条件始终在最顶层 -->
     <Teleport to="body">
       <div class="top-header-container top-header-floating" :class="{ 'is-mac': isMac, 'is-focus-mode': isFocusMode }">
-        <LogoTab v-if="!isMac && !isFocusMode" />
+        <!-- Win/Linux：Logo 在 MainTabs 左侧；macOS 普通模式 Logo 在 MainTabs 内部右侧 -->
+        <LogoTab v-if="!isFocusMode && !isMac" class="top-header-logo-tab" />
         <el-header class="top-header">
           <MainTabs />
         </el-header>
-        <LogoTab v-if="isMac && !isFocusMode" />
       </div>
     </Teleport>
     <!-- 主内容区域：左边LeftMenu，中间ViewMenuContainer，右边内容 -->
@@ -20,32 +23,32 @@
       </el-aside>
       <!-- 不用 el-main：避免 Element Plus 默认 flex 与 min-height 导致专注模式下主内容区高度为 0 白屏 -->
       <div class="view-menu-main-wrap">
-        <ViewMenuContainer :sidebar-on-left="isFocusMode">
-        <div class="content-area-wrapper">
-          <!-- 不用 el-container：EP 默认 flex-direction:row，与主内容区「整列铺满」冲突，易出现 content-main 左右大块留白 -->
-          <div class="content-area">
-            <aside
-              v-if="showSubViewMenu && !isFocusMode"
-              class="sub-view-menu-aside"
-              :class="{ 'is-collapsed': viewMenuCollapsed }"
-            >
-              <ViewMenu />
-            </aside>
-            <div class="content-shell">
-              <!-- 不用 el-main：见上注释 -->
-              <div class="content-main">
-                <UserProfileCard
-                  v-if="showUserProfileCard"
-                  @close="showUserProfileCard = false"
-                  class="user-profile-card"
-                  :position="menuPosition"
-                />
-                <TabContentRenderer />
+        <component :is="viewMenuShell" v-bind="viewMenuShellProps">
+          <div class="content-area-wrapper">
+            <!-- 不用 el-container：EP 默认 flex-direction:row，与主内容区「整列铺满」冲突，易出现 content-main 左右大块留白 -->
+            <div class="content-area">
+              <aside
+                v-if="showViewMenuAside"
+                class="sub-view-menu-aside"
+                :class="{ 'is-collapsed': viewMenuCollapsed }"
+              >
+                <ViewMenu />
+              </aside>
+              <div class="content-shell">
+                <!-- 不用 el-main：见上注释 -->
+                <div class="content-main">
+                  <UserProfileCard
+                    v-if="showUserProfileCard"
+                    class="user-profile-card"
+                    :position="menuPosition"
+                    @close="showUserProfileCard = false"
+                  />
+                  <TabContentRenderer />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </ViewMenuContainer>
+        </component>
       </div>
     </el-container>
     <!-- BottomMenu放在最下侧，专注模式下隐藏 -->
@@ -168,6 +171,7 @@ import ViewMenu from '../components/ViewMenu.vue'
 import MainTabs from '../components/MainTabs.vue'
 import LogoTab from '../components/LogoTab.vue'
 import ViewMenuContainer from '../components/ViewMenuContainer.vue'
+import ViewMenuContainerFocus from '../components/ViewMenuContainerFocus.vue'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import BottomMenu from '../components/BottomMenu.vue'
 import AITaskQueue from '../components/AITaskQueue.vue'
@@ -184,15 +188,12 @@ import { useI18n } from 'vue-i18n'
 import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { getSetting, setSetting, updateRecentDocs } from '../utils/settings.js'
+import { isMacOSLayout } from '../utils/keyboard-scheme-defaults'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
 
-// 检测是否为 macOS
-const isMac = computed(() => {
-  // //debug
-  // return true
-  return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
-})
+// 检测是否为 macOS（顶栏布局与 MainTabs 交通灯/窗口按钮一致）
+const isMac = computed(() => isMacOSLayout())
 import {
   loadDocumentFromJson,
   loadDocumentFromMarkdown,
@@ -241,6 +242,15 @@ const tabSwitcher = useTabSwitcher()
 const { checkCanCloseTab, doRemoveTab } = useCloseTab()
 const { isFocusMode } = useFocusMode()
 
+const viewMenuShell = computed(() =>
+  isFocusMode.value ? ViewMenuContainerFocus : ViewMenuContainer
+)
+
+/** 仅专注壳使用侧栏在左；普通壳不接收该 prop，避免与专注侧栏能力混淆 */
+const viewMenuShellProps = computed(() =>
+  isFocusMode.value ? { sidebarOnLeft: true } : ({} as Record<string, never>)
+)
+
 // ============================================================================
 // 计算属性和状态
 // ============================================================================
@@ -260,8 +270,19 @@ const {
   updateDocumentLastView
 } = workspace
 
-// 文档 Tab 主区仅通过 Editor → WorkspaceTabPane → 各格式编辑器展示，不提供侧栏「主页/大纲/可视化」等多视图切换
-const showSubViewMenu = computed(() => false)
+const activeWorkspaceTab = computed(() => {
+  const id = activeTabId.value
+  if (!id) return null
+  return workspaceTabs.find((t) => t.id === id) ?? null
+})
+
+/** 左侧视图菜单仅用于文档 Tab（md / tex / 纯文本等）；系统页（GlobalHome、Agent…）与工具 Tab 不显示 */
+const showViewMenuAside = computed(() => {
+  if (isFocusMode.value) return false
+  const t = activeWorkspaceTab.value
+  if (!t) return false
+  return t.kind === 'file' || t.kind === 'new'
+})
 
 // 工作区 grep 跳转：若打开文档尚未完成则暂存，待 open-doc-success 后执行
 const pendingGrepGoto = ref<{
@@ -463,7 +484,14 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
   }
 
   const hasContent = hasDocumentContent(tempDoc)
-  const initialView: DocumentView = hasContent ? 'home' : 'editor'
+  const fmt = (data.format || '').toLowerCase()
+  /** TeX / 纯文本等应用专用编辑器打开：勿用「有内容则先主页」逻辑，否则专注/多视图下会卡在 Home、Monaco 不挂载 */
+  const editorFirst =
+    fmt === 'tex' ||
+    fmt === 'latex' ||
+    fmt === 'txt' ||
+    fmt === 'text'
+  const initialView: DocumentView = editorFirst ? 'editor' : hasContent ? 'home' : 'editor'
 
   logger.debug('创建文档快照', {
     format: data.format,
@@ -1580,14 +1608,18 @@ function initMainEventListeners() {
 // ============================================================================
 // 生命周期和监听器
 // ============================================================================
-// 当显示子视图菜单时，同步折叠状态到ViewMenu组件
-watch(showSubViewMenu, (show) => {
-  if (show) {
-    setTimeout(() => {
-      eventBus.emit('view-menu-collapse-sync', viewMenuCollapsed.value)
-    }, 0)
-  }
-})
+// 文档 Tab 显示 ViewMenu 时，同步折叠状态（含：退出专注 / 从系统页切回文档）
+watch(
+  [isFocusMode, showViewMenuAside],
+  ([focus, showMenu]) => {
+    if (!focus && showMenu) {
+      setTimeout(() => {
+        eventBus.emit('view-menu-collapse-sync', viewMenuCollapsed.value)
+      }, 0)
+    }
+  },
+  { immediate: true }
+)
 
 // 切换 Tab 前捕获当前页面缩略图，使切换器预览面板有内容可显示
 watch(activeTabId, (_, oldId) => {
@@ -1704,7 +1736,7 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-/* 顶部容器：Logo + MainTabs */
+/* 顶部容器：Logo + MainTabs（与 MainTabs 专注模式 34px 顶栏对齐，避免占位与浮动条高度不一致产生缝隙） */
 .top-header-container {
   display: flex;
   height: 40px;
@@ -1712,6 +1744,10 @@ onBeforeUnmount(() => {
   border: none;
   /* border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0); */
   z-index: 100;
+}
+
+.top-header-container.is-focus-mode {
+  height: 34px;
 }
 
 /* 占位：保持布局高度 */
@@ -1729,9 +1765,12 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-/* macOS 平台：调整布局顺序 */
-.top-header-container.is-mac {
-  flex-direction: row;
+/* 非 Mac：Logo 与 MainTabs 并排时保证「Logo | 标签」 */
+.top-header-container:not(.is-mac) .top-header-logo-tab {
+  order: 0;
+}
+.top-header-container:not(.is-mac) .top-header {
+  order: 1;
 }
 
 /* 顶部Header - MainTabs */
@@ -1745,6 +1784,16 @@ onBeforeUnmount(() => {
   background-color: var(--el-bg-color, #ffffff);
   border-bottom: none;
   z-index: 100;
+}
+
+.top-header-container.is-focus-mode .top-header.el-header,
+.top-header-container.is-focus-mode .top-header {
+  --el-header-height: 34px;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px;
+  line-height: 34px;
+  box-sizing: border-box;
 }
 
 .sub-view-menu-aside {
@@ -1786,7 +1835,7 @@ onBeforeUnmount(() => {
 }
 
 .common-layout.is-focus-mode .view-menu-main-wrap {
-  min-height: calc(100vh - 40px);
+  min-height: calc(100vh - 34px);
 }
 
 .common-layout:not(.is-focus-mode) .view-menu-main-wrap {
@@ -2014,7 +2063,7 @@ onBeforeUnmount(() => {
 
 /* 专注模式：底部栏隐藏时主区域占满剩余高度 */
 .common-layout.is-focus-mode .main-shell {
-  height: calc(100vh - 40px);
+  height: calc(100vh - 34px);
 }
 
 .common-layout.is-focus-mode .content-main {

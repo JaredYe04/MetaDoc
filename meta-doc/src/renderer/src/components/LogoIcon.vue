@@ -28,7 +28,7 @@
       transform="translate(128, 128) scale(1.15) translate(-128, -128)"
       fill="none"
       :stroke="symbolColor"
-      stroke-width="11.2"
+      :stroke-width="resolvedSymbolStrokeWidth"
       stroke-linecap="round"
       stroke-linejoin="round"
     >
@@ -45,6 +45,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+
 interface Props {
   /** 背景颜色 */
   bgColor?: string
@@ -58,6 +60,20 @@ const props = withDefaults(defineProps<Props>(), {
   bgColor: '#ffffff',
   symbolColor: '#000000',
   size: 256
+})
+
+/**
+ * 设计稿按 256 CSS 像素对应 stroke-width=11.2；缩到小尺寸时笔画会细到亚像素几乎不可见。
+ * 保证小图标在屏幕上至少约 1.5px 粗的笔画。
+ */
+const resolvedSymbolStrokeWidth = computed(() => {
+  const raw = props.size
+  const w = typeof raw === 'string' ? parseFloat(raw) : raw
+  const px = Number.isFinite(w) && w > 0 ? w : 256
+  const design = 11.2
+  const minScreenPx = 1.55
+  const fromMin = (minScreenPx * 256) / px
+  return Math.max(design, fromMin)
 })
 </script>
 

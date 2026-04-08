@@ -32,9 +32,10 @@
   <body style="overflow: hidden; margin: 0; padding: 0">
     <div id="app">
       <div class="metadoc-skeleton" aria-hidden="true">
-        <!-- 与 Main.vue / MainTabs 一致：非 mac 为 Logo|Tabs|窗口按钮；mac 为 交通灯占位|Tabs|Logo -->
+        <!-- DOM 顺序与 MainTabs 一致：交通灯占位|标签区|Logo|窗口按钮；非 mac 用 CSS order 排成 Logo|标签|按钮 -->
         <div class="metadoc-skeleton__navbar" id="metadoc-skeleton-navbar">
           <div class="metadoc-skeleton__macos-traffic-spacer" aria-hidden="true"></div>
+          <div class="metadoc-skeleton__tab-strip" aria-hidden="true"></div>
           <div class="metadoc-skeleton__logo-tab">
             <div class="metadoc-skeleton__logo-tab-inner" id="skeleton-logo" role="button" aria-label="Logo">
               <svg
@@ -64,7 +65,6 @@
               </svg>
             </div>
           </div>
-          <div class="metadoc-skeleton__tab-strip" aria-hidden="true"></div>
           <div class="metadoc-skeleton__window-controls">
             <button type="button" class="metadoc-skeleton__window-control-btn" id="skeleton-wc-min" aria-label="Minimize">
               <img
@@ -242,6 +242,9 @@
             var mp = q.get('mac');
             if (mp === '1' || mp === 'true') return true;
             if (mp === '0' || mp === 'false') return false;
+            var ep = window.electron && window.electron.process && window.electron.process.platform;
+            if (ep === 'darwin') return true;
+            if (ep === 'win32' || ep === 'linux') return false;
           } catch (e) {}
           return (
             typeof navigator !== 'undefined' &&

@@ -3,10 +3,16 @@
     "outlineMenu": {
       "optimizeSection": "Aktuellen Abschnitt optimieren",
       "copySection": "Abschnittsinhalt kopieren",
+      "copyTitle": "Titel kopieren",
       "generateIllustration": "Illustration erzeugen",
       "addToMaterialBasket": "Zum Materialkorb hinzufügen",
+      "deleteSection": "Abschnitt löschen",
+      "deleteSectionConfirm": "Diesen Abschnitt inkl. Text löschen? Dies kann nicht rückgängig gemacht werden.",
+      "deleteSectionTitle": "Abschnitt löschen",
       "emptySection": "Kein Inhalt zum Kopieren",
-      "copyFailed": "Kopieren fehlgeschlagen"
+      "emptyTitle": "Kein Titel zum Kopieren",
+      "copyFailed": "Kopieren fehlgeschlagen",
+      "noRangeToDelete": "Abschnitt nicht gefunden; Löschen abgebrochen"
     }
   },
   "aiChat": {
@@ -166,6 +172,7 @@
     "title": "Titel",
     "toolbar": {
       "ai_assistant": "KI-Assistent",
+      "ai_full_document_analysis": "Gesamtdokument-KI-Analyse",
       "bold": "Fett",
       "code": "Codeblock",
       "fullscreen": "Editor im Vollbildmodus",
@@ -643,6 +650,7 @@
   },
   "mainTabs": {
     "contextMenu": {
+      "openTab": "Öffnen",
       "pinTab": "Tab anheften",
       "unpinTab": "Tab ablösen (Anheftung aufheben)",
       "closeTab": "Tab schließen",
@@ -657,6 +665,12 @@
       "moveRight": "Nach rechts"
     },
     "newDocumentTooltip": "Neues Dokument",
+    "focusMode": {
+      "pickerTooltip": "Liste geöffneter Dokumente öffnen",
+      "noDocuments": "Keine geöffneten Dokumente",
+      "pickDocument": "Dokument wählen…",
+      "emptyList": "Keine Tabs geöffnet. Erstellen oder öffnen Sie eine Datei über das Menü."
+    },
     "untitled": "Unbenannt",
     "userManual": "Benutzerhandbuch",
     "closeTabTooltip": "Tab schließen",
@@ -3790,6 +3804,8 @@
   },
   "sectionOptimizer": {
     "clear": "Leeren",
+    "contextScopeTitle": "Kontextumfang",
+    "presetPromptsButton": "Vorlagen-Prompts",
     "contextMarks": {
       "chapter": "Dieses Kapitel verwenden",
       "full": "Ganzen Text verwenden",

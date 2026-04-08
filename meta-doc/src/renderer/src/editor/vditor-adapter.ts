@@ -129,6 +129,39 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     return this.getSearchState()
   }
 
+  /**
+   * 专注侧栏「文档内搜索」点击结果：同步内部 search state 后走 highlightSingleMatch（与 SearchReplaceMenu 一致）。
+   * 独立侧栏搜索未经过 configureSearch，state.matches / options 可能与 DOM 高亮算法不一致，故需先快照再高亮。
+   */
+  applySidebarSearchHighlight(
+    allMatches: FindResult[],
+    matchIndex: number,
+    query: { text: string; matchCase: boolean; wholeWord: boolean; useRegex: boolean }
+  ): void {
+    if (this.currentSearchAbortController) {
+      this.currentSearchAbortController.abort()
+      this.currentSearchAbortController = null
+    }
+    this.searchGeneration++
+    const normalized: SearchOptions = {
+      text: query.text,
+      matchCase: query.matchCase,
+      wholeWord: query.wholeWord,
+      useRegex: query.useRegex,
+      preserveCase: false
+    }
+    this.clearHighlights()
+    this.state = {
+      options: normalized,
+      matches: [...allMatches],
+      currentIndex: matchIndex,
+      isSearching: false
+    }
+    if (matchIndex >= 0 && matchIndex < allMatches.length) {
+      this.highlightSingleMatch(allMatches[matchIndex], matchIndex, true)
+    }
+  }
+
   private async performTextBasedSearch(
     normalized: SearchOptions,
     previousIndex: number,
@@ -329,8 +362,8 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
       let startFromTitle = false // 是否从标题元素开始遍历
 
       try {
-        // 获取匹配的行号（转换为1-based，因为TitleIndex使用1-based）
-        const matchLine = findResult.range.start.line + 1
+        // findTextByContent 的 range.start.line 已是 1-based，与 TitleIndex 一致
+        const matchLine = findResult.range.start.line
         const matchColumn = findResult.range.start.column // 1-based
 
         // 获取标题索引
@@ -352,13 +385,13 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
 
               // 计算标题行之前的所有匹配数
               const matchesBeforeTitleLine = this.state.matches.filter((m) => {
-                const matchLineNum = m.range.start.line + 1 // 转换为1-based
+                const matchLineNum = m.range.start.line
                 return matchLineNum < titleLine
               }).length
 
               // 计算标题行内、该匹配之前的所有匹配数
               const matchesInTitleLineBeforeMatch = this.state.matches.filter((m) => {
-                const matchLineNum = m.range.start.line + 1 // 转换为1-based
+                const matchLineNum = m.range.start.line
                 const matchColNum = m.range.start.column // 1-based
                 return matchLineNum === titleLine && matchColNum < matchColumn
               }).length
@@ -367,13 +400,13 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
             } else {
               // 匹配在标题行之后，计算标题行之前的所有匹配数
               initialMatchCount = this.state.matches.filter((m) => {
-                const matchLineNum = m.range.start.line + 1 // 转换为1-based
+                const matchLineNum = m.range.start.line
                 return matchLineNum < titleLine
               }).length
 
               // 还需要计算标题行内的所有匹配数
               const matchesInTitleLine = this.state.matches.filter((m) => {
-                const matchLineNum = m.range.start.line + 1 // 转换为1-based
+                const matchLineNum = m.range.start.line
                 return matchLineNum === titleLine
               }).length
 
@@ -1033,13 +1066,21 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     root.focus()
   }
 
+  private focusEditablePreventScroll(root: HTMLElement): void {
+    try {
+      root.focus({ preventScroll: true })
+    } catch {
+      root.focus()
+    }
+  }
+
   goTo(position: TextPosition): void {
     const root = this.getEditableRoot()
     if (!root) return
     const plain = this.getPlainText(root)
     const offset = this.positionToOffset(plain, position)
     this.setSelectionByOffset(root, offset, offset)
-    root.focus()
+    this.focusEditablePreventScroll(root)
   }
 
   goToRanges(ranges: TextRange[]): void {
@@ -1051,7 +1092,7 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     const start = this.positionToOffset(plain, first.start)
     const end = this.positionToOffset(plain, first.end)
     this.setSelectionByOffset(root, start, end)
-    root.focus()
+    this.focusEditablePreventScroll(root)
   }
 
   // ========== 文本获取 ==========

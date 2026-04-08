@@ -1,0 +1,17 @@
+/**
+ * 关闭 Vditor 工具栏默认的 ::before/::after 气泡，由 MarkdownEditor 在光标附近显示文案提示。
+ * disabled 项不绑定脚本提示；此处仅去掉可能残留的伪元素。
+ */
+.vditor .vditor-toolbar .vditor-tooltipped::before,
+.vditor .vditor-toolbar .vditor-tooltipped::after {
+  display: none !important;
+  content: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.vditor .vditor-toolbar .vditor-tooltipped.vditor-menu--disabled::before,
+.vditor .vditor-toolbar .vditor-tooltipped.vditor-menu--disabled::after {
+  display: none !important;
+  content: none !important;
+}

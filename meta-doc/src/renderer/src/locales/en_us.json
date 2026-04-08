@@ -4,10 +4,16 @@
     "outlineMenu": {
       "optimizeSection": "Optimize current section",
       "copySection": "Copy section content",
+      "copyTitle": "Copy title",
       "generateIllustration": "Generate illustration",
       "addToMaterialBasket": "Add to material basket",
+      "deleteSection": "Delete section",
+      "deleteSectionConfirm": "Delete this section and its body? This cannot be undone.",
+      "deleteSectionTitle": "Delete section",
       "emptySection": "No content to copy for this section",
-      "copyFailed": "Copy failed"
+      "emptyTitle": "No title to copy",
+      "copyFailed": "Copy failed",
+      "noRangeToDelete": "Could not locate this section; delete cancelled"
     }
   },
   "editorModeFirstTime": {
@@ -227,6 +233,7 @@
   },
   "mainTabs": {
     "contextMenu": {
+      "openTab": "Open",
       "pinTab": "Pin Tab",
       "unpinTab": "Unpin Tab",
       "closeTab": "Close Tab",
@@ -248,6 +255,12 @@
     "maximize": "Maximize",
     "minimize": "Minimize",
     "newDocumentTooltip": "New Document",
+    "focusMode": {
+      "pickerTooltip": "Open list of open documents",
+      "noDocuments": "No open documents",
+      "pickDocument": "Choose document…",
+      "emptyList": "No tabs open. Create or open a file from the menu."
+    },
     "text": "Data",
     "unsavedIndicator": "Unsaved",
     "untitled": "Untitled",
@@ -542,6 +555,7 @@
       "quote": "Quote",
       "search_replace": "Search & Replace",
       "ai_assistant": "AI Assistant",
+      "ai_full_document_analysis": "Full-document AI analysis",
       "toggle_outline": "Toggle Outline",
       "toggle_outline_show": "Show Outline",
       "toggle_outline_hide": "Hide Outline",
@@ -3775,6 +3789,8 @@
   },
   "sectionOptimizer": {
     "clear": "Clear",
+    "contextScopeTitle": "Context reference scope",
+    "presetPromptsButton": "Preset prompts",
     "contextMarks": {
       "chapter": "This Chapter",
       "full": "Full Text",
@@ -4175,7 +4191,14 @@
     "expand": "Expand",
     "workspace": "Workspace",
     "workspaceGrep": "Workspace Search",
-    "metaInfo": "Metadata"
+    "metaInfo": "Metadata",
+    "documentOutline": "Outline",
+    "outlineFilterPlaceholder": "Filter headings in this document…",
+    "outlineDocSearchPlaceholder": "Find in this document…",
+    "outlineSearchHint": "Type to search; results are grouped by outline sections.",
+    "outlineSearchNeedMarkdown": "Open and focus a Markdown document to search in it.",
+    "outlineSearchDocStart": "Document start",
+    "outlineSearchNoHeading": "Body"
   },
   "workspaceGrep": {
     "title": "Workspace Search",

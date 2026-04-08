@@ -1,5 +1,6 @@
 <template>
-  <div ref="menuRef" class="context-menu" :style="menuStyle" @contextmenu.prevent @mousedown.stop>
+  <Teleport to="body">
+    <div ref="menuRef" class="context-menu" :style="menuStyle" @contextmenu.prevent @mousedown.stop>
     <template v-for="(item, index) in items" :key="item.value ?? `item-${index}`">
       <div v-if="item.type === 'divider'" class="context-menu__divider" />
       <div
@@ -54,7 +55,8 @@
         <span v-if="item.shortcut" class="context-menu__shortcut">{{ item.shortcut }}</span>
       </div>
     </template>
-  </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -115,7 +117,16 @@ watch(
 )
 
 const closeMenu = () => emit('close')
+/** 菜单挂载时刻：用于忽略打开后极短时间内的误触（右键/触控板仍会派发 mousedown） */
+let menuGuardUntil = 0
 const handleDocumentPointer = (event: Event) => {
+  if (typeof performance !== 'undefined' && performance.now() < menuGuardUntil) {
+    return
+  }
+  const me = event as MouseEvent
+  if (me.type === 'mousedown' && me.button === 2) {
+    return
+  }
   const target = event.target as Node | null
   if (!target || !menuRef.value || menuRef.value.contains(target)) {
     return
@@ -129,20 +140,40 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 }
 
+/** 推迟挂载「点击外部关闭」：避免与打开菜单的同一次右键手势（或紧随其后的 mousedown）立刻触发关闭，出现第一次一闪即消失 */
+let detachOutsideClose: (() => void) | null = null
+let attachOutsideCloseTimer: ReturnType<typeof setTimeout> | null = null
+
 onMounted(() => {
-  document.addEventListener('mousedown', handleDocumentPointer)
-  // 仅监听窗口自身滚动；捕获阶段会收到可滚动子元素上的 scroll，导致从大纲移入菜单途中菜单被误关
-  window.addEventListener('scroll', closeMenu, false)
-  window.addEventListener('resize', closeMenu)
-  window.addEventListener('keydown', handleKeydown)
+  menuGuardUntil =
+    (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 350
   nextTick(adjustWithinViewport)
+  attachOutsideCloseTimer = setTimeout(() => {
+    attachOutsideCloseTimer = null
+    document.addEventListener('mousedown', handleDocumentPointer, true)
+    document.addEventListener('pointerdown', handleDocumentPointer, true)
+    // 仅监听窗口自身滚动；捕获阶段会收到可滚动子元素上的 scroll，导致从大纲移入菜单途中菜单被误关
+    window.addEventListener('scroll', closeMenu, false)
+    window.addEventListener('resize', closeMenu)
+    window.addEventListener('keydown', handleKeydown)
+    detachOutsideClose = () => {
+      document.removeEventListener('mousedown', handleDocumentPointer, true)
+      document.removeEventListener('pointerdown', handleDocumentPointer, true)
+      window.removeEventListener('scroll', closeMenu, false)
+      window.removeEventListener('resize', closeMenu)
+      window.removeEventListener('keydown', handleKeydown)
+    }
+    nextTick(adjustWithinViewport)
+  }, 50)
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', handleDocumentPointer)
-  window.removeEventListener('scroll', closeMenu, false)
-  window.removeEventListener('resize', closeMenu)
-  window.removeEventListener('keydown', handleKeydown)
+  if (attachOutsideCloseTimer != null) {
+    clearTimeout(attachOutsideCloseTimer)
+    attachOutsideCloseTimer = null
+  }
+  detachOutsideClose?.()
+  detachOutsideClose = null
 })
 
 const menuStyle = computed(() => {
@@ -172,7 +203,8 @@ const menuStyle = computed(() => {
     borderRadius: '10px',
     padding: '4px 0',
     minWidth: '184px',
-    zIndex: 12000
+    // 高于 Dialog(10000)、GlobalMessageBox(100002)，低于 MainTabs 区域扩展层，否则对话框内无法操作菜单
+    zIndex: 100060
   }
   style['--menu-divider-color'] = dividerColor
   return style
@@ -255,7 +287,7 @@ const onMenuItemMouseDown = (item: ContextMenuItem) => {
   left: 100%;
   top: 0;
   margin-left: 2px;
-  z-index: 12100;
+  z-index: 100061;
 }
 
 .context-menu__item--submenu-parent {

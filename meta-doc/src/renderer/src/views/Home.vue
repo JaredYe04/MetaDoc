@@ -7,13 +7,6 @@
 
     <!-- 如果已选择格式，显示文档预览 -->
     <div v-else-if="showDocumentPreview" class="home-panel" :style="panelStyle">
-      <!-- 专注模式下 PDF 提供转换为 MD 编辑的入口 -->
-      <div v-if="isFocusMode && isPdfTab" class="focus-pdf-convert-bar">
-        <span class="focus-pdf-convert-hint">{{ $t('focusMode.pdfPreviewHint') }}</span>
-        <button class="focus-pdf-convert-btn" @click="handleFocusPdfConvert">
-          {{ $t('focusMode.convertToMarkdown') }}
-        </button>
-      </div>
       <HomePdfAdapter v-if="isPdfTab" :pdf-url="pdfUrlForHome" class="home-panel-adapter" />
       <HomeRenderableAdapter
         v-else-if="isRenderableFormat"
@@ -51,6 +44,13 @@
         :meta-description="metaDescription"
         :open-system-tab="openSystemTab"
       />
+      <!-- PDF：底部提供转为 Markdown 编辑（全局，非仅专注模式） -->
+      <div v-if="isPdfTab" class="home-pdf-convert-bar">
+        <span class="home-pdf-convert-hint">{{ $t('focusMode.pdfPreviewHint') }}</span>
+        <button type="button" class="home-pdf-convert-btn" @click="handleFocusPdfConvert">
+          {{ $t('focusMode.convertToMarkdown') }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -70,7 +70,6 @@ import {
   HomeMarkdownAdapter
 } from './home/adapters'
 import { useHomeDocumentPreview } from './home/useHomeDocumentPreview'
-import { useFocusMode } from '../composables/useFocusMode'
 
 const {
   activeDocument,
@@ -97,7 +96,6 @@ const {
 } = useHomeDocumentPreview({ windowTypeProvider: () => getWindowType() })
 
 const { activeTabId, openSystemTab } = workspace
-const { isFocusMode } = useFocusMode()
 
 const handleFocusPdfConvert = () => {
   if (activeTabId.value) {
@@ -334,6 +332,8 @@ onBeforeUnmount(() => {
   position: relative;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -352,8 +352,11 @@ onBeforeUnmount(() => {
   z-index: 1;
   flex: 1;
   width: calc(100% - 48px);
+  max-width: calc(100% - 48px);
+  min-width: 0;
   min-height: 0;
   margin: 24px;
+  box-sizing: border-box;
   border-radius: 16px;
   border: 1px solid;
   backdrop-filter: blur(20px);
@@ -366,6 +369,7 @@ onBeforeUnmount(() => {
 .home-panel-adapter {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
@@ -373,41 +377,46 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .home-panel {
     width: calc(100% - 32px);
+    max-width: calc(100% - 32px);
     height: calc(100% - 32px);
     margin: 16px;
     border-radius: 12px;
   }
 }
 
-.focus-pdf-convert-bar {
+.home-pdf-convert-bar {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 8px 16px;
-  background: rgba(79, 140, 255, 0.08);
-  border-bottom: 1px solid rgba(79, 140, 255, 0.15);
+  padding: 10px 16px;
+  background: var(--el-fill-color-light);
+  border-top: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
 }
 
-.focus-pdf-convert-hint {
+.home-pdf-convert-hint {
   font-size: 13px;
+  line-height: 1.4;
   color: var(--el-text-color-secondary);
 }
 
-.focus-pdf-convert-btn {
-  padding: 4px 14px;
-  border: 1px solid rgba(79, 140, 255, 0.3);
+.home-pdf-convert-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--el-color-primary-light-5);
   border-radius: 6px;
-  background: rgba(79, 140, 255, 0.1);
-  color: #4f8cff;
+  background: transparent;
+  color: var(--el-color-primary);
   font-size: 13px;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.focus-pdf-convert-btn:hover {
-  background: rgba(79, 140, 255, 0.18);
-  border-color: rgba(79, 140, 255, 0.5);
+.home-pdf-convert-btn:hover {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary);
 }
 </style>

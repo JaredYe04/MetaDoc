@@ -2,7 +2,11 @@
   <div
     ref="tabsWrapperRef"
     class="main-tabs-wrapper"
-    :class="{ 'is-locked': isLockedEffective }"
+    :class="{
+      'is-locked': isLockedEffective,
+      'is-mac': isMac,
+      'is-focus-mode': isFocusMode
+    }"
     @dblclick="handleDoubleClick"
     @dragover.prevent="handleWrapperDragOver"
     @auxclick="handleWrapperAuxClick"
@@ -10,62 +14,189 @@
     <!-- macOS 平台：左边预留空间给原生按钮 -->
     <div v-if="isMac" class="macos-traffic-lights-spacer"></div>
 
-    <!-- 专注模式：LeftMenu 通过 Teleport 注入顶栏菜单（与标签栏平级） -->
-    <div id="main-tabs-focus-menu-host" class="main-tabs-focus-menu-host"></div>
-
-    <!-- Tab 区域：包含可滚动的 tab 列表 + 固定的新建按钮 -->
+    <!-- Tab 区域：普通模式为横向标签；专注模式为「文档标题 + 下拉」+ 功能页图标 -->
     <div class="tab-region">
-      <div ref="tabsViewportRef" class="tabs-viewport" @wheel.prevent="handleTabWheel">
-        <div ref="tabsListRef" class="tabs-list">
-          <div
-            v-for="tab in allTabs"
-            :key="tab.id"
-            class="tab-item"
-            :class="{
-              'is-active': currentActiveId === tab.id,
-              'is-pinned': tab.pinned,
-              'is-closing': tab._isClosing,
-              'drop-before': dropPreview.targetId === tab.id && dropPreview.mode === 'before',
-              'drop-after': dropPreview.targetId === tab.id && dropPreview.mode === 'after'
-            }"
-            :data-tab-id="tab.id"
-            @click.stop="handleTabClickActivate(tab)"
-            @mousedown="handleTabMouseDown($event, tab)"
-            @dblclick.stop="handleTabLabelDblclick(tab)"
-            @contextmenu.prevent="openTabContextMenu($event, tab)"
-            @auxclick.stop.prevent="handleTabItemAuxClick($event, tab)"
-            :draggable="canDragTab(tab)"
-            @dragstart.stop="handleDragStart(tab.id, $event)"
-            @dragover.prevent="handleDragOver(tab.id, $event)"
-            @dragleave="handleDragLeave"
-            @drop.stop="handleDrop(tab.id, $event)"
-            @dragend.stop="handleDragEnd($event)"
-          >
+      <template v-if="!isFocusMode">
+        <div ref="tabsViewportRef" class="tabs-viewport" @wheel.prevent="handleTabWheel">
+          <div ref="tabsListRef" class="tabs-list">
             <div
-              class="main-tab-label"
-              :class="{ 'is-preview': tab.preview, 'is-pinned': tab.pinned }"
-              :title="getTabTooltip(tab)"
+              v-for="tab in allTabs"
+              :key="tab.id"
+              class="tab-item"
+              :class="{
+                'is-active': currentActiveId === tab.id,
+                'is-pinned': tab.pinned,
+                'is-closing': tab._isClosing,
+                'drop-before': dropPreview.targetId === tab.id && dropPreview.mode === 'before',
+                'drop-after': dropPreview.targetId === tab.id && dropPreview.mode === 'after'
+              }"
+              :data-tab-id="tab.id"
+              @click.stop="handleTabClickActivate(tab)"
+              @mousedown="handleTabMouseDown($event, tab)"
+              @dblclick.stop="handleTabLabelDblclick(tab)"
+              @contextmenu.prevent="openTabContextMenu($event, tab)"
+              @auxclick.stop.prevent="handleTabItemAuxClick($event, tab)"
+              :draggable="canDragTab(tab)"
+              @dragstart.stop="handleDragStart(tab.id, $event)"
+              @dragover.prevent="handleDragOver(tab.id, $event)"
+              @dragleave="handleDragLeave"
+              @drop.stop="handleDrop(tab.id, $event)"
+              @dragend.stop="handleDragEnd($event)"
             >
-              <span v-if="tab.pinned" class="main-tab-label__pinned-icon">
-                {{ getTabLabel(tab).charAt(0).toUpperCase() }}
-              </span>
-              <span v-else class="main-tab-label__text">{{ getTabLabel(tab) }}</span>
-              <span v-if="tab.dirty && !tab.pinned" class="main-tab-label__dot" />
-              <span
-                v-if="canCloseTab(tab) && !tab.pinned && !tab._isClosing"
-                class="main-tab-label__close"
-                :class="{ 'main-tab-label__close--active': currentActiveId === tab.id }"
-                @click.stop="handleCloseTab(tab.id)"
-                @mousedown.stop
-                @dragstart.stop
+              <div
+                class="main-tab-label"
+                :class="{ 'is-preview': tab.preview, 'is-pinned': tab.pinned }"
+                :title="getTabTooltip(tab)"
               >
-                <el-icon><Close /></el-icon>
-              </span>
+                <span v-if="tab.pinned" class="main-tab-label__pinned-icon">
+                  {{ getTabLabel(tab).charAt(0).toUpperCase() }}
+                </span>
+                <span v-else class="main-tab-label__text">{{ getTabLabel(tab) }}</span>
+                <span v-if="tab.dirty && !tab.pinned" class="main-tab-label__dot" />
+                <span
+                  v-if="canCloseTab(tab) && !tab.pinned && !tab._isClosing"
+                  class="main-tab-label__close"
+                  :class="{ 'main-tab-label__close--active': currentActiveId === tab.id }"
+                  @click.stop="handleCloseTab(tab.id)"
+                  @mousedown.stop
+                  @dragstart.stop
+                >
+                  <el-icon><Close /></el-icon>
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
+      <template v-else>
+        <div ref="tabsViewportRef" class="tabs-viewport tabs-viewport--focus-mode" @wheel.prevent="handleTabWheel">
+          <div ref="tabsListRef" class="tabs-list tabs-list--focus-mode">
+            <div class="focus-doc-slot">
+              <button
+                ref="focusDocTriggerRef"
+                type="button"
+                class="focus-doc-picker-trigger"
+                :class="{ 'is-open': focusDocPickerOpen }"
+                :title="focusDocPickerTriggerTooltip"
+                :aria-expanded="focusDocPickerOpen"
+                aria-haspopup="listbox"
+                :aria-controls="focusDocListboxId"
+                @click.stop="toggleFocusDocPicker"
+                @keydown="onFocusDocTriggerKeydown"
+              >
+                <!-- 与 LogoTab.vue 一致：FIXED_LOGO_COLORS；专注顶栏较矮用 size 20（勿再包一层 overflow:hidden，会裁掉 scale(1.15) 的符号） -->
+                <LogoIcon
+                  class="focus-doc-picker-trigger__logo"
+                  :size="20"
+                  :bg-color="focusTriggerLogoBg"
+                  :symbol-color="focusTriggerLogoSymbol"
+                />
+                <span class="focus-doc-picker-trigger__text">{{
+                  focusDocPickerButtonLabel
+                }}</span>
+                <span
+                  v-if="focusActivePickerTab && focusActivePickerTab.dirty && !focusActivePickerTab.pinned"
+                  class="focus-doc-picker-trigger__dot"
+                  aria-hidden="true"
+                />
+                <el-icon class="focus-doc-picker-trigger__chevron" aria-hidden="true">
+                  <ArrowDown />
+                </el-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+        <Teleport to="body">
+          <div
+            v-if="focusDocPickerOpen"
+            class="focus-doc-picker-shell"
+            :style="focusDocPickerShellStyle"
+          >
+            <div
+              ref="focusDocPickerPanelRef"
+              class="focus-doc-picker-panel"
+              role="listbox"
+              :id="focusDocListboxId"
+              tabindex="-1"
+              @keydown="onFocusDocListKeydown"
+            >
+              <template v-if="focusPickerTabs.length === 0">
+                <div class="focus-doc-picker-empty" role="presentation">
+                  {{ t('mainTabs.focusMode.emptyList') }}
+                </div>
+              </template>
+              <template v-else>
+                <div
+                  v-for="(tab, index) in focusPickerTabs"
+                  :key="tab.id"
+                  class="tab-item focus-doc-picker-row"
+                  :class="{
+                    'is-active': currentActiveId === tab.id,
+                    'is-pinned': tab.pinned,
+                    'is-closing': tab._isClosing,
+                    'drop-before': dropPreview.targetId === tab.id && dropPreview.mode === 'before',
+                    'drop-after': dropPreview.targetId === tab.id && dropPreview.mode === 'after',
+                    'is-keyboard-focus': focusDocListHighlightIndex === index
+                  }"
+                  :data-tab-id="tab.id"
+                  role="option"
+                  :aria-selected="currentActiveId === tab.id"
+                  @click.stop="handleFocusDocRowClick(tab)"
+                  @mousedown="handleTabMouseDown($event, tab)"
+                  @dblclick.stop="handleTabLabelDblclick(tab)"
+                  @contextmenu.prevent="openTabContextMenu($event, tab)"
+                  @auxclick.stop.prevent="handleTabItemAuxClick($event, tab)"
+                  :draggable="canDragTab(tab)"
+                  @dragstart.stop="handleDragStart(tab.id, $event)"
+                  @dragover.prevent="handleDragOver(tab.id, $event)"
+                  @dragleave="handleDragLeave"
+                  @drop.stop="handleDrop(tab.id, $event)"
+                  @dragend.stop="handleDragEnd($event)"
+                >
+                  <img
+                    class="focus-doc-picker-row__icon"
+                    :src="getFocusPickerRowIcon(tab)"
+                    alt=""
+                    draggable="false"
+                  />
+                  <div
+                    class="main-tab-label focus-doc-picker-row__label"
+                    :class="{ 'is-preview': tab.preview, 'is-pinned': tab.pinned }"
+                  >
+                    <span v-if="tab.pinned" class="main-tab-label__pinned-icon">
+                      {{ getTabLabel(tab).charAt(0).toUpperCase() }}
+                    </span>
+                    <span v-else class="main-tab-label__text">{{ getTabLabel(tab) }}</span>
+                    <span v-if="tab.dirty && !tab.pinned" class="main-tab-label__dot" />
+                    <span
+                      v-if="canCloseTab(tab) && !tab.pinned && !tab._isClosing"
+                      class="main-tab-label__close"
+                      :class="{ 'main-tab-label__close--active': currentActiveId === tab.id }"
+                      @click.stop="handleCloseTab(tab.id)"
+                      @mousedown.stop
+                      @dragstart.stop
+                    >
+                      <el-icon><Close /></el-icon>
+                    </span>
+                  </div>
+                </div>
+              </template>
+            </div>
+            <div
+              class="focus-doc-picker-resize-handle"
+              title=""
+              aria-hidden="true"
+              @mousedown.stop.prevent="onFocusDocPickerResizePointerDown"
+            />
+          </div>
+        </Teleport>
+      </template>
+    </div>
 
+    <!-- 专注模式顶栏菜单：紧靠「+」左侧（各平台一致） -->
+    <div id="main-tabs-focus-menu-host" class="main-tabs-focus-menu-host"></div>
+
+    <div class="tab-trailing-actions">
       <!-- 新建文档按钮 - 在 scroll 外面，永远可见 -->
       <div
         class="new-tab-button"
@@ -90,6 +221,9 @@
         />
       </div>
     </div>
+
+    <!-- macOS 普通模式：Logo 紧贴「+ / 专注」右侧，整条顶栏与交通灯占位对齐 -->
+    <LogoTab v-if="isMac && !isFocusMode" class="main-tabs-logo-tab" />
 
     <!-- 窗口控制按钮 (最右侧) - 仅在非 macOS 平台显示，使用主题图标 -->
     <div v-if="!isMac" class="window-controls">
@@ -132,6 +266,19 @@
         :style="{ ...tabContextMenuStyle, ...tabContextMenuPositionStyle }"
         @click.stop
       >
+        <!-- 切换到该标签页（当前非激活时） -->
+        <button
+          v-if="tabContextMenuTab && tabContextMenuTab.id !== currentActiveId"
+          type="button"
+          class="tab-context-menu__item"
+          @click="handleContextMenuAction('activateTab')"
+        >
+          {{ t('mainTabs.contextMenu.openTab') }}
+        </button>
+        <div
+          v-if="tabContextMenuTab && tabContextMenuTab.id !== currentActiveId"
+          class="tab-context-menu__divider"
+        ></div>
         <!-- 固定/取消固定标签页 -->
         <button
           type="button"
@@ -259,8 +406,8 @@ import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import eventBus from '../utils/event-bus'
 import messageBridge from '../bridge/message-bridge'
 import { createRendererLogger } from '../utils/logger'
-import { Close, Plus, ArrowRight } from '@element-plus/icons-vue'
-import { mixColors, themeState } from '../utils/themes'
+import { ArrowDown, Close, Plus, ArrowRight } from '@element-plus/icons-vue'
+import { mixColors, themeState, FIXED_LOGO_COLORS } from '../utils/themes'
 import { useCloseTab } from '../composables/useCloseTab'
 import {
   useTabDrag,
@@ -273,7 +420,10 @@ import {
 import { useTabAnimation } from '../composables/useTabAnimation'
 import GlobalMessageBox from './global/GlobalMessageBox.vue'
 import GlobalToast from './global/GlobalToast.vue'
+import LogoTab from './LogoTab.vue'
+import LogoIcon from './LogoIcon.vue'
 import { useFocusMode } from '../composables/useFocusMode'
+import { isMacOSLayout } from '../utils/keyboard-scheme-defaults'
 
 // 主题中的窗口控制图标（themes.js 中注册，TS 无类型声明故用 Record 访问）
 const windowControlIcons = computed(() => {
@@ -292,6 +442,20 @@ const workspace = useWorkspace()
 const tabsWrapperRef = ref<HTMLElement | null>(null)
 const tabsViewportRef = ref<HTMLElement | null>(null)
 const tabsListRef = ref<HTMLElement | null>(null)
+
+const focusDocTriggerRef = ref<HTMLElement | null>(null)
+const focusDocPickerPanelRef = ref<HTMLElement | null>(null)
+const focusDocPickerOpen = ref(false)
+const focusDocListHighlightIndex = ref(0)
+const focusDocListboxId = 'main-tabs-focus-doc-listbox'
+const focusDocPickerGeom = reactive({ top: 0, left: 0 })
+const FOCUS_DOC_PICKER_WIDTH_KEY = 'metadoc-focus-picker-width'
+const FOCUS_DOC_PICKER_MIN_W = 260
+const FOCUS_DOC_PICKER_MAX_W = 720
+const focusDocPickerWidth = ref(320)
+// 与 LogoTab.vue 相同：固定品牌色，不随亮/暗主题变化
+const focusTriggerLogoBg = FIXED_LOGO_COLORS.bgColor
+const focusTriggerLogoSymbol = FIXED_LOGO_COLORS.symbolColor
 
 const { checkCanCloseTab, doRemoveTab, isLocked } = useCloseTab()
 const isLockedEffective = computed<boolean>(() => props.mode === 'demo' || isLocked.value)
@@ -369,6 +533,10 @@ const isOverflowing = ref(false)
 
 // 检测标签页是否溢出：用真实几何尺寸判断，仅用于 UI 反馈（如滚动按钮），不切换布局
 const checkTabOverflow = () => {
+  if (isFocusMode.value) {
+    isOverflowing.value = false
+    return
+  }
   const viewport = tabsViewportRef.value
   if (!viewport) return
   isOverflowing.value = viewport.scrollWidth > viewport.clientWidth + 1
@@ -379,6 +547,10 @@ const scrollActiveTabIntoView = () => {
   if (!viewport) return
   const activeItem = viewport.querySelector('.tab-item.is-active') as HTMLElement | null
   if (!activeItem) return
+  if (isFocusMode.value) {
+    activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    return
+  }
   const itemLeft = activeItem.offsetLeft
   const itemRight = itemLeft + activeItem.offsetWidth
   const scrollLeft = viewport.scrollLeft
@@ -418,6 +590,7 @@ const canMoveToOtherWindow = (tab: WorkspaceTab | null): boolean => {
 const openTabContextMenu = async (e: MouseEvent, tab: WorkspaceTab) => {
   if (isLockedEffective.value) return
   if (tab._isClosing) return
+  focusDocPickerOpen.value = false
   tabContextMenuVisible.value = true
   tabContextMenuPosition.value = { x: e.clientX, y: e.clientY }
   tabContextMenuTab.value = tab
@@ -466,6 +639,16 @@ const handleContextMenuAction = async (action: string) => {
   closeTabContextMenu()
 
   switch (action) {
+    case 'activateTab':
+      workspace.activateTab(tab.id)
+      if (tab.kind === 'system' || tab.kind === 'tool') {
+        const toRoute = tab.route
+        if (toRoute && toRoute !== route.path) {
+          nextTick(() => router.push(toRoute))
+        }
+      }
+      focusDocPickerOpen.value = false
+      break
     case 'togglePin':
       workspace.togglePinTab(tab.id)
       break
@@ -577,17 +760,20 @@ const handleMoveToWindow = async (targetWindowId: number) => {
 
 const handleTabContextMenuClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
+  if (
+    focusDocPickerOpen.value &&
+    !target.closest('.focus-doc-picker-shell') &&
+    !target.closest('.focus-doc-picker-trigger')
+  ) {
+    focusDocPickerOpen.value = false
+  }
   if (tabContextMenuVisible.value && !target.closest('.tab-context-menu')) {
     closeTabContextMenu()
   }
 }
 
 // 检测是否为 macOS
-const isMac = computed(() => {
-  // //debug
-  // return true
-  return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
-})
+const isMac = computed(() => isMacOSLayout())
 
 // 使用mixColors生成辅助色 - 使用themeState.currentTheme的主题色
 const tabsContainerBackgroundColor = computed(() => {
@@ -715,7 +901,9 @@ const handleDoubleClick = (event: MouseEvent) => {
     target.closest('.main-tabs-focus-menu-host') ||
     target.closest('.focus-tab-bar-menus-root') ||
     target.closest('.new-tab-button') ||
-    target.closest('.focus-mode-button')
+    target.closest('.focus-mode-button') ||
+    target.closest('.focus-doc-picker-trigger') ||
+    target.closest('.focus-doc-picker-shell')
   ) {
     return
   }
@@ -785,6 +973,126 @@ const getTabTooltip = (tab: WorkspaceTab): string => {
   return secondary ? `${primary} — ${secondary}` : primary
 }
 
+/** 专注模式：下拉列表与横向标签栏顺序一致（含主页、AI 会话、文档等） */
+const focusPickerTabs = computed(() => allTabs.value)
+
+const focusActivePickerTab = computed(
+  () => allTabs.value.find((x) => x.id === workspace.activeTabId.value) ?? null
+)
+
+const focusDocPickerButtonLabel = computed(() => {
+  if (focusActivePickerTab.value) {
+    return getTabLabel(focusActivePickerTab.value)
+  }
+  if (focusPickerTabs.value.length === 0) {
+    return t('mainTabs.focusMode.noDocuments')
+  }
+  return t('mainTabs.focusMode.pickDocument')
+})
+
+const focusDocPickerTriggerTooltip = computed(() => {
+  if (focusActivePickerTab.value) return getTabTooltip(focusActivePickerTab.value)
+  return t('mainTabs.focusMode.pickerTooltip')
+})
+
+const focusDocPickerShellStyle = computed(() => ({
+  position: 'fixed' as const,
+  zIndex: 100004,
+  top: `${focusDocPickerGeom.top}px`,
+  left: `${focusDocPickerGeom.left}px`,
+  width: `${focusDocPickerWidth.value}px`,
+  maxHeight: `min(420px, calc(100vh - ${focusDocPickerGeom.top + 12}px))`
+}))
+
+const getFocusPickerRowIcon = (tab: WorkspaceTab): string => {
+  const th = themeState.currentTheme as unknown as Record<string, string>
+  if (tab.kind === 'file') {
+    const f = (tab.format || '').toLowerCase()
+    if (f === 'tex' || f === 'latex') return th.TexDocIcon || th.FileIcon || ''
+    if (f === 'md' || f === 'markdown') return th.MdDocIcon || th.FileIcon || ''
+    return th.FileIcon || th.MdDocIcon || ''
+  }
+  if (tab.kind === 'new') return th.MdDocIcon || th.FileIcon || ''
+  return getFocusSurfaceTabIcon(tab)
+}
+
+const getFocusSurfaceTabIcon = (tab: WorkspaceTab): string => {
+  const th = themeState.currentTheme as unknown as Record<string, string>
+  const route = tab.route || ''
+  const map: Record<string, string> = {
+    '/global-home': th.HomeIcon,
+    '/knowledge-base': th.KnowledgeIcon,
+    '/agent': th.AgentIcon,
+    '/user-manual': th.FileIcon,
+    '/debug': th.DebugIcon,
+    '/dummy': th.FileIcon,
+    '/setting': th.SettingIcon,
+    '/ai-chat': th.PenAiIcon,
+    '/fomula-recognition': th.MathIcon,
+    '/data-analysis': th.MetaIcon,
+    '/ocr': th.SearchIcon,
+    '/attachment': th.FileIcon,
+    '/graph': th.BranchIcon,
+    '/ai-graph': th.BranchIcon,
+    '/smart-drawing-assistant': th.BranchIcon,
+    '/llm-statistics': th.MetaIcon,
+    '/aigc-detection': th.FileIcon,
+    '/user-feedback': th.FeedbackIcon,
+    '/agent-review': th.AgentIcon
+  }
+  return map[route] || th.FileIcon || ''
+}
+
+const updateFocusDocPickerGeometry = () => {
+  const el = focusDocTriggerRef.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  focusDocPickerGeom.top = r.bottom + 4
+  focusDocPickerGeom.left = r.left
+  const minW = Math.max(FOCUS_DOC_PICKER_MIN_W, Math.ceil(r.width))
+  if (focusDocPickerWidth.value < minW) {
+    focusDocPickerWidth.value = minW
+  }
+}
+
+const onFocusDocPickerResizePointerDown = (e: MouseEvent) => {
+  e.preventDefault()
+  const startX = e.clientX
+  const startW = focusDocPickerWidth.value
+  const onMove = (ev: MouseEvent) => {
+    const next = Math.min(
+      FOCUS_DOC_PICKER_MAX_W,
+      Math.max(FOCUS_DOC_PICKER_MIN_W, startW + (ev.clientX - startX))
+    )
+    focusDocPickerWidth.value = next
+  }
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+    try {
+      localStorage.setItem(FOCUS_DOC_PICKER_WIDTH_KEY, String(focusDocPickerWidth.value))
+    } catch {
+      /* ignore */
+    }
+  }
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onUp)
+}
+
+const closeFocusDocPicker = () => {
+  focusDocPickerOpen.value = false
+}
+
+const toggleFocusDocPicker = () => {
+  if (isLockedEffective.value) return
+  focusDocPickerOpen.value = !focusDocPickerOpen.value
+}
+
+const syncFocusDocListHighlight = () => {
+  const idx = focusPickerTabs.value.findIndex((x) => x.id === workspace.activeTabId.value)
+  focusDocListHighlightIndex.value = idx >= 0 ? idx : 0
+}
+
 const canCloseTab = (tab: WorkspaceTab): boolean => {
   // 所有Tab都可以关闭，包括最后一个Tab
   // 关闭最后一个Tab后会显示Dummy组件
@@ -815,6 +1123,100 @@ const handleTabClickActivate = (tab: WorkspaceTab) => {
     if (toRoute && toRoute !== route.path) {
       nextTick(() => router.push(toRoute))
     }
+  }
+}
+
+const handleFocusDocRowClick = (tab: WorkspaceTab) => {
+  handleTabClickActivate(tab)
+  closeFocusDocPicker()
+}
+
+/** 下拉面板内整行按下态（挂在 focus-doc-picker-panel 的行上，mouseup 任意处释放） */
+const focusPickerRowPressedId = ref<string | null>(null)
+
+const onFocusPickerPanelRowMouseDown = (e: MouseEvent, tab: WorkspaceTab) => {
+  handleTabMouseDown(e, tab)
+  const el = e.target as HTMLElement
+  if (el.closest('.main-tab-label__close')) return
+  focusPickerRowPressedId.value = tab.id
+  document.addEventListener(
+    'mouseup',
+    () => {
+      focusPickerRowPressedId.value = null
+    },
+    { once: true }
+  )
+}
+
+const onFocusDocTriggerKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    if (!focusDocPickerOpen.value) {
+      focusDocPickerOpen.value = true
+    }
+    nextTick(() => {
+      syncFocusDocListHighlight()
+      updateFocusDocPickerGeometry()
+      focusDocPickerPanelRef.value?.focus()
+    })
+    return
+  }
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    focusDocPickerOpen.value = !focusDocPickerOpen.value
+    if (focusDocPickerOpen.value) {
+      nextTick(() => {
+        syncFocusDocListHighlight()
+        updateFocusDocPickerGeometry()
+        focusDocPickerPanelRef.value?.focus()
+      })
+    }
+  }
+}
+
+const onFocusDocListKeydown = (e: KeyboardEvent) => {
+  const list = focusPickerTabs.value
+  if (list.length === 0) {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      closeFocusDocPicker()
+      focusDocTriggerRef.value?.focus()
+    }
+    return
+  }
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    closeFocusDocPicker()
+    focusDocTriggerRef.value?.focus()
+    return
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    focusDocListHighlightIndex.value = Math.min(
+      list.length - 1,
+      focusDocListHighlightIndex.value + 1
+    )
+    return
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    focusDocListHighlightIndex.value = Math.max(0, focusDocListHighlightIndex.value - 1)
+    return
+  }
+  if (e.key === 'Home') {
+    e.preventDefault()
+    focusDocListHighlightIndex.value = 0
+    return
+  }
+  if (e.key === 'End') {
+    e.preventDefault()
+    focusDocListHighlightIndex.value = list.length - 1
+    return
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    const tab = list[focusDocListHighlightIndex.value]
+    if (tab) handleFocusDocRowClick(tab)
   }
 }
 
@@ -1313,32 +1715,58 @@ const removeTabAfterDrag = async (tabId: string, windowId: number) => {
   }
 }
 
-// Issue 5 & 6: 处理 wrapper 的 dragover - 在 LogoTab 左侧和窗口控制按钮右侧显示指示器
+// Issue 5 & 6: 处理 wrapper 的 dragover - 在首 tab 左侧（交通灯/外侧 Logo 区）与末 tab 右侧（窗口按钮 / Mac 尾部区）显示指示器
 const handleWrapperDragOver = (event: DragEvent) => {
   if (isLockedEffective.value) return
   if (!isDragging.value || !draggingId.value) return
   if (allTabs.value.length === 0) return
 
-  // 获取 wrapper 的边界
   const wrapperRect = tabsWrapperRef.value?.getBoundingClientRect()
   if (!wrapperRect) return
 
-  // 获取第一个和最后一个 tab 的位置
+  const trafficLeft = isMac.value ? 88 : 0 // .macos-traffic-lights-spacer
+  const outerLogoLeft = !isMac.value ? 64 : 0 // Main.vue 左侧 LogoTab
+  const tabAreaLeft = wrapperRect.left + trafficLeft + outerLogoLeft
+
+  let rightChrome = 0
+  if (!isMac.value) {
+    rightChrome = 140 // .window-controls
+  } else {
+    const trailingAndLogo = isFocusMode.value ? 74 : 64 + 74
+    rightChrome = trailingAndLogo
+  }
+  const tabAreaRight = wrapperRect.right - rightChrome
+
+  if (isFocusMode.value) {
+    const viewport = tabsViewportRef.value
+    if (!viewport) return
+    const zoneRect = viewport.getBoundingClientRect()
+    const firstTabId = allTabs.value[0]?.id
+    const lastTabId = allTabs.value[allTabs.value.length - 1]?.id
+    if (
+      event.clientX < zoneRect.left + 28 &&
+      event.clientX >= tabAreaLeft - 20 &&
+      firstTabId &&
+      firstTabId !== draggingId.value
+    ) {
+      dropPreview.value = { targetId: firstTabId, mode: 'before' }
+    } else if (
+      event.clientX > zoneRect.right - 28 &&
+      event.clientX <= tabAreaRight + 20 &&
+      lastTabId &&
+      lastTabId !== draggingId.value
+    ) {
+      dropPreview.value = { targetId: lastTabId, mode: 'after' }
+    }
+    return
+  }
+
   const tabItems = tabsListRef.value?.querySelectorAll('.tab-item')
   if (!tabItems || tabItems.length === 0) return
 
   const firstTabRect = tabItems[0].getBoundingClientRect()
   const lastTabRect = tabItems[tabItems.length - 1].getBoundingClientRect()
 
-  // 获取 LogoTab 和窗口控制按钮的宽度（估算）
-  const logoWidth = isMac.value ? 78 : 0
-  const controlsWidth = !isMac.value ? 140 : 0 // 窗口控制按钮约 140px
-
-  // 计算 tab 区域的有效范围
-  const tabAreaLeft = wrapperRect.left + logoWidth
-  const tabAreaRight = wrapperRect.right - controlsWidth
-
-  // Issue 5: 如果光标在第一个 tab 的左侧（LogoTab 区域），显示在第一个 tab 之前
   if (event.clientX < firstTabRect.left && event.clientX >= tabAreaLeft - 20) {
     const firstTabId = allTabs.value[0]?.id
     if (firstTabId && firstTabId !== draggingId.value) {
@@ -1347,7 +1775,6 @@ const handleWrapperDragOver = (event: DragEvent) => {
     return
   }
 
-  // Issue 6: 如果光标在最后一个 tab 的右侧（窗口控制按钮区域），显示在最后一个 tab 之后
   if (event.clientX > lastTabRect.right && event.clientX <= tabAreaRight + 20) {
     const lastTabId = allTabs.value[allTabs.value.length - 1]?.id
     if (lastTabId && lastTabId !== draggingId.value) {
@@ -1409,6 +1836,19 @@ const handleWrapperAuxClick = (event: MouseEvent) => {
 onMounted(async () => {
   // 设置 Tab 栏元素引用（用于拖拽结束时的边界计算）
   setTabBarElement(tabsWrapperRef.value)
+
+  try {
+    const stored = parseInt(localStorage.getItem(FOCUS_DOC_PICKER_WIDTH_KEY) || '', 10)
+    if (
+      !Number.isNaN(stored) &&
+      stored >= FOCUS_DOC_PICKER_MIN_W &&
+      stored <= FOCUS_DOC_PICKER_MAX_W
+    ) {
+      focusDocPickerWidth.value = stored
+    }
+  } catch {
+    /* ignore */
+  }
 
   // 获取当前窗口ID
   getCurrentWindowId()
@@ -1609,12 +2049,38 @@ watch(
   }
 )
 
+const onFocusDocPickerScrollOrResize = () => updateFocusDocPickerGeometry()
+
+watch(isFocusMode, () => {
+  focusDocPickerOpen.value = false
+  nextTick(() => checkTabOverflow())
+})
+
+watch(focusDocPickerOpen, (open) => {
+  if (open) {
+    syncFocusDocListHighlight()
+    nextTick(() => {
+      updateFocusDocPickerGeometry()
+      focusDocPickerPanelRef.value?.focus()
+    })
+    window.addEventListener('scroll', onFocusDocPickerScrollOrResize, true)
+    window.addEventListener('resize', onFocusDocPickerScrollOrResize)
+  } else {
+    focusPickerRowPressedId.value = null
+    window.removeEventListener('scroll', onFocusDocPickerScrollOrResize, true)
+    window.removeEventListener('resize', onFocusDocPickerScrollOrResize)
+  }
+})
+
 // 清理事件监听器
 onUnmounted(() => {
   // Cancel any running tab animations
   cancelAnimations()
 
   document.removeEventListener('click', handleTabContextMenuClickOutside)
+
+  window.removeEventListener('scroll', onFocusDocPickerScrollOrResize, true)
+  window.removeEventListener('resize', onFocusDocPickerScrollOrResize)
 
   eventBus.off('tab-close-with-animation', handleCloseTab)
 
@@ -1667,12 +2133,62 @@ onUnmounted(() => {
   z-index: 99999;
 }
 
+/* 专注模式：顶栏略矮，与左侧文档标题正常字号一致 */
+.main-tabs-wrapper.is-focus-mode {
+  height: 34px;
+  max-height: 34px;
+}
+
+.main-tabs-wrapper.is-focus-mode .macos-traffic-lights-spacer,
+.main-tabs-wrapper.is-focus-mode .tab-region,
+.main-tabs-wrapper.is-focus-mode .tabs-viewport,
+.main-tabs-wrapper.is-focus-mode .main-tabs-focus-menu-host,
+.main-tabs-wrapper.is-focus-mode .tab-trailing-actions,
+.main-tabs-wrapper.is-focus-mode .window-controls {
+  height: 34px;
+  max-height: 34px;
+  min-height: 34px;
+}
+
+.main-tabs-wrapper.is-focus-mode .window-controls {
+  min-height: 34px;
+}
+
+.main-tabs-wrapper.is-focus-mode .focus-doc-picker-trigger {
+  height: 26px;
+  padding: 0 8px;
+}
+
+/* 专注模式：普通 .tabs-list 仍为 40px 会高于视口，文档按钮在栏内会显「贴底」 */
+.main-tabs-wrapper.is-focus-mode .tabs-list {
+  height: 34px;
+  max-height: 34px;
+  align-items: center;
+}
+
+.main-tabs-wrapper.is-focus-mode .tabs-viewport.tabs-viewport--focus-mode {
+  display: flex;
+  align-items: center;
+  min-height: 0;
+}
+
+.main-tabs-wrapper.is-focus-mode .focus-doc-slot {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  min-height: 0;
+}
+
 /* 可交互元素需要禁用拖拽窗口功能 */
 .main-tabs-wrapper .window-controls,
 .main-tabs-wrapper .window-control-btn,
+.main-tabs-wrapper .main-tabs-focus-menu-host,
+.main-tabs-wrapper .tab-trailing-actions,
 .main-tabs-wrapper .new-tab-button,
 .main-tabs-wrapper .focus-mode-button,
-.main-tabs-wrapper .tab-item {
+.main-tabs-wrapper .main-tabs-logo-tab,
+.main-tabs-wrapper .tab-item,
+.main-tabs-wrapper .focus-doc-picker-trigger {
   -webkit-app-region: no-drag !important;
   position: relative;
   z-index: 10 !important;
@@ -1702,10 +2218,10 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-/* macOS 平台：左边预留空间给原生交通灯按钮 */
+/* macOS：为左侧系统交通灯预留宽度（略宽于经典 78px，避免与标签挤在一起） */
 .macos-traffic-lights-spacer {
-  width: 78px; /* macOS 原生按钮区域宽度 */
-  min-width: 78px;
+  width: 88px;
+  min-width: 88px;
   flex-shrink: 0;
   height: 40px;
   -webkit-app-region: drag;
@@ -1717,7 +2233,28 @@ onUnmounted(() => {
   align-items: center;
   height: 40px;
   max-height: 40px;
+  padding-right: 6px;
+  box-sizing: border-box;
   -webkit-app-region: no-drag;
+}
+
+.tab-trailing-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  height: 40px;
+  max-height: 40px;
+  -webkit-app-region: no-drag;
+}
+
+/* macOS 非专注：标签区相对交通灯略向内，避免贴边；专注模式略收紧 */
+.main-tabs-wrapper.is-mac:not(.is-focus-mode) .tab-region {
+  padding-left: 6px;
+}
+
+.main-tabs-wrapper.is-mac.is-focus-mode .tab-region {
+  padding-left: 4px;
 }
 
 /* Tab 区域：占满 spacer/window-controls 之间的空间 */
@@ -1756,6 +2293,231 @@ onUnmounted(() => {
 .tabs-viewport::-webkit-scrollbar-thumb {
   background-color: var(--el-border-color-darker, rgba(0, 0, 0, 0.2));
   border-radius: 2px;
+}
+
+.tabs-viewport--focus-mode {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tabs-list--focus-mode {
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+.focus-doc-slot {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.focus-doc-picker-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background-color: v-bind('tabItemBackgroundColor');
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.focus-doc-picker-trigger:hover {
+  background-color: v-bind('tabItemHoverBackgroundColor');
+}
+
+.focus-doc-picker-trigger.is-open {
+  background-color: v-bind('tabItemActiveBackgroundColor');
+}
+
+/* 与 LogoTab .logo-tab__image 一致 */
+.focus-doc-picker-trigger__logo {
+  display: block;
+  flex-shrink: 0;
+}
+
+.focus-doc-picker-trigger__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--el-text-color-primary);
+}
+
+.focus-doc-picker-trigger__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--el-color-warning, #e6a23c);
+}
+
+.focus-doc-picker-trigger__chevron {
+  flex-shrink: 0;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.tab-item.tab-item--focus-surface {
+  flex: 0 0 34px;
+  min-width: 34px;
+  max-width: 34px;
+  width: 34px;
+  padding: 0;
+  margin-right: 2px;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.tab-item--focus-surface__icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.focus-doc-picker-shell {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  background-color: v-bind('tabsContainerBackgroundColor');
+  color: var(--el-text-color-primary);
+  border: 1px solid v-bind('borderColor');
+  overflow: hidden;
+  -webkit-app-region: no-drag !important;
+}
+
+.focus-doc-picker-panel {
+  flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* 与顶栏 trigger（26px 高、约 8px 水平内边距）视觉对齐，略紧 */
+  padding: 2px 4px;
+  margin: 0;
+  outline: none;
+  background: transparent;
+  box-sizing: border-box;
+  -webkit-app-region: no-drag !important;
+}
+
+.focus-doc-picker-resize-handle {
+  flex: 0 0 5px;
+  cursor: col-resize;
+  align-self: stretch;
+  background: transparent;
+}
+
+.focus-doc-picker-resize-handle:hover {
+  background: rgba(128, 128, 128, 0.22);
+}
+
+.focus-doc-picker-empty {
+  padding: 8px 10px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+/* 覆盖顶栏 .tab-item 的 flex / max-width:200px，否则行比面板窄一截 */
+.focus-doc-picker-panel > .tab-item.focus-doc-picker-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex: none !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 26px !important;
+  margin: 0 0 1px !important;
+  margin-right: 0 !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  gap: 6px;
+  box-sizing: border-box !important;
+  border-radius: 6px;
+  transition:
+    background-color 0.14s ease,
+    box-shadow 0.12s ease,
+    transform 0.08s ease;
+}
+
+/* hover / 按下质感：只写在 .focus-doc-picker-panel 下的行，整行（含图标）一致 */
+.focus-doc-picker-panel > .tab-item.focus-doc-picker-row:not(.is-active):not(.is-closing):hover {
+  background-color: v-bind('tabItemHoverBackgroundColor') !important;
+  box-shadow: inset 0 0 0 1px var(--el-border-color-lighter, #ebeef5);
+}
+
+.focus-doc-picker-panel > .tab-item.focus-doc-picker-row.is-active:not(.is-closing):hover {
+  box-shadow: inset 0 0 0 1px var(--el-color-primary-light-5, rgba(64, 158, 255, 0.35));
+}
+
+.focus-doc-picker-panel > .tab-item.focus-doc-picker-row:active:not(.is-closing),
+.focus-doc-picker-panel > .tab-item.focus-doc-picker-row.is-row-pressed:not(.is-closing) {
+  transform: scale(0.993);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.12);
+  background-color: v-bind('tabItemActiveBackgroundColor') !important;
+}
+
+.focus-doc-picker-panel > .tab-item.focus-doc-picker-row:last-child {
+  margin-bottom: 0 !important;
+}
+
+.focus-doc-picker-panel > .tab-item.focus-doc-picker-row.is-pinned {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  flex: none !important;
+  justify-content: flex-start !important;
+}
+
+.focus-doc-picker-panel .tab-item.is-pinned + .tab-item:not(.is-pinned) {
+  border-left: none !important;
+  margin-left: 0 !important;
+}
+
+.focus-doc-picker-row__icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.focus-doc-picker-panel .focus-doc-picker-row__label.main-tab-label {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 0 2px;
+  margin: 0;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.focus-doc-picker-row.is-keyboard-focus:not(.is-active) {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
 }
 
 /* Tab 列表容器 —— 统一模式，让 flex + min-width 自然产生溢出 */
@@ -2038,7 +2800,7 @@ onUnmounted(() => {
   height: 32px;
   min-height: 32px;
   max-height: 32px;
-  margin: 0 0 0 20px;
+  margin: 0 0 0 6px;
   padding: 0;
   display: flex;
   align-items: center;

@@ -116,6 +116,43 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     return this.getSearchState()
   }
 
+  /**
+   * 专注侧栏「文档内搜索」点击结果：取消异步搜索、同步 matches 并定位与装饰（与 SearchReplaceMenu 对齐）。
+   */
+  applySidebarSearchHighlight(
+    allMatches: FindResult[],
+    matchIndex: number,
+    query: { text: string; matchCase: boolean; wholeWord: boolean; useRegex: boolean }
+  ): void {
+    if (this.currentSearchAbortController) {
+      this.currentSearchAbortController.abort()
+      this.currentSearchAbortController = null
+    }
+    const normalized: Required<SearchOptions> = {
+      text: query.text,
+      matchCase: query.matchCase,
+      wholeWord: query.wholeWord,
+      useRegex: query.useRegex,
+      preserveCase: false
+    }
+    this.state = {
+      options: normalized,
+      matches: [...allMatches],
+      currentIndex: matchIndex,
+      isSearching: false
+    }
+    if (matchIndex < 0 || matchIndex >= allMatches.length) {
+      this.applyDecorations([], -1)
+      return
+    }
+    const m = allMatches[matchIndex]
+    const range = m.getCurrentRange?.() ?? m.range
+    this.applyDecorations([m], 0)
+    this.goTo(range.start)
+    this.goToRanges([range])
+    this.focus()
+  }
+
   private async performAsyncSearch(
     editor: monaco.editor.IStandaloneCodeEditor,
     normalized: Required<SearchOptions>,

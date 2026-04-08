@@ -12,7 +12,7 @@
   overflow: hidden;
 }
 
-/* 顶栏：LogoTab(左) + 标签区(中) + 窗口按钮(右)，与 Main.vue / MainTabs 一致 */
+/* 顶栏：DOM 为 交通灯|标签条|Logo|窗口按钮；非 mac 用 order 显示为 Logo|标签|按钮 */
 .metadoc-skeleton__navbar {
   display: flex;
   flex-direction: row;
@@ -28,11 +28,11 @@
   position: relative;
 }
 
-/* macOS：与 MainTabs .macos-traffic-lights-spacer 一致；非 mac 下隐藏 */
+/* macOS：与 MainTabs .macos-traffic-lights-spacer（88px）一致；非 mac 下隐藏 */
 .metadoc-skeleton__macos-traffic-spacer {
   display: none;
-  width: 78px;
-  min-width: 78px;
+  width: 88px;
+  min-width: 88px;
   flex-shrink: 0;
   height: 40px;
   box-sizing: border-box;
@@ -40,7 +40,7 @@
   app-region: drag;
 }
 
-/* Main.vue：is-mac 时 交通灯|MainTabs|LogoTab；flex order 重排子项 */
+/* macOS：交通灯 | 标签 | Logo（与 MainTabs 内顺序一致） */
 .metadoc-skeleton__navbar.is-mac .metadoc-skeleton__macos-traffic-spacer {
   display: block;
   order: 0;
@@ -56,6 +56,19 @@
 
 .metadoc-skeleton__navbar.is-mac .metadoc-skeleton__window-controls {
   display: none;
+}
+
+/* Win/Linux：Logo | 标签 | 窗口按钮 */
+.metadoc-skeleton__navbar:not(.is-mac) .metadoc-skeleton__logo-tab {
+  order: 0;
+}
+
+.metadoc-skeleton__navbar:not(.is-mac) .metadoc-skeleton__tab-strip {
+  order: 1;
+}
+
+.metadoc-skeleton__navbar:not(.is-mac) .metadoc-skeleton__window-controls {
+  order: 2;
 }
 
 /* LogoTab.vue：64px 宽、左右 padding 8px、与 tabs 条同色底 */

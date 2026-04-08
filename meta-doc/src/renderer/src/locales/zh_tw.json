@@ -4,10 +4,16 @@
     "outlineMenu": {
       "optimizeSection": "優化目前段落",
       "copySection": "複製本段內容",
+      "copyTitle": "複製標題",
       "generateIllustration": "產生插圖",
       "addToMaterialBasket": "新增至素材籃",
+      "deleteSection": "刪除此段",
+      "deleteSectionConfirm": "確定刪除此段落及其正文？此操作無法復原。",
+      "deleteSectionTitle": "刪除段落",
       "emptySection": "此段落暫無內容可複製",
-      "copyFailed": "複製失敗"
+      "emptyTitle": "暫無標題可複製",
+      "copyFailed": "複製失敗",
+      "noRangeToDelete": "無法定位該段落範圍，已取消刪除"
     }
   },
   "aIService": {
@@ -1409,6 +1415,7 @@
       "convert_latex_formulas_no_match": "未找到需要轉換的公式格式",
       "convert_latex_formulas_no_editor": "編輯器未就緒",
       "ai_assistant": "AI助手",
+      "ai_full_document_analysis": "AI全文分析",
       "toggle_outline": "切換大綱",
       "toggle_outline_show": "顯示大綱",
       "toggle_outline_hide": "隱藏大綱"
@@ -3030,6 +3037,7 @@
     "close": "關閉",
     "closeTabTooltip": "關閉分頁",
     "contextMenu": {
+      "openTab": "開啟",
       "pinTab": "釘選分頁",
       "unpinTab": "取消釘選分頁",
       "closeTab": "關閉分頁",
@@ -3049,6 +3057,12 @@
     "maximize": "最大化",
     "minimize": "最小化",
     "newDocumentTooltip": "新增文件",
+    "focusMode": {
+      "pickerTooltip": "開啟已開啟的文件列表",
+      "noDocuments": "無開啟的文件",
+      "pickDocument": "選擇文件…",
+      "emptyList": "尚無分頁，請從選單新增或開啟檔案。"
+    },
     "text": "資料",
     "unsavedIndicator": "未儲存",
     "untitled": "未命名",
@@ -3650,6 +3664,8 @@
   },
   "sectionOptimizer": {
     "clear": "清空",
+    "contextScopeTitle": "上下文參考範圍",
+    "presetPromptsButton": "預製提示詞",
     "contextMarks": {
       "none": "不參考",
       "chapter": "參考本章",

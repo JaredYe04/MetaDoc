@@ -1909,7 +1909,8 @@
     },
     "testResultFailed": "Test failed",
     "copyConfig": "Copy Configuration",
-    "copyConfigSuccess": "Configuration Copied"
+    "copyConfigSuccess": "Configuration Copied",
+    "readFileFailed": "Failed to read file"
   },
   "visualize": {
     "articleOutline": "Article Outline",
@@ -4871,7 +4872,9 @@
     "saveLog": "Save log",
     "title": "Terminal Output",
     "cdFailed": "Failed to change directory",
-    "invalidArgument": "Invalid argument"
+    "invalidArgument": "Invalid argument",
+    "compileSessionLimit": "Keep compilation info",
+    "shell": "Shell"
   },
   "data-analysis-tool": {
     "analyze": "Data analysis",

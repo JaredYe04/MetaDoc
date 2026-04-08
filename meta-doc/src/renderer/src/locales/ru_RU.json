@@ -49,7 +49,8 @@
       "tools": "Активных инструментов: {count}",
       "references": "Ссылок: {count}",
       "referencesTooltip": "Нажмите для управления ссылками",
-      "none": "Выберите существующий диалог или создайте новый, чтобы начать общение."
+      "none": "Выберите существующий диалог или создайте новый, чтобы начать общение.",
+      "openToolsDialog": "Нажмите, чтобы просмотреть список доступных инструментов"
     },
     "copy": "Копировать",
     "demoSession1": "Сессия проверки кода",
@@ -372,7 +373,15 @@
         "error": "Не удалось прочитать файлы рабочей области",
         "matchCount": "Найдено {count} совпадений",
         "searchResultsTitle": "Неточный поиск: «{query}»",
-        "searching": "Выполняется неточный поиск…"
+        "searching": "Выполняется неточный поиск…",
+        "targetPath": "Целевой путь",
+        "truncated": "Усечено",
+        "directoryListing": "Список каталогов",
+        "directoryListingsCount": "{count} списков каталогов",
+        "entries": "элементов",
+        "message": "Сообщение",
+        "operationsCount": "{count} операций",
+        "operationsTitle": "Результат операций с файлами/каталогами"
       },
       "edit": {
         "completed": "Правка завершена",
@@ -544,7 +553,9 @@
         "injectTimestampHint": "При включении каждый раз при создании экземпляра Agent с этой конфигурацией перед системным промптом будет автоматически добавляться информация о текущей временной метке.",
         "isSubagent": "Как Subagent",
         "isSubagentLabel": "Как Subagent (только для вызова основным Agent)",
-        "isSubagentHint": "При включении эта конфигурация будет предоставлена основному Agent как инструмент, позволяя основному Agent вызывать и параллельно выполнять Subagent для решения подзадач. Конфигурация Agent по умолчанию не может быть установлена как Subagent."
+        "isSubagentHint": "При включении эта конфигурация будет предоставлена основному Agent как инструмент, позволяя основному Agent вызывать и параллельно выполнять Subagent для решения подзадач. Конфигурация Agent по умолчанию не может быть установлена как Subagent.",
+        "setAsDefault": "Сделать по умолчанию",
+        "setAsDefaultSuccess": "Установлено как конфигурация по умолчанию для новых сессий"
       },
       "agentEngine": {
         "title": "Управление движком агента",
@@ -593,7 +604,110 @@
         "validationWarnings": "Предупреждения при проверке движка",
         "validationFailed": "Проверка движка не пройдена",
         "confirmDelete": "Вы уверены, что хотите удалить движок «{name}»?"
-      }
+      },
+      "capabilities": {
+        "title": "Правила, навыки и инструменты MCP",
+        "titleMcp": "Управление инструментами MCP",
+        "titleRules": "Управление правилами",
+        "titleSkills": "Управление навыками",
+        "activate": "Активировать",
+        "addRule": "Создать правило",
+        "aiAssistCreate": "Создать с помощью ИИ",
+        "aiSessionTitleRule": "Создать правило (ИИ)",
+        "aiSessionTitleSkill": "Создать навык (ИИ)",
+        "applyMetadataToDoc": "Записать форму в документ (обновить frontmatter)",
+        "approve": "Утвердить",
+        "colApproval": "Согласование",
+        "colDescription": "Описание",
+        "colEnabled": "Включено",
+        "colFolder": "Папка",
+        "colName": "Название",
+        "colPermission": "Разрешения",
+        "colPriority": "Приоритет",
+        "colScope": "Область",
+        "colServer": "Сервер",
+        "colStatus": "Статус",
+        "colTitle": "Заголовок",
+        "colTool": "Инструмент",
+        "confirmDeleteRule": "Удалить правило «{title}»?",
+        "confirmDeleteSkill": "Удалить навык «{name}»? Будет удалена вся папка навыка (включая SKILL.md).",
+        "editRule": "Редактировать правило",
+        "editSkill": "Редактировать навык",
+        "loadFailed": "Ошибка загрузки",
+        "mcpActiveUrl": "Текущее подключение",
+        "mcpAddConnection": "Добавить подключение",
+        "mcpBaseUrl": "Адрес подключения (URL)",
+        "mcpConfigColMessage": "Сообщение",
+        "mcpConfigColServer": "Сервис",
+        "mcpConfigColStatus": "Статус",
+        "mcpConfigColTools": "Кол-во инструментов",
+        "mcpConfigExport": "Экспорт JSON",
+        "mcpConfigImport": "Импорт JSON",
+        "mcpConfigIntro": "Используйте единый JSON-файл конфигурации (в стиле Cursor / Claude Desktop): верхний уровень — mcpServers, каждый элемент — stdio (command + args) или HTTP (url). Редактирование автоматически сохраняется. Нажатие «Синхронизировать» подключится к каждому сервису и обновит локальный реестр: сервисы, удаленные из конфигурации, потеряют свои инструменты; успешно подключенные сервисы обновят список инструментов согласно удаленному списку. Слева — редактор конфигурации, справа — дерево зарегистрированных инструментов; нажмите на название инструмента для просмотра деталей.",
+        "mcpConfigPath": "Путь к файлу конфигурации",
+        "mcpConfigProbe": "Проверить подключение",
+        "mcpConfigProbeDone": "Проверка подключения завершена",
+        "mcpConfigProbeFailed": "Проверка подключения не удалась",
+        "mcpConfigProbeTitle": "Результат проверки подключения",
+        "mcpConfigSaveFailed": "Автосохранение не удалось",
+        "mcpConfigSavedAt": "Автосохранено ({time})",
+        "mcpConfigStatusFail": "Ошибка",
+        "mcpConfigStatusOk": "ОК",
+        "mcpConfigStructureErrors": "Проверка структуры конфигурации не пройдена",
+        "mcpConfigSyncDone": "{n} инструментов синхронизировано с реестром",
+        "mcpConfigSyncTools": "Синхронизировать инструменты с библиотекой",
+        "mcpConnections": "MCP-подключения",
+        "mcpDeleteConnection": "Удалить",
+        "mcpEditConnection": "Редактировать MCP-подключение",
+        "mcpHint": "Следующие записи зарегистрированы слоем адаптера MCP (syncMcpToolsToRegistry). Список может быть пустым, если MCP не подключен.",
+        "mcpLabel": "Отображаемое имя",
+        "mcpRefreshTools": "Обновить список инструментов",
+        "mcpSaveConnection": "Сохранить",
+        "mcpSetActive": "Сделать текущим",
+        "mcpSyncButton": "Синхронизировать",
+        "mcpSyncPartial": "Записано {n} инструментов; не удалось подключиться или получить данные от следующих серверов: {servers}",
+        "mcpSyncUnknownServer": "(неизвестно)",
+        "mcpToolDetailInputSchema": "Входная JSON Schema",
+        "mcpToolsTreeEmpty": "Нет зарегистрированных инструментов. Отредактируйте конфигурацию слева и нажмите «Синхронизировать».",
+        "mcpToolsTreeHint": "Зарегистрированные инструменты (сгруппированы по MCP-сервисам; нажмите на имя инструмента для подробностей)",
+        "menuMcp": "Управление MCP-инструментами",
+        "menuRules": "Управление правилами",
+        "menuSkills": "Управление навыками",
+        "menuTitle": "Управление правилами / навыками / MCP",
+        "newSkill": "Создать навык",
+        "noWorkspace": "Сначала добавьте папку рабочей области для сканирования .metadoc/skills",
+        "openFolderFailed": "Не удалось открыть папку",
+        "openSkillFolder": "Открыть в проводнике",
+        "priorityHint": "Диапазон 0–100, чем больше число, тем выше приоритет (внедряется раньше в системные подсказки). По умолчанию 90 при создании.",
+        "refresh": "Обновить",
+        "refreshSkillsList": "Обновить список (сначала синхронизировать с диском)",
+        "reject": "Отклонить",
+        "ruleContent": "Текст правила",
+        "saveFailed": "Операция не удалась",
+        "saveOk": "Сохранено",
+        "skillDescription": "Описание (frontmatter)",
+        "skillDraft": "Черновик (draft)",
+        "skillEntry": "Входной файл",
+        "skillFolder": "Имя папки навыка",
+        "skillFolderPlaceholder": "Например, my-skill",
+        "skillReadFailed": "Не удалось прочитать SKILL.md",
+        "skillSavedReindexed": "Сохранено, обновлены индекс и векторы",
+        "skillTags": "Теги",
+        "skillTagsHint": "Через запятую, например, a, b",
+        "skillWorkspace": "Корневая папка рабочей области",
+        "skillsDbOnly": "Загружать только базу данных",
+        "skillsRefreshHint": "«Обновить» сначала синхронизирует .metadoc/skills на диске, затем загрузит список навыков из базы данных.",
+        "syncDone": "Просканировано {scanned} папок навыков, обновлено {upserted} векторов",
+        "syncFormFromEditor": "Синхронизировать из текста в форму",
+        "syncMetaFromBody": "Обновить форму на основе текста ниже",
+        "syncMetaFromForm": "Обновить текст на основе формы выше",
+        "syncMetaMenu": "Синхронизировать метаинформацию",
+        "syncSkills": "Синхронизировать индекс навыков из рабочей области",
+        "tabMcp": "MCP-инструменты",
+        "tabRules": "Правила",
+        "tabSkills": "Навыки"
+      },
+      "settingsMenu": "Настройки агента"
     },
     "message": {
       "edit": "Редактировать",
@@ -614,14 +728,22 @@
       "noToolsNeeded": "Для этого запроса инструменты не требуются.",
       "reasoning": "Рассуждение:",
       "confirmRegenerate": "Повторная генерация удалит всё содержимое после этого сообщения (включая ответы ИИ, вызовы инструментов, распознавание намерений и т.д.) и сгенерирует его заново, начиная с этого пользовательского сообщения. Продолжить?",
-      "confirmRegenerateTitle": "Подтвердить повторную генерацию"
+      "confirmRegenerateTitle": "Подтвердить повторную генерацию",
+      "reasoningBlock": "Процесс рассуждения"
     },
     "attachment": {
       "untitled": "Без названия"
     },
     "composer": {
       "atTagRemove": "Удалить",
-      "attachmentsOnlyUserMessage": "Ответьте, опираясь на прикреплённые вложения."
+      "attachmentsOnlyUserMessage": "Ответьте, опираясь на прикреплённые вложения.",
+      "queuedHint": "Добавлено в очередь отправки, будет отправлено автоматически после завершения текущего раунда",
+      "sendQueueAttachments": "{count} вложение(й)",
+      "sendQueueEdit": "Редактировать",
+      "sendQueueEditTitle": "Редактировать сообщение в очереди отправки",
+      "sendQueueHint": "Следующие сообщения будут автоматически отправлены по порядку после того, как агент завершит текущий ответ и вызов инструментов.",
+      "sendQueueRemove": "Удалить",
+      "sendQueueTitle": "В очереди отправки"
     },
     "reference": {
       "title": "Управление ссылочными материалами",
@@ -736,7 +858,8 @@
         "cancelRequestFailed": "Не удалось отправить запрос на отмену"
       },
       "directory": "Справочник",
-      "workspaceDirs": "Каталоги рабочей области"
+      "workspaceDirs": "Каталоги рабочей области",
+      "removeFromComposer": "Удалить вложение"
     },
     "retry": "Повторить",
     "roles": {
@@ -776,7 +899,8 @@
       "atLeastOneRequired": "Необходимо оставить хотя бы один сеанс",
       "noAgentConfig": "Сеанс не связан с конфигурацией агента",
       "engineNotFound": "Выбранный движок не найден",
-      "agentConfigNotFound": "Конфигурация агента не найдена"
+      "agentConfigNotFound": "Конфигурация агента не найдена",
+      "alreadyGenerating": "В этом сеансе уже генерируется ответ, пожалуйста, попробуйте позже"
     },
     "systemLabel": "Система",
     "thinking": "Думаю...",
@@ -992,7 +1116,41 @@
       "workspace": {
         "description": "Чтение файлов рабочей области, нечёткий поиск по пути/имени или вывод списка корневого каталога",
         "name": "Чтение файлов рабочей области"
+      },
+      "create_dynamic_rule": {
+        "description:": "Вставить динамическое правило агента в базу данных приложения (записать в системную подсказку), не заменять файлами рабочей области",
+        "name:": "Создать динамическое правило"
+      },
+      "create_workspace_skill": {
+        "description:": "Записать в .metadoc/skills/<директория>/SKILL.md и немедленно добавить в базу данных с embedding",
+        "name:": "Создать навык рабочей области"
+      },
+      "load_skill": {
+        "description:": "Загрузить полный текст SKILL.md активированного навыка по skillId",
+        "name:": "Загрузить навык"
+      },
+      "search_skill": {
+        "description:": "Векторный поиск по активированным навыкам в .metadoc/skills рабочей области, возвращает только сводку",
+        "name:": "Поиск навыков"
+      },
+      "sync_workspace_skills": {
+        "description:": "Сканировать .metadoc/skills в каждой рабочей области и обновить SQLite и векторы (активные навыки)",
+        "name:": "Синхронизировать индекс навыков рабочей области"
+      },
+      "update_dynamic_rule": {
+        "description:": "Обновить заголовок, текст или приоритет существующего динамического правила по ruleId",
+        "name:": "Обновить динамическое правило"
       }
+    },
+    "jsonExplorer": {
+      "json": "JSON",
+      "nonJsonHint": "Не удалось распознать как JSON, ниже представлен исходный текст",
+      "tree": "Дерево"
+    },
+    "selectionRef": {
+      "chipLabel": "Выделение: {detail}",
+      "noSession": "Не удалось добавить: сначала настройте Agent.",
+      "unknown": "Выделение (недействительно)"
     }
   },
   "agent-engine-executor": {
@@ -1067,7 +1225,14 @@
     "send": "Отправить",
     "sendTooltip": "Отправить сообщение",
     "today": "Сегодня",
-    "yesterday": "Вчера"
+    "yesterday": "Вчера",
+    "deselectAll": "Отменить выделение всех",
+    "insertingToManyDocuments": "Вставка в {n} документов...",
+    "pickDocToInsert": "Выберите документ для вставки",
+    "queueSendTooltip": "Добавить в очередь на отправку",
+    "reasoningToggleTooltip": "Глубокое размышление",
+    "selectAll": "Выделить все",
+    "selectedDocCount": "Выбрано {n} документов"
   },
   "aiSuggestion": {
     "accept": "Принять предложение",
@@ -1541,7 +1706,13 @@
     "saveLog": "Сохранить журнал",
     "title": "Терминал",
     "cdFailed": "Не удалось сменить каталог",
-    "invalidArgument": "Неверный аргумент"
+    "invalidArgument": "Неверный аргумент",
+    "closeSession": "Закрыть сеанс",
+    "compileSessionLimit": "Сохранить информацию о компиляции",
+    "newSession": "Новый сеанс",
+    "scrollToNextCommand": "Прокрутить к следующей команде",
+    "scrollToPreviousCommand": "Прокрутить к предыдущей команде",
+    "shell": "Оболочка"
   },
   "selectionTranslate": {
     "title": "Перевести выделенное",
@@ -1572,7 +1743,9 @@
     "selectAll": "Выделить всё",
     "triggerAutoCompletion": "Запустить AI-дополнение вручную",
     "translateSelection": "Перевести выделенное",
-    "undo": "Отменить"
+    "undo": "Отменить",
+    "addSelectionToAgent": "Добавить в диалог с Agent",
+    "generateIllustrationFromSelection": "Создать иллюстрацию из выделенного"
   },
   "data-analysis-tool": {
     "analyze": "Анализ данных",
@@ -1713,6 +1886,30 @@
       "texToTex": {
         "name": "LaTeX в LaTeX",
         "description": "Экспорт документа LaTeX"
+      },
+      "texToDocx": {
+        "description": "Экспорт LaTeX в DOCX через преобразование в Markdown",
+        "name": "LaTeX в DOCX"
+      },
+      "texToHtml": {
+        "description": "Экспорт LaTeX в HTML через преобразование в Markdown",
+        "name": "LaTeX в HTML"
+      },
+      "txtToDocx": {
+        "description": "Экспорт обычного текста или кода в DOCX через преобразование в Markdown",
+        "name": "Текст в DOCX"
+      },
+      "txtToHtml": {
+        "description": "Экспорт обычного текста или кода в HTML через преобразование в Markdown",
+        "name": "Текст в HTML"
+      },
+      "txtToMd": {
+        "description": "Экспорт обычного текста или кода в Markdown",
+        "name": "Текст в Markdown"
+      },
+      "txtToPdf": {
+        "description": "Экспорт обычного текста или кода в PDF через преобразование в Markdown",
+        "name": "Текст в PDF"
       }
     },
     "options": {
@@ -1904,8 +2101,21 @@
       "imageLabelDefaultName": {
         "label": "Изображение",
         "description": "Название изображения по умолчанию (используется, если у изображения нет названия)"
+      },
+      "pdfThemeMode": {
+        "dark": "Темная",
+        "description": "Светлая: белый фон со светлым текстом и подсветкой кода. Темная: темный фон (как в темной области редактирования по умолчанию) и темные стили. Следовать теме: фон соответствует цвету фона области редактирования Markdown (цвет темы), а содержимое и код соответствуют настройкам темы. По умолчанию — светлая.",
+        "follow": "Следовать теме",
+        "label": "Внешний вид PDF",
+        "light": "Светлая"
       }
-    }
+    },
+    "taskCancel": "Прервать",
+    "taskPhaseDone": "Завершено",
+    "taskPhaseFailed": "Ошибка",
+    "taskPhasePickPath": "Выбор места сохранения…",
+    "taskPhasePreparing": "Подготовка…",
+    "taskTitle": "Задача экспорта"
   },
   "focusMode": {
     "enterTooltip": "Включить режим фокусировки",
@@ -2274,6 +2484,18 @@
       "p98": "🍜 Идеи meal prep на неделю",
       "p99": "🎓 Типичная структура заявки на исследование",
       "p100": "🌙 Пример дня по технике Помодоро"
+    },
+    "suggestion": {
+      "apiDocumentation": "Документация API",
+      "blogPost": "Пост в блоге",
+      "meetingMinutes": "Протокол встречи",
+      "productIntroduction": "Введение в продукт",
+      "projectSummary": "Резюме проекта",
+      "releaseNotes": "Примечания к выпуску",
+      "researchOutline": "План исследования",
+      "technicalTutorial": "Техническое руководство",
+      "userGuide": "Руководство пользователя",
+      "weeklyReport": "Еженедельный отчёт"
     }
   },
   "knowledgeBase": {
@@ -2804,7 +3026,10 @@
     "workspaceGrep": "Поиск в рабочей области",
     "view": "Вид",
     "viewTooltip": "Панели боковой панели",
-    "viewSidebarAgent": "Agent"
+    "viewSidebarAgent": "Агент",
+    "addFolderToWorkspace": "Добавить папку в рабочую область",
+    "closeWorkspace": "Закрыть текущую рабочую область",
+    "openWorkspace": "Открыть рабочую область"
   },
   "llm-adapter": {
     "failed": "Ошибка конфигурации",
@@ -3737,7 +3962,8 @@
         "zoomOut": "Уменьшить",
         "zoomReset": "Сбросить масштаб",
         "toggleFocusMode": "Переключить режим фокусировки"
-      }
+      },
+      "keyBindings": "Настройка клавиш"
     },
     "cancel": "Отмена",
     "cannotCreateManualConfig": "Невозможно создать конфигурацию ручного типа. Ручной тип предназначен только для режима разработки.",
@@ -4014,7 +4240,17 @@
       "errorLabel": "Ошибка: {msg}",
       "toolLabel": "Инструмент: {id}",
       "chooseExportRootDir": "Выбрать корневую папку для экспорта",
-      "newVersionFoundShort": "Обнаружена новая версия"
+      "newVersionFoundShort": "Обнаружена новая версия",
+      "exportFixtureBatch": "Пакетный экспорт тестовых данных",
+      "exportFixtureBatchIntro": "Сканирование md / json / py / vue / html / png / tex из «Каталога образцов» и генерация PDF и DOCX для каждого файла по тому же конвейеру экспорта, что и в основном интерфейсе. Каждый исходный файл соответствует подпапке в «Выходном каталоге», названной по полному имени файла (с расширением), например sample.vue, sample.py, чтобы избежать перезаписи файлов с одинаковыми именами, но разными расширениями. Пути по умолчанию: debug-export/fixtures и debug-export/output в репозитории (output уже в .gitignore, не коммитится).",
+      "exportFixtureComplete": "Пакетный экспорт завершен",
+      "exportFixtureFixturesDir": "Каталог образцов",
+      "exportFixtureNoFiles": "В каталоге образцов нет файлов для экспорта (расширения должны быть md, json, py, vue, html, png, tex)",
+      "exportFixtureOutputDir": "Выходной каталог",
+      "exportFixtureReadDirFail": "Не удалось прочитать каталог образцов: {msg}",
+      "exportFixtureResolveFail": "Не удалось разобрать файл как документ для экспорта",
+      "exportFixtureRun": "Экспорт PDF + DOCX в один клик",
+      "exportFixtureRunning": "Экспорт… ({current} / {total})"
     },
     "deepseek": "DeepSeek",
     "deepseekHint": "Большая языковая модель AI от DeepSeek, поддерживает несколько моделей",
@@ -4324,7 +4560,47 @@
     "copyConfigSuccess": "Конфигурация скопирована",
     "readFileFailed": "Не удалось прочитать файл",
     "resetConfigSuccess": "Конфигурация сброшена до предустановленного состояния",
-    "resetConfigToPreset": "Сбросить до предустановленного состояния"
+    "resetConfigToPreset": "Сбросить до предустановленного состояния",
+    "builtinFreeApiKeyHint": "Встроенный ключ по умолчанию для бесплатных моделей не поддерживает копирование и предназначен только для очень ограниченного бесплатного лимита. Рекомендуется настроить ваш собственный ключ LLM API.",
+    "builtinFreeConfigCannotCopy": "Конфигурация встроенной бесплатной модели не позволяет копирование",
+    "builtinFreeConfigCannotExport": "Конфигурация встроенной бесплатной модели не позволяет экспорт",
+    "llmApiErrorDialog": "Диалоговое окно с ошибкой LLM",
+    "defaultConfigBuiltinFree": "Бесплатная модель (встроенная)",
+    "llmApiErrorDialogHint": "При сбое вызова LLM API открывается диалоговое окно, показывающее текущую конфигурацию и предлагающее обратиться к руководству.",
+    "cleanupExpiredFiles": "Очистка устаревших файлов",
+    "cleanupExpiredHintAgentOnly": "Здесь затрагивается только текущая рабочая область: «Очистка устаревших файлов» удаляет вложения этой рабочей области по правилам; красная кнопка очищает только .metadoc/attachments, не затрагивая глобальный каталог ссылок.",
+    "cleanupExpiredHintGlobalWithWorkspace": "«Очистка устаревших файлов» обрабатывает глобальные и рабочие данные по правилам выше; «Очистить весь кэш» одновременно очистит глобальный каталог ссылок и .metadoc/attachments текущей рабочей области.",
+    "cleanupExpiredHintNoWorkspace": "Удаляет устаревшие файлы по правилу «старше N дней» выше; «Очистить весь кэш» очистит только глобальный каталог ссылок (папка рабочей области отсутствует, вложения рабочей области не будут затронуты).",
+    "cleanupExpiredSectionTitle": "Очистка устаревших файлов",
+    "clearAgentAttachmentsConfirm": "Вы уверены, что хотите очистить каталог вложений Agent в текущей рабочей области? Это действие удалит все файлы в .metadoc/attachments, и его нельзя будет отменить.",
+    "clearAgentAttachmentsDir": "Очистить каталог вложений",
+    "clearAgentAttachmentsFailed": "Не удалось очистить вложения рабочей области",
+    "clearAgentAttachmentsSuccess": "Каталог вложений рабочей области очищен",
+    "clearAgentWorkspaceOnly": "Очистить вложения рабочей области",
+    "clearAllReferenceCaches": "Очистить весь кэш",
+    "clearAllReferenceCachesConfirmFull": "Будет очищен глобальный каталог ссылок, а также все вложения в .metadoc/attachments текущей рабочей области. Это действие необратимо. Продолжить?",
+    "clearAllReferenceCachesConfirmGlobalOnly": "Будет очищен глобальный каталог ссылок (рабочая область отсутствует, её вложения затронуты не будут). Это действие необратимо. Продолжить?",
+    "clearAllReferenceCachesFailed": "Не удалось очистить кэш",
+    "clearAllReferenceCachesSuccess": "Весь связанный кэш очищен",
+    "referenceAgentAutoPrune": "Автоматическая очистка вложений рабочей области (раньше)",
+    "referenceAgentNoWorkspace": "Невозможно подсчитать или очистить вложения здесь, если рабочая область не выбрана.",
+    "referenceAgentSection": "Вложения рабочей области Agent",
+    "referenceAgentSectionDesc": "Вложения сессий в .metadoc/attachments текущей рабочей области (считываются инструментами по пути).",
+    "referenceAutoPrune14d": "14 дней назад",
+    "referenceAutoPrune180d": "Полгода (180 дней) назад",
+    "referenceAutoPrune1d": "1 день назад",
+    "referenceAutoPrune30d": "30 дней назад",
+    "referenceAutoPrune365d": "Год (365 дней) назад",
+    "referenceAutoPrune3d": "3 дня назад",
+    "referenceAutoPrune7d": "7 дней назад",
+    "referenceAutoPrune90d": "90 дней назад",
+    "referenceAutoPruneOff": "Выключить",
+    "referenceGlobalAutoPrune": "Автоматическая очистка (раньше)",
+    "referenceGlobalSection": "Глобальный каталог ссылок",
+    "referenceGlobalSectionDesc": "Кэш ссылок в каталоге данных приложения (например, временные файлы при разборе загрузок).",
+    "referencePruneDone": "Устаревшие файлы ссылок очищены по правилу",
+    "referencePruneFailed": "Очистка не удалась",
+    "referencePruneNoRule": "Пожалуйста, сначала в «Автоматической очистке» установите для глобального или рабочего пространства хотя бы один параметр на «раньше N дней» (или используйте «Очистить весь кэш»)."
   },
   "settingBasicSection": {
     "failedSize": "Не удалось получить размер каталога",
@@ -4598,25 +4874,6 @@
         "content": "# Продвинутый LaTeX"
       }
     },
-    "markdown": {
-      "basic": {
-        "title": "Markdown基础语法",
-        "content": "# Markdown基础语法\n\nMetaDoc 的 Markdown 编辑器基于 [Vditor](https://b3log.org/vditor)，支持 CommonMark 和 GFM（GitHub Flavored Markdown）规范。本文档介绍 MetaDoc 中支持的 Markdown 语法。\n\n## 标题\n\n使用 `#` 表示标题，`#` 的数量表示标题级别（1-6级）：\n\n```markdown\n# 一级标题\n## 二级标题\n### 三级标题\n#### 四级标题\n##### 五级标题\n###### 六级标题\n```\n\n**最佳实践**：\n- 标题前后使用空行分隔\n- `#` 后必须加空格\n- 避免跳级（如从一级直接到三级）\n\n### Setext 标题（可选语法）\n\n也可以使用等号或短横线创建标题：\n\n```markdown\n一级标题\n========\n\n二级标题\n--------\n```\n\n注意：Setext 语法只能创建一级和二级标题，不推荐使用。\n\n## 段落\n\n使用空行分隔段落：\n\n```markdown\n这是第一段。\n\n这是第二段。\n```\n\n**最佳实践**：\n- 段落开头不要使用空格或制表符缩进\n- 段落之间使用空行分隔\n\n## 折行\n\n在行尾添加两个或更多空格后回车可以强制换行：\n\n```markdown\n这是第一行。  \n这是第二行。\n```\n\n注意：现代 Markdown 引擎通常会自动处理换行，一般不需要手动添加空格。\n\n## 文本格式\n\n### 加粗\n\n使用 `**文本**` 或 `__文本__` 表示加粗：\n\n```markdown\n这是**加粗文本**\n这是 __加粗文本__\n```\n\n**最佳实践**：推荐使用星号 `**`，因为前后可以不加空格。\n\n### 强调（斜体）\n\n使用 `*文本*` 或 `_文本_` 表示强调：\n\n```markdown\n这是*强调文本*\n这是 _强调文本_\n```\n\n### 加粗并强调\n\n使用 `***文本***` 或 `___文本___`：\n\n```markdown\n这是***加粗并强调***\n```\n\n### 删除线\n\n使用 `~~文本~~` 表示删除线：\n\n```markdown\n~~这是删除的文本~~\n```\n\n### 行内代码\n\n使用反引号包裹代码：\n\n```markdown\n使用 `console.log()` 输出内容\n```\n\n如果需要显示反引号，使用转义：`` ` ``\n\n## 列表\n\n### 无序列表\n\n使用 `-`、`*` 或 `+` 创建无序列表：\n\n```markdown\n- 项目1\n- 项目2\n  - 子项目2.1\n  - 子项目2.2\n- 项目3\n```\n\n### 有序列表\n\n使用数字后跟 `.` 或 `)` 创建有序列表：\n\n```markdown\n1. 第一项\n2. 第二项\n3. 第三项\n```\n\n注意：数字不必连续，Markdown 会自动编号。\n\n### 列表项包含其他元素\n\n列表项可以包含段落、代码块、引用等：\n\n```markdown\n- 列表项一\n- 列表项二第一段\n\n  这是第二段（注意缩进对齐）\n\n  > 这是块引用\n\n  ```\n  这是代码块\n  ```\n- 列表项三\n```\n\n## 块引用\n\n使用 `>` 创建块引用：\n\n```markdown\n> 这是引用内容\n> 可以多行\n```\n\n### 嵌套块引用\n\n```markdown\n> 第一层引用\n>\n>> 第二层引用\n```\n\n### 块引用包含其他元素\n\n块引用可以包含标题、列表、代码块等：\n\n```markdown\n> ### 标题\n>\n> - 列表项\n> - 列表项\n>\n> **加粗**和*强调*\n```\n\n## 代码块\n\n### 缩进代码块\n\n使用四个空格或一个制表符缩进：\n\n```markdown\n    这是代码块\n    可以多行\n```\n\n### 围栏代码块（推荐）\n\n使用三个反引号包裹代码，可以指定语言：\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\n支持语法高亮的语言包括：JavaScript、Python、Java、C++、HTML、CSS、JSON、Markdown 等。\n\n## 链接\n\n### 行内链接\n\n```markdown\n[链接文本](https://example.com)\n[链接文本](https://example.com \"链接标题\")\n```\n\n### 引用风格链接\n\n```markdown\n[链接文本][链接标识]\n\n[链接标识]: https://example.com \"可选标题\"\n```\n\n### 自动链接\n\n```markdown\n<https://example.com>\n<email@example.com>\n```\n\n大部分 Markdown 引擎也支持自动识别 URL：\n\n```markdown\nhttps://example.com\n```\n\n**最佳实践**：中文后跟 URL 时，建议使用空格分隔或尖括号包裹，避免识别错误。\n\n## 图片\n\n```markdown\n![图片描述](image.png)\n![图片描述](image.png \"图片标题\")\n```\n\n### 图片嵌套链接\n\n```markdown\n[![图片描述](image.png)](https://example.com)\n```\n\n## 表格\n\n使用竖线 `|` 分隔列，短横线 `---` 分隔表头：\n\n```markdown\n| 列1 | 列2 | 列3 |\n|-----|-----|-----|\n| 数据1 | 数据2 | 数据3 |\n| 数据4 | 数据5 | 数据6 |\n```\n\n### 表格对齐\n\n```markdown\n| 左对齐 | 居中 | 右对齐 |\n|:-------|:----:|-------:|\n| 数据1  | 数据2 |   数据3 |\n```\n\n### 表格内容排版\n\n表格中可以包含加粗、强调、链接等行级元素：\n\n```markdown\n| 列1 | 列2 |\n|-----|-----|\n| **粗体** | [链接](url) |\n```\n\n注意：表格中不能使用块级元素（标题、列表、代码块等）。\n\n## 分隔线\n\n使用三个或更多 `*`、`-` 或 `_` 创建分隔线：\n\n```markdown\n***\n---\n___\n```\n\n## 转义字符\n\n使用反斜杠 `\\` 转义特殊字符：\n\n```markdown\n\\* 星号\n\\` 反引号\n\\# 井号\n\\[ 方括号\n\\( 圆括号\n```\n\n## HTML 支持\n\nMarkdown 支持内嵌 HTML：\n\n```html\n<div style=\"color: red;\">红色文本</div>\n```\n\n**注意**：\n- 某些 Markdown 引擎可能过滤部分 HTML 标签或属性\n- HTML 中不能嵌套 Markdown 语法\n- 建议尽量使用 Markdown 语法而非 HTML"
-      },
-      "advanced": {
-        "title": "Markdown高级特性",
-        "content": "# Расширенные возможности Markdown"
-      }
-    },
-    "navigation": {
-      "core": "核心操作",
-      "markdown": "Markdown教学",
-      "latex": "LaTeX教学",
-      "charts": "图表绘制",
-      "ai": "AI工具",
-      "agent": "Agent使用",
-      "design": "设计理念"
-    },
     "overview": {
       "title": "Обзор",
       "welcome": "Быстрый старт с MetaDoc",
@@ -4742,9 +4999,29 @@
     "sidebar": {
       "recommendedList": "Рекомендуемое обучение",
       "onlyRecommended": "Показывать только рекомендуемый путь",
-      "onlyRecommendedTip": "При отключении отображается полное оглавление руководства"
+      "onlyRecommendedTip": "При отключении отображается полное оглавление руководства",
+      "learningPathTooltip": "Просмотрите свой прогресс обучения и рекомендуемый путь обучения"
     },
-    "title": "Руководство пользователя"
+    "title": "Руководство пользователя",
+    "navigation": {
+      "markdown": "Обучение Markdown",
+      "agent": "Использование Agent",
+      "ai": "Инструменты ИИ",
+      "charts": "Построение диаграмм",
+      "core": "Основные операции",
+      "design": "Философия дизайна",
+      "latex": "Обучение LaTeX"
+    },
+    "exportPureMarkdown": "Экспорт чистого Markdown",
+    "markdown": {
+      "advanced": {
+        "title": "Расширенные возможности Markdown"
+      },
+      "basic": {
+        "content": "# Основы синтаксиса Markdown",
+        "title": "Основы синтаксиса Markdown"
+      }
+    }
   },
   "userProfile": {
     "account": "Аккаунт",
@@ -4824,7 +5101,14 @@
     "expand": "Развернуть",
     "metaInfo": "Метаинформация",
     "workspace": "Рабочая область",
-    "workspaceGrep": "Поиск по рабочей области"
+    "workspaceGrep": "Поиск по рабочей области",
+    "documentOutline": "Структура документа",
+    "outlineDocSearchPlaceholder": "Поиск в этом документе…",
+    "outlineFilterPlaceholder": "Фильтр заголовков текущего документа…",
+    "outlineSearchDocStart": "Начало документа",
+    "outlineSearchHint": "Введите ключевые слова, результаты будут сгруппированы по разделам структуры.",
+    "outlineSearchNeedMarkdown": "Откройте и сфокусируйтесь на документе Markdown для поиска внутри него.",
+    "outlineSearchNoHeading": "Основной текст"
   },
   "visualize": {
     "articleOutline": "Структура статьи",
@@ -4919,7 +5203,8 @@
     "renameSuccess": "Переименование выполнено успешно",
     "selectFolder": "Выбрать рабочую папку",
     "title": "Рабочий каталог",
-    "moveFailed": "Не удалось переместить"
+    "moveFailed": "Не удалось переместить",
+    "openWorkspaceDialogTitle": "Открыть рабочее пространство — Выберите папку (текущее рабочее пространство будет закрыто и заменено выбранной папкой)"
   },
   "workspaceGrep": {
     "activeWorkspaceCount": "Открыто {count} рабочих областей",
@@ -4984,5 +5269,24 @@
   "A": ">B: Запрос",
   "Alice": "Bob: Запрос",
   "Bob -": "Alice: Ответ",
-  "A[Создать документ] -": "B[Открыть документ]"
+  "A[Создать документ] -": "B[Открыть документ]",
+  "llmErrorDialog": {
+    "apiKey": "API-ключ",
+    "apiKeyBuiltinHidden": "(Встроенный ключ скрыт)",
+    "apiKeyEmpty": "(Не указан)",
+    "baseUrl": "Базовый URL",
+    "builtinFreeIntro": "Вы используете встроенную бесплатную конфигурацию модели MetaDoc.",
+    "builtinFreeQuotaHint": "Эта бесплатная квота очень мала и может быть ограничена или исчерпана в любой момент. Рекомендуем как можно скорее настроить свой собственный LLM API Key.",
+    "configType": "Тип",
+    "currentConfig": "Текущая LLM-конфигурация",
+    "dontShowAgain": "Больше не показывать",
+    "errorDetails": "Информация об ошибке",
+    "errorType": "Тип ошибки",
+    "learnHowToConfigure": "Посмотреть руководство по настройке",
+    "message": "Сообщение",
+    "model": "Модель",
+    "originalException": "Исходное исключение (развернуть для просмотра)",
+    "title": "Ошибка вызова LLM",
+    "titleBuiltinFree": "Бесплатная модель временно недоступна"
+  }
 }

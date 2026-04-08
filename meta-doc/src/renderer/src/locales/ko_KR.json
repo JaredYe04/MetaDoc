@@ -45,7 +45,9 @@
     "translateSelection": "선택 텍스트 번역",
     "insertGraph": "그래프 삽입",
     "redo": "다시 실행",
-    "undo": "실행 취소"
+    "undo": "실행 취소",
+    "addSelectionToAgent": "Agent 대화에 추가",
+    "generateIllustrationFromSelection": "선택 영역으로 일러스트 생성"
   },
   "headMenu": {
     "tooltip": "AI 에이전트 기반의 지능형 문서 처리 소프트웨어",
@@ -148,7 +150,10 @@
     "saveDocumentError": "문서 저장 오류",
     "saveDocumentSuccess": "문서가 성공적으로 저장되었습니다",
     "switchDocument": "문서 전환",
-    "welcome": "환영합니다"
+    "welcome": "환영합니다",
+    "addFolderToWorkspace": "작업 공간에 폴더 추가",
+    "closeWorkspace": "현재 작업 공간 닫기",
+    "openWorkspace": "작업 공간 열기"
   },
   "llmDialog": {
     "aiAssistant": "AI 어시스턴트",
@@ -290,7 +295,13 @@
     },
     "logSaveFailed": "로그 저장 실패",
     "cdFailed": "디렉토리 전환 실패",
-    "invalidArgument": "잘못된 매개변수"
+    "invalidArgument": "잘못된 매개변수",
+    "closeSession": "세션 닫기",
+    "compileSessionLimit": "컴파일 정보 보존",
+    "newSession": "새 세션",
+    "scrollToNextCommand": "다음 명령어로 스크롤",
+    "scrollToPreviousCommand": "이전 명령어로 스크롤",
+    "shell": "Shell"
   },
   "searchReplace": {
     "title": "찾기 및 바꾸기",
@@ -488,7 +499,14 @@
     "selectDocumentTitle": "삽입할 문서 선택",
     "sendTooltip": "메시지 보내기",
     "today": "오늘",
-    "yesterday": "어제"
+    "yesterday": "어제",
+    "deselectAll": "전체 선택 해제",
+    "insertingToManyDocuments": "{n}개의 문서에 삽입 중...",
+    "pickDocToInsert": "삽입할 문서를 선택하세요",
+    "queueSendTooltip": "전송 대기열에 추가",
+    "reasoningToggleTooltip": "심층 사고",
+    "selectAll": "전체 선택",
+    "selectedDocCount": "{n}개의 문서 선택됨"
   },
   "aigraph": {
     "renameTitle": "제목 변경",
@@ -859,6 +877,18 @@
       "p98": "🍜 일주일 밀프렙 아이디어",
       "p99": "🎓 연구계획서 흔한 구성",
       "p100": "🌙 뽀모도로 하루 일정 예시"
+    },
+    "suggestion": {
+      "apiDocumentation": "API 문서",
+      "blogPost": "블로그 글",
+      "meetingMinutes": "회의록",
+      "productIntroduction": "제품 소개",
+      "projectSummary": "프로젝트 요약",
+      "releaseNotes": "릴리스 노트",
+      "researchOutline": "연구 개요",
+      "technicalTutorial": "기술 튜토리얼",
+      "userGuide": "사용자 가이드",
+      "weeklyReport": "주간 보고서"
     }
   },
   "main": {
@@ -1206,7 +1236,8 @@
         "zoomOut": "축소",
         "zoomReset": "확대/축소 초기화",
         "toggleFocusMode": "집중 모드 전환"
-      }
+      },
+      "keyBindings": "키 설정"
     },
     "llm": "LLM 설정",
     "themes": "테마 설정",
@@ -1543,7 +1574,17 @@
       "startupProfile": "시작 프로파일",
       "startupProfileHint": "시작 시 ENABLE_STARTUP_PROFILE=1을 설정하면 각 단계의 소요 시간을 기록할 수 있습니다. 메인 프로세스 데이터는 IPC를 통해 가져오고, 렌더러 프로세스는 이번 로드 시점에서 측정됩니다.",
       "startupProfileMain": "메인 프로세스",
-      "startupProfileRenderer": "렌더러 프로세스"
+      "startupProfileRenderer": "렌더러 프로세스",
+      "exportFixtureBatch": "일괄 내보내기 테스트",
+      "exportFixtureBatchIntro": "「예제 디렉토리」에서 md / json / py / vue / html / png / tex 파일을 스캔하여, 각각 메인 인터페이스와 동일한 내보내기 파이프라인으로 PDF와 DOCX를 생성합니다. 각 소스 파일은 「출력 디렉토리」 아래에 전체 파일명(확장자 포함)으로 명명된 하위 폴더에 대응됩니다(예: sample.vue, sample.py). 이는 동일한 이름의 다른 확장자 파일이 서로 덮어쓰는 것을 방지합니다. 기본 경로는 저장소 내 debug-export/fixtures와 debug-export/output입니다(output은 .gitignore에 포함되어 저장소에 올라가지 않음).",
+      "exportFixtureComplete": "일괄 내보내기 완료",
+      "exportFixtureFixturesDir": "예제 디렉토리",
+      "exportFixtureNoFiles": "예제 디렉토리에 내보낼 수 있는 파일이 없습니다(확장자는 md, json, py, vue, html, png, tex 중 하나여야 함)",
+      "exportFixtureOutputDir": "출력 디렉토리",
+      "exportFixtureReadDirFail": "예제 디렉토리를 읽을 수 없습니다: {msg}",
+      "exportFixtureResolveFail": "이 파일을 내보낼 문서로 해석할 수 없습니다",
+      "exportFixtureRun": "PDF + DOCX 일괄 내보내기",
+      "exportFixtureRunning": "내보내는 중… ({current} / {total})"
     },
     "autoCompletionMaxTokens": "자동 완성 최대 토큰 수",
     "autoCompletionMaxTokensHint": "AI 자동 완성의 최대 토큰 수를 제한합니다. 최소 20, 0은 제한 없음을 의미합니다.",
@@ -1867,7 +1908,47 @@
     "copyConfigSuccess": "구성이 복사됨",
     "readFileFailed": "파일을 읽을 수 없습니다",
     "resetConfigSuccess": "기본 설정으로 초기화되었습니다",
-    "resetConfigToPreset": "기본 설정으로 초기화"
+    "resetConfigToPreset": "기본 설정으로 초기화",
+    "builtinFreeApiKeyHint": "내장 무료 모델의 기본 키는 복사를 지원하지 않으며, 극소량의 무료 할당량에만 사용됩니다. 자신의 LLM API 키를 구성하는 것이 좋습니다.",
+    "builtinFreeConfigCannotCopy": "내장 무료 모델 구성은 복사를 허용하지 않습니다",
+    "builtinFreeConfigCannotExport": "내장 무료 모델 구성은 내보내기를 허용하지 않습니다",
+    "defaultConfigBuiltinFree": "무료 모델(내장)",
+    "llmApiErrorDialog": "LLM 오류 대화상자",
+    "llmApiErrorDialogHint": "LLM API 호출이 실패할 때, 현재 설정을 보여주고 매뉴얼을 확인하도록 안내하는 대화 상자가 표시됩니다.",
+    "cleanupExpiredFiles": "만료된 파일 정리",
+    "cleanupExpiredHintAgentOnly": "여기서는 현재 작업 영역만 영향을 받습니다: '만료된 파일 정리'는 규칙에 따라 본 작업 영역의 첨부 파일을 정리합니다; 빨간색 버튼은 .metadoc/attachments만 비우며 전역 참조 디렉토리는 건드리지 않습니다.",
+    "cleanupExpiredHintGlobalWithWorkspace": "'만료된 파일 정리'는 위 규칙에 따라 전역 및 작업 영역을 처리합니다; '모든 캐시 비우기'는 전역 참조 디렉토리와 현재 작업 영역 .metadoc/attachments를 동시에 비웁니다.",
+    "cleanupExpiredHintNoWorkspace": "위 'N일 이전' 규칙에 따라 만료된 파일을 삭제합니다; '모든 캐시 비우기'는 전역 참조 디렉토리만 비웁니다 (현재 작업 영역 폴더가 없어 작업 영역 첨부 파일은 정리되지 않습니다).",
+    "cleanupExpiredSectionTitle": "만료된 파일 정리",
+    "clearAgentAttachmentsConfirm": "현재 작업 영역의 Agent 첨부 파일 디렉토리를 비우시겠습니까? 이 작업은 .metadoc/attachments 내 모든 파일을 삭제하며 복구할 수 없습니다.",
+    "clearAgentAttachmentsDir": "첨부 파일 디렉토리 비우기",
+    "clearAgentAttachmentsFailed": "작업 영역 첨부 파일 비우기 실패",
+    "clearAgentAttachmentsSuccess": "작업 영역 첨부 파일 디렉토리가 비워졌습니다",
+    "clearAgentWorkspaceOnly": "작업 영역 첨부 파일 비우기",
+    "clearAllReferenceCaches": "모든 캐시 비우기",
+    "clearAllReferenceCachesConfirmFull": "전역 참조 디렉토리를 비우고 현재 작업 영역 .metadoc/attachments 아래 모든 첨부 파일을 비웁니다. 이 작업은 복구할 수 없습니다. 계속하시겠습니까?",
+    "clearAllReferenceCachesConfirmGlobalOnly": "전역 참조 디렉토리를 비웁니다 (현재 작업 영역이 없어 작업 영역 첨부 파일은 정리되지 않습니다). 이 작업은 복구할 수 없습니다. 계속하시겠습니까?",
+    "clearAllReferenceCachesFailed": "캐시 비우기 실패",
+    "clearAllReferenceCachesSuccess": "관련 캐시가 모두 비워졌습니다",
+    "referenceAgentAutoPrune": "작업공간 첨부 파일 자동 정리 (이전)",
+    "referenceAgentNoWorkspace": "작업공간이 선택되지 않으면 여기의 첨부 파일을 통계 내거나 정리할 수 없습니다.",
+    "referenceAgentSection": "Agent 작업공간 첨부 파일",
+    "referenceAgentSectionDesc": "현재 작업공간 .metadoc/attachments 아래의 세션 첨부 파일 (경로별로 도구가 읽습니다).",
+    "referenceAutoPrune14d": "14일 전",
+    "referenceAutoPrune180d": "반년 (180일) 전",
+    "referenceAutoPrune1d": "1일 전",
+    "referenceAutoPrune30d": "30일 전",
+    "referenceAutoPrune365d": "1년 (365일) 전",
+    "referenceAutoPrune3d": "3일 전",
+    "referenceAutoPrune7d": "7일 전",
+    "referenceAutoPrune90d": "90일 전",
+    "referenceAutoPruneOff": "끄기",
+    "referenceGlobalAutoPrune": "자동 정리 (이전)",
+    "referenceGlobalSection": "전역 참조 디렉토리",
+    "referenceGlobalSectionDesc": "애플리케이션 데이터 디렉토리 아래의 참조 캐시 (예: 업로드 파싱 시 임시 파일).",
+    "referencePruneDone": "규칙에 따라 만료된 참조 파일을 정리했습니다",
+    "referencePruneFailed": "정리 실패",
+    "referencePruneNoRule": "먼저 '자동 정리'에서 전역 또는 작업공간 중 적어도 하나를 'N일 전'으로 설정하세요 (또는 '모든 캐시 비우기'를 직접 사용하세요)."
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -2621,7 +2702,8 @@
       "none": "대화를 시작하려면 세션을 선택하거나 새로 만드십시오.",
       "tools": "활성화된 도구 {count}개",
       "references": "참조 {count}개",
-      "referencesTooltip": "클릭하여 참조 관리"
+      "referencesTooltip": "클릭하여 참조 관리",
+      "openToolsDialog": "사용 가능한 도구 목록 보기"
     },
     "roles": {
       "assistant": "어시스턴트",
@@ -2659,7 +2741,8 @@
       "atLeastOneRequired": "최소한 하나의 세션을 유지해야 합니다",
       "noAgentConfig": "세션이 에이전트 설정과 연결되지 않았습니다",
       "engineNotFound": "선택한 엔진을 찾을 수 없습니다",
-      "agentConfigNotFound": "에이전트 설정을 찾을 수 없습니다"
+      "agentConfigNotFound": "에이전트 설정을 찾을 수 없습니다",
+      "alreadyGenerating": "해당 세션이 응답을 생성 중입니다. 잠시 후 다시 시도해 주세요."
     },
     "tool": {
       "exportSnapshot": "실행 스냅샷 내보내기",
@@ -3017,7 +3100,15 @@
         "error": "작업 공간 파일 읽기 오류",
         "matchCount": "{count}개 일치",
         "searchResultsTitle": "유사 검색: 「{query}」",
-        "searching": "유사 검색 중…"
+        "searching": "유사 검색 중…",
+        "targetPath": "대상 경로",
+        "truncated": "잘림",
+        "directoryListing": "디렉토리 목록",
+        "directoryListingsCount": "{count}개의 디렉토리 목록",
+        "entries": "항목",
+        "message": "설명",
+        "operationsCount": "{count}개의 작업",
+        "operationsTitle": "파일/디렉토리 작업 결과"
       },
       "edit": {
         "completed": "편집 완료",
@@ -3301,7 +3392,9 @@
         "injectTimestampHint": "활성화하면 이 구성을 사용해 Agent 인스턴스를 생성할 때마다 시스템 프롬프트 앞에 현재 타임스탬프 정보가 자동으로 추가됩니다",
         "isSubagent": "Subagent로 설정",
         "isSubagentHint": "선택 시, 이 구성은 도구처럼 주 에이전트에 노출되어 주 에이전트가 도구 호출을 통해 Subagent를 실행해 하위 작업을 병렬 처리할 수 있습니다. 기본 에이전트 구성은 Subagent로 설정할 수 없습니다.",
-        "isSubagentLabel": "Subagent로 설정 (주 에이전트만 호출 가능)"
+        "isSubagentLabel": "Subagent로 설정 (주 에이전트만 호출 가능)",
+        "setAsDefault": "기본으로 설정",
+        "setAsDefaultSuccess": "새 세션의 기본 구성으로 설정됨"
       },
       "agentEngine": {
         "title": "에이전트 엔진 관리",
@@ -3350,7 +3443,110 @@
         "validationWarnings": "엔진 유효성 검사 경고",
         "validationFailed": "엔진 유효성 검사를 통과하지 못했습니다",
         "confirmDelete": "'{name}' 엔진을 정말 삭제하시겠습니까?"
-      }
+      },
+      "capabilities": {
+        "title": "규칙, 스킬 및 MCP 도구",
+        "titleMcp": "MCP 도구 관리",
+        "titleRules": "규칙 관리",
+        "titleSkills": "스킬 관리",
+        "activate": "활성화",
+        "addRule": "새 규칙 만들기",
+        "aiAssistCreate": "AI 보조 생성",
+        "aiSessionTitleRule": "새 규칙 만들기 (AI)",
+        "aiSessionTitleSkill": "새 스킬 만들기 (AI)",
+        "applyMetadataToDoc": "폼을 본문에 쓰기 (frontmatter 업데이트)",
+        "approve": "승인",
+        "colApproval": "승인",
+        "colDescription": "설명",
+        "colEnabled": "활성화됨",
+        "colFolder": "폴더",
+        "colName": "이름",
+        "colPermission": "권한",
+        "colPriority": "우선순위",
+        "colScope": "범위",
+        "colServer": "서버",
+        "colStatus": "상태",
+        "colTitle": "제목",
+        "colTool": "도구",
+        "confirmDeleteRule": "규칙 \"{title}\"을(를) 삭제하시겠습니까?",
+        "confirmDeleteSkill": "스킬 \"{name}\"을(를) 삭제하시겠습니까? 전체 스킬 폴더(SKILL.md 포함)가 삭제됩니다.",
+        "editRule": "규칙 편집",
+        "editSkill": "스킬 편집",
+        "loadFailed": "로드 실패",
+        "mcpActiveUrl": "현재 연결",
+        "mcpAddConnection": "연결 추가",
+        "mcpBaseUrl": "연결 주소 (URL)",
+        "mcpConfigColMessage": "메시지",
+        "mcpConfigColServer": "서비스",
+        "mcpConfigColStatus": "상태",
+        "mcpConfigColTools": "도구 수",
+        "mcpConfigExport": "JSON 내보내기",
+        "mcpConfigImport": "JSON 가져오기",
+        "mcpConfigIntro": "단일 JSON 구성 파일(Cursor/Claude Desktop 스타일)을 사용합니다: 최상위는 mcpServers이며, 각 항목은 stdio(command + args) 또는 HTTP(url)입니다. 편집 후 자동 저장됩니다. \"동기화\"를 클릭하면 각 서비스에 연결되고 로컬 레지스트리가 업데이트됩니다: 구성에서 삭제된 서비스는 해당 도구를 제거하고, 연결 성공한 서비스는 원격 목록에 따라 도구를 추가/삭제합니다. 왼쪽은 구성 편집기, 오른쪽은 등록된 도구 트리입니다. 도구 이름을 클릭하면 세부 정보를 볼 수 있습니다.",
+        "mcpConfigPath": "구성 파일 경로",
+        "mcpConfigProbe": "연결 상태 확인",
+        "mcpConfigProbeDone": "연결성 검사 완료",
+        "mcpConfigProbeFailed": "연결성 검사 실패",
+        "mcpConfigProbeTitle": "연결성 결과",
+        "mcpConfigSaveFailed": "자동 저장 실패",
+        "mcpConfigSavedAt": "자동 저장됨 ({time})",
+        "mcpConfigStatusFail": "실패",
+        "mcpConfigStatusOk": "정상",
+        "mcpConfigStructureErrors": "구성 구조 검증 실패",
+        "mcpConfigSyncDone": "{n}개의 도구를 레지스트리에 동기화함",
+        "mcpConfigSyncTools": "도구를 라이브러리에 동기화",
+        "mcpConnections": "MCP 연결",
+        "mcpDeleteConnection": "삭제",
+        "mcpEditConnection": "MCP 연결 편집",
+        "mcpHint": "아래 항목은 MCP 어댑터 레이어에 등록됩니다(syncMcpToolsToRegistry). MCP에 연결되지 않으면 목록이 비어 있을 수 있습니다.",
+        "mcpLabel": "표시 이름",
+        "mcpRefreshTools": "도구 목록 새로 고침",
+        "mcpSaveConnection": "저장",
+        "mcpSetActive": "현재로 설정",
+        "mcpSyncButton": "동기화",
+        "mcpSyncPartial": "{n}개의 도구를 기록함. 다음 서비스 연결 또는 가져오기 실패: {servers}",
+        "mcpSyncUnknownServer": "(알 수 없음)",
+        "mcpToolDetailInputSchema": "입력 JSON 스키마",
+        "mcpToolsTreeEmpty": "등록된 도구가 없습니다. 왼쪽 구성을 편집한 후 '동기화'를 클릭하세요.",
+        "mcpToolsTreeHint": "등록된 도구 (MCP 서비스별 그룹화, 도구 이름 클릭 시 상세 정보 확인)",
+        "menuMcp": "MCP 도구 관리",
+        "menuRules": "규칙 관리",
+        "menuSkills": "스킬 관리",
+        "menuTitle": "규칙 / 스킬 / MCP 관리",
+        "newSkill": "새 스킬 만들기",
+        "noWorkspace": ".metadoc/skills를 스캔하려면 먼저 작업 공간 폴더를 추가하세요.",
+        "openFolderFailed": "폴더를 열 수 없음",
+        "openSkillFolder": "탐색기에서 열기",
+        "priorityHint": "범위 0–100, 숫자가 클수록 우선순위가 높습니다(시스템 프롬프트에 먼저 주입됨). 새로 만들 때 기본값은 90입니다.",
+        "refresh": "새로 고침",
+        "refreshSkillsList": "목록 새로 고침 (디스크 동기화 먼저)",
+        "reject": "거부",
+        "ruleContent": "규칙 본문",
+        "saveFailed": "작업 실패",
+        "saveOk": "저장됨",
+        "skillDescription": "설명 (frontmatter)",
+        "skillDraft": "초안 (draft)",
+        "skillEntry": "진입 파일",
+        "skillFolder": "스킬 디렉터리 이름",
+        "skillFolderPlaceholder": "예: my-skill",
+        "skillReadFailed": "SKILL.md를 읽을 수 없음",
+        "skillSavedReindexed": "저장 및 인덱스와 벡터 업데이트 완료",
+        "skillTags": "태그",
+        "skillTagsHint": "쉼표로 구분, 예: a, b",
+        "skillWorkspace": "작업 공간 루트 디렉터리",
+        "skillsDbOnly": "데이터베이스만 로드",
+        "skillsRefreshHint": "'새로 고침'은 먼저 디스크의 .metadoc/skills를 동기화한 후 데이터베이스의 스킬 목록을 로드합니다.",
+        "syncDone": "{scanned}개의 스킬 디렉터리를 스캔하고, {upserted}개의 벡터를 업데이트함",
+        "syncFormFromEditor": "본문에서 양식으로 동기화",
+        "syncMetaFromBody": "아래 본문에 따라 양식 업데이트",
+        "syncMetaFromForm": "위 양식에 따라 본문 업데이트",
+        "syncMetaMenu": "메타 정보 동기화",
+        "syncSkills": "작업 공간에서 스킬 인덱스 동기화",
+        "tabMcp": "MCP 도구",
+        "tabRules": "규칙",
+        "tabSkills": "스킬"
+      },
+      "settingsMenu": "Agent 설정"
     },
     "message": {
       "edit": "편집",
@@ -3371,14 +3567,22 @@
       "noToolsNeeded": "이 요청에는 도구가 필요하지 않습니다.",
       "reasoning": "추론: ",
       "confirmRegenerate": "재생성하면 이 메시지 이후의 모든 내용(AI 응답, 도구 호출, 의도 인식 등 포함)이 삭제되고, 해당 사용자 메시지를 기반으로 다시 생성됩니다. 계속하시겠습니까?",
-      "confirmRegenerateTitle": "재생성 확인"
+      "confirmRegenerateTitle": "재생성 확인",
+      "reasoningBlock": "추론 과정"
     },
     "attachment": {
       "untitled": "제목 없음"
     },
     "composer": {
       "atTagRemove": "삭제",
-      "attachmentsOnlyUserMessage": "(업로드한 첨부를 바탕으로 답변해 주세요.)"
+      "attachmentsOnlyUserMessage": "(업로드한 첨부를 바탕으로 답변해 주세요.)",
+      "queuedHint": "대기 목록에 추가되었으며, 현재 차례가 끝나면 자동으로 전송됩니다",
+      "sendQueueAttachments": "{count}개의 첨부 파일",
+      "sendQueueEdit": "편집",
+      "sendQueueEditTitle": "대기 중인 메시지 편집",
+      "sendQueueHint": "다음 메시지는 Agent가 현재 응답과 도구 호출을 완료한 후 순서대로 자동으로 전송됩니다.",
+      "sendQueueRemove": "제거",
+      "sendQueueTitle": "전송 대기"
     },
     "reference": {
       "title": "참조 자료 관리",
@@ -3493,7 +3697,8 @@
         "cancelRequestFailed": "취소 요청 전송 실패"
       },
       "directory": "디렉터리",
-      "workspaceDirs": "작업 공간 디렉터리"
+      "workspaceDirs": "작업 공간 디렉터리",
+      "removeFromComposer": "첨부 파일 제거"
     },
     "userLabel": "사용자",
     "assistantLabel": "어시스턴트",
@@ -3629,7 +3834,41 @@
       "workspace": {
         "description": "작업 공간 파일 읽기, 경로/이름으로 유사 검색 또는 루트 디렉토리 목록 표시",
         "name": "작업 공간 파일 읽기"
+      },
+      "create_dynamic_rule": {
+        "description": "애플리케이션 데이터베이스에 동적 Agent 규칙 삽입(시스템 프롬프트 작성), 작업 공간 파일로 대체하지 마세요",
+        "name": "동적 규칙 생성"
+      },
+      "create_workspace_skill": {
+        "description": ".metadoc/skills/<디렉토리>/SKILL.md에 작성 후 즉시 데이터베이스와 임베딩에 저장",
+        "name": "작업 공간 스킬 생성"
+      },
+      "load_skill": {
+        "description": "skillId로 활성화된 스킬의 전체 SKILL.md 본문 로드",
+        "name": "스킬 로드"
+      },
+      "search_skill": {
+        "description": "작업 공간 .metadoc/skills에서 활성화된 스킬에 대해 벡터 검색 수행, 요약만 반환",
+        "name": "스킬 검색"
+      },
+      "sync_workspace_skills": {
+        "description": "각 작업 공간 .metadoc/skills를 스캔하고 SQLite 및 벡터(active 스킬) 업데이트",
+        "name": "작업 공간 스킬 인덱스 동기화"
+      },
+      "update_dynamic_rule": {
+        "description": "ruleId로 기존 동적 규칙의 제목, 본문 또는 우선순위 업데이트",
+        "name": "동적 규칙 업데이트"
       }
+    },
+    "jsonExplorer": {
+      "json": "JSON",
+      "nonJsonHint": "JSON으로 파싱할 수 없습니다. 원본 내용은 다음과 같습니다.",
+      "tree": "트리"
+    },
+    "selectionRef": {
+      "chipLabel": "선택 영역: {detail}",
+      "noSession": "추가 불가: 에이전트를 먼저 구성해 주세요.",
+      "unknown": "선택 영역(유효하지 않음)"
     }
   },
   "sectionOptimizer": {
@@ -4159,6 +4398,30 @@
       "texToTex": {
         "name": "LaTeX에서 LaTeX로",
         "description": "LaTeX 문서 내보내기"
+      },
+      "texToDocx": {
+        "description": "LaTeX을 Markdown으로 변환 후 DOCX로 내보내기",
+        "name": "LaTeX에서 DOCX로"
+      },
+      "texToHtml": {
+        "description": "LaTeX을 Markdown으로 변환 후 HTML로 내보내기",
+        "name": "LaTeX에서 HTML로"
+      },
+      "txtToDocx": {
+        "description": "일반 텍스트 또는 코드를 Markdown으로 변환 후 DOCX로 내보내기",
+        "name": "일반 텍스트에서 DOCX로"
+      },
+      "txtToHtml": {
+        "description": "일반 텍스트 또는 코드를 Markdown으로 변환 후 HTML로 내보내기",
+        "name": "일반 텍스트에서 HTML로"
+      },
+      "txtToMd": {
+        "description": "일반 텍스트 또는 코드를 Markdown으로 내보내기",
+        "name": "일반 텍스트에서 Markdown으로"
+      },
+      "txtToPdf": {
+        "description": "일반 텍스트 또는 코드를 Markdown으로 변환 후 PDF로 내보내기",
+        "name": "일반 텍스트에서 PDF로"
       }
     },
     "options": {
@@ -4350,8 +4613,21 @@
         "label": "이미지",
         "description": "이미지 기본 이름(이미지에 이름이 없을 때 사용)"
       },
-      "objectTypeField": "객체 유형 필드"
-    }
+      "objectTypeField": "객체 유형 필드",
+      "pdfThemeMode": {
+        "dark": "다크",
+        "description": "라이트: 흰색 배경에 밝은 본문 및 코드 하이라이트. 다크: 어두운 배경(기본 다크 편집 영역과 동일)과 다크 스타일. 팔로우: 배경이 Markdown 편집 영역 배경색(테마 색상)과 일치하며, 콘텐츠와 코드 테마는 설정과 동일합니다. 기본값은 라이트입니다.",
+        "follow": "테마 따르기",
+        "label": "PDF 외관",
+        "light": "라이트"
+      }
+    },
+    "taskCancel": "중단",
+    "taskPhaseDone": "완료됨",
+    "taskPhaseFailed": "실패",
+    "taskPhasePickPath": "저장 위치 선택 중…",
+    "taskPhasePreparing": "사전 처리 중…",
+    "taskTitle": "내보내기 작업"
   },
   "tabSwitcher": {
     "openEditors": "열린 편집기",
@@ -5110,9 +5386,11 @@
     "sidebar": {
       "recommendedList": "추천 학습",
       "onlyRecommended": "추천 경로만 표시",
-      "onlyRecommendedTip": "끄면 전체 매뉴얼 목록이 표시됩니다"
+      "onlyRecommendedTip": "끄면 전체 매뉴얼 목록이 표시됩니다",
+      "learningPathTooltip": "학습 진행 상황과 추천 학습 경로 확인하기"
     },
-    "title": "사용자 설명서"
+    "title": "사용자 설명서",
+    "exportPureMarkdown": "순수 Markdown 내보내기"
   },
   "versionInfoPanel": {
     "buildEnvironment": "빌드 환경",
@@ -5137,7 +5415,14 @@
     "expand": "펼치기",
     "metaInfo": "메타정보",
     "workspace": "워크스페이스",
-    "workspaceGrep": "워크스페이스 검색"
+    "workspaceGrep": "워크스페이스 검색",
+    "documentOutline": "문서 개요",
+    "outlineDocSearchPlaceholder": "이 문서에서 검색…",
+    "outlineFilterPlaceholder": "현재 문서 제목 필터링…",
+    "outlineSearchDocStart": "문서 시작 부분",
+    "outlineSearchHint": "키워드를 입력하면 결과가 개요 섹션별로 그룹화됩니다.",
+    "outlineSearchNeedMarkdown": "이 문서 내에서 검색하려면 Markdown 문서를 열고 포커스하세요.",
+    "outlineSearchNoHeading": "본문"
   },
   "workspaceExplorer": {
     "addFolder": "작업 폴더 추가",
@@ -5197,7 +5482,8 @@
     "renameSuccess": "이름 변경이 완료되었습니다.",
     "selectFolder": "작업 폴더 선택",
     "title": "작업 디렉터리",
-    "moveFailed": "이동에 실패했습니다."
+    "moveFailed": "이동에 실패했습니다.",
+    "openWorkspaceDialogTitle": "작업 공간 열기 — 폴더 선택(현재 작업 공간이 닫히고 선택한 폴더로 대체됩니다)"
   },
   "workspaceGrep": {
     "activeWorkspaceCount": "{count}개의 작업 공간이 열려 있음",
@@ -5263,5 +5549,24 @@
   "B -": "C[종료]",
   "skeleton": {
     "tips": "[\"F1을 눌러 사용자 매뉴얼 열기\", \"Ctrl+S로 현재 문서 빠르게 저장\", \"왼쪽 사이드바 드래그로 너비 조절\", \"Markdown과 LaTeX 모두 지원\", \"지식 베이스에 로컬 문서 연결하여 AI 답변 강화\", \"수식 인식은 손글씨와 스크린샷 지원\", \"Agent는 다중 턴 대화와 도구 호출 지원\", \"시각화 뷰를 이미지로 내보내기 가능\", \"설정에서 라이트/다크/시스템 모드 전환\", \"클립보드에서 이미지 직접 붙여넣기 지원\", \"아웃라인 접기·드래그로 순서 변경\", \"작성 중 언제든 AI 완성 호출\", \"교정 도구로 문법과 용어 검사\", \"데이터 파싱 도구는 CSV, Excel 지원\", \"RAG 검색은 연결된 지식 베이스를 우선 사용\", \"템플릿으로 새 문서 만들기\", \"여러 탭으로 동시 편집 지원\", \"PDF, Word 등 형식으로 내보내기\", \"Ctrl+F로 전체 검색, 정규식 지원\", \"문단 단위로 AI 다듬기 요청\", \"오늘은 문서 작성하기 좋은 날, 미루기는 내일로.\", \"막힐 땐 AI에게 시작 부분을 맡겨 보세요.\", \"코드 블록의 주석도 그대로 유지됩니다.\", \"CSV 붙여넣기로 표 한 번에 생성\", \"긴 문서는 아웃라인부터 작성 후 펼치기\", \"수식은 LaTeX로 작성, 렌더링은 MetaDoc에게\", \"차트 생성은 막대, 꺾은선 등 지원\", \"Agent 엔진으로 ReAct, Plan-Execute 등 선택 가능\", \"로컬 모델과 API를 동시에 구성 가능\", \"디버그 패널에서 시작 소요 시간 확인\", \"윈도우 풀로 새 창 빠르게 열기\", \"필요할 때만 로드하여 가볍게 시작\", \"이중 패널 편집 시 좌우 독립 스크롤\", \"Mermaid, PlantUML 등 다이어그램 문법 지원\", \"인용 블록, 코드 블록에 단축키 지원\", \"AI 완성 지연 설정으로 토큰 절약\", \"지식 베이스는 PDF, Word, TXT 등 다양한 형식 지원\", \"수식 인식 결과를 LaTeX로 바로 삽입\", \"탭을 창 사이로 드래그하여 문서 이동\", \"PDF 내보내기 시 여백과 글꼴 선택 가능\", \"테마는 시스템, 라이트, 다크, 커스텀 중 선택\", \"작업 공간에 여러 폴더 추가 가능\", \"찾기 및 바꾸기는 대소문자 구분 및 전체 단어 일치 지원\", \"문단 최적화는 핵심 표현을 유지합니다.\", \"Agent는 다른 엔진을 선택하여 스타일 변경 가능\", \"RAG 검색 결과는 원문에서 강조 표시\", \"데이터 표를 Agent에게 넘겨 간단 분석\", \"논문 작성 시 지식 베이스 먼저 구축 후 Agent 사용\", \"LaTeX 컴파일 실패 시 콘솔에 행 번호 표시\", \"Monaco와 Vditor를 언제든지 전환 가능\", \"일반 텍스트 모드로 렌더링 없이 사용\", \"첨부 파일 파서로 PDF 내 이미지 추출\", \"교정은 오타뿐만 아니라 문장도 다듬어 줍니다.\", \"시각화 뷰의 플로우차트를 SVG로 내보내기\", \"문단을 우클릭하여 'AI 분석' 실행\", \"새 문서 환영 페이지에 빠른 시작 링크\", \"CSV 붙여넣기로 Markdown 표 생성\", \"막힐 땐 로고를 클릭하여 흔들어 보세요.\", \"문서를 많이 쓰면 경험치가 오른다고 합니다.\", \"이 팁은 사라지지만, F1 매뉴얼은 남아 있습니다.\"]"
+  },
+  "llmErrorDialog": {
+    "apiKey": "API Key",
+    "apiKeyBuiltinHidden": "(내장 Key가 숨겨져 있음)",
+    "apiKeyEmpty": "(작성되지 않음)",
+    "baseUrl": "Base URL",
+    "builtinFreeIntro": "현재 MetaDoc 내장 무료 모델 구성을 사용 중입니다.",
+    "builtinFreeQuotaHint": "이 무료 할당량은 매우 적으며 언제든지 제한되거나 소진될 수 있습니다. 가능한 빨리 자신의 LLM API Key를 구성하는 것이 좋습니다.",
+    "configType": "유형",
+    "currentConfig": "현재 LLM 구성",
+    "dontShowAgain": "다시 표시하지 않음",
+    "errorDetails": "오류 정보",
+    "errorType": "오류 유형",
+    "learnHowToConfigure": "구성 튜토리얼 보기",
+    "message": "안내",
+    "title": "LLM 호출 실패",
+    "titleBuiltinFree": "무료 모델 일시적으로 사용 불가",
+    "model": "모델",
+    "originalException": "원본 예외 (펼쳐서 보기)"
   }
 }

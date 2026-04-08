@@ -49,7 +49,8 @@
       "tools": "{count} herramientas activadas",
       "references": "{count} referencias",
       "referencesTooltip": "Haz clic para gestionar referencias",
-      "none": "Selecciona o crea una conversación para empezar a dialogar."
+      "none": "Selecciona o crea una conversación para empezar a dialogar.",
+      "openToolsDialog": "Haz clic para ver la lista de herramientas disponibles"
     },
     "copy": "Copiar",
     "demoSession1": "Sesión de revisión de código",
@@ -372,7 +373,15 @@
         "error": "Error al leer el archivo del espacio de trabajo",
         "matchCount": "Coinciden {count} elementos",
         "searchResultsTitle": "Búsqueda difusa: 「{query}」",
-        "searching": "Buscando de forma difusa…"
+        "searching": "Buscando de forma difusa…",
+        "targetPath": "Ruta de destino",
+        "truncated": "Truncado",
+        "directoryListing": "Lista de directorios",
+        "directoryListingsCount": "{count} listas de directorios",
+        "entries": "entradas",
+        "message": "Mensaje",
+        "operationsCount": "{count} operaciones",
+        "operationsTitle": "Resultado de operaciones de archivos/directorios"
       },
       "edit": {
         "completed": "Edición completada",
@@ -544,7 +553,9 @@
         "injectTimestampHint": "Cuando está habilitado, cada vez que se crea una instancia de Agent con esta configuración, se añade automáticamente información de la marca de tiempo actual antes del prompt del sistema.",
         "isSubagent": "Como Subagent",
         "isSubagentLabel": "Como Subagent (solo puede ser invocado por el Agent principal)",
-        "isSubagentHint": "Cuando está marcado, esta configuración se expone al Agent principal como una herramienta, permitiendo que el Agent principal invoque y ejecute concurrentemente Subagents para completar subtareas. La configuración de Agent predeterminada no se puede establecer como Subagent."
+        "isSubagentHint": "Cuando está marcado, esta configuración se expone al Agent principal como una herramienta, permitiendo que el Agent principal invoque y ejecute concurrentemente Subagents para completar subtareas. La configuración de Agent predeterminada no se puede establecer como Subagent.",
+        "setAsDefault": "Establecer como predeterminado",
+        "setAsDefaultSuccess": "Configuración predeterminada establecida para nuevas sesiones"
       },
       "agentEngine": {
         "title": "Gestión del motor del agente",
@@ -593,7 +604,110 @@
         "validationWarnings": "Advertencias de validación del motor",
         "validationFailed": "Validación del motor fallida",
         "confirmDelete": "¿Está seguro de que desea eliminar el motor «{name}»?"
-      }
+      },
+      "capabilities": {
+        "title": "Reglas, habilidades y herramientas MCP",
+        "titleMcp": "Gestión de herramientas MCP",
+        "titleRules": "Gestión de reglas",
+        "titleSkills": "Gestión de habilidades",
+        "activate": "Activar",
+        "addRule": "Nueva regla",
+        "aiAssistCreate": "Crear con IA",
+        "aiSessionTitleRule": "Nueva regla (IA)",
+        "aiSessionTitleSkill": "Nueva habilidad (IA)",
+        "applyMetadataToDoc": "Escribir formulario en el cuerpo (actualizar frontmatter)",
+        "approve": "Aprobar",
+        "colApproval": "Aprobación",
+        "colDescription": "Descripción",
+        "colEnabled": "Habilitado",
+        "colFolder": "Carpeta",
+        "colName": "Nombre",
+        "colPermission": "Permiso",
+        "colPriority": "Prioridad",
+        "colScope": "Alcance",
+        "colServer": "Servidor",
+        "colStatus": "Estado",
+        "colTitle": "Título",
+        "colTool": "Herramienta",
+        "confirmDeleteRule": "¿Seguro que quieres eliminar la regla «{title}»?",
+        "confirmDeleteSkill": "¿Seguro que quieres eliminar la habilidad «{name}»? Se eliminará toda la carpeta de la habilidad (incluido SKILL.md).",
+        "editRule": "Editar regla",
+        "editSkill": "Editar habilidad",
+        "loadFailed": "Error de carga",
+        "mcpActiveUrl": "Conexión actual",
+        "mcpAddConnection": "Añadir conexión",
+        "mcpBaseUrl": "Dirección de conexión (URL)",
+        "mcpConfigColMessage": "Mensaje",
+        "mcpConfigColServer": "Servicio",
+        "mcpConfigColStatus": "Estado",
+        "mcpConfigColTools": "Número de herramientas",
+        "mcpConfigExport": "Exportar JSON",
+        "mcpConfigImport": "Importar JSON",
+        "mcpConfigIntro": "Usa un único archivo de configuración JSON (compatible con Cursor / Claude Desktop): el nivel superior es mcpServers, cada elemento es stdio (command + args) o HTTP (url). Se guarda automáticamente tras editar. Al hacer clic en «Sincronizar», se conectará a cada servicio y actualizará el registro local: se eliminarán las herramientas de los servicios ya borrados en la configuración, y se añadirán/eliminarán herramientas según la lista remota para los servicios conectados correctamente. A la izquierda está el editor de configuración, a la derecha el árbol de herramientas registradas; haz clic en el nombre de una herramienta para ver detalles.",
+        "mcpConfigPath": "Ruta del archivo de configuración",
+        "mcpConfigProbe": "Comprobar conectividad",
+        "mcpConfigProbeDone": "Comprobación de conectividad completada",
+        "mcpConfigProbeFailed": "Comprobación de conectividad fallida",
+        "mcpConfigProbeTitle": "Resultado de conectividad",
+        "mcpConfigSaveFailed": "Guardado automático fallido",
+        "mcpConfigSavedAt": "Guardado automáticamente ({time})",
+        "mcpConfigStatusFail": "Fallido",
+        "mcpConfigStatusOk": "Correcto",
+        "mcpConfigStructureErrors": "Validación de estructura de configuración no superada",
+        "mcpConfigSyncDone": "{n} herramientas sincronizadas en el registro",
+        "mcpConfigSyncTools": "Sincronizar herramientas a la biblioteca",
+        "mcpConnections": "Conexiones MCP",
+        "mcpDeleteConnection": "Eliminar",
+        "mcpEditConnection": "Editar conexión MCP",
+        "mcpHint": "Las siguientes entradas están registradas por la capa de adaptación MCP (syncMcpToolsToRegistry). La lista puede estar vacía si no hay conexión MCP.",
+        "mcpLabel": "Nombre para mostrar",
+        "mcpRefreshTools": "Actualizar lista de herramientas",
+        "mcpSaveConnection": "Guardar",
+        "mcpSetActive": "Establecer como actual",
+        "mcpSyncButton": "Sincronizar",
+        "mcpSyncPartial": "{n} herramientas escritas; los siguientes servicios fallaron al conectar o recuperar: {servers}",
+        "mcpSyncUnknownServer": "(Desconocido)",
+        "mcpToolDetailInputSchema": "Esquema JSON de entrada",
+        "mcpToolsTreeEmpty": "No hay herramientas registradas por ahora. Edite la configuración de la izquierda y haga clic en \"Sincronizar\".",
+        "mcpToolsTreeHint": "Herramientas registradas (agrupadas por servicio MCP; haga clic en el nombre para ver detalles)",
+        "menuMcp": "Gestión de herramientas MCP",
+        "menuRules": "Gestión de reglas",
+        "menuSkills": "Gestión de habilidades",
+        "menuTitle": "Gestión de reglas / habilidades / MCP",
+        "newSkill": "Nueva habilidad",
+        "noWorkspace": "Primero agregue una carpeta de área de trabajo para escanear .metadoc/skills",
+        "openFolderFailed": "No se puede abrir la carpeta",
+        "openSkillFolder": "Abrir en el explorador",
+        "priorityHint": "Rango 0–100, mayor número indica mayor prioridad (se inyecta primero en el prompt del sistema). Valor predeterminado al crear: 90.",
+        "refresh": "Actualizar",
+        "refreshSkillsList": "Actualizar lista (sincronizar disco primero)",
+        "reject": "Rechazar",
+        "ruleContent": "Contenido de la regla",
+        "saveFailed": "Operación fallida",
+        "saveOk": "Guardado",
+        "skillDescription": "Descripción (frontmatter)",
+        "skillDraft": "Borrador (draft)",
+        "skillEntry": "Archivo de entrada",
+        "skillFolder": "Nombre del directorio de habilidad",
+        "skillFolderPlaceholder": "Ej. mi-habilidad",
+        "skillReadFailed": "No se puede leer SKILL.md",
+        "skillSavedReindexed": "Guardado y actualizados índice y vectores",
+        "skillTags": "Etiquetas",
+        "skillTagsHint": "Separadas por comas, ej. a, b",
+        "skillWorkspace": "Directorio raíz del área de trabajo",
+        "skillsDbOnly": "Cargar solo base de datos",
+        "skillsRefreshHint": "\"Actualizar\" sincronizará primero .metadoc/skills en el disco y luego cargará la lista de habilidades de la base de datos.",
+        "syncDone": "Escaneados {scanned} directorios de habilidades, actualizados {upserted} vectores",
+        "syncFormFromEditor": "Sincronizar desde el cuerpo al formulario",
+        "syncMetaFromBody": "Actualizar formulario según el cuerpo inferior",
+        "syncMetaFromForm": "Actualizar cuerpo según el formulario superior",
+        "syncMetaMenu": "Sincronizar metainformación",
+        "syncSkills": "Sincronizar índice de habilidades desde el área de trabajo",
+        "tabMcp": "Herramientas MCP",
+        "tabRules": "Reglas",
+        "tabSkills": "Habilidades"
+      },
+      "settingsMenu": "Configuración del Agent"
     },
     "message": {
       "edit": "Editar",
@@ -614,14 +728,22 @@
       "noToolsNeeded": "Esta solicitud no requiere herramientas.",
       "reasoning": "Razonamiento:",
       "confirmRegenerate": "¿Regenerar? Esto eliminará todo el contenido posterior a este mensaje (incluidas las respuestas de la IA, llamadas a herramientas, reconocimiento de intenciones, etc.) y lo regenerará basándose en este mensaje del usuario. ¿Continuar?",
-      "confirmRegenerateTitle": "Confirmar regeneración"
+      "confirmRegenerateTitle": "Confirmar regeneración",
+      "reasoningBlock": "Proceso de razonamiento"
     },
     "attachment": {
       "untitled": "Sin título"
     },
     "composer": {
       "atTagRemove": "Eliminar",
-      "attachmentsOnlyUserMessage": "Responde según los archivos adjuntos subidos."
+      "attachmentsOnlyUserMessage": "Responde según los archivos adjuntos subidos.",
+      "queuedHint": "Agregado a la cola de envío, se enviará automáticamente después de que finalice la ronda actual",
+      "sendQueueAttachments": "{count} archivos adjuntos",
+      "sendQueueEdit": "Editar",
+      "sendQueueEditTitle": "Editar mensaje en cola de envío",
+      "sendQueueHint": "Los siguientes mensajes se enviarán automáticamente en orden después de que el Agent complete su respuesta actual y las llamadas a herramientas.",
+      "sendQueueRemove": "Eliminar",
+      "sendQueueTitle": "En cola de envío"
     },
     "reference": {
       "title": "Gestión de material de referencia",
@@ -736,7 +858,8 @@
         "cancelRequestFailed": "Error al enviar la solicitud de cancelación"
       },
       "directory": "Directorio",
-      "workspaceDirs": "Directorios del espacio de trabajo"
+      "workspaceDirs": "Directorios del espacio de trabajo",
+      "removeFromComposer": "Eliminar adjunto"
     },
     "retry": "Reintentar",
     "roles": {
@@ -776,7 +899,8 @@
       "atLeastOneRequired": "Se debe conservar al menos una sesión",
       "noAgentConfig": "La sesión no está asociada a una configuración de agente",
       "engineNotFound": "No se encontró el motor seleccionado",
-      "agentConfigNotFound": "No se encontró la configuración del agente"
+      "agentConfigNotFound": "No se encontró la configuración del agente",
+      "alreadyGenerating": "Esta sesión ya está generando una respuesta. Por favor, inténtalo de nuevo más tarde."
     },
     "systemLabel": "Sistema",
     "thinking": "Pensando...",
@@ -993,7 +1117,41 @@
       "workspace": {
         "description": "Lee archivos del espacio de trabajo, busca difusamente por ruta/nombre o lista el directorio raíz",
         "name": "Lectura de archivos del espacio de trabajo"
+      },
+      "create_dynamic_rule": {
+        "description:": "Insertar una regla dinámica de Agent en la base de datos de la aplicación (escribir en el prompt del sistema), no usar archivos del espacio de trabajo en su lugar",
+        "name:": "Crear regla dinámica"
+      },
+      "create_workspace_skill": {
+        "description:": "Escribir en .metadoc/skills/<directorio>/SKILL.md e indexar e incrustar inmediatamente",
+        "name:": "Crear habilidad del espacio de trabajo"
+      },
+      "load_skill": {
+        "description:": "Cargar el texto completo de SKILL.md de una habilidad activada por su skillId",
+        "name:": "Cargar habilidad"
+      },
+      "search_skill": {
+        "description:": "Realizar una búsqueda vectorial en las habilidades activadas bajo .metadoc/skills del espacio de trabajo, solo devolver resúmenes",
+        "name:": "Búsqueda de habilidades"
+      },
+      "sync_workspace_skills": {
+        "description:": "Escanear .metadoc/skills de cada espacio de trabajo y actualizar SQLite y vectores (habilidades activas)",
+        "name:": "Sincronizar índice de habilidades del espacio de trabajo"
+      },
+      "update_dynamic_rule": {
+        "description:": "Actualizar el título, cuerpo o prioridad de una regla dinámica existente por su ruleId",
+        "name:": "Actualizar regla dinámica"
       }
+    },
+    "jsonExplorer": {
+      "json": "JSON",
+      "nonJsonHint": "No se puede analizar como JSON, a continuación se muestra el texto original",
+      "tree": "Vista de árbol"
+    },
+    "selectionRef": {
+      "chipLabel": "Selección: {detail}",
+      "noSession": "No se puede agregar: configura primero el Agente.",
+      "unknown": "Selección (inválida)"
     }
   },
   "agent-engine-executor": {
@@ -1068,7 +1226,14 @@
     "send": "Enviar",
     "sendTooltip": "Enviar mensaje",
     "today": "Hoy",
-    "yesterday": "Ayer"
+    "yesterday": "Ayer",
+    "deselectAll": "Desmarcar todos",
+    "insertingToManyDocuments": "Insertando en {n} documentos...",
+    "pickDocToInsert": "Selecciona el documento para insertar",
+    "queueSendTooltip": "Añadir a la cola de envío",
+    "reasoningToggleTooltip": "Pensamiento profundo",
+    "selectAll": "Marcar todos",
+    "selectedDocCount": "{n} documentos seleccionados"
   },
   "aiSuggestion": {
     "accept": "Aceptar sugerencia",
@@ -1542,7 +1707,13 @@
     "saveLog": "Guardar registro",
     "title": "Salida de terminal",
     "cdFailed": "No se pudo cambiar de directorio",
-    "invalidArgument": "Argumento no válido"
+    "invalidArgument": "Argumento no válido",
+    "closeSession": "Cerrar sesión",
+    "compileSessionLimit": "Conservar información de compilación",
+    "newSession": "Nueva sesión",
+    "scrollToNextCommand": "Desplazar al siguiente comando",
+    "scrollToPreviousCommand": "Desplazar al comando anterior",
+    "shell": "Shell"
   },
   "contextMenu": {
     "aiAnalysis": "Análisis de texto completo con IA",
@@ -1560,7 +1731,9 @@
     "selectAll": "Seleccionar todo",
     "triggerAutoCompletion": "Activar autocompletado con IA manualmente",
     "translateSelection": "Traducir selección",
-    "undo": "Deshacer"
+    "undo": "Deshacer",
+    "addSelectionToAgent": "Añadir a la conversación del Agent",
+    "generateIllustrationFromSelection": "Generar ilustración a partir de la selección"
   },
   "data-analysis-tool": {
     "analyze": "Análisis de datos",
@@ -1701,6 +1874,30 @@
       "texToTex": {
         "name": "LaTeX a LaTeX",
         "description": "Exportar documentos LaTeX"
+      },
+      "texToDocx": {
+        "description": "Exportar DOCX convirtiendo LaTeX a Markdown",
+        "name": "LaTeX a DOCX"
+      },
+      "texToHtml": {
+        "description": "Exportar HTML convirtiendo LaTeX a Markdown",
+        "name": "LaTeX a HTML"
+      },
+      "txtToDocx": {
+        "description": "Exportar DOCX convirtiendo texto plano o código a Markdown",
+        "name": "Texto plano a DOCX"
+      },
+      "txtToHtml": {
+        "description": "Exportar HTML convirtiendo texto plano o código a Markdown",
+        "name": "Texto plano a HTML"
+      },
+      "txtToMd": {
+        "description": "Exportar texto plano o código como Markdown",
+        "name": "Texto plano a Markdown"
+      },
+      "txtToPdf": {
+        "description": "Exportar PDF convirtiendo texto plano o código a Markdown",
+        "name": "Texto plano a PDF"
       }
     },
     "options": {
@@ -1892,8 +2089,21 @@
       "imageLabelDefaultName": {
         "label": "Imagen",
         "description": "Nombre predeterminado para las imágenes (se usa cuando la imagen no tiene nombre)"
+      },
+      "pdfThemeMode": {
+        "dark": "Oscuro",
+        "description": "Claro: fondo blanco con texto claro y resaltado de código. Oscuro: fondo oscuro (coincide con el área de edición oscura por defecto) y estilos oscuros. Seguir: el fondo coincide con el color de fondo del área de edición de Markdown (color del tema), y el contenido y el tema del código siguen la configuración. Por defecto, claro.",
+        "follow": "Seguir tema",
+        "label": "Apariencia del PDF",
+        "light": "Claro"
       }
-    }
+    },
+    "taskCancel": "Cancelar",
+    "taskPhaseDone": "Completado",
+    "taskPhaseFailed": "Fallido",
+    "taskPhasePickPath": "Seleccionar ubicación de guardado…",
+    "taskPhasePreparing": "Preparando…",
+    "taskTitle": "Tarea de exportación"
   },
   "focusMode": {
     "enterTooltip": "Activar modo concentración",
@@ -2262,6 +2472,18 @@
       "p98": "🍜 Ideas de meal prep para la semana",
       "p99": "🎓 Estructura típica de anteproyecto",
       "p100": "🌙 Ejemplo de día con técnica Pomodoro"
+    },
+    "suggestion": {
+      "apiDocumentation": "Documentación de la API",
+      "blogPost": "Artículo de blog",
+      "meetingMinutes": "Acta de reunión",
+      "productIntroduction": "Introducción del producto",
+      "projectSummary": "Resumen del proyecto",
+      "releaseNotes": "Notas de la versión",
+      "researchOutline": "Esquema de investigación",
+      "technicalTutorial": "Tutorial técnico",
+      "userGuide": "Guía del usuario",
+      "weeklyReport": "Informe semanal"
     }
   },
   "knowledgeBase": {
@@ -2715,7 +2937,10 @@
       "cliPreviewLabel": "Línea de comando equivalente",
       "cliPreviewCaption": "Marcadores de posición para carpeta de salida y archivo fuente; las rutas reales siguen guardado/exportación. Motores CLI en PATH.",
       "cliOutputDirToken": "<dir-salida>",
-      "cliSourceTexToken": "<fuente.tex>"
+      "cliSourceTexToken": "<fuente.tex>",
+      "flagDraft": "-draftmode",
+      "flagShellEscape": "-shell-escape",
+      "flagSynctex": "-synctex=1"
     }
   },
   "logoTab": {
@@ -2789,7 +3014,10 @@
     "workspaceGrep": "Búsqueda en el espacio de trabajo",
     "view": "Vista",
     "viewTooltip": "Paneles de la barra lateral",
-    "viewSidebarAgent": "Agent"
+    "viewSidebarAgent": "Agente",
+    "addFolderToWorkspace": "Añadir carpeta al área de trabajo",
+    "closeWorkspace": "Cerrar el área de trabajo actual",
+    "openWorkspace": "Abrir área de trabajo"
   },
   "llm-adapter": {
     "failed": "Configuración fallida",
@@ -3723,7 +3951,8 @@
         "zoomOut": "Reducir",
         "zoomReset": "Restablecer zoom",
         "toggleFocusMode": "Alternar modo concentración"
-      }
+      },
+      "keyBindings": "Configuración de teclas"
     },
     "cancel": "Cancelar",
     "cannotCreateManualConfig": "No se puede crear una configuración manual. Este tipo solo está disponible en modo de desarrollo.",
@@ -4000,7 +4229,17 @@
       "errorLabel": "Error: {msg}",
       "toolLabel": "Herramienta: {id}",
       "chooseExportRootDir": "Seleccionar directorio raíz de exportación",
-      "newVersionFoundShort": "Nueva versión encontrada"
+      "newVersionFoundShort": "Nueva versión encontrada",
+      "exportFixtureBatch": "Exportación por lotes de fixtures",
+      "exportFixtureBatchIntro": "Escanea md / json / py / vue / html / png / tex desde el «Directorio de fixtures» y genera PDF y DOCX para cada uno usando la misma canalización de exportación que la interfaz principal. Cada archivo fuente corresponde a una subcarpeta en el «Directorio de salida» nombrada con el nombre completo del archivo (incluida la extensión), por ejemplo sample.vue, sample.py, para evitar sobrescribir archivos con el mismo nombre pero diferente extensión. Las rutas predeterminadas son debug-export/fixtures y debug-export/output dentro del repositorio (output está en .gitignore, no se sube al repositorio).",
+      "exportFixtureComplete": "Exportación por lotes completada",
+      "exportFixtureFixturesDir": "Directorio de fixtures",
+      "exportFixtureNoFiles": "No hay archivos exportables en el directorio de fixtures (las extensiones deben ser md, json, py, vue, html, png, tex)",
+      "exportFixtureOutputDir": "Directorio de salida",
+      "exportFixtureReadDirFail": "No se puede leer el directorio de fixtures: {msg}",
+      "exportFixtureResolveFail": "No se puede analizar este archivo como un documento para exportar",
+      "exportFixtureRun": "Exportar PDF + DOCX con un clic",
+      "exportFixtureRunning": "Exportando… ({current} / {total})"
     },
     "deepseek": "DeepSeek",
     "deepseekHint": "Modelo de IA grande proporcionado oficialmente por DeepSeek, compatible con múltiples modelos.",
@@ -4310,7 +4549,47 @@
     "copyConfigSuccess": "Configuración copiada",
     "readFileFailed": "No se pudo leer el archivo",
     "resetConfigSuccess": "Restablecido al estado predefinido",
-    "resetConfigToPreset": "Restablecer al estado predefinido"
+    "resetConfigToPreset": "Restablecer al estado predefinido",
+    "builtinFreeApiKeyHint": "La clave predeterminada para el modelo gratuito integrado no admite copia y solo se proporciona para una cuota gratuita muy limitada. Se recomienda configurar tu propia clave API de LLM.",
+    "builtinFreeConfigCannotCopy": "La configuración del modelo gratuito integrado no permite copia",
+    "builtinFreeConfigCannotExport": "La configuración del modelo gratuito integrado no permite exportación",
+    "defaultConfigBuiltinFree": "Modelo gratuito (integrado)",
+    "llmApiErrorDialog": "Ventana emergente de error de la API de LLM",
+    "llmApiErrorDialogHint": "Cuando falle una llamada a la API de LLM, se mostrará un cuadro de diálogo con la configuración actual y se guiará al usuario para consultar el manual.",
+    "cleanupExpiredFiles": "Limpiar archivos caducados",
+    "cleanupExpiredHintAgentOnly": "Aquí solo afecta al espacio de trabajo actual: «Limpiar archivos caducados» limpia los archivos adjuntos de este espacio de trabajo según las reglas; el botón rojo solo vacía .metadoc/attachments, sin tocar el directorio de referencias global.",
+    "cleanupExpiredHintGlobalWithWorkspace": "«Limpiar archivos caducados» procesa los archivos globales y del espacio de trabajo según las reglas anteriores; «Vaciar toda la caché» vaciará simultáneamente el directorio de referencias global y .metadoc/attachments del espacio de trabajo actual.",
+    "cleanupExpiredHintNoWorkspace": "Elimina archivos caducados según la regla «Antes de N días» anterior; «Vaciar toda la caché» solo vacía el directorio de referencias global (actualmente no hay carpeta de espacio de trabajo, por lo que no se limpiarán los archivos adjuntos del espacio de trabajo).",
+    "cleanupExpiredSectionTitle": "Limpiar archivos caducados",
+    "clearAgentAttachmentsConfirm": "¿Seguro que quieres vaciar el directorio de archivos adjuntos del Agent en el espacio de trabajo actual? Esta acción eliminará todos los archivos en .metadoc/attachments y no se podrá deshacer.",
+    "clearAgentAttachmentsDir": "Vaciar directorio de archivos adjuntos",
+    "clearAgentAttachmentsFailed": "Error al vaciar los archivos adjuntos del espacio de trabajo",
+    "clearAgentAttachmentsSuccess": "Directorio de archivos adjuntos del espacio de trabajo vaciado",
+    "clearAgentWorkspaceOnly": "Vaciar archivos adjuntos del espacio de trabajo",
+    "clearAllReferenceCaches": "Vaciar toda la caché",
+    "clearAllReferenceCachesConfirmFull": "Se vaciará el directorio de referencias global y todos los archivos adjuntos en .metadoc/attachments del espacio de trabajo actual. Esta acción no se puede deshacer, ¿seguro que quieres continuar?",
+    "clearAllReferenceCachesConfirmGlobalOnly": "Se vaciará el directorio de referencias global (actualmente no hay espacio de trabajo, por lo que no se limpiarán los archivos adjuntos del espacio de trabajo). Esta acción no se puede deshacer, ¿seguro que quieres continuar?",
+    "clearAllReferenceCachesFailed": "Error al vaciar la caché",
+    "clearAllReferenceCachesSuccess": "Toda la caché relacionada ha sido vaciada",
+    "referenceAgentAutoPrune": "Limpieza automática de archivos adjuntos del espacio de trabajo (anteriores a)",
+    "referenceAgentNoWorkspace": "No se pueden contar ni limpiar los archivos adjuntos aquí cuando no se ha seleccionado un espacio de trabajo.",
+    "referenceAgentSection": "Archivos adjuntos del espacio de trabajo del Agent",
+    "referenceAgentSectionDesc": "Archivos adjuntos de sesión en .metadoc/attachments del espacio de trabajo actual (leídos por herramientas según la ruta).",
+    "referenceAutoPrune14d": "Hace 14 días",
+    "referenceAutoPrune180d": "Medio año (hace 180 días)",
+    "referenceAutoPrune1d": "Hace 1 día",
+    "referenceAutoPrune30d": "Hace 30 días",
+    "referenceAutoPrune365d": "Un año (hace 365 días)",
+    "referenceAutoPrune3d": "Hace 3 días",
+    "referenceAutoPrune7d": "Hace 7 días",
+    "referenceAutoPrune90d": "Hace 90 días",
+    "referenceAutoPruneOff": "Desactivado",
+    "referenceGlobalAutoPrune": "Limpieza automática (anteriores a)",
+    "referenceGlobalSection": "Directorio de referencias global",
+    "referenceGlobalSectionDesc": "Caché de referencias en el directorio de datos de la aplicación (por ejemplo, archivos temporales al analizar subidas).",
+    "referencePruneDone": "Archivos de referencia caducados limpiados según la regla",
+    "referencePruneFailed": "Error en la limpieza",
+    "referencePruneNoRule": "Por favor, establezca al menos una opción (global o del espacio de trabajo) en \"anteriores a N días\" en \"Limpieza automática\" (o use directamente \"Vaciar toda la caché\")."
   },
   "settingBasicSection": {
     "failedSize": "Error al obtener el tamaño del directorio",
@@ -4586,22 +4865,22 @@
     },
     "markdown": {
       "basic": {
-        "title": "Markdown基础语法",
-        "content": "# Markdown基础语法\n\nMetaDoc 的 Markdown 编辑器基于 [Vditor](https://b3log.org/vditor)，支持 CommonMark 和 GFM（GitHub Flavored Markdown）规范。本文档介绍 MetaDoc 中支持的 Markdown 语法。\n\n## 标题\n\n使用 `#` 表示标题，`#` 的数量表示标题级别（1-6级）：\n\n```markdown\n# 一级标题\n## 二级标题\n### 三级标题\n#### 四级标题\n##### 五级标题\n###### 六级标题\n```\n\n**最佳实践**：\n- 标题前后使用空行分隔\n- `#` 后必须加空格\n- 避免跳级（如从一级直接到三级）\n\n### Setext 标题（可选语法）\n\n也可以使用等号或短横线创建标题：\n\n```markdown\n一级标题\n========\n\n二级标题\n--------\n```\n\n注意：Setext 语法只能创建一级和二级标题，不推荐使用。\n\n## 段落\n\n使用空行分隔段落：\n\n```markdown\n这是第一段。\n\n这是第二段。\n```\n\n**最佳实践**：\n- 段落开头不要使用空格或制表符缩进\n- 段落之间使用空行分隔\n\n## 折行\n\n在行尾添加两个或更多空格后回车可以强制换行：\n\n```markdown\n这是第一行。  \n这是第二行。\n```\n\n注意：现代 Markdown 引擎通常会自动处理换行，一般不需要手动添加空格。\n\n## 文本格式\n\n### 加粗\n\n使用 `**文本**` 或 `__文本__` 表示加粗：\n\n```markdown\n这是**加粗文本**\n这是 __加粗文本__\n```\n\n**最佳实践**：推荐使用星号 `**`，因为前后可以不加空格。\n\n### 强调（斜体）\n\n使用 `*文本*` 或 `_文本_` 表示强调：\n\n```markdown\n这是*强调文本*\n这是 _强调文本_\n```\n\n### 加粗并强调\n\n使用 `***文本***` 或 `___文本___`：\n\n```markdown\n这是***加粗并强调***\n```\n\n### 删除线\n\n使用 `~~文本~~` 表示删除线：\n\n```markdown\n~~这是删除的文本~~\n```\n\n### 行内代码\n\n使用反引号包裹代码：\n\n```markdown\n使用 `console.log()` 输出内容\n```\n\n如果需要显示反引号，使用转义：`` ` ``\n\n## 列表\n\n### 无序列表\n\n使用 `-`、`*` 或 `+` 创建无序列表：\n\n```markdown\n- 项目1\n- 项目2\n  - 子项目2.1\n  - 子项目2.2\n- 项目3\n```\n\n### 有序列表\n\n使用数字后跟 `.` 或 `)` 创建有序列表：\n\n```markdown\n1. 第一项\n2. 第二项\n3. 第三项\n```\n\n注意：数字不必连续，Markdown 会自动编号。\n\n### 列表项包含其他元素\n\n列表项可以包含段落、代码块、引用等：\n\n```markdown\n- 列表项一\n- 列表项二第一段\n\n  这是第二段（注意缩进对齐）\n\n  > 这是块引用\n\n  ```\n  这是代码块\n  ```\n- 列表项三\n```\n\n## 块引用\n\n使用 `>` 创建块引用：\n\n```markdown\n> 这是引用内容\n> 可以多行\n```\n\n### 嵌套块引用\n\n```markdown\n> 第一层引用\n>\n>> 第二层引用\n```\n\n### 块引用包含其他元素\n\n块引用可以包含标题、列表、代码块等：\n\n```markdown\n> ### 标题\n>\n> - 列表项\n> - 列表项\n>\n> **加粗**和*强调*\n```\n\n## 代码块\n\n### 缩进代码块\n\n使用四个空格或一个制表符缩进：\n\n```markdown\n    这是代码块\n    可以多行\n```\n\n### 围栏代码块（推荐）\n\n使用三个反引号包裹代码，可以指定语言：\n\n````markdown\n```javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n```\n````\n\n支持语法高亮的语言包括：JavaScript、Python、Java、C++、HTML、CSS、JSON、Markdown 等。\n\n## 链接\n\n### 行内链接\n\n```markdown\n[链接文本](https://example.com)\n[链接文本](https://example.com \"链接标题\")\n```\n\n### 引用风格链接\n\n```markdown\n[链接文本][链接标识]\n\n[链接标识]: https://example.com \"可选标题\"\n```\n\n### 自动链接\n\n```markdown\n<https://example.com>\n<email@example.com>\n```\n\n大部分 Markdown 引擎也支持自动识别 URL：\n\n```markdown\nhttps://example.com\n```\n\n**最佳实践**：中文后跟 URL 时，建议使用空格分隔或尖括号包裹，避免识别错误。\n\n## 图片\n\n```markdown\n![图片描述](image.png)\n![图片描述](image.png \"图片标题\")\n```\n\n### 图片嵌套链接\n\n```markdown\n[![图片描述](image.png)](https://example.com)\n```\n\n## 表格\n\n使用竖线 `|` 分隔列，短横线 `---` 分隔表头：\n\n```markdown\n| 列1 | 列2 | 列3 |\n|-----|-----|-----|\n| 数据1 | 数据2 | 数据3 |\n| 数据4 | 数据5 | 数据6 |\n```\n\n### 表格对齐\n\n```markdown\n| 左对齐 | 居中 | 右对齐 |\n|:-------|:----:|-------:|\n| 数据1  | 数据2 |   数据3 |\n```\n\n### 表格内容排版\n\n表格中可以包含加粗、强调、链接等行级元素：\n\n```markdown\n| 列1 | 列2 |\n|-----|-----|\n| **粗体** | [链接](url) |\n```\n\n注意：表格中不能使用块级元素（标题、列表、代码块等）。\n\n## 分隔线\n\n使用三个或更多 `*`、`-` 或 `_` 创建分隔线：\n\n```markdown\n***\n---\n___\n```\n\n## 转义字符\n\n使用反斜杠 `\\` 转义特殊字符：\n\n```markdown\n\\* 星号\n\\` 反引号\n\\# 井号\n\\[ 方括号\n\\( 圆括号\n```\n\n## HTML 支持\n\nMarkdown 支持内嵌 HTML：\n\n```html\n<div style=\"color: red;\">红色文本</div>\n```\n\n**注意**：\n- 某些 Markdown 引擎可能过滤部分 HTML 标签或属性\n- HTML 中不能嵌套 Markdown 语法\n- 建议尽量使用 Markdown 语法而非 HTML"
+        "title": "Sintaxis básica de Markdown",
+        "content": "# Sintaxis básica de Markdown"
       },
       "advanced": {
-        "title": "Markdown高级特性",
+        "title": "Funciones avanzadas de Markdown",
         "content": "# Características avanzadas de Markdown"
       }
     },
     "navigation": {
-      "core": "核心操作",
-      "markdown": "Markdown教学",
-      "latex": "LaTeX教学",
-      "charts": "图表绘制",
-      "ai": "AI工具",
-      "agent": "Agent使用",
-      "design": "设计理念"
+      "core": "Operaciones principales",
+      "markdown": "Enseñanza de Markdown",
+      "latex": "Tutorial de LaTeX",
+      "charts": "Dibujo de gráficos",
+      "ai": "Herramientas de IA",
+      "agent": "Uso de Agent",
+      "design": "Concepto de diseño"
     },
     "overview": {
       "title": "Resumen",
@@ -4728,9 +5007,11 @@
     "sidebar": {
       "recommendedList": "Aprendizaje recomendado",
       "onlyRecommended": "Mostrar solo la ruta recomendada",
-      "onlyRecommendedTip": "Al desactivar, se muestra el índice completo del manual"
+      "onlyRecommendedTip": "Al desactivar, se muestra el índice completo del manual",
+      "learningPathTooltip": "Ver tu progreso de aprendizaje y la ruta de aprendizaje recomendada"
     },
-    "title": "Manual del usuario"
+    "title": "Manual del usuario",
+    "exportPureMarkdown": "Exportar Markdown puro"
   },
   "userProfile": {
     "account": "Cuenta",
@@ -4810,7 +5091,14 @@
     "expand": "Expandir",
     "metaInfo": "Metainformación",
     "workspace": "Espacio de trabajo",
-    "workspaceGrep": "Búsqueda en el espacio de trabajo"
+    "workspaceGrep": "Búsqueda en el espacio de trabajo",
+    "documentOutline": "Esquema del documento",
+    "outlineDocSearchPlaceholder": "Buscar en este documento…",
+    "outlineFilterPlaceholder": "Filtrar títulos del documento actual…",
+    "outlineSearchDocStart": "Inicio del documento",
+    "outlineSearchHint": "Introduce palabras clave; los resultados se agruparán por secciones del esquema.",
+    "outlineSearchNeedMarkdown": "Abre y enfoca un documento Markdown para buscar dentro de él.",
+    "outlineSearchNoHeading": "Cuerpo del texto"
   },
   "visualize": {
     "articleOutline": "Esquema del artículo",
@@ -4905,7 +5193,8 @@
     "renameSuccess": "Renombrado correctamente",
     "selectFolder": "Seleccionar carpeta de trabajo",
     "title": "Directorio de trabajo",
-    "moveFailed": "Error al mover"
+    "moveFailed": "Error al mover",
+    "openWorkspaceDialogTitle": "Abrir espacio de trabajo — Seleccionar carpeta (se cerrará el espacio de trabajo actual y se reemplazará con la carpeta seleccionada)"
   },
   "workspaceGrep": {
     "activeWorkspaceCount": "{count} espacios de trabajo abiertos",
@@ -4969,5 +5258,37 @@
   "D -": "E[Cerrar pestaña]",
   "A": ">B: Solicitud",
   "B-": ">A: Respuesta",
-  "A[Nuevo documento] -": "B[Abrir documento]"
+  "A[Nuevo documento] -": "B[Abrir documento]",
+  "selectionTranslate": {
+    "cannotLocateRange": "No se puede localizar la selección. Por favor, inténtalo de nuevo.",
+    "failed": "Error en la traducción",
+    "noSelection": "Selecciona primero el texto que quieres traducir",
+    "replaceSelection": "Reemplazar texto seleccionado",
+    "sourceLabel": "Texto original",
+    "targetLanguage": "Idioma de destino",
+    "targetLanguagePlaceholder": "Selecciona o introduce un idioma de destino",
+    "title": "Traducir texto seleccionado",
+    "translate": "Traducir",
+    "translating": "Traduciendo…",
+    "translationLabel": "Traducción"
+  },
+  "llmErrorDialog": {
+    "apiKey": "Clave de API",
+    "apiKeyBuiltinHidden": "(Clave integrada oculta)",
+    "apiKeyEmpty": "(No completada)",
+    "baseUrl": "URL base",
+    "builtinFreeIntro": "Actualmente estás usando la configuración gratuita del modelo integrada en MetaDoc.",
+    "builtinFreeQuotaHint": "Esta cuota gratuita es muy limitada y puede ser limitada o agotada en cualquier momento. Se recomienda configurar tu propia Clave de API de LLM lo antes posible.",
+    "configType": "Tipo",
+    "currentConfig": "Configuración actual de LLM",
+    "dontShowAgain": "No mostrar de nuevo",
+    "errorDetails": "Información del error",
+    "errorType": "Tipo de error",
+    "learnHowToConfigure": "Ver tutorial de configuración",
+    "message": "Mensaje",
+    "model": "Modelo",
+    "originalException": "Excepción original (expandir para ver)",
+    "title": "Error en la llamada LLM",
+    "titleBuiltinFree": "Modelo gratuito temporalmente no disponible"
+  }
 }

@@ -49,7 +49,8 @@
       "tools": "啟用工具 {count} 個",
       "references": "有 {count} 個引用",
       "referencesTooltip": "點擊管理引用",
-      "none": "請選擇或建立一個會話以開始對話。"
+      "none": "請選擇或建立一個會話以開始對話。",
+      "openToolsDialog": "點擊查看可用工具列表"
     },
     "copy": "複製",
     "demoSession1": "程式碼審查工作階段",
@@ -372,7 +373,15 @@
         "error": "工作區檔案讀取失敗",
         "matchCount": "匹配 {count} 項",
         "searchResultsTitle": "模糊搜尋: 「{query}」",
-        "searching": "正在模糊搜尋…"
+        "searching": "正在模糊搜尋…",
+        "targetPath": "目標路徑",
+        "truncated": "已截斷",
+        "directoryListing": "目錄列表",
+        "directoryListingsCount": "{count} 個目錄列表",
+        "entries": "項",
+        "message": "說明",
+        "operationsCount": "{count} 項操作",
+        "operationsTitle": "檔案/目錄操作結果"
       },
       "edit": {
         "completed": "編輯完成",
@@ -544,7 +553,9 @@
         "injectTimestampHint": "啟用後，每次使用此配置建立Agent實例時，會在系統提示詞前自動加入目前時間戳記資訊",
         "isSubagent": "作為 Subagent",
         "isSubagentLabel": "作為 Subagent（僅主 Agent 可呼叫）",
-        "isSubagentHint": "勾選後，此配置會像工具一樣暴露給主 Agent，主 Agent 可透過工具呼叫並發執行 Subagent 完成子任務。預設 Agent 配置不可設為 Subagent。"
+        "isSubagentHint": "勾選後，此配置會像工具一樣暴露給主 Agent，主 Agent 可透過工具呼叫並發執行 Subagent 完成子任務。預設 Agent 配置不可設為 Subagent。",
+        "setAsDefault": "設為預設",
+        "setAsDefaultSuccess": "已設為新建會話的預設配置"
       },
       "agentEngine": {
         "title": "Agent引擎管理",
@@ -593,7 +604,110 @@
         "validationWarnings": "引擎驗證警告",
         "validationFailed": "引擎驗證失敗",
         "confirmDelete": "確定要刪除引擎「{name}」嗎？"
-      }
+      },
+      "capabilities": {
+        "title": "規則、技能與 MCP 工具",
+        "titleMcp": "MCP 工具管理",
+        "titleRules": "規則管理",
+        "titleSkills": "技能管理",
+        "activate": "啟用",
+        "addRule": "新增規則",
+        "aiAssistCreate": "讓 AI 輔助建立",
+        "aiSessionTitleRule": "新增規則（AI）",
+        "aiSessionTitleSkill": "新增技能（AI）",
+        "applyMetadataToDoc": "將表單寫入正文（更新 frontmatter）",
+        "approve": "核准",
+        "colApproval": "審批",
+        "colDescription": "描述",
+        "colEnabled": "啟用",
+        "colFolder": "目錄",
+        "colName": "名稱",
+        "colPermission": "權限",
+        "colPriority": "優先級",
+        "colScope": "範圍",
+        "colServer": "伺服器",
+        "colStatus": "狀態",
+        "colTitle": "標題",
+        "colTool": "工具",
+        "confirmDeleteRule": "確定刪除規則「{title}」嗎？",
+        "confirmDeleteSkill": "確定刪除技能「{name}」嗎？將刪除整個技能目錄（含 SKILL.md）。",
+        "editRule": "編輯規則",
+        "editSkill": "編輯技能",
+        "loadFailed": "載入失敗",
+        "mcpActiveUrl": "目前連線",
+        "mcpAddConnection": "新增連線",
+        "mcpBaseUrl": "連線地址 (URL)",
+        "mcpConfigColMessage": "訊息",
+        "mcpConfigColServer": "服務",
+        "mcpConfigColStatus": "狀態",
+        "mcpConfigColTools": "工具數",
+        "mcpConfigExport": "匯出 JSON",
+        "mcpConfigImport": "匯入 JSON",
+        "mcpConfigIntro": "使用單一 JSON 設定檔（與 Cursor / Claude Desktop 風格一致）：頂層為 mcpServers，每項為 stdio（command + args）或 HTTP（url）。編輯後自動儲存。點擊「同步」會連線各服務並更新本機註冊表：設定中已刪除的服務會移除其工具，連線成功的服務會按遠端列表增刪工具。左側為設定編輯器，右側為已註冊工具樹；點擊工具名稱可查看詳情。",
+        "mcpConfigPath": "設定檔路徑",
+        "mcpConfigProbe": "檢查連通性",
+        "mcpConfigProbeDone": "連通性檢查完成",
+        "mcpConfigProbeFailed": "連通性檢查失敗",
+        "mcpConfigProbeTitle": "連通性結果",
+        "mcpConfigSaveFailed": "自動儲存失敗",
+        "mcpConfigSavedAt": "已自動儲存（{time}）",
+        "mcpConfigStatusFail": "失敗",
+        "mcpConfigStatusOk": "正常",
+        "mcpConfigStructureErrors": "配置結構校驗未通過",
+        "mcpConfigSyncDone": "已同步 {n} 個工具到註冊表",
+        "mcpConfigSyncTools": "同步工具到庫",
+        "mcpConnections": "MCP 連線",
+        "mcpDeleteConnection": "刪除",
+        "mcpEditConnection": "編輯 MCP 連線",
+        "mcpHint": "下列條目由 MCP 適配層註冊（syncMcpToolsToRegistry）。未連接 MCP 時列表可能為空。",
+        "mcpLabel": "顯示名稱",
+        "mcpRefreshTools": "重新整理工具列表",
+        "mcpSaveConnection": "儲存",
+        "mcpSetActive": "設為目前",
+        "mcpSyncButton": "同步",
+        "mcpSyncPartial": "已寫入 {n} 個工具；以下服務連線或拉取失敗：{servers}",
+        "mcpSyncUnknownServer": "（未知）",
+        "mcpToolDetailInputSchema": "輸入 JSON Schema",
+        "mcpToolsTreeEmpty": "暫無已註冊工具。請編輯左側配置後點擊「同步」。",
+        "mcpToolsTreeHint": "已註冊工具（按 MCP 服務分組；點擊工具名稱查看詳情）",
+        "menuMcp": "MCP 工具管理",
+        "menuRules": "規則管理",
+        "menuSkills": "技能管理",
+        "menuTitle": "規則 / 技能 / MCP 管理",
+        "newSkill": "新建技能",
+        "noWorkspace": "請先新增工作區資料夾，以便掃描 .metadoc/skills",
+        "openFolderFailed": "無法開啟資料夾",
+        "openSkillFolder": "在檔案總管中開啟",
+        "priorityHint": "範圍 0–100，數字越大優先級越高（越先注入系統提示）。新建時預設 90。",
+        "refresh": "重新整理",
+        "refreshSkillsList": "重新整理列表（先同步磁碟）",
+        "reject": "拒絕",
+        "ruleContent": "規則正文",
+        "saveFailed": "操作失敗",
+        "saveOk": "已儲存",
+        "skillDescription": "描述（frontmatter）",
+        "skillDraft": "草稿（draft）",
+        "skillEntry": "入口檔案",
+        "skillFolder": "技能目錄名稱",
+        "skillFolderPlaceholder": "例如 my-skill",
+        "skillReadFailed": "無法讀取 SKILL.md",
+        "skillSavedReindexed": "已儲存並更新索引與向量",
+        "skillTags": "標籤",
+        "skillTagsHint": "逗號分隔，如 a, b",
+        "skillWorkspace": "工作區根目錄",
+        "skillsDbOnly": "僅載入資料庫",
+        "skillsRefreshHint": "「重新整理」會先同步磁碟上的 .metadoc/skills，再載入資料庫中的技能列表。",
+        "syncDone": "已掃描 {scanned} 個技能目錄，更新向量 {upserted} 條",
+        "syncFormFromEditor": "從正文同步到表單",
+        "syncMetaFromBody": "根據下方正文更新表單",
+        "syncMetaFromForm": "根據上方表單更新正文",
+        "syncMetaMenu": "同步元資訊",
+        "syncSkills": "從工作區同步技能索引",
+        "tabMcp": "MCP 工具",
+        "tabRules": "規則",
+        "tabSkills": "技能"
+      },
+      "settingsMenu": "Agent 設定"
     },
     "message": {
       "edit": "編輯",
@@ -614,7 +728,8 @@
       "noToolsNeeded": "此請求無需工具。",
       "reasoning": "推理：",
       "confirmRegenerate": "重新生成將刪除此訊息之後的所有內容（包括 AI 回覆、工具呼叫、意圖識別等），並基於此則使用者訊息重新產生。是否繼續？",
-      "confirmRegenerateTitle": "確認重新生成"
+      "confirmRegenerateTitle": "確認重新生成",
+      "reasoningBlock": "思考過程"
     },
     "attachment": {
       "untitled": "未命名"
@@ -743,7 +858,8 @@
         "cancelRequestFailed": "傳送取消請求失敗"
       },
       "workspaceDirs": "工作區目錄",
-      "directory": "目錄"
+      "directory": "目錄",
+      "removeFromComposer": "移除附件"
     },
     "retry": "重試",
     "roles": {
@@ -1000,7 +1116,41 @@
       "workspace": {
         "description": "讀取工作區檔案、按路徑/名稱模糊搜尋或列出根目錄",
         "name": "工作區檔案讀取"
+      },
+      "create_dynamic_rule": {
+        "description": "向應用資料庫插入動態 Agent 規則（寫入系統提示），請勿使用工作區檔案代替",
+        "name": "建立動態規則"
+      },
+      "create_workspace_skill": {
+        "description": "寫入 .metadoc/skills/<目錄>/SKILL.md 並立即入庫與 embedding",
+        "name": "建立工作區技能"
+      },
+      "load_skill": {
+        "description": "依 skillId 載入已啟動技能的完整 SKILL.md 內文",
+        "name": "載入技能"
+      },
+      "search_skill": {
+        "description": "在工作區 .metadoc/skills 下對已啟動技能進行向量檢索，僅傳回摘要",
+        "name": "技能檢索"
+      },
+      "sync_workspace_skills": {
+        "description": "掃描各工作區 .metadoc/skills 並更新 SQLite 與向量（active 技能）",
+        "name": "同步工作區技能索引"
+      },
+      "update_dynamic_rule": {
+        "description": "依 ruleId 更新現有動態規則的標題、內文或優先順序",
+        "name": "更新動態規則"
       }
+    },
+    "jsonExplorer": {
+      "json": "JSON",
+      "nonJsonHint": "無法解析為 JSON，以下為原文",
+      "tree": "樹狀"
+    },
+    "selectionRef": {
+      "chipLabel": "選區：{detail}",
+      "noSession": "無法新增：請先設定 Agent。",
+      "unknown": "選區（無效）"
     }
   },
   "agent-engine-executor": {
@@ -1076,7 +1226,13 @@
     "queueSendTooltip": "加入待傳送佇列",
     "sendTooltip": "傳送訊息",
     "today": "今天",
-    "yesterday": "昨天"
+    "yesterday": "昨天",
+    "deselectAll": "取消全選",
+    "insertingToManyDocuments": "正在插入到 {n} 個文件...",
+    "pickDocToInsert": "請選擇要插入的文件",
+    "reasoningToggleTooltip": "深度思考",
+    "selectAll": "全選",
+    "selectedDocCount": "已選擇 {n} 個文件"
   },
   "aiSuggestion": {
     "accept": "接受建議",
@@ -1550,7 +1706,13 @@
     "saveLog": "儲存日誌",
     "title": "終端輸出",
     "cdFailed": "無法切換目錄",
-    "invalidArgument": "無效的參數"
+    "invalidArgument": "無效的參數",
+    "closeSession": "關閉工作階段",
+    "compileSessionLimit": "保留編譯資訊",
+    "newSession": "新增工作階段",
+    "scrollToNextCommand": "捲動至下一條指令",
+    "scrollToPreviousCommand": "捲動至上一條指令",
+    "shell": "Shell"
   },
   "selectionTranslate": {
     "title": "翻譯選取文字",
@@ -1581,7 +1743,9 @@
     "selectAll": "全選",
     "triggerAutoCompletion": "手動觸發AI補全",
     "translateSelection": "翻譯選取內容",
-    "undo": "復原"
+    "undo": "復原",
+    "addSelectionToAgent": "添加到 Agent 對話",
+    "generateIllustrationFromSelection": "生成插圖"
   },
   "data-analysis-tool": {
     "analyze": "資料分析",
@@ -1722,6 +1886,30 @@
       "texToTex": {
         "name": "LaTeX 轉 LaTeX",
         "description": "匯出 LaTeX 文件"
+      },
+      "texToDocx": {
+        "description": "將 LaTeX 轉為 Markdown 後匯出 DOCX",
+        "name": "LaTeX 轉 DOCX"
+      },
+      "texToHtml": {
+        "description": "將 LaTeX 轉為 Markdown 後匯出 HTML",
+        "name": "LaTeX 轉 HTML"
+      },
+      "txtToDocx": {
+        "description": "將純文字或程式碼轉為 Markdown 後匯出 DOCX",
+        "name": "純文字轉 DOCX"
+      },
+      "txtToHtml": {
+        "description": "將純文字或程式碼轉為 Markdown 後匯出 HTML",
+        "name": "純文字轉 HTML"
+      },
+      "txtToMd": {
+        "description": "將純文字或程式碼匯出為 Markdown",
+        "name": "純文字轉 Markdown"
+      },
+      "txtToPdf": {
+        "description": "將純文字或程式碼轉為 Markdown 後匯出 PDF",
+        "name": "純文字轉 PDF"
       }
     },
     "options": {
@@ -1921,7 +2109,13 @@
         "label": "圖片",
         "description": "圖片預設名稱（當圖片沒有名稱時使用）"
       }
-    }
+    },
+    "taskCancel": "中斷",
+    "taskPhaseDone": "已完成",
+    "taskPhaseFailed": "失敗",
+    "taskPhasePickPath": "選擇儲存位置…",
+    "taskPhasePreparing": "正在預處理…",
+    "taskTitle": "匯出任務"
   },
   "focusMode": {
     "enterTooltip": "進入專注模式",
@@ -2009,36 +2203,36 @@
     "undo": "復原"
   },
   "graph": {
-    "analyzingIntent": "分析意图中...",
+    "analyzingIntent": "分析意圖中...",
     "assistant": "助手",
-    "chartType": "图表类型",
-    "renderFailed": "渲染失败",
-    "conversationMode": "对话模式",
-    "defaultTitle": "新绘图会话",
-    "engine": "绘图引擎",
-    "export": "导出",
-    "exportSuccess": "导出成功",
-    "generate": "生成",
-    "generateSuccess": "生成成功",
-    "generated": "图表已生成",
-    "generatedImage": "生成的图片",
-    "generating": "生成中...",
-    "inputPlaceholder": "输入绘图需求，AI会自动选择合适的图表引擎...",
-    "newSession": "新建会话",
-    "noChart": "没有可导出的图表",
-    "noOptimizePrompt": "请输入优化需求",
-    "noPrompt": "请输入绘图需求",
-    "noSessionSelected": "请选择一个会话或创建新会话",
-    "optimize": "优化图片",
-    "optimizeOnlyInConversation": "优化功能仅在对话模式下可用",
-    "optimizePrompt": "基于以下对话历史，优化图片：",
-    "outputFormat": "输出格式",
-    "renamePlaceholder": "请输入会话名称",
-    "renameTitle": "重命名会话",
-    "sessionsTitle": "绘图会话",
-    "simpleMode": "简单模式",
-    "user": "用户",
-    "userRequest": "用户新需求",
+    "chartType": "圖表類型",
+    "renderFailed": "轉譯失敗",
+    "conversationMode": "對話模式",
+    "defaultTitle": "新繪圖會話",
+    "engine": "繪圖引擎",
+    "export": "匯出",
+    "exportSuccess": "匯出成功",
+    "generate": "產生",
+    "generateSuccess": "產生成功",
+    "generated": "圖表已產生",
+    "generatedImage": "產生的圖片",
+    "generating": "產生中...",
+    "inputPlaceholder": "輸入繪圖需求，AI會自動選擇合適的圖表引擎...",
+    "newSession": "新增會話",
+    "noChart": "沒有可匯出的圖表",
+    "noOptimizePrompt": "請輸入優化需求",
+    "noPrompt": "請輸入繪圖需求",
+    "noSessionSelected": "請選擇一個會話或建立新會話",
+    "optimize": "優化圖片",
+    "optimizeOnlyInConversation": "優化功能僅在對話模式下可用",
+    "optimizePrompt": "基於以下對話歷史，優化圖片：",
+    "outputFormat": "輸出格式",
+    "renamePlaceholder": "請輸入會話名稱",
+    "renameTitle": "重新命名會話",
+    "sessionsTitle": "繪圖會話",
+    "simpleMode": "簡易模式",
+    "user": "使用者",
+    "userRequest": "使用者新需求",
     "analyzingIntent:": "分析意圖中...",
     "assistant:": "助手",
     "chartType:": "圖表類型",
@@ -2320,6 +2514,18 @@
       "p98": "🍜 幫我寫一週備餐meal prep思路",
       "p99": "🎓 幫我寫開題報告常見結構說明",
       "p100": "🌙 幫我寫番茄工作法一天的日程範例"
+    },
+    "suggestion": {
+      "apiDocumentation": "API 文件",
+      "blogPost": "部落格文章",
+      "meetingMinutes": "會議記錄",
+      "productIntroduction": "產品介紹",
+      "projectSummary": "專案總結",
+      "releaseNotes": "版本說明",
+      "researchOutline": "研究大綱",
+      "technicalTutorial": "技術教學",
+      "userGuide": "使用指南",
+      "weeklyReport": "週報"
     }
   },
   "knowledgeBase": {
@@ -3786,7 +3992,8 @@
         "zoomOut": "縮小",
         "zoomReset": "重置縮放",
         "toggleFocusMode": "切換專注模式"
-      }
+      },
+      "keyBindings": "按鍵設定"
     },
     "cancel": "取消",
     "cannotCreateManualConfig": "不能建立手動類型的設定，手動類型僅用於開發模式",
@@ -4097,7 +4304,17 @@
       "errorLabel": "錯誤: {msg}",
       "toolLabel": "工具: {id}",
       "chooseExportRootDir": "選擇匯出根目錄",
-      "newVersionFoundShort": "發現新版本"
+      "newVersionFoundShort": "發現新版本",
+      "exportFixtureBatch": "批次匯出測試",
+      "exportFixtureBatchIntro": "從「範例目錄」掃描 md / json / py / vue / html / png / tex 檔案，逐一按照與主介面相同的匯出流程產生 PDF 與 DOCX。每個來源檔案對應「輸出目錄」下以完整檔名（含副檔名）命名的子資料夾，例如 sample.vue、sample.py，避免同名但副檔名不同的檔案互相覆蓋。預設路徑為儲存庫內的 debug-export/fixtures 與 debug-export/output（output 已在 .gitignore 中，不會提交至儲存庫）。",
+      "exportFixtureComplete": "批次匯出完成",
+      "exportFixtureFixturesDir": "範例目錄",
+      "exportFixtureNoFiles": "範例目錄下沒有可匯出的檔案（副檔名需為 md、json、py、vue、html、png、tex）",
+      "exportFixtureOutputDir": "輸出目錄",
+      "exportFixtureReadDirFail": "無法讀取範例目錄：{msg}",
+      "exportFixtureResolveFail": "無法將此檔案解析為匯出文件",
+      "exportFixtureRun": "一鍵匯出 PDF + DOCX",
+      "exportFixtureRunning": "匯出中… ({current} / {total})"
     },
     "deepseek": "DeepSeek",
     "deepseekHint": "DeepSeek官方提供的AI大模型，支援多種模型",
@@ -4314,7 +4531,7 @@
     "openai": "OpenAI相容 API",
     "openaiApiUrl": "輸入相容OpenAI規範的 API 位址",
     "openaiHint": "任何相容OpenAI API標準的外部大模型，均可相容",
-    "openaiOfficial": "OpenAI官方 API",
+    "openaiOfficial": "OpenAI官方API",
     "openaiOfficialHint": "OpenAI官方提供的API，支援多種模型",
     "overwriteConfigConfirm": "設定名稱「{name}」已存在，是否覆蓋？",
     "overwriteConfigTitle": "確認覆蓋",
@@ -4407,7 +4624,13 @@
     "copyConfigSuccess": "已複製配置",
     "readFileFailed": "無法讀取檔案",
     "resetConfigSuccess": "已重設為預製狀態",
-    "resetConfigToPreset": "重設為預製狀態"
+    "resetConfigToPreset": "重設為預製狀態",
+    "builtinFreeApiKeyHint": "內建免費模型的預設 Key 不支援複製，僅用於極少量的免費額度。建議配置你自己的 LLM API Key。",
+    "builtinFreeConfigCannotCopy": "內建免費模型設定不允許複製",
+    "builtinFreeConfigCannotExport": "內建免費模型設定不允許匯出",
+    "defaultConfigBuiltinFree": "免費模型（內建）",
+    "llmApiErrorDialog": "LLM 報錯彈窗",
+    "llmApiErrorDialogHint": "當 LLM API 呼叫失敗時，彈出對話方塊展示目前配置並引導查看手冊。"
   },
   "settingBasicSection": {
     "failedSize": "取得目錄大小失敗",
@@ -4678,7 +4901,7 @@
         "title": "LaTeX基礎"
       },
       "advanced": {
-        "content": "# LaTeX进阶\n\n## Tectonic 编译器特性\n\nMetaDoc 使用 **Tectonic** 作为 LaTeX 编译器，这是一个现代化的 LaTeX 编译引擎，具有以下特性：\n\n### 自动宏包管理\n\nTectonic 会自动从 CTAN（Comprehensive TeX Archive Network）下载所需的宏包，您无需手动安装或配置任何宏包。只需在文档中使用 `\\usepackage{}` 命令，Tectonic 会在编译时自动处理。\n\n```latex\n\\usepackage{amsmath}      % 数学公式\n\\usepackage{graphicx}     % 图片插入\n\\usepackage{hyperref}     % 超链接\n\\usepackage{listings}     % 代码块\n```\n\n### 支持的宏包\n\nTectonic 支持大部分常用的 LaTeX 宏包，包括：\n\n**数学相关**：\n- `amsmath`, `amssymb`, `amsthm`：数学符号和定理环境\n- `mathtools`：数学工具扩展\n- `bm`：粗体数学符号\n\n**图片和表格**：\n- `graphicx`：图片插入\n- `booktabs`：专业表格\n- `longtable`：跨页表格\n- `tabularx`：自动宽度表格\n\n**代码和算法**：\n- `listings`：代码高亮\n- `algorithm2e`：算法伪代码\n- `minted`：高级代码高亮（需要 Python）\n\n**参考文献**：\n- `natbib`：参考文献管理\n- `biblatex`：现代参考文献系统\n\n**其他常用宏包**：\n- `hyperref`：超链接和 PDF 书签\n- `geometry`：页面布局\n- `fancyhdr`：页眉页脚\n- `titlesec`：标题格式\n- `xcolor`：颜色支持\n- `tikz`：绘图（基础支持）\n\n### 不支持的宏包或功能\n\n由于 Tectonic 的设计理念，某些功能可能不完全支持：\n\n- ❌ 某些需要特殊 TeX 引擎的宏包（如 XeTeX/LuaTeX 专用宏包）\n- ❌ 某些需要外部程序的宏包（如 `minted` 需要 Python）\n- ❌ 某些非常老的或非标准的宏包\n\n如果遇到不支持的宏包，Tectonic 会显示明确的错误信息。\n\n## 宏包使用\n\n### 基本用法\n\n```latex\n\\usepackage{宏包名}\n```\n\n### 带选项的宏包\n\n```latex\n\\usepackage[选项1,选项2]{宏包名}\n```\n\n示例：\n\n```latex\n\\usepackage[utf8]{inputenc}           % UTF-8 编码\n\\usepackage[T1]{fontenc}             % T1 字体编码\n\\usepackage[margin=2cm]{geometry}    % 页面边距\n\\usepackage[colorlinks=true]{hyperref}  % 彩色超链接\n```\n\n## 数学公式进阶\n\n### 多行公式对齐\n\n```latex\n\\begin{align}\nf(x) &= ax^2 + bx + c \\\\\n     &= a(x^2 + \\frac{b}{a}x) + c \\\\\n     &= a(x + \\frac{b}{2a})^2 + c - \\frac{b^2}{4a}\n\\end{align}\n```\n\n### 矩阵\n\n```latex\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\n\\begin{bmatrix}\n1 & 2 & 3 \\\\\n4 & 5 & 6\n\\end{bmatrix}\n\n\\begin{vmatrix}\na & b \\\\\nc & d\n\\end{vmatrix}\n```\n\n### 分段函数\n\n```latex\nf(x) = \\begin{cases}\nx^2 & \\text{如果 } x \\geq 0 \\\\\n-x^2 & \\text{如果 } x < 0\n\\end{cases}\n```\n\n### 定理环境\n\n```latex\n\\usepackage{amsthm}\n\n\\theoremstyle{definition}\n\\newtheorem{definition}{定义}\n\n\\theoremstyle{theorem}\n\\newtheorem{theorem}{定理}\n\\newtheorem{lemma}{引理}\n\n\\begin{definition}\n这是定义内容。\n\\end{definition}\n\n\\begin{theorem}\n这是定理内容。\n\\end{theorem}\n```\n\n## 参考文献管理\n\n### 使用 BibTeX\n\n1. 创建 `.bib` 文件（如 `references.bib`）：\n\n```bibtex\n@article{einstein1905,\n  title={On the electrodynamics of moving bodies},\n  author={Einstein, Albert},\n  journal={Annalen der Physik},\n  volume={17},\n  year={1905}\n}\n\n@book{knuth1984,\n  title={The TeXbook},\n  author={Knuth, Donald E.},\n  year={1984},\n  publisher={Addison-Wesley}\n}\n```\n\n2. 在 LaTeX 文档中引用：\n\n```latex\n\\bibliographystyle{plain}\n\\bibliography{references}\n```\n\n3. 在正文中引用：\n\n```latex\n如文献\\cite{einstein1905}所述...\n```\n\n### 使用 biblatex（推荐）\n\n```latex\n\\usepackage[style=numeric]{biblatex}\n\\addbibresource{references.bib}\n\n在正文中引用：\\cite{einstein1905}\n\n\\printbibliography\n```\n\n## 自定义命令和环境\n\n### 自定义命令\n\n```latex\n\\newcommand{\\R}{\\mathbb{R}}\n\\newcommand{\\N}{\\mathbb{N}}\n\\newcommand{\\Z}{\\mathbb{Z}}\n\n\\newcommand{\\abs}[1]{\\left|#1\\right|}\n\\newcommand{\\norm}[1]{\\left\\|#1\\right\\|}\n```\n\n使用：\n\n```latex\n$\\R, \\N, \\Z$\n$\\abs{x}, \\norm{\\mathbf{v}}$\n```\n\n### 自定义环境\n\n```latex\n\\newenvironment{myenv}\n  {\\begin{quote}\\itshape}\n  {\\end{quote}}\n```\n\n使用：\n\n```latex\n\\begin{myenv}\n这是自定义环境的内容。\n\\end{myenv}\n```\n\n## 页面布局\n\n### 使用 geometry 宏包\n\n```latex\n\\usepackage[margin=2.5cm,a4paper]{geometry}\n```\n\n选项：\n- `margin=2.5cm`：四周边距\n- `left=3cm, right=2cm`：左右边距\n- `top=3cm, bottom=2cm`：上下边距\n- `a4paper, letterpaper`：纸张大小\n\n### 页眉页脚\n\n```latex\n\\usepackage{fancyhdr}\n\n\\pagestyle{fancy}\n\\fancyhf{}\n\\fancyhead[L]{左侧页眉}\n\\fancyhead[R]{右侧页眉}\n\\fancyfoot[C]{页脚}\n```\n\n## 超链接和 PDF 书签\n\n```latex\n\\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}\n\n\\href{https://example.com}{链接文本}\n\\url{https://example.com}\n\\email{email@example.com}\n```\n\n## 代码高亮\n\n### 使用 listings 宏包\n\n```latex\n\\usepackage{listings}\n\\usepackage{xcolor}\n\n\\lstset{\n  language=Python,\n  basicstyle=\\ttfamily,\n  keywordstyle=\\color{blue},\n  commentstyle=\\color{green},\n  stringstyle=\\color{red}\n}\n\n\\begin{lstlisting}\ndef hello():\n    print('Hello, World!')\n\\end{lstlisting}\n```\n\n## 编译和调试\n\n### 编译流程\n\nMetaDoc 使用 Tectonic 进行编译，编译流程如下：\n\n1. **解析文档**：Tectonic 解析 `.tex` 文件\n2. **下载宏包**：自动从 CTAN 下载所需的宏包\n3. **编译**：生成 PDF 文件\n4. **错误处理**：如果编译失败，显示详细的错误信息\n\n### 常见错误\n\n**未定义的命令**：\n```\n! Undefined control sequence.\n```\n解决方法：检查命令拼写，确保已加载相应的宏包。\n\n**缺失的宏包**：\n```\n! LaTeX Error: File 'xxx.sty' not found.\n```\n解决方法：Tectonic 会自动下载，如果失败，检查宏包名称是否正确。\n\n**数学模式错误**：\n```\n! Missing $ inserted.\n```\n解决方法：检查数学公式是否正确使用 `$` 或数学环境。\n\n### 调试技巧\n\n1. **查看日志**：编译错误会在编辑器的控制台中显示\n2. **定位错误**：错误信息会显示行号和列号\n3. **逐步编译**：可以先注释掉部分内容，逐步排查问题\n4. **检查语法**：确保所有命令和环境都正确闭合\n\n## 性能优化\n\n### 编译速度\n\nTectonic 的编译速度通常比传统 TeX 发行版更快，但如果文档很大或包含很多图片，编译可能需要一些时间。\n\n优化建议：\n- 使用 `\\includeonly{}` 只编译部分章节\n- 临时注释掉大型图片或表格\n- 使用 `\\nofiles` 减少辅助文件生成\n\n## 总结\n\nMetaDoc 的 LaTeX 编辑器基于 Tectonic 编译器，支持标准的 LaTeX 语法和大部分常用宏包。Tectonic 会自动管理宏包，您无需手动下载或配置。如果遇到不支持的宏包或功能，编辑器会显示明确的错误信息，帮助您快速定位和解决问题。\n\n更多信息请参考：\n- [Tectonic 官方文档](https://tectonic-typesetting.github.io/)\n- [LaTeX 官方文档](https://www.latex-project.org/)\n- [CTAN 宏包仓库](https://www.ctan.org/)",
+        "content": "# LaTeX進階",
         "title": "LaTeX進階"
       }
     },
@@ -4909,7 +5132,14 @@
     "expand": "展開",
     "metaInfo": "元資訊",
     "workspace": "工作區",
-    "workspaceGrep": "工作區搜尋"
+    "workspaceGrep": "工作區搜尋",
+    "documentOutline": "文件大綱",
+    "outlineDocSearchPlaceholder": "在本文檔中搜尋…",
+    "outlineFilterPlaceholder": "篩選目前文件標題…",
+    "outlineSearchDocStart": "文件開頭",
+    "outlineSearchHint": "輸入關鍵字，結果將依大綱章節分組。",
+    "outlineSearchNeedMarkdown": "請開啟並聚焦 Markdown 文件以在本文檔內搜尋。",
+    "outlineSearchNoHeading": "正文"
   },
   "visualize": {
     "articleOutline": "文章大綱",
@@ -5043,7 +5273,7 @@
   },
   "agentEngine": {
     "greeting": {
-      "title": "你好！我是MetaDoc AI助手！",
+      "title": "你好！我是 MetaDoc AI 助手！",
       "subtitle": "我是你的智慧文件寫作助手，我能高效運用各種AI工具，協助你生成圖文並茂、內容充實豐富、專業且跨領域的文章。",
       "canDo": "我可以：",
       "ragTool": "使用RAG工具檢索相關知識",
@@ -5071,5 +5301,24 @@
   "B-": ">A: 回應",
   "Alice": "Bob: 請求",
   "Bob -": "Alice: 回應",
-  "A[新增文件] -": "B[開啟文件]"
+  "A[新增文件] -": "B[開啟文件]",
+  "llmErrorDialog": {
+    "apiKey": "API Key",
+    "apiKeyBuiltinHidden": "（內建 Key 已隱藏）",
+    "apiKeyEmpty": "（未填寫）",
+    "baseUrl": "Base URL",
+    "builtinFreeIntro": "你目前使用的是 MetaDoc 內建的免費模型配置。",
+    "builtinFreeQuotaHint": "該免費額度非常少，且可能隨時被限流或用盡。建議盡快配置你自己的 LLM API Key。",
+    "configType": "類型",
+    "currentConfig": "目前 LLM 配置",
+    "dontShowAgain": "不再提示",
+    "errorDetails": "錯誤資訊",
+    "errorType": "錯誤類型",
+    "learnHowToConfigure": "查看配置教學",
+    "message": "提示",
+    "model": "模型",
+    "originalException": "原始異常（展開查看）",
+    "title": "LLM 呼叫失敗",
+    "titleBuiltinFree": "免費模型暫時無法使用"
+  }
 }

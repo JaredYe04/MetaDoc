@@ -45,7 +45,9 @@
     "translateSelection": "選択テキストを翻訳",
     "insertGraph": "グラフを挿入",
     "redo": "やり直し",
-    "undo": "元に戻す"
+    "undo": "元に戻す",
+    "addSelectionToAgent": "選択範囲をAgent会話に追加",
+    "generateIllustrationFromSelection": "選択範囲からイラストを生成"
   },
   "headMenu": {
     "tooltip": "AIエージェントベースのスマート文書編集ソフトウェア",
@@ -125,7 +127,10 @@
     "workspaceGrep": "ワークスペース検索",
     "view": "表示",
     "viewTooltip": "サイドバーのパネル",
-    "viewSidebarAgent": "Agent"
+    "viewSidebarAgent": "Agent",
+    "addFolderToWorkspace": "ワークスペースにフォルダを追加",
+    "closeWorkspace": "現在のワークスペースを閉じる",
+    "openWorkspace": "ワークスペースを開く"
   },
   "llmDialog": {
     "aiAssistant": "AIアシスタント",
@@ -267,7 +272,13 @@
     },
     "logSaveFailed": "ログの保存に失敗しました",
     "cdFailed": "ディレクトリの切り替えに失敗しました",
-    "invalidArgument": "無効な引数です"
+    "invalidArgument": "無効な引数です",
+    "closeSession": "セッションを閉じる",
+    "compileSessionLimit": "コンパイル情報を保持",
+    "newSession": "新規セッション",
+    "scrollToNextCommand": "次のコマンドにスクロール",
+    "scrollToPreviousCommand": "前のコマンドにスクロール",
+    "shell": "シェル"
   },
   "searchReplace": {
     "title": "検索と置換",
@@ -481,7 +492,14 @@
     "knowledgeBaseTooltip:": "ナレッジベースを参照",
     "newDialog:": "新規会話",
     "renamePlaceholder:": "新しい会話タイトルを入力してください",
-    "selectDocumentTitle:": "挿入先のドキュメントを選択"
+    "selectDocumentTitle:": "挿入先のドキュメントを選択",
+    "deselectAll": "すべて選択解除",
+    "insertingToManyDocuments": "{n}個のドキュメントに挿入中...",
+    "pickDocToInsert": "挿入先のドキュメントを選択してください",
+    "queueSendTooltip": "送信待ちキューに追加",
+    "reasoningToggleTooltip": "深い思考",
+    "selectAll": "すべて選択",
+    "selectedDocCount": "{n}個のドキュメントを選択中"
   },
   "aigraph": {
     "renameTitle": "名前を変更",
@@ -854,6 +872,18 @@
       "p98": "🍜 一週間のミールプレップの考え方",
       "p99": "🎓 研究計画書のよくある構成",
       "p100": "🌙 ポモドーロ1日のスケジュール例"
+    },
+    "suggestion": {
+      "apiDocumentation": "APIドキュメント",
+      "blogPost": "ブログ記事",
+      "meetingMinutes": "議事録",
+      "productIntroduction": "製品紹介",
+      "projectSummary": "プロジェクト概要",
+      "releaseNotes": "リリースノート",
+      "researchOutline": "研究アウトライン",
+      "technicalTutorial": "技術チュートリアル",
+      "userGuide": "ユーザーガイド",
+      "weeklyReport": "週次レポート"
     }
   },
   "main": {
@@ -1192,7 +1222,8 @@
         "zoomOut": "縮小",
         "zoomReset": "ズームをリセット",
         "toggleFocusMode": "集中モード切替"
-      }
+      },
+      "keyBindings": "キーバインド設定"
     },
     "llm": "LLM設定",
     "themes": "テーマ設定",
@@ -1539,7 +1570,17 @@
       "startupProfileHint": "起動時に ENABLE_STARTUP_PROFILE=1 を設定すると、各段階の所要時間を記録できます。メインプロセスのデータは IPC 経由で取得され、レンダラープロセスのデータは今回のロード時の計測ポイントから取得されます。",
       "startupProfileMain": "メインプロセス",
       "startupProfileRenderer": "レンダラープロセス",
-      "phase": "フェーズ"
+      "phase": "フェーズ",
+      "exportFixtureBatch": "一括エクスポート検証",
+      "exportFixtureBatchIntro": "「サンプルディレクトリ」から md / json / py / vue / html / png / tex をスキャンし、メインインターフェースと同じエクスポートパイプラインで PDF と DOCX を個別に生成します。各ソースファイルは、「出力ディレクトリ」内に完全なファイル名（拡張子を含む）で命名されたサブフォルダに対応します（例：sample.vue、sample.py）。これにより、同名で拡張子が異なるファイルが互いに上書きされるのを防ぎます。デフォルトのパスは、リポジトリ内の debug-export/fixtures と debug-export/output です（output は .gitignore に含まれており、リポジトリには追加されません）。",
+      "exportFixtureComplete": "一括エクスポート完了",
+      "exportFixtureFixturesDir": "サンプルディレクトリ",
+      "exportFixtureNoFiles": "サンプルディレクトリにエクスポート可能なファイルがありません（拡張子は md、json、py、vue、html、png、tex である必要があります）",
+      "exportFixtureOutputDir": "出力ディレクトリ",
+      "exportFixtureReadDirFail": "サンプルディレクトリを読み取れません：{msg}",
+      "exportFixtureResolveFail": "このファイルをエクスポートドキュメントとして解析できません",
+      "exportFixtureRun": "PDF + DOCX をワンクリックでエクスポート",
+      "exportFixtureRunning": "エクスポート中… ({current} / {total})"
     },
     "autoCompletionMaxTokens": "自動的に最高を完了して下さい トークン",
     "autoCompletionMaxTokensHint": "AIの自動補完のためのトークンの最大数を制限します。, 最小で 20,0 無制限の",
@@ -1863,7 +1904,50 @@
     "configDescription": "説明",
     "configDescriptionPlaceholder": "オプション、カードに表示するメモ用",
     "copyConfig": "設定をコピー",
-    "copyConfigSuccess": "設定をコピーしました"
+    "copyConfigSuccess": "設定をコピーしました",
+    "builtinFreeApiKeyHint": "組み込み無料モデルのデフォルトキーはコピーをサポートしておらず、ごく少量の無料枠のみに使用されます。ご自身のLLM APIキーを設定することをお勧めします。",
+    "builtinFreeConfigCannotCopy": "組み込み無料モデル設定はコピーできません",
+    "builtinFreeConfigCannotExport": "組み込み無料モデル設定はエクスポートできません",
+    "defaultConfigBuiltinFree": "無料モデル（内蔵）",
+    "llmApiErrorDialog": "LLMエラーダイアログ",
+    "readFileFailed": "ファイルを読み込めません",
+    "llmApiErrorDialogHint": "LLM API呼び出し失敗時に、現在の設定を表示しマニュアル参照を促すダイアログを表示します。",
+    "cleanupExpiredFiles": "期限切れファイルのクリーンアップ",
+    "cleanupExpiredHintAgentOnly": "ここでの設定は現在のワークスペースのみに影響します：「期限切れファイルのクリーンアップ」はルールに従ってこのワークスペースの添付ファイルを整理します。赤いボタンは .metadoc/attachments のみを空にし、グローバル参照ディレクトリには影響しません。",
+    "cleanupExpiredHintGlobalWithWorkspace": "「期限切れファイルのクリーンアップ」は上記のルールに従ってグローバルとワークスペースを処理します。「すべてのキャッシュをクリア」は、グローバル参照ディレクトリと現在のワークスペースの .metadoc/attachments を同時に空にします。",
+    "cleanupExpiredHintNoWorkspace": "上記の「N 日より前」ルールに従って期限切れファイルを削除します。「すべてのキャッシュをクリア」はグローバル参照ディレクトリのみを空にします（現在ワークスペースフォルダがないため、ワークスペースの添付ファイルはクリーンアップされません）。",
+    "cleanupExpiredSectionTitle": "期限切れファイルのクリーンアップ",
+    "clearAgentAttachmentsConfirm": "現在のワークスペース下の Agent 添付ファイルディレクトリを空にしてもよろしいですか？この操作により .metadoc/attachments 内のすべてのファイルが削除され、復元できなくなります。",
+    "clearAgentAttachmentsDir": "添付ファイルディレクトリを空にする",
+    "clearAgentAttachmentsFailed": "ワークスペース添付ファイルのクリアに失敗しました",
+    "clearAgentAttachmentsSuccess": "ワークスペース添付ファイルディレクトリが空になりました",
+    "clearAgentWorkspaceOnly": "ワークスペース添付ファイルを空にする",
+    "clearAllReferenceCaches": "すべてのキャッシュをクリア",
+    "clearAllReferenceCachesConfirmFull": "グローバル参照ディレクトリを空にし、現在のワークスペースの .metadoc/attachments 下のすべての添付ファイルも空にします。この操作は元に戻せません。続行しますか？",
+    "clearAllReferenceCachesConfirmGlobalOnly": "グローバル参照ディレクトリを空にします（現在ワークスペースがないため、ワークスペース添付ファイルはクリーンアップされません）。この操作は元に戻せません。続行しますか？",
+    "clearAllReferenceCachesFailed": "キャッシュのクリアに失敗しました",
+    "clearAllReferenceCachesSuccess": "関連するすべてのキャッシュがクリアされました",
+    "referenceAgentAutoPrune": "ワークスペース添付ファイルの自動クリーンアップ（以前）",
+    "referenceAgentNoWorkspace": "ワークスペースが選択されていない場合、ここにある添付ファイルの統計やクリーンアップはできません。",
+    "referenceAgentSection": "Agent ワークスペース添付ファイル",
+    "referenceAgentSectionDesc": "現在のワークスペース .metadoc/attachments にあるセッション添付ファイル（パスごとにツールが読み込みます）。",
+    "referenceAutoPrune14d": "14 日前",
+    "referenceAutoPrune180d": "半年（180 日）前",
+    "referenceAutoPrune1d": "1 日前",
+    "referenceAutoPrune30d": "30 日前",
+    "referenceAutoPrune365d": "1 年（365 日）前",
+    "referenceAutoPrune3d": "3 日前",
+    "referenceAutoPrune7d": "7 日前",
+    "referenceAutoPrune90d": "90 日前",
+    "referenceAutoPruneOff": "オフ",
+    "referenceGlobalAutoPrune": "自動クリーンアップ（以前）",
+    "referenceGlobalSection": "グローバル参照ディレクトリ",
+    "referenceGlobalSectionDesc": "アプリケーションデータディレクトリにある参照キャッシュ（例：アップロード解析時の一時ファイルなど）。",
+    "referencePruneDone": "期限切れの参照ファイルをルールに従ってクリーンアップしました",
+    "referencePruneFailed": "クリーンアップに失敗しました",
+    "referencePruneNoRule": "「自動クリーンアップ」で、グローバルまたはワークスペースの少なくともいずれかを「N 日前」（または「すべてのキャッシュを空にする」を直接使用）に設定してください。",
+    "resetConfigSuccess": "プリセット状態にリセットしました",
+    "resetConfigToPreset": "プリセット状態にリセット"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -2647,7 +2731,8 @@
       "none": "セッションを選択、または新規作成して対話を開始してください。",
       "tools": "有効なツール {count} 件",
       "references": "参照 {count} 件",
-      "referencesTooltip": "クリックして参照を管理"
+      "referencesTooltip": "クリックして参照を管理",
+      "openToolsDialog": "利用可能なツール一覧を表示するにはクリックしてください"
     },
     "roles": {
       "assistant": "アシスタント",
@@ -2701,7 +2786,8 @@
       "renameRequired:": "タイトルを入力してください",
       "renameSuccess:": "名前を変更しました",
       "retrySuccess:": "再試行に成功しました",
-      "title:": "エージェントセッション"
+      "title:": "エージェントセッション",
+      "alreadyGenerating": "このセッションは現在返信を生成中です。しばらくお待ちください"
     },
     "tool": {
       "status": {
@@ -3143,7 +3229,15 @@
         "error": "ワークスペースファイルの読み込みに失敗しました",
         "matchCount": "{count}件一致",
         "searchResultsTitle": "あいまい検索: 「{query}」",
-        "searching": "あいまい検索中…"
+        "searching": "あいまい検索中…",
+        "targetPath": "ターゲットパス",
+        "truncated": "切り捨て済み",
+        "directoryListing": "ディレクトリ一覧",
+        "directoryListingsCount": "{count} 件のディレクトリ一覧",
+        "entries": "件",
+        "message": "説明",
+        "operationsCount": "{count} 件の操作",
+        "operationsTitle": "ファイル/ディレクトリ操作結果"
       },
       "edit": {
         "completed": "編集が完了しました",
@@ -3348,7 +3442,9 @@
         "injectTimestampHint": "有効にすると、この設定でエージェントインスタンスを作成する際に、システムプロンプトの前に自動的に現在のタイムスタンプ情報が追加されます",
         "isSubagent": "サブエージェントとして",
         "isSubagentHint": "チェックすると、この設定はツールのようにメインエージェントに公開され、メインエージェントはツール呼び出しを通じてサブエージェントを並列実行し、サブタスクを完了させることができます。デフォルトのエージェント設定はサブエージェントに設定できません。",
-        "isSubagentLabel": "サブエージェントとして（メインエージェントのみが呼び出し可能）"
+        "isSubagentLabel": "サブエージェントとして（メインエージェントのみが呼び出し可能）",
+        "setAsDefault": "デフォルトに設定",
+        "setAsDefaultSuccess": "新規セッションのデフォルト設定にしました"
       },
       "agentEngine": {
         "title": "エージェントエンジン管理",
@@ -3405,7 +3501,110 @@
         "view:": "エンジンを確認"
       },
       "exportSuccess:": "エクスポートが完了しました",
-      "importSuccess:": "インポートが完了しました"
+      "importSuccess:": "インポートが完了しました",
+      "capabilities": {
+        "title": "ルール、スキル、MCPツール",
+        "titleMcp": "MCPツール管理",
+        "titleRules": "ルール管理",
+        "titleSkills": "スキル管理",
+        "activate": "有効化",
+        "addRule": "新規ルール作成",
+        "aiAssistCreate": "AIによる作成支援",
+        "aiSessionTitleRule": "新規ルール作成（AI）",
+        "aiSessionTitleSkill": "新規スキル作成（AI）",
+        "applyMetadataToDoc": "フォームを本文に書き込み（frontmatter更新）",
+        "approve": "承認",
+        "colApproval": "承認",
+        "colDescription": "説明",
+        "colEnabled": "有効",
+        "colFolder": "フォルダ",
+        "colName": "名前",
+        "colPermission": "権限",
+        "colPriority": "優先度",
+        "colScope": "範囲",
+        "colServer": "サーバー",
+        "colStatus": "状態",
+        "colTitle": "タイトル",
+        "colTool": "ツール",
+        "confirmDeleteRule": "ルール「{title}」を削除してもよろしいですか？",
+        "confirmDeleteSkill": "スキル「{name}」を削除してもよろしいですか？スキルフォルダ全体（SKILL.mdを含む）が削除されます。",
+        "editRule": "ルール編集",
+        "editSkill": "スキル編集",
+        "loadFailed": "読み込み失敗",
+        "mcpActiveUrl": "現在の接続",
+        "mcpAddConnection": "接続追加",
+        "mcpBaseUrl": "接続URL",
+        "mcpConfigColMessage": "メッセージ",
+        "mcpConfigColServer": "サービス",
+        "mcpConfigColStatus": "ステータス",
+        "mcpConfigColTools": "ツール数",
+        "mcpConfigExport": "JSONエクスポート",
+        "mcpConfigImport": "JSONインポート",
+        "mcpConfigIntro": "単一のJSON設定ファイル（Cursor / Claude Desktopスタイル）を使用します：トップレベルはmcpServersで、各項目はstdio（command + args）またはHTTP（url）です。編集後は自動保存されます。「同期」をクリックすると各サービスに接続し、ローカルレジストリを更新します：設定から削除されたサービスはそのツールを削除し、接続に成功したサービスはリモートリストに基づいてツールを追加/削除します。左側は設定エディタ、右側は登録済みツールツリーです。ツール名をクリックすると詳細を確認できます。",
+        "mcpConfigPath": "設定ファイルパス",
+        "mcpConfigProbe": "接続確認",
+        "mcpConfigProbeDone": "接続性チェック完了",
+        "mcpConfigProbeFailed": "接続性チェック失敗",
+        "mcpConfigProbeTitle": "接続性結果",
+        "mcpConfigSaveFailed": "自動保存失敗",
+        "mcpConfigSavedAt": "自動保存済み（{time}）",
+        "mcpConfigStatusFail": "失敗",
+        "mcpConfigStatusOk": "正常",
+        "mcpConfigStructureErrors": "設定構造の検証に失敗しました",
+        "mcpConfigSyncDone": "{n} 個のツールをレジストリに同期しました",
+        "mcpConfigSyncTools": "ツールをライブラリに同期",
+        "mcpConnections": "MCP 接続",
+        "mcpDeleteConnection": "削除",
+        "mcpEditConnection": "MCP 接続を編集",
+        "mcpHint": "以下の項目は MCP アダプタレイヤーによって登録されています（syncMcpToolsToRegistry）。MCP に接続されていない場合、リストは空になることがあります。",
+        "mcpLabel": "表示名",
+        "mcpRefreshTools": "ツールリストを更新",
+        "mcpSaveConnection": "保存",
+        "mcpSetActive": "現在の接続に設定",
+        "mcpSyncButton": "同期",
+        "mcpSyncPartial": "{n} 個のツールを書き込みました。以下のサービスへの接続または取得に失敗しました：{servers}",
+        "mcpSyncUnknownServer": "（不明）",
+        "mcpToolDetailInputSchema": "入力 JSON Schema",
+        "mcpToolsTreeEmpty": "現在登録されているツールはありません。左側の設定を編集して「同期」をクリックしてください。",
+        "mcpToolsTreeHint": "登録済みツール（MCP サービスごとにグループ化、ツール名をクリックで詳細表示）",
+        "menuMcp": "MCP ツール管理",
+        "menuRules": "ルール管理",
+        "menuSkills": "スキル管理",
+        "menuTitle": "ルール / スキル / MCP 管理",
+        "newSkill": "新規スキル作成",
+        "noWorkspace": ".metadoc/skills をスキャンするには、まずワークスペースフォルダを追加してください。",
+        "openFolderFailed": "フォルダを開けません",
+        "openSkillFolder": "エクスプローラーで開く",
+        "priorityHint": "範囲 0–100、数字が大きいほど優先度が高くなります（システムプロンプトに先に注入されます）。新規作成時はデフォルトで 90 です。",
+        "refresh": "更新",
+        "refreshSkillsList": "リストを更新（まずディスクを同期）",
+        "reject": "拒否",
+        "ruleContent": "ルール本文",
+        "saveFailed": "操作失敗",
+        "saveOk": "保存済み",
+        "skillDescription": "説明（frontmatter）",
+        "skillDraft": "下書き（draft）",
+        "skillEntry": "エントリーファイル",
+        "skillFolder": "スキルディレクトリ名",
+        "skillFolderPlaceholder": "例：my-skill",
+        "skillReadFailed": "SKILL.md を読み取れません",
+        "skillSavedReindexed": "保存済み、インデックスとベクトルを更新しました",
+        "skillTags": "タグ",
+        "skillTagsHint": "カンマ区切り、例：a, b",
+        "skillWorkspace": "ワークスペースルートディレクトリ",
+        "skillsDbOnly": "データベースのみ読み込み",
+        "skillsRefreshHint": "「更新」は、まずディスク上の .metadoc/skills を同期し、その後データベース内のスキルリストを読み込みます。",
+        "syncDone": "{scanned} 個のスキルディレクトリをスキャンし、{upserted} 件のベクトルを更新しました",
+        "syncFormFromEditor": "本文からフォームに同期",
+        "syncMetaFromBody": "以下の本文に基づいてフォームを更新",
+        "syncMetaFromForm": "上記のフォームに基づいて本文を更新",
+        "syncMetaMenu": "メタ情報を同期",
+        "syncSkills": "ワークスペースからスキルインデックスを同期",
+        "tabMcp": "MCP ツール",
+        "tabRules": "ルール",
+        "tabSkills": "スキル"
+      },
+      "settingsMenu": "Agent設定"
     },
     "message": {
       "edit": "編集",
@@ -3428,14 +3627,22 @@
       "toolCallInitiated:": "AIが{tool}の呼び出しを開始しました",
       "toolCallsInitiated:": "AIが{count}個のツールの呼び出しを開始しました：{tools}",
       "confirmRegenerate": "再生成を実行すると、このメッセージ以降のすべての内容（AIの返信、ツール呼び出し、意図認識など）が削除され、このユーザーメッセージに基づいて再生成されます。続行しますか？",
-      "confirmRegenerateTitle": "再生成の確認"
+      "confirmRegenerateTitle": "再生成の確認",
+      "reasoningBlock": "思考プロセス"
     },
     "attachment": {
       "untitled": "無題"
     },
     "composer": {
       "atTagRemove": "削除する",
-      "attachmentsOnlyUserMessage": "（アップロードした添付に基づいて回答してください。）"
+      "attachmentsOnlyUserMessage": "（アップロードした添付に基づいて回答してください。）",
+      "queuedHint": "送信待ちリストに追加されました。現在のターン終了後に自動送信されます",
+      "sendQueueAttachments": "{count}個の添付ファイル",
+      "sendQueueEdit": "編集",
+      "sendQueueEditTitle": "送信待ちメッセージを編集",
+      "sendQueueHint": "以下のメッセージは、Agentが現在の返信とツール呼び出しを完了した後、順番に自動送信されます。",
+      "sendQueueRemove": "削除",
+      "sendQueueTitle": "送信待ち"
     },
     "reference": {
       "title": "参考文献管理",
@@ -3580,7 +3787,8 @@
       "urlRequired:": "URLは必須項目です",
       "viewContent:": "コンテンツを表示",
       "directory": "ディレクトリ",
-      "workspaceDirs": "ワークスペースディレクトリ"
+      "workspaceDirs": "ワークスペースディレクトリ",
+      "removeFromComposer": "添付ファイルを削除"
     },
     "compact": {
       "untitled": "無題セッション",
@@ -3699,7 +3907,41 @@
       "workspace": {
         "description": "ワークスペースのファイルを読み取り、パス/名前によるあいまい検索、またはルートディレクトリの一覧表示",
         "name": "ワークスペースファイル読み取り"
+      },
+      "create_dynamic_rule": {
+        "description": "アプリケーションデータベースに動的Agentルールを挿入（システムプロンプトに書き込み）、ワークスペースファイルで代用しないでください",
+        "name": "動的ルールを作成"
+      },
+      "create_workspace_skill": {
+        "description": ".metadoc/skills/<ディレクトリ>/SKILL.md に書き込み、即座にデータベース登録とembeddingを実行",
+        "name": "ワークスペーススキルを作成"
+      },
+      "load_skill": {
+        "description": "skillIdでアクティブ化されたスキルの完全なSKILL.md本文を読み込む",
+        "name": "スキルを読み込む"
+      },
+      "search_skill": {
+        "description": "ワークスペース .metadoc/skills 配下でアクティブ化されたスキルに対してベクトル検索を実行、要約のみ返却",
+        "name": "スキル検索"
+      },
+      "sync_workspace_skills": {
+        "description": "各ワークスペースの .metadoc/skills をスキャンし、SQLiteとベクトル（activeスキル）を更新",
+        "name": "ワークスペーススキルインデックスを同期"
+      },
+      "update_dynamic_rule": {
+        "description": "ruleIdで既存の動的ルールのタイトル、本文、または優先度を更新",
+        "name": "動的ルールを更新"
       }
+    },
+    "jsonExplorer": {
+      "json": "JSON",
+      "nonJsonHint": "JSONとして解析できません。以下が原文です",
+      "tree": "ツリー"
+    },
+    "selectionRef": {
+      "chipLabel": "選択範囲：{detail}",
+      "noSession": "追加できません：先にAgentを設定してください。",
+      "unknown": "選択範囲（無効）"
     }
   },
   "sectionOptimizer": {
@@ -4254,6 +4496,30 @@
       "texToTex": {
         "name": "LaTeXからLaTeX",
         "description": "LaTeXドキュメントをエクスポート"
+      },
+      "texToDocx": {
+        "description": "LaTeXをMarkdownに変換してDOCXとしてエクスポート",
+        "name": "LaTeXからDOCXへ"
+      },
+      "texToHtml": {
+        "description": "LaTeXをMarkdownに変換してHTMLとしてエクスポート",
+        "name": "LaTeXからHTMLへ"
+      },
+      "txtToDocx": {
+        "description": "プレーンテキストまたはコードをMarkdownに変換してDOCXとしてエクスポート",
+        "name": "プレーンテキストからDOCXへ"
+      },
+      "txtToHtml": {
+        "description": "プレーンテキストまたはコードをMarkdownに変換してHTMLとしてエクスポート",
+        "name": "プレーンテキストからHTMLへ"
+      },
+      "txtToMd": {
+        "description": "プレーンテキストまたはコードをMarkdownとしてエクスポート",
+        "name": "プレーンテキストからMarkdownへ"
+      },
+      "txtToPdf": {
+        "description": "プレーンテキストまたはコードをMarkdownに変換してPDFとしてエクスポート",
+        "name": "プレーンテキストからPDFへ"
       }
     },
     "options": {
@@ -4445,8 +4711,21 @@
         "label": "画像",
         "description": "画像のデフォルト名（画像に名前がない場合に使用）"
       },
-      "objectTypeField": "オブジェクトタイプのフィールド"
-    }
+      "objectTypeField": "オブジェクトタイプのフィールド",
+      "pdfThemeMode": {
+        "dark": "ダーク",
+        "description": "ライト：白背景に明るい本文とコードハイライト。ダーク：暗い背景（デフォルトのダーク編集エリアと同様）とダークスタイル。フォロー：背景はMarkdown編集エリアの背景色（テーマ色）に合わせ、内容とコードテーマは設定に従います。デフォルトはライトです。",
+        "follow": "テーマに従う",
+        "label": "PDF外観",
+        "light": "ライト"
+      }
+    },
+    "taskCancel": "キャンセル",
+    "taskPhaseDone": "完了",
+    "taskPhaseFailed": "失敗",
+    "taskPhasePickPath": "保存先を選択…",
+    "taskPhasePreparing": "準備中…",
+    "taskTitle": "エクスポートタスク"
   },
   "tabSwitcher": {
     "openEditors": "開いているエディター",
@@ -4741,7 +5020,8 @@
     "failedLoading:": "セッションリストの読み込みに失敗しました",
     "failedLoading1:": "セッションの読み込みに失敗しました",
     "renameFailed:": "名前の変更に失敗しました",
-    "unavailable:": "レンダラーが利用できません"
+    "unavailable:": "レンダラーが利用できません",
+    "text2: 日本語": "日本語"
   },
   "logoTab": {
     "version": "バージョン {version} ({channel})",
@@ -4906,7 +5186,7 @@
     "recognize": "意図認識とタスク分割",
     "recognize1": "意図認識とタスク分割ツール",
     "save": "保存先:",
-    "success": "成功",
+    "success": "成功しました",
     "text": "から読み取りました:",
     "text1": "タスク数",
     "text2": "複雑なタスクを構造化されたタスクリストに分解します",
@@ -5238,9 +5518,11 @@
     "sidebar": {
       "recommendedList": "推奨学習",
       "onlyRecommended": "推奨パスのみ表示",
-      "onlyRecommendedTip": "オフにすると、マニュアルの完全な目次を表示します"
+      "onlyRecommendedTip": "オフにすると、マニュアルの完全な目次を表示します",
+      "learningPathTooltip": "学習の進捗状況とおすすめの学習パスを確認する"
     },
-    "title": "ユーザーマニュアル"
+    "title": "ユーザーマニュアル",
+    "exportPureMarkdown": "純粋なMarkdownをエクスポート"
   },
   "versionInfoPanel": {
     "buildEnvironment": "ビルド環境",
@@ -5265,7 +5547,14 @@
     "expand": "展開する",
     "metaInfo": "メタ情報",
     "workspace": "ワークスペース",
-    "workspaceGrep": "ワークスペース内検索"
+    "workspaceGrep": "ワークスペース内検索",
+    "documentOutline": "ドキュメントアウトライン",
+    "outlineDocSearchPlaceholder": "このドキュメント内を検索…",
+    "outlineFilterPlaceholder": "現在のドキュメントの見出しをフィルタリング…",
+    "outlineSearchDocStart": "ドキュメントの先頭",
+    "outlineSearchHint": "キーワードを入力すると、結果がアウトラインの章ごとにグループ化されます。",
+    "outlineSearchNeedMarkdown": "本文内検索を行うには、Markdownドキュメントを開いてフォーカスしてください。",
+    "outlineSearchNoHeading": "本文"
   },
   "workspaceExplorer": {
     "addFolder": "ワークフォルダを追加",
@@ -5325,7 +5614,8 @@
     "renameSuccess": "名前を変更しました",
     "selectFolder": "ワークフォルダを選択",
     "title": "ワークスペースエクスプローラー",
-    "moveFailed": "移動に失敗しました"
+    "moveFailed": "移動に失敗しました",
+    "openWorkspaceDialogTitle": "ワークスペースを開く — フォルダを選択（現在のワークスペースは閉じられ、選択したフォルダに置き換わります）"
   },
   "workspaceGrep": {
     "activeWorkspaceCount": "{count}個のワークスペースを開いています",
@@ -5374,5 +5664,24 @@
       "resetConfigToPreset": "プリセット状態にリセット",
       "save": "保存"
     }
+  },
+  "llmErrorDialog": {
+    "apiKey": "APIキー",
+    "apiKeyBuiltinHidden": "（組み込みキーは非表示）",
+    "apiKeyEmpty": "（未入力）",
+    "baseUrl": "ベースURL",
+    "builtinFreeIntro": "現在、MetaDoc組み込みの無料モデル設定を使用しています。",
+    "builtinFreeQuotaHint": "この無料枠は非常に少なく、いつでも制限がかかるか使い切る可能性があります。できるだけ早くご自身のLLM APIキーを設定することをお勧めします。",
+    "configType": "タイプ",
+    "currentConfig": "現在のLLM設定",
+    "dontShowAgain": "今後表示しない",
+    "errorDetails": "エラー情報",
+    "errorType": "エラータイプ",
+    "learnHowToConfigure": "設定チュートリアルを見る",
+    "message": "メッセージ",
+    "model": "モデル",
+    "originalException": "元の例外（展開して表示）",
+    "title": "LLM呼び出し失敗",
+    "titleBuiltinFree": "無料モデルは一時的に利用できません"
   }
 }

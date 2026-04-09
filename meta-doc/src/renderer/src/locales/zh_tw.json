@@ -1741,7 +1741,7 @@
     "redo": "重做",
     "sectionOptimizer": "最佳化目前段落",
     "selectAll": "全選",
-    "triggerAutoCompletion": "手動觸發AI補全",
+    "triggerAutoCompletion": "AI自動補全",
     "translateSelection": "翻譯選取內容",
     "undo": "復原",
     "addSelectionToAgent": "添加到 Agent 對話",

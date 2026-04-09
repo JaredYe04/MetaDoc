@@ -248,15 +248,23 @@ export class VditorEditorAdapter implements EditorAdapter {
   private vditorInstance: any | null = null
   private rootNodeClass: string
   private isActiveRef: () => boolean
+  /** 与 AI 补全总线事件 `sourceEditorId` 对齐，多标签页下须唯一（例如 `vditor:<tabId>`） */
+  private readonly completionSourceId: string
 
-  constructor(vditorInstance: any, rootNodeClass: string, isActiveRef?: () => boolean) {
+  constructor(
+    vditorInstance: any,
+    rootNodeClass: string,
+    isActiveRef?: () => boolean,
+    completionSourceId?: string
+  ) {
     this.vditorInstance = vditorInstance
     this.rootNodeClass = rootNodeClass
     this.isActiveRef = isActiveRef || (() => false)
+    this.completionSourceId = completionSourceId ?? 'vditor'
   }
 
   getEditorId(): string | null {
-    return 'vditor'
+    return this.completionSourceId
   }
 
   getCursorPosition(): { line: number; column: number } | null {

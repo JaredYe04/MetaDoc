@@ -1939,14 +1939,31 @@ onMounted(async () => {
     handlerDragCreateDetached = async (_event: any, data: any) => {
       try {
         const { tabData, position, width, height, focusMode } = data
-        const newWindowId = await messageBridge.invoke('create-window-with-tab', {
+        const tabId = tabData?.tab?.id as string | undefined
+        if (!tabId) {
+          logger.error('drag:create-detached-window 缺少 tab id')
+          return
+        }
+        const sourceWindowId = await getCurrentWindowId()
+        const result = await messageBridge.invoke('create-window-with-tab', {
           tabData,
           position,
           width,
           height,
           focusMode: !!focusMode
         })
-        logger.info('通过拖拽分离创建新窗口:', newWindowId)
+        // 与「在新窗口打开」一致：成功迁入新窗口后必须从源窗口移除 Tab。
+        // 池内有窗口时 drag:end 走 remove-tab-from-drag；池为空时走本分支，此前漏掉移除会导致
+        // 源窗口与新窗口各有一份同一 tab（空白/重复/焦点异常）。
+        const isExisting =
+          result &&
+          typeof result === 'object' &&
+          'isExisting' in result &&
+          (result as { isExisting?: boolean }).isExisting === true
+        if (!isExisting) {
+          await removeTabAfterDrag(tabId, sourceWindowId)
+        }
+        logger.info('通过拖拽分离创建新窗口:', result)
       } catch (error) {
         logger.error('创建分离窗口失败:', error)
       }

@@ -16,15 +16,10 @@ export async function getArticleContextMenuItems(
 ): Promise<ContextMenuItem[]> {
   const { isLatexEditor = false, isPlainTextEditor = false, hasTextSelection = false } = options
   const autoCompletion = await getSetting('autoCompletion')
-  const knowledgeBase = await getSetting('enableKnowledgeBase')
 
   const autoCompletionToggle = autoCompletion
     ? { label: 'contextMenu.closeAutoCompletion', value: 'closeAutoCompletion' }
     : { label: 'contextMenu.openAutoCompletion', value: 'openAutoCompletion' }
-
-  const knowledgeBaseToggle = knowledgeBase
-    ? { label: 'contextMenu.closeKnowledgeBase', value: 'closeKnowledgeBase' }
-    : { label: 'contextMenu.openKnowledgeBase', value: 'openKnowledgeBase' }
 
   const items: ContextMenuItem[] = [
     { label: 'contextMenu.cut', value: 'cut' },
@@ -33,7 +28,6 @@ export async function getArticleContextMenuItems(
     { label: 'contextMenu.selectAll', value: 'selectAll' },
     { type: 'divider' },
     autoCompletionToggle,
-    knowledgeBaseToggle,
     { type: 'divider' },
     {
       label: 'contextMenu.triggerAutoCompletion',

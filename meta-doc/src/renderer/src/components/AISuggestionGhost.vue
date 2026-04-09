@@ -21,6 +21,8 @@ const logger = createRendererLogger('AISuggestionGhost', {
 
 const props = defineProps<{
   editorId?: string | null
+  /** 与 ai-completion-text-updated 的 sourceEditorId 一致；Markdown 多标签须传（如 vditor:<tabId>） */
+  completionSourceId?: string | null
   format: 'md' | 'tex' | 'txt'
   targetEl?: HTMLElement | null
   rootNodeClass?: string
@@ -40,6 +42,28 @@ let tooltipEl: HTMLElement | null = null
 
 // 保存handler引用以便卸载时使用
 let textUpdateHandler: ((event: unknown) => void) | null = null
+
+/** 本实例应响应的补全来源 ID（与 aiCompletionService.adapter.getEditorId() / 事件 sourceEditorId 一致） */
+function resolveCompletionSourceId(): string | null {
+  if (props.completionSourceId != null && props.completionSourceId !== '') {
+    return props.completionSourceId
+  }
+  if (props.format !== 'md' && props.editorId) {
+    return props.editorId
+  }
+  return null
+}
+
+function isCompletionEventForThisInstance(event: { sourceEditorId?: string | null }): boolean {
+  const expected = resolveCompletionSourceId()
+  if (expected == null || expected === '') {
+    return true
+  }
+  if (event.sourceEditorId == null || event.sourceEditorId === '') {
+    return false
+  }
+  return event.sourceEditorId === expected
+}
 
 /**
  * 获取Monaco编辑器实例
@@ -1037,8 +1061,12 @@ function acceptVditorGhostText(text: string) {
 /**
  * 处理补全文本更新
  */
-function handleTextUpdate(event: { request: any; text: string }) {
+function handleTextUpdate(event: { request: any; text: string; sourceEditorId?: string | null }) {
   if (!event || !event.text) {
+    return
+  }
+
+  if (!isCompletionEventForThisInstance(event)) {
     return
   }
 

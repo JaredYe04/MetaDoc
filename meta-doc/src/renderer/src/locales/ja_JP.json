@@ -41,7 +41,7 @@
     "openKnowledgeBase": "知識検索を有効化",
     "locateToPdf": "PDFの位置にジャンプ",
     "sectionOptimizer": "現在の段落を最適化",
-    "triggerAutoCompletion": "手動でAI補完をトリガー",
+    "triggerAutoCompletion": "AI自動補完",
     "translateSelection": "選択テキストを翻訳",
     "insertGraph": "グラフを挿入",
     "redo": "やり直し",

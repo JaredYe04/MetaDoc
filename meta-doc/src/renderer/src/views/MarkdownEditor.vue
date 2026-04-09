@@ -97,6 +97,7 @@
       <AISuggestionGhost
         v-if="vditor"
         format="md"
+        :completion-source-id="`vditor:${props.tabId}`"
         :targetEl="vditorEl"
         rootNodeClass="vditor-reset"
         @accepted="onAcceptSuggestion"
@@ -1726,19 +1727,18 @@ const handleMenuClick = async (item: string) => {
     case 'closeAutoCompletion':
       await setSetting('autoCompletion', false)
       break
-    case 'openKnowledgeBase':
-      await setSetting('enableKnowledgeBase', true)
-      break
-    case 'closeKnowledgeBase':
-      await setSetting('enableKnowledgeBase', false)
-      break
     case 'trigger-auto-completion':
       // 手动触发AI补全
       if (aiCompletionService.getAdapter()) {
         aiCompletionService.triggerCompletion('manual')
       } else {
         // 如果适配器不存在，先创建
-        const adapter = new VditorEditorAdapter(vditor.value, props.editorDomId)
+        const adapter = new VditorEditorAdapter(
+          vditor.value,
+          props.editorDomId,
+          () => isActive.value,
+          `vditor:${props.tabId}`
+        )
         aiCompletionService.setAdapter(adapter)
         aiCompletionService.triggerCompletion('manual')
       }
@@ -3314,7 +3314,8 @@ async function runMarkdownVditorInit() {
           const adapter = new VditorEditorAdapter(
             vditor.value,
             'vditor-reset',
-            () => isActive.value
+            () => isActive.value,
+            `vditor:${props.tabId}`
           )
           aiCompletionService.setAdapter(adapter)
         }
@@ -3551,7 +3552,8 @@ async function runMarkdownVditorInit() {
           const adapter = new VditorEditorAdapter(
             vditor.value,
             'vditor-reset',
-            () => isActive.value
+            () => isActive.value,
+            `vditor:${props.tabId}`
           )
           aiCompletionService.setAdapter(adapter)
 

@@ -1741,7 +1741,7 @@
     "redo": "Повторить",
     "sectionOptimizer": "Оптимизировать текущий абзац",
     "selectAll": "Выделить всё",
-    "triggerAutoCompletion": "Запустить AI-дополнение вручную",
+    "triggerAutoCompletion": "AI-автодополнение",
     "translateSelection": "Перевести выделенное",
     "undo": "Отменить",
     "addSelectionToAgent": "Добавить в диалог с Agent",

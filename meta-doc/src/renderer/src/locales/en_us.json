@@ -51,7 +51,7 @@
     "sectionOptimizer": "Optimize This Section",
     "generateIllustrationFromSelection": "Generate illustration",
     "insertGraph": "Insert Graph",
-    "triggerAutoCompletion": "Trigger AI Completion Manually",
+    "triggerAutoCompletion": "AI Auto-completion",
     "translateSelection": "Translate selection"
   },
   "headMenu": {

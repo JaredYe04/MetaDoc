@@ -3451,12 +3451,6 @@ const handleMenuClick = async (item: string) => {
     case 'closeAutoCompletion':
       await setSetting('autoCompletion', false)
       break
-    case 'openKnowledgeBase':
-      await setSetting('enableKnowledgeBase', true)
-      break
-    case 'closeKnowledgeBase':
-      await setSetting('enableKnowledgeBase', false)
-      break
     case 'locate-to-pdf':
       await locateToPdf()
       break

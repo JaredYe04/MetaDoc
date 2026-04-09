@@ -1742,7 +1742,7 @@
     "redo": "Refazer",
     "sectionOptimizer": "Otimizar Parágrafo Atual",
     "selectAll": "Selecionar Tudo",
-    "triggerAutoCompletion": "Acionar Conclusão por IA Manualmente",
+    "triggerAutoCompletion": "Autocompletar com IA",
     "translateSelection": "Traduzir seleção",
     "undo": "Desfazer",
     "addSelectionToAgent": "Adicionar à conversa do Agent",

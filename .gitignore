@@ -22,6 +22,8 @@ meta-doc/resources_disabled/
 meta-doc/startup-profile-report.json
 meta-doc/code-audit-report.md
 *.log
+*-out.txt
+*.tsbuildinfo
 
 
 # ==========================================
@@ -48,6 +50,7 @@ docs/.metadoc/agent/sessions-index.json
 .idea
 .vscode
 .devcontainer/
+.cursor/
 *.project
 *.settings/
 

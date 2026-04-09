@@ -1,0 +1,27 @@
+name: Unit Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: meta-doc/package-lock.json
+
+      - name: Install dependencies
+        working-directory: meta-doc
+        run: npm ci --ignore-scripts
+
+      - name: Run unit tests
+        working-directory: meta-doc
+        run: npm run test

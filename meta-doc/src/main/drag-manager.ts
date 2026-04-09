@@ -112,6 +112,24 @@ function startSessionTimeout(sessionId: string): void {
   }
 }
 
+/** 当 sessionId 与真实拖拽 Tab 不一致时，按窗口 + tabId 解析最近一次未消费的会话 */
+function findLatestSessionForTab(sourceWindowId: number, tabId: string): DragSession | undefined {
+  let best: DragSession | undefined
+  let bestTime = -1
+  for (const s of activeSessions.values()) {
+    if (
+      s.sourceWindowId === sourceWindowId &&
+      s.tabId === tabId &&
+      !s.consumed &&
+      s.createdAt >= bestTime
+    ) {
+      best = s
+      bestTime = s.createdAt
+    }
+  }
+  return best
+}
+
 function cleanupSession(sessionId: string, reason?: string): void {
   const session = activeSessions.get(sessionId)
   if (!session) return
@@ -311,17 +329,43 @@ export function registerDragManagerIPC(): void {
       _event: IpcMainInvokeEvent,
       payload: {
         sessionId: string
+        /** 渲染进程同步记录的 Tab id，用于纠正异步 initSession 导致的 sessionId 与真实拖拽不符 */
+        draggedTabId?: string
         tabBarBounds?: { x: number; y: number; width: number; height: number }
       }
     ): Promise<{ action: 'none' | 'detach'; newWindowId?: number; reason?: string }> => {
-      const session = activeSessions.get(payload.sessionId)
+      const invokerWindowId = _event.sender.id
+
+      let session: DragSession | undefined = payload.sessionId
+        ? activeSessions.get(payload.sessionId)
+        : undefined
+
+      if (payload.draggedTabId) {
+        if (
+          !session ||
+          session.tabId !== payload.draggedTabId ||
+          session.sourceWindowId !== invokerWindowId
+        ) {
+          const resolved = findLatestSessionForTab(invokerWindowId, payload.draggedTabId)
+          if (resolved) {
+            if (session && session.sessionId !== resolved.sessionId) {
+              logger.warn('drag:end 会话与拖拽 Tab 不一致，已按 draggedTabId 纠正', {
+                payloadSessionId: payload.sessionId,
+                resolvedSessionId: resolved.sessionId,
+                draggedTabId: payload.draggedTabId
+              })
+            }
+            session = resolved
+          }
+        }
+      }
 
       if (!session) {
         return { action: 'none', reason: '会话不存在' }
       }
 
       if (session.consumed) {
-        cleanupSession(payload.sessionId)
+        cleanupSession(session.sessionId)
         return { action: 'none' }
       }
 
@@ -329,7 +373,7 @@ export function registerDragManagerIPC(): void {
       const sourceWindow = getWindowById(session.sourceWindowId)
 
       if (!sourceWindow || sourceWindow.isDestroyed()) {
-        cleanupSession(payload.sessionId, 'source-window-destroyed')
+        cleanupSession(session.sessionId, 'source-window-destroyed')
         return { action: 'none', reason: '源窗口已销毁' }
       }
 
@@ -366,7 +410,7 @@ export function registerDragManagerIPC(): void {
         const result = await executeTabTransfer(session, targetWinId, -1)
 
         if (result.success) {
-          cleanupSession(payload.sessionId)
+          cleanupSession(session.sessionId)
           logger.info('Tab 跨窗口合并 (fallback) 成功:', session.tabId, '->', targetWinId)
           return { action: 'none' }
         } else {
@@ -377,7 +421,7 @@ export function registerDragManagerIPC(): void {
       if (isOutside) {
         const sourceTabCount = session.tabData?.sourceTabCount ?? 1
         if (sourceTabCount <= 1) {
-          cleanupSession(payload.sessionId, 'single-tab-restriction')
+          cleanupSession(session.sessionId, 'single-tab-restriction')
           logger.debug('单Tab窗口不允许分离')
           return { action: 'none', reason: '单Tab窗口不允许分离' }
         }
@@ -400,12 +444,12 @@ export function registerDragManagerIPC(): void {
             const newWindowId = getWindowId(poolWindow)
             session.consumed = true
             sourceWindow.webContents.send('remove-tab-from-drag', session.tabId)
-            cleanupSession(payload.sessionId)
+            cleanupSession(session.sessionId)
             logger.info('Tab 分离到新窗口(池):', session.tabId, '->', newWindowId)
             return { action: 'detach', newWindowId }
           }
 
-          cleanupSession(payload.sessionId)
+          cleanupSession(session.sessionId)
           sourceWindow.webContents.send('drag:create-detached-window', {
             tabData: session.tabData,
             position: cursorPos,
@@ -417,7 +461,7 @@ export function registerDragManagerIPC(): void {
           return { action: 'detach' }
         } catch (error) {
           logger.error('创建分离窗口失败:', error)
-          cleanupSession(payload.sessionId, 'detach-error')
+          cleanupSession(session.sessionId, 'detach-error')
           return { action: 'none', reason: '创建分离窗口失败' }
         }
       }
@@ -451,12 +495,12 @@ export function registerDragManagerIPC(): void {
                 const newWindowId = getWindowId(poolWindow)
                 session.consumed = true
                 sourceWindow.webContents.send('remove-tab-from-drag', session.tabId)
-                cleanupSession(payload.sessionId)
+                cleanupSession(session.sessionId)
                 logger.info('Tab 分离到新窗口(窗口内,池):', session.tabId, '->', newWindowId)
                 return { action: 'detach', newWindowId }
               }
 
-              cleanupSession(payload.sessionId)
+              cleanupSession(session.sessionId)
               sourceWindow.webContents.send('drag:create-detached-window', {
                 tabData: session.tabData,
                 position: cursorPos,
@@ -468,14 +512,14 @@ export function registerDragManagerIPC(): void {
               return { action: 'detach' }
             } catch (error) {
               logger.error('创建分离窗口失败:', error)
-              cleanupSession(payload.sessionId, 'detach-error')
+              cleanupSession(session.sessionId, 'detach-error')
               return { action: 'none', reason: '创建分离窗口失败' }
             }
           }
         }
       }
 
-      cleanupSession(payload.sessionId, 'cancelled-in-tabbar')
+      cleanupSession(session.sessionId, 'cancelled-in-tabbar')
       return { action: 'none' }
     }
   )

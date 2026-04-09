@@ -140,18 +140,38 @@ class AICompletionService {
   /** 监听器清理函数 */
   private cleanupListeners: (() => void)[] = []
 
+  /** 上次用户触发补全流程的时间（用于空闲自动补全） */
+  private lastUserActivityAt = 0
+
+  /** 空闲轮询：在无输入一段时间后仍可触发补全（解决仅依赖 input 事件时「停手后不出现」的问题） */
+  private idlePollerId: ReturnType<typeof setInterval> | null = null
+
+  /** 上次由空闲轮询排程第二层防抖的时间，避免连发请求 */
+  private lastIdleScheduleAt = 0
+
+  private readonly IDLE_POLL_MS = 2000
+
+  /** 距上次活动超过此时长才允许空闲补全 */
+  private readonly IDLE_SILENCE_MS = 4000
+
+  /** 两次空闲补全排程之间的最短间隔 */
+  private readonly IDLE_SCHEDULE_COOLDOWN_MS = 12000
+
   /**
    * 设置编辑器适配器
    */
   setAdapter(adapter: EditorAdapter) {
     this.adapter = adapter
+    this.lastUserActivityAt = Date.now()
     this.setupListeners()
+    this.startIdlePoller()
   }
 
   /**
    * 移除适配器
    */
   removeAdapter() {
+    this.stopIdlePoller()
     this.cancelCurrentCompletion()
     this.cleanupListeners.forEach((cleanup) => cleanup())
     this.cleanupListeners = []
@@ -224,6 +244,56 @@ class AICompletionService {
     return Math.ceil((this.delayUntil - Date.now()) / 1000)
   }
 
+  private startIdlePoller() {
+    this.stopIdlePoller()
+    this.idlePollerId = setInterval(() => this.tickIdleCompletion(), this.IDLE_POLL_MS)
+  }
+
+  private stopIdlePoller() {
+    if (this.idlePollerId) {
+      clearInterval(this.idlePollerId)
+      this.idlePollerId = null
+    }
+  }
+
+  /**
+   * 无输入一段时间后尝试补全（需光标在行尾等条件，且与输入触发的防抖链互斥）
+   */
+  private tickIdleCompletion() {
+    const logger = createRendererLogger('AICompletionService', {
+      windowTypeProvider: () => getWindowType()
+    })
+    if (!this.enabled || !this.adapter) return
+    if (!this.adapter.isActive()) return
+    if (this.delayUntil > Date.now()) return
+    if (this.state.isGenerating) return
+    if (this.uiDebounceTimer != null || this.aiDebounceTimer != null) return
+
+    const now = Date.now()
+    if (now - this.lastUserActivityAt < this.IDLE_SILENCE_MS) return
+    if (now - this.lastIdleScheduleAt < this.IDLE_SCHEDULE_COOLDOWN_MS) return
+    if (!this.adapter.isCursorAtLineEnd()) return
+    if (this.isUserTypingFast()) return
+    if (!this.canTrigger()) return
+
+    this.lastIdleScheduleAt = now
+    this.savedCompletionMode = this.completionMode
+    const modeForDelay = this.savedCompletionMode ?? this.completionMode
+    const aiDebounceDelay =
+      modeForDelay === 'active' ? this.AI_DEBOUNCE_DELAY_ACTIVE : this.AI_DEBOUNCE_DELAY_PASSIVE
+    this.savedCompletionMode = null
+
+    logger.info('[空闲补全] 排程第二层防抖', { delay: aiDebounceDelay, mode: modeForDelay })
+
+    if (this.aiDebounceTimer) {
+      clearTimeout(this.aiDebounceTimer)
+    }
+    this.aiDebounceTimer = setTimeout(() => {
+      this.aiDebounceTimer = null
+      this.startCompletion()
+    }, aiDebounceDelay)
+  }
+
   /**
    * 检查是否可以触发补全
    */
@@ -247,6 +317,8 @@ class AICompletionService {
     const logger = createRendererLogger('AICompletionService', {
       windowTypeProvider: () => getWindowType()
     })
+
+    this.lastUserActivityAt = Date.now()
 
     // Tab键不应该触发补全或状态切换（Tab键用于接受补全）
     if (triggerType === 'key' && (key === 'Tab' || key === 'tab')) {
@@ -349,8 +421,13 @@ class AICompletionService {
       return
     }
 
-    // 原则1：检查用户是否正在快速打字
+    // 原则1：检查用户是否正在快速打字（短延迟后重试一次，避免连打结束后永远不触发）
     if (this.isUserTypingFast()) {
+      setTimeout(() => {
+        if (!this.adapter || !this.canTrigger()) return
+        if (this.isUserTypingFast()) return
+        this.shouldTriggerCompletion(triggerType, key)
+      }, 400)
       return
     }
 
@@ -514,9 +591,12 @@ class AICompletionService {
       return
     }
 
-    // 获取文档类型（从编辑器ID推断：tex或md）
+    // 获取文档类型（从编辑器ID推断：tex或md；多标签 Markdown 为 vditor:<tabId>）
     const editorId = this.adapter.getEditorId()
-    const documentType = editorId === 'vditor' ? 'Markdown' : 'LaTeX'
+    const documentType =
+      editorId === 'vditor' || (typeof editorId === 'string' && editorId.startsWith('vditor'))
+        ? 'Markdown'
+        : 'LaTeX'
 
     // 创建修改请求
     const request: EditRequest = {
@@ -584,7 +664,9 @@ class AICompletionService {
             // 有内容时通知UI显示（使用完整文本）
             const eventData = {
               request: this.state.currentRequest,
-              text: currentValue // 使用完整文本，不要截断
+              text: currentValue, // 使用完整文本，不要截断
+              /** 与当前适配器一致，供 AISuggestionGhost 多实例过滤（避免多标签同时插入 ghost） */
+              sourceEditorId: this.adapter?.getEditorId() ?? null
             }
 
             eventBus.emit('ai-completion-text-updated', eventData)

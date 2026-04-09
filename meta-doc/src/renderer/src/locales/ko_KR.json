@@ -41,7 +41,7 @@
     "openKnowledgeBase": "지식 검색 라이브러리 활성화",
     "locateToPdf": "PDF 위치로 이동",
     "sectionOptimizer": "현재 단락 최적화",
-    "triggerAutoCompletion": "AI 자동 완성 수동 실행",
+    "triggerAutoCompletion": "AI 자동 완성",
     "translateSelection": "선택 텍스트 번역",
     "insertGraph": "그래프 삽입",
     "redo": "다시 실행",

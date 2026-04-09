@@ -166,9 +166,9 @@
             <Tooltip>
               <TooltipTrigger as-child>
                 <Button
-                  variant="outline"
+                  variant="success"
                   size="sm"
-                  class="aero-btn generate-preview-btn-square generate-preview-accept-btn"
+                  class="aero-btn generate-preview-btn-square h-7 w-7 min-w-7 p-0 [&_svg]:size-3.5"
                   @click.stop="acceptChange"
                 >
                   <Check class="w-4 h-4" />
@@ -204,12 +204,12 @@
           class="generate-preview-actions generate-preview-actions--batch"
         >
           <Button
-            variant="outline"
+            variant="success"
             size="sm"
-            class="aero-btn generate-preview-accept-btn"
+            class="aero-btn h-8 gap-1.5 px-2.5 text-xs"
             @click.stop="batchAcceptAll"
           >
-            <Check class="w-4 h-4" />
+            <Check class="w-3.5 h-3.5" />
             <span>{{ $t('outline.acceptAll') }}</span>
           </Button>
           <Button variant="destructive" size="sm" class="aero-btn" @click.stop="batchRejectAll">
@@ -703,12 +703,9 @@
               <Button variant="destructive" @click="rejectChapterGenerate">{{
                 $t('outline.reject')
               }}</Button>
-              <Button
-                variant="outline"
-                class="generate-preview-accept-btn"
-                @click="acceptChapterGenerate"
-                >{{ $t('outline.accept') }}</Button
-              >
+              <Button variant="success" size="sm" @click="acceptChapterGenerate">{{
+                $t('outline.accept')
+              }}</Button>
             </template>
             <template v-else>
               <Button :disabled="chapterEditGenerating" @click="changeNodeValue">{{
@@ -930,12 +927,9 @@
               <Button variant="destructive" @click="rejectMaterialGenerate">{{
                 $t('outline.reject')
               }}</Button>
-              <Button
-                variant="outline"
-                class="generate-preview-accept-btn"
-                @click="acceptMaterialGenerate"
-                >{{ $t('outline.accept') }}</Button
-              >
+              <Button variant="success" size="sm" @click="acceptMaterialGenerate">{{
+                $t('outline.accept')
+              }}</Button>
             </template>
             <template v-else>
               <Button
@@ -3817,18 +3811,6 @@ provide('outlineHandleNodeButtonClick', handleNodeButtonClick)
   height: 28px;
   min-width: 28px;
   padding: 0;
-}
-
-/* 接受/接受全部：成功绿色，避免暗色下白底白字 */
-.generate-preview-accept-btn {
-  background: var(--el-color-success) !important;
-  border-color: var(--el-color-success) !important;
-  color: #fff !important;
-}
-.generate-preview-accept-btn:hover {
-  background: var(--el-color-success-light-3) !important;
-  border-color: var(--el-color-success-light-3) !important;
-  color: #fff !important;
 }
 
 .tree-node {

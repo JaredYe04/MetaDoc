@@ -1729,7 +1729,7 @@
     "redo": "Rehacer",
     "sectionOptimizer": "Optimizar párrafo actual",
     "selectAll": "Seleccionar todo",
-    "triggerAutoCompletion": "Activar autocompletado con IA manualmente",
+    "triggerAutoCompletion": "Autocompletado con IA",
     "translateSelection": "Traducir selección",
     "undo": "Deshacer",
     "addSelectionToAgent": "Añadir a la conversación del Agent",

@@ -128,6 +128,8 @@ export interface UseTabDragOptions {
 
 // 拖拽会话状态（模块级，跨 composable 调用共享）
 let currentSessionId: string | null = null
+/** 每次 dragstart / dragend(drop) / ESC 递增，防止异步 initSession 乱序覆盖 currentSessionId（专注模式下拉拖拽尤易触发） */
+let dragGeneration = 0
 let dragCanvasElement: HTMLCanvasElement | null = null
 let escapeKeyHandler: ((e: KeyboardEvent) => void) | null = null
 /** 全局 dragover 监听：拖到 MainTabs 外时也允许 drop，需配合 preventDefault */
@@ -399,6 +401,9 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     draggingId.value = tab.id
     draggingTab.value = tab
 
+    dragGeneration++
+    const dragInitGeneration = dragGeneration
+
     // 同步创建 Canvas 拖拽预览（使用预缓存的缩略图）
     cleanupDragImage()
     dragCanvasElement = createDragPreviewCanvas(
@@ -424,20 +429,28 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
       if (!messageBridge.getIpc()) return
 
       try {
+        if (dragInitGeneration !== dragGeneration) return
+
         // 序列化 Tab 数据
         const tabData = serializeTabData(tab.id)
         if (!tabData) return
+
+        if (dragInitGeneration !== dragGeneration) return
 
         // 获取当前窗口 ID
         const sourceWindowId = await getCurrentWindowId()
         tabData.sourceWindowId = sourceWindowId
         tabData.sourceFocusMode = isFocusMode.value
 
+        if (dragInitGeneration !== dragGeneration) return
+
         // 调用主进程创建拖拽会话
         const result = await messageBridge.invoke('drag:start', {
           tabId: tab.id,
           tabData
         })
+
+        if (dragInitGeneration !== dragGeneration) return
 
         if (result?.sessionId) {
           currentSessionId = result.sessionId
@@ -462,6 +475,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
         }
         removeDragCursorOverlay()
         dragCursorOverlay = null
+        dragGeneration++
         resetDragState()
         cleanupDragImage()
       }
@@ -555,6 +569,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     const mode = dropPreview.value.mode
 
     if (!fromId || fromId === toId || !mode) {
+      dragGeneration++
       resetDragState()
       return
     }
@@ -564,6 +579,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     const toIndex = workspace.tabs.findIndex((t) => t.id === toId)
 
     if (fromIndex === -1 || toIndex === -1) {
+      dragGeneration++
       resetDragState()
       return
     }
@@ -597,6 +613,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
     }
 
     await onDrop?.(fromId, toId, mode)
+    dragGeneration++
     resetDragState()
 
     getLogger().debug('投放完成:', { fromId, toId, mode })
@@ -609,6 +626,13 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
    */
   const handleDragEnd = async (event: DragEvent) => {
     const tab = draggingTab.value
+
+    // 在清理前固定本次拖拽的会话与 Tab（须先于 dragGeneration++，避免异步 initSession 与本次混淆）
+    const sessionIdForEnd = currentSessionId
+    const draggedTabIdForEnd = tab?.id ?? draggingId.value
+
+    // 使尚未完成的 initSession 无法再写入 currentSessionId
+    dragGeneration++
 
     // 移除 ESC 键监听
     if (escapeKeyHandler) {
@@ -635,11 +659,12 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
       }
     }
 
-    // 通知主进程拖拽结束（携带 Tab 栏边界）
-    if (currentSessionId && messageBridge.getIpc()) {
+    // 通知主进程拖拽结束（携带真实拖拽的 tabId，主进程可纠正错误的 sessionId）
+    if (messageBridge.getIpc() && (sessionIdForEnd || draggedTabIdForEnd)) {
       try {
         const result = await messageBridge.invoke('drag:end', {
-          sessionId: currentSessionId,
+          sessionId: sessionIdForEnd ?? '',
+          draggedTabId: draggedTabIdForEnd,
           tabBarBounds
         })
 

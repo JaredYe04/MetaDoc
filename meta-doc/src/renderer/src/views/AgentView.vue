@@ -429,8 +429,8 @@ const props = defineProps<{
 }>()
 const isDemo = computed(() => props.mode === 'demo')
 import { ElLoading } from 'element-plus'
-import { messageBox } from '../utils/messageBox'
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '../utils/notify'
+import { messageBox } from '../utils/notification/messageBox'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '../utils/notification/notify'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Plus, Setting } from '@element-plus/icons-vue'
@@ -469,7 +469,7 @@ import {
   createComposerSendQueueItem,
   isAgentSessionReadyForNextLlmTurn,
   retryComposerQueueDrainLater
-} from '../utils/agent-composer-send-queue'
+} from '../utils/agent/agent-composer-send-queue'
 import { cloneDeep } from 'lodash'
 import { useWorkspace, detectDocumentFormat } from '../stores/workspace'
 import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
@@ -481,10 +481,10 @@ import {
   AIContextManager
 } from '../utils/agent-framework'
 import type { ContextBreakdown } from '../utils/agent-framework'
-import { getSessionComposerDraft, isAgentSessionPristine } from '../utils/agent-session-pristine'
-import { generateConversationTitleByAi } from '../utils/conversation-title'
-import { createRendererLogger } from '../utils/logger'
-import { agentToolManager } from '../utils/agent-tool-manager'
+import { getSessionComposerDraft, isAgentSessionPristine } from '../utils/agent/agent-session-pristine'
+import { generateConversationTitleByAi } from '../utils/ai/conversation-title'
+import { createRendererLogger } from '../utils/common/logger'
+import { agentToolManager } from '../utils/agent/agent-tool-manager'
 import { recognizeIntent } from '../utils/agent-framework/intent-processor'
 import {
   processTextReference,
@@ -499,7 +499,7 @@ import {
   cancelAiTask,
   useAiTasks,
   type CustomLlmConfigForTask
-} from '../utils/ai_tasks'
+} from '../utils/ai/ai_tasks'
 import { sanitizeMessages } from '../utils/llm-api.js'
 import { getLlmTemperature } from '../utils/settings.js'
 import { LlmAdapter } from '../utils/agent-framework/llm-adapter'

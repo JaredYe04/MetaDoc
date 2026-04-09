@@ -9,13 +9,13 @@ import {
   cancelAiTask,
   clearAiTasks,
   useAiTasks
-} from '../utils/ai_tasks'
+} from '../utils/ai/ai_tasks'
 import { answerQuestion, continueConversation } from '../utils/llm-api'
 import { getLlmTemperature } from '../utils/settings.js'
 import { getSetting } from '../utils/settings'
 import eventBus from '../utils/event-bus'
 import type { Ref } from 'vue'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 const logger = createRendererLogger('AIService')
 
 /** AI任务创建选项 */

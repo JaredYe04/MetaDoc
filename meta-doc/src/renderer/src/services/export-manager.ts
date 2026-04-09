@@ -3,7 +3,7 @@ import type { ExportTargetDescriptor } from '../../../common/export-rules'
 import { getExportTargets } from '../../../common/export-rules'
 import { serializeDocument } from './document-serializer'
 import type { WorkspaceDocument } from '../stores/workspace'
-import { createRendererLogger } from '../utils/logger.js'
+import { createRendererLogger } from '../utils/common/logger.js'
 import { exportAdapterRegistry, type ExportOptions } from './export-adapters'
 import { loadExportOptions, mergeExportOptions } from './export-adapters/storage'
 import { isExportImagePath, loadImageFileAsMarkdownImage } from './export-path-utils'
@@ -43,7 +43,7 @@ export const prepareExportPayload = async (
   prepareOpts?: { requestId?: string }
 ): Promise<BaseExportPayload> => {
   const messageBridge = (await import('../bridge/message-bridge')).default
-  const { createProgressHandle } = await import('../utils/progress-handle')
+  const { createProgressHandle } = await import('../utils/common/progress-handle')
 
   const requestId =
     prepareOpts?.requestId?.trim() ||

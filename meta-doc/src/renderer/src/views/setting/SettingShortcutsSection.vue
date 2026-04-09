@@ -184,13 +184,13 @@ import {
   exportKeyScheme,
   importKeyScheme,
   clearKeySchemeCache
-} from '@renderer/utils/keyboard-scheme-manager'
-import { getDefaultSchemes, getDefaultSchemeIdForPlatform, detectPlatform } from '@renderer/utils/keyboard-scheme-defaults'
-import { SHORTCUT_ACTION_IDS } from '@renderer/utils/keyboard-scheme-types'
+} from '@renderer/utils/keyboard/keyboard-scheme-manager'
+import { getDefaultSchemes, getDefaultSchemeIdForPlatform, detectPlatform } from '@renderer/utils/keyboard/keyboard-scheme-defaults'
+import { SHORTCUT_ACTION_IDS } from '@renderer/utils/keyboard/keyboard-scheme-types'
 import eventBus from '@renderer/utils/event-bus'
 import { refreshShortcutBindings } from '@renderer/composables/useGlobalShortcuts'
-import { notifySuccess, notifyError } from '@renderer/utils/notify'
-import { messageBox } from '@renderer/utils/messageBox'
+import { notifySuccess, notifyError } from '@renderer/utils/notification/notify'
+import { messageBox } from '@renderer/utils/notification/messageBox'
 import { Card, CardHeader, CardTitle, CardContent } from '@renderer/components/ui/card'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -204,9 +204,9 @@ import {
 } from '@renderer/components/ui/select'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import ShortcutBindingInput from '@renderer/components/ShortcutBindingInput.vue'
+import ShortcutBindingInput from '@renderer/components/input/ShortcutBindingInput.vue'
 import messageBridge from '@renderer/bridge/message-bridge'
-import { normalizeBindingValue, bindingsEqual } from '@renderer/utils/keyboard-scheme-types'
+import { normalizeBindingValue, bindingsEqual } from '@renderer/utils/keyboard/keyboard-scheme-types'
 
 const { t } = useI18n()
 

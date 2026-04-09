@@ -187,8 +187,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { messageBox } from '@renderer/utils/messageBox'
-import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+import { messageBox } from '@renderer/utils/notification/messageBox'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notification/notify'
 import { MoreVertical, Plus, Check, Copy, Pencil, Trash2 } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'

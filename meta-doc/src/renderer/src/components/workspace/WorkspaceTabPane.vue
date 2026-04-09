@@ -32,9 +32,9 @@ import NewDocumentWorkspace from '../../views/NewDocumentWorkspace.vue'
 import Home from '../../views/Home.vue'
 import WorkspaceDocumentViews from './WorkspaceDocumentViews.vue'
 import type { WorkspaceTab } from '../../stores/workspace'
-import { formatRegistry } from '../../utils/format-registry'
+import { formatRegistry } from '../../utils/editor/format-registry'
 import { useFocusMode } from '../../composables/useFocusMode'
-import { IMAGE_EXTENSIONS, RENDERABLE_TEXT_EXTENSIONS } from '../../utils/file-display-utils'
+import { IMAGE_EXTENSIONS, RENDERABLE_TEXT_EXTENSIONS } from '../../utils/common/file-display-utils'
 import { extname } from '../../utils/path-utils'
 
 const { isFocusMode } = useFocusMode()

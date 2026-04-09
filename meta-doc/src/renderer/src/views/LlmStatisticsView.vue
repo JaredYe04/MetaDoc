@@ -21,11 +21,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { notifyInfo } from '@renderer/utils/notify'
+import { notifyInfo } from '@renderer/utils/notification/notify'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../utils/themes'
-import LlmStatisticsContent from '../components/LlmStatisticsContent.vue'
+import LlmStatisticsContent from '../components/common/LlmStatisticsContent.vue'
 
 const props = defineProps<{ mode?: string }>()
 const isDemo = computed(() => props.mode === 'demo')

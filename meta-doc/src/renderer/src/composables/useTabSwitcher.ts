@@ -1,6 +1,6 @@
 import { ref, computed, reactive } from 'vue'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import messageBridge from '../bridge/message-bridge'
 
 const logger = createRendererLogger('useTabSwitcher')

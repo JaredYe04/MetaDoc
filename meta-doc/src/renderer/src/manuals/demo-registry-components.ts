@@ -3,21 +3,21 @@
  * 仅在被动态 import 时执行，避免在应用启动时拉取 LeftMenu 等组件导致循环依赖
  */
 
-import LeftMenu from '../components/LeftMenu.vue'
-import MainTabs from '../components/MainTabs.vue'
-import ViewMenu from '../components/ViewMenu.vue'
+import LeftMenu from '../components/menu/LeftMenu.vue'
+import MainTabs from '../components/tab/MainTabs.vue'
+import ViewMenu from '../components/menu/ViewMenu.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
 import MenuItemsDemo from '../components/manual/MenuItemsDemo.vue'
 import ViewMenuItemsDemo from '../components/manual/ViewMenuItemsDemo.vue'
-import TitleMenu from '../components/TitleMenu.vue'
-import SectionOptimizer from '../components/SectionOptimizer.vue'
-import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
-import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
-import XtermConsole from '../components/XtermConsole.vue'
-import MetaInfoPanel from '../components/MetaInfoPanel.vue'
-import LaTeXCompilerPanel from '../components/LaTeXCompilerPanel.vue'
-import LaTeXEditorDemo from '../components/LaTeXEditorDemo.vue'
-import LaTeXConsole from '../components/LaTeXConsole.vue'
+import TitleMenu from '../components/menu/TitleMenu.vue'
+import SectionOptimizer from '../components/editor/SectionOptimizer.vue'
+import SearchReplaceMenu from '../components/search/SearchReplaceMenu.vue'
+import PdfPreviewPanel from '../components/editor/PdfPreviewPanel.vue'
+import XtermConsole from '../components/console/XtermConsole.vue'
+import MetaInfoPanel from '../components/info/MetaInfoPanel.vue'
+import LaTeXCompilerPanel from '../components/editor/LaTeXCompilerPanel.vue'
+import LaTeXEditorDemo from '../components/editor/LaTeXEditorDemo.vue'
+import LaTeXConsole from '../components/console/LaTeXConsole.vue'
 
 import AIChat from '../views/AIChat.vue'
 import OcrWindow from '../views/OcrWindow.vue'
@@ -40,8 +40,8 @@ import UserProfileView from '../views/UserProfileView.vue'
 
 // Agent-related components (Batch 1 - P0 Priority)
 import AgentView from '../views/AgentView.vue'
-import CompletionSettingsPanel from '../components/CompletionSettingsPanel.vue'
-import AgentSessionManager from '../components/AgentSessionManager.vue'
+import CompletionSettingsPanel from '../components/ai/CompletionSettingsPanel.vue'
+import AgentSessionManager from '../components/ai/AgentSessionManager.vue'
 
 import { registerDemoComponent } from './demo-registry'
 

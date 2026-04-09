@@ -11,7 +11,7 @@ import type {
   ExportOptions
 } from '../../../types'
 import eventBus from '../utils/event-bus'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import { useWorkspace } from '../stores/workspace'
 import { useDocumentStore } from '../stores/document'
 import { DEFAULT_ARTICLE_META, DEFAULT_OUTLINE_TREE } from '../constants/document'

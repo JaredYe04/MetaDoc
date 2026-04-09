@@ -418,7 +418,7 @@ import {
   watch,
   nextTick
 } from 'vue'
-import { messageBox } from '@renderer/utils/messageBox'
+import { messageBox } from '@renderer/utils/notification/messageBox'
 import { useI18n } from 'vue-i18n'
 
 // Demo mode support
@@ -460,10 +460,10 @@ import { Descriptions, DescriptionsItem } from '@renderer/components/ui/descript
 import { FormItem } from '@renderer/components/ui/form'
 import { getRuntimeServerBaseUrl } from '../config/runtime-server'
 import { setSetting, settings } from '../utils/settings'
-import { waitForService } from '../utils/service-status.ts'
-import { createRendererLogger } from '../utils/logger.ts'
+import { waitForService } from '../utils/common/service-status.ts'
+import { createRendererLogger } from '../utils/common/logger.ts'
 import messageBridge from '../bridge/message-bridge'
-import { setupMonacoWorker } from '../utils/monaco-worker-config'
+import { setupMonacoWorker } from '../utils/editor/monaco-worker-config'
 import * as monaco from 'monaco-editor'
 
 const { t } = useI18n()

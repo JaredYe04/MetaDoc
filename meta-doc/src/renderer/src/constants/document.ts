@@ -6,8 +6,8 @@ import type {
   MaterialBasketItem
 } from '../../../types'
 import type { AgentSession } from '../types/agent'
-import type { SchemaDefinition } from '../utils/schemas'
-import { getPromptByKey } from '../utils/prompts'
+import type { SchemaDefinition } from '../utils/common/schemas'
+import { getPromptByKey } from '../utils/common/prompts'
 import { i18n } from '../i18n.js'
 
 export const TREE_NODE_SCHEMA = {

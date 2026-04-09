@@ -170,7 +170,7 @@ import {
   type WatchStopHandle
 } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notification/notify'
 
 // Demo mode support
 const props = defineProps({
@@ -191,7 +191,7 @@ import { proofreadToolCallback } from '../utils/agent-tools/proofread-tool'
 import type { ProofreadResult, ProofreadError } from '../utils/agent-tools/proofread-tool'
 import { themeState } from '../utils/themes'
 import * as monaco from 'monaco-editor'
-import { setupMonacoWorker } from '../utils/monaco-worker-config'
+import { setupMonacoWorker } from '../utils/editor/monaco-worker-config'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls'
 import messageBridge from '../bridge/message-bridge'
 

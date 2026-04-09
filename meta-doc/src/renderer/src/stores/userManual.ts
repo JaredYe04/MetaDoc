@@ -19,7 +19,7 @@ import {
   parseInternalLinks,
   convertInternalLinksToHTML
 } from '../manuals/utils'
-import { getUserProfile } from '../utils/user-profile'
+import { getUserProfile } from '../utils/common/user-profile'
 
 // 导出类型供外部使用
 export type { UserProfile, ManualArticle, ManualCategory }

@@ -296,7 +296,7 @@ import {
   shallowRef
 } from 'vue'
 import { ElButton, ElLoading, ElScrollbar } from 'element-plus'
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notification/notify'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { Divider } from '@renderer/components/ui/separator'
 
@@ -305,37 +305,37 @@ import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
 import '../assets/title-menu.css'
 import eventBus, { getWindowType } from '../utils/event-bus'
-import { searchNode } from '../utils/outline-helpers'
+import { searchNode } from '../utils/outline/outline-helpers'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils'
 import { extractOutlineTreeFromLatex } from '../utils/latex-utils'
-import { getOutlineAdapter } from '../utils/outline-adapters'
-import TitleMenu from '../components/TitleMenu.vue'
-import SectionOptimizer from '../components/SectionOptimizer.vue'
+import { getOutlineAdapter } from '../utils/outline/outline-adapters'
+import TitleMenu from '../components/menu/TitleMenu.vue'
+import SectionOptimizer from '../components/editor/SectionOptimizer.vue'
 import { LaTeXSectionAdapter } from '../components/section-optimizer/adapters/latex-adapter'
 import type { SectionInfo } from '../components/section-optimizer/types'
-import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
+import SearchReplaceMenu from '../components/search/SearchReplaceMenu.vue'
 import AiLogo from '../assets/ai-logo.svg'
 import AiLogoWhite from '../assets/ai-logo-white.svg'
 import { themeState } from '../utils/themes'
 import { getSetting, setSetting } from '../utils/settings'
 import { useI18n } from 'vue-i18n'
-import AISuggestionGhost from '../components/AISuggestionGhost.vue'
-import { aiCompletionService } from '../utils/ai-completion-service'
-import { MonacoEditorAdapter } from '../utils/editor-adapters'
+import AISuggestionGhost from '../components/ai/AISuggestionGhost.vue'
+import { aiCompletionService } from '../utils/ai/ai-completion-service'
+import { MonacoEditorAdapter } from '../utils/editor/editor-adapters'
 import '../assets/ai-suggestion.css'
 import ResizableContainer from '../components/base/ResizableContainer.vue'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
-import ContextMenu from '../components/ContextMenu.vue'
-import GraphQuickDialog from '../components/GraphQuickDialog.vue'
-import SelectionTranslateDialog from '../components/SelectionTranslateDialog.vue'
-import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
-import XtermConsoleLatex from '../components/XtermConsoleLatex.vue'
-import ExportOptionsDialog from '../components/ExportOptionsDialog.vue'
+import ContextMenu from '../components/menu/ContextMenu.vue'
+import GraphQuickDialog from '../components/dialog/GraphQuickDialog.vue'
+import SelectionTranslateDialog from '../components/dialog/SelectionTranslateDialog.vue'
+import PdfPreviewPanel from '../components/editor/PdfPreviewPanel.vue'
+import XtermConsoleLatex from '../components/console/XtermConsoleLatex.vue'
+import ExportOptionsDialog from '../components/dialog/ExportOptionsDialog.vue'
 import { exportAdapterRegistry } from '../services/export-adapters'
 import type { ExportOptions, TexPdfCompileExportOptions } from '../services/export-adapters/types'
 
-import { createRendererLogger } from '../utils/logger.ts'
-import { waitForService } from '../utils/service-status.ts'
+import { createRendererLogger } from '../utils/common/logger.ts'
+import { waitForService } from '../utils/common/service-status.ts'
 import * as monaco from 'monaco-editor'
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import { useWorkspace } from '../stores/workspace'
@@ -362,10 +362,10 @@ import {
   registerOutlineSidebarSearchAdapter,
   unregisterOutlineSidebarSearchAdapter
 } from '../composables/outline-sidebar-search-adapter'
-import { prependAiChatDialog } from '../utils/ai-chat-storage'
-import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config'
-import { createAiTask, ai_types, cancelAiTask } from '../utils/ai_tasks'
-import { getPromptByKey } from '../utils/prompts'
+import { prependAiChatDialog } from '../utils/ai/ai-chat-storage'
+import { setupMonacoWorker, registerLatexLanguage } from '../utils/editor/monaco-worker-config'
+import { createAiTask, ai_types, cancelAiTask } from '../utils/ai/ai_tasks'
+import { getPromptByKey } from '../utils/common/prompts'
 
 const { t } = useI18n()
 const logger = createRendererLogger('LaTeXEditor', {
@@ -841,7 +841,7 @@ const pageRefs = new Map<number, HTMLElement>()
 
 import { VuePdf, createLoadingTask } from 'vue3-pdfjs'
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api'
-import { wholeArticleContextPrompt } from '../utils/prompts.ts'
+import { wholeArticleContextPrompt } from '../utils/common/prompts.ts'
 let pdfInitialized = false
 
 // 计算最优缩放比例（使用整数倍或接近整数倍，避免模糊）
@@ -3287,7 +3287,7 @@ const handlePasteImage = async () => {
     const blob = new Blob([byteArray], { type: 'image/png' })
 
     // 使用图片上传服务上传图片
-    const { uploadImage } = await import('../utils/image-upload-service')
+    const { uploadImage } = await import('../utils/image/image-upload-service')
     const fileName = `clipboard-${Date.now()}.png`
     const file = new File([blob], fileName, { type: 'image/png' })
 
@@ -3402,7 +3402,7 @@ const handleMenuClick = async (item: string) => {
       // 获取文章标题：优先使用 meta.title，如果没有则从内容中提取
       let articleTitle = documentRef.value.meta?.title?.trim() || ''
       if (!articleTitle) {
-        const { extractTitleFromContent } = await import('../utils/title-extractor')
+        const { extractTitleFromContent } = await import('../utils/text/title-extractor')
         const extractedTitle = extractTitleFromContent(currentTex.value, 'tex')
         articleTitle = extractedTitle || ''
       }

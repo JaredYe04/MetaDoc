@@ -97,7 +97,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
-import { toast } from '@renderer/utils/toast'
+import { toast } from '@renderer/utils/notification/toast'
 import { X } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -120,7 +120,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import type { AgentToolConfig, MCPToolConfig } from '../../../types/agent-tool'
 import { toolPluginManager } from '../../../utils/agent-tools/plugin-manager'
-import { agentToolManager } from '../../../utils/agent-tool-manager'
+import { agentToolManager } from '../../../utils/agent/agent-tool-manager'
 import { getLocalizedInstruction } from '../i18n-helper'
 
 const props = defineProps<{

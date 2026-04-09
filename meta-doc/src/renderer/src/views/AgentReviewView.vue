@@ -175,9 +175,9 @@ import {
   useAgentEditStagingStore,
   type StagingEditRecord
 } from '../stores/agent-edit-staging-store'
-import { buildPendingHunkDiffLeftLineRanges } from '../utils/agent-edit-staging-line-stats'
+import { buildPendingHunkDiffLeftLineRanges } from '../utils/agent/agent-edit-staging-line-stats'
 import * as monaco from 'monaco-editor'
-import { setupMonacoWorker } from '../utils/monaco-worker-config'
+import { setupMonacoWorker } from '../utils/editor/monaco-worker-config'
 import { themeState } from '../utils/themes'
 
 const { t } = useI18n()

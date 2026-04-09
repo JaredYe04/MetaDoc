@@ -7,13 +7,13 @@ import { ref, computed, watch } from 'vue'
 import { useActiveDocument } from '../../composables/useActiveDocument'
 import { useWorkspace } from '../../stores/workspace'
 import messageBridge from '../../bridge/message-bridge'
-import { createRendererLogger } from '../../utils/logger'
-import { formatRegistry } from '../../utils/format-registry'
+import { createRendererLogger } from '../../utils/common/logger'
+import { formatRegistry } from '../../utils/editor/format-registry'
 import {
   getFileDisplayType,
   isRenderableTextFormat,
   isImageFormat
-} from '../../utils/file-display-utils'
+} from '../../utils/common/file-display-utils'
 import type { getWindowType } from '../../utils/event-bus'
 
 export function useHomeDocumentPreview(options?: { windowTypeProvider?: () => string }) {

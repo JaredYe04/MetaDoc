@@ -15,7 +15,7 @@ import { convertLatexToMarkdown } from './latex-utils'
 import { NotImplementedExportError, prepareExportPayload } from '../services/export-manager.ts'
 import { createRendererLogger } from './logger.ts'
 import { i18n } from '../i18n.js'
-import { toast } from '../utils/toast'
+import { toast } from '../utils/notification/toast'
 
 const eventBus = mitt()
 if (typeof window !== 'undefined') {

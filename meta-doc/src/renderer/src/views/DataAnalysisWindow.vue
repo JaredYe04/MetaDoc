@@ -320,7 +320,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notification/notify'
 
 // Demo mode support
 const props = defineProps({

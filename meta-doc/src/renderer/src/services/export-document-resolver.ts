@@ -4,7 +4,7 @@
 import messageBridge from '../bridge/message-bridge'
 import type { WorkspaceDocument } from '../stores/workspace'
 import { useWorkspace } from '../stores/workspace'
-import { formatRegistry } from '../utils/format-registry'
+import { formatRegistry } from '../utils/editor/format-registry'
 import { extname, basename } from '../utils/path-utils'
 import type { DocumentFormat } from '../../../types'
 import type { DocumentOutlineNode } from '../../../types'

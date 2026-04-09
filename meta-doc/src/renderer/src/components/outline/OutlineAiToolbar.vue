@@ -80,7 +80,7 @@
 import { inject, computed } from 'vue'
 import { Button } from '@renderer/components/ui/button'
 import { themeState, colorWithOpacity } from '../../utils/themes'
-import { notifyInfo } from '../../utils/notify'
+import { notifyInfo } from '../../utils/notification/notify'
 
 // Demo mode support
 const props = defineProps<{ mode?: string }>()

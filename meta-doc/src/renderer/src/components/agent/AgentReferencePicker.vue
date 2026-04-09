@@ -187,7 +187,7 @@ import {
   fuzzyMatchFile,
   fuzzyMatchDir,
   type WorkspaceFileItem
-} from '../../utils/workspace-file-list'
+} from '../../utils/workspace/workspace-file-list'
 import type { WorkspaceTab } from '../../stores/workspace'
 
 const props = withDefaults(

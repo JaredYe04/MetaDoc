@@ -58,7 +58,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { messageBox } from '@renderer/utils/messageBox'
+import { messageBox } from '@renderer/utils/notification/messageBox'
 import type { UserProfile } from '../../stores/userManual'
 import { Refresh } from '@element-plus/icons-vue'
 import { Button } from '@renderer/components/ui/button'

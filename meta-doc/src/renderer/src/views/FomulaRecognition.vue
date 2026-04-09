@@ -345,7 +345,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notification/notify'
 
 // Demo mode support
 const props = defineProps({
@@ -379,7 +379,7 @@ import { useI18n } from 'vue-i18n'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { Slider } from '@renderer/components/ui/slider'
 import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
-import { createRendererLogger } from '../utils/logger.ts'
+import { createRendererLogger } from '../utils/common/logger.ts'
 import { exportSingleFormula } from '../utils/math-renderer.js'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'

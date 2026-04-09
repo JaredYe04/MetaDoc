@@ -116,8 +116,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { toast } from '@renderer/utils/toast'
-import { messageBox } from '@renderer/utils/messageBox'
+import { toast } from '@renderer/utils/notification/toast'
+import { messageBox } from '@renderer/utils/notification/messageBox'
 import { Button } from '@renderer/components/ui/button'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile, ManualCategory } from '../../stores/userManual'

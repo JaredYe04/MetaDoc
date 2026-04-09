@@ -1,8 +1,8 @@
 import { computed } from 'vue'
-import { messageBox } from '@renderer/utils/messageBox'
+import { messageBox } from '@renderer/utils/notification/messageBox'
 import { useI18n } from 'vue-i18n'
 import { useWorkspace } from '../stores/workspace'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import messageBridge from '../bridge/message-bridge'
 
 // Lazy logger to avoid circular dependency: logger → web-main-calls → router → … → useCloseTab → logger

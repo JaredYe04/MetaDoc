@@ -13,7 +13,7 @@ import {
   TextPosition,
   TextRange
 } from './text-editor-types'
-import { createRendererLogger, RendererLogger } from '../utils/logger'
+import { createRendererLogger, RendererLogger } from '../utils/common/logger'
 
 const WORD_SEPARATORS_FALLBACK = '~!@#$%^&*()-=+[{]}\\|;:\'",.<>/?`´"“”‘’、，。；：《》（）【】'
 const MAX_MATCHES = Number.MAX_SAFE_INTEGER // 对于 Monaco 编辑器，性能足够好，不需要限制匹配数量

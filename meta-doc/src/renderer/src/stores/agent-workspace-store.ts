@@ -9,7 +9,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch, shallowRef } from 'vue'
 import type { AgentSession } from '../types/agent'
 import messageBridge from '../bridge/message-bridge'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import { agentSessionManager } from '../utils/agent-framework/agent-session-manager'
 import { agentConfigManager } from '../utils/agent-framework/agent-config-manager'
 import {
@@ -23,7 +23,7 @@ import {
   pruneOrphanSessionBlobs,
   sessionBlobRelativePath,
   type AgentSessionIndexFileV2
-} from '../utils/agent-workspace-persistence'
+} from '../utils/agent/agent-workspace-persistence'
 
 const logger = createRendererLogger('AgentWorkspaceStore')
 

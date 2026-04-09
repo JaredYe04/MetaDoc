@@ -753,10 +753,10 @@ import axios from 'axios'
 import { useI18n } from 'vue-i18n'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
-import { getMetaDocLlmModels } from '../../utils/web-utils.ts'
-import { createRendererLogger } from '../../utils/logger.ts'
-import { isDevEnvironment } from '../../utils/dev-env'
-import { ai_types, createAiTask, cancelAiTask } from '../../utils/ai_tasks.ts'
+import { getMetaDocLlmModels } from '../../utils/common/web-utils.ts'
+import { createRendererLogger } from '../../utils/common/logger.ts'
+import { isDevEnvironment } from '../../utils/common/dev-env'
+import { ai_types, createAiTask, cancelAiTask } from '../../utils/ai/ai_tasks.ts'
 import messageBridge from '../../bridge/message-bridge'
 import {
   getAllConfigs,
@@ -776,7 +776,7 @@ import {
   updateConfig,
   resetConfigToPreset,
   type LlmConfigItem
-} from '../../utils/llm-config-manager'
+} from '../../utils/ai/llm-config-manager'
 
 // Icons
 import {
@@ -841,8 +841,8 @@ import { Separator } from '@renderer/components/ui/separator'
 import Autocomplete from '@renderer/components/ui/autocomplete/Autocomplete.vue'
 
 // Element Plus 消息组件
-import { messageBox } from '@renderer/utils/messageBox'
-import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+import { messageBox } from '@renderer/utils/notification/messageBox'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notification/notify'
 
 interface OllamaModel {
   name: string

@@ -4,7 +4,7 @@
  */
 
 import { preRenderAllCharts } from '../../utils/chart-pre-renderer'
-import { createRendererLogger } from '../../utils/logger'
+import { createRendererLogger } from '../../utils/common/logger'
 
 const logger = createRendererLogger('ExportSteps.ChartPreRender')
 

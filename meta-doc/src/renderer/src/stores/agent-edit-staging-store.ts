@@ -8,11 +8,11 @@ import messageBridge from '../bridge/message-bridge'
 import type { EditOperation } from '../utils/agent-tools/edit-engine/types'
 import { applyEditSequenceRaw, applySingleEdit, postProcess } from '../utils/agent-tools/edit-engine'
 import { useAgentWorkspaceStore } from './agent-workspace-store'
-import { joinUnderWorkspaceRoot, REL_EDIT_CHECKPOINTS } from '../utils/agent-workspace-persistence'
+import { joinUnderWorkspaceRoot, REL_EDIT_CHECKPOINTS } from '../utils/agent/agent-workspace-persistence'
 import {
   computeRecordPendingGrossLines,
   grossLineDiffWholeFile
-} from '../utils/agent-edit-staging-line-stats'
+} from '../utils/agent/agent-edit-staging-line-stats'
 
 export type StagingEditType = 'edit' | 'create' | 'delete'
 

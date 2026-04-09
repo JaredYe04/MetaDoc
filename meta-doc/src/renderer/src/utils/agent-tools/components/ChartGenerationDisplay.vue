@@ -130,7 +130,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { Loading, Download } from '@element-plus/icons-vue'
-import { toast } from '@renderer/utils/toast'
+import { toast } from '@renderer/utils/notification/toast'
 import { Button } from '@renderer/components/ui/button'
 import { Progress } from '@renderer/components/ui/progress'
 import { Empty } from '@renderer/components/ui/empty'

@@ -4,7 +4,7 @@
  */
 
 import { renderMarkdownMathToImages } from '../../utils/math-renderer'
-import { createRendererLogger } from '../../utils/logger'
+import { createRendererLogger } from '../../utils/common/logger'
 import type { ExportFormat } from '../../../types'
 
 const logger = createRendererLogger('ExportSteps.MathPipeline')

@@ -102,7 +102,7 @@ import {
   generateWordFrequencyTrendChart,
   outlineToMindMap
 } from '../utils/md-utils'
-import { createVisualizeAdapter, type VisualizeAdapter } from '../utils/visualize-adapters'
+import { createVisualizeAdapter, type VisualizeAdapter } from '../utils/common/visualize-adapters'
 // @ts-ignore - lodash.debounce没有类型定义
 import debounce from 'lodash.debounce'
 import type { DocumentOutlineNode } from '../../../types'
@@ -111,7 +111,7 @@ import * as echarts from 'echarts'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
-import WordCloudDetail from '../components/WordCloudDetail.vue'
+import WordCloudDetail from '../components/common/WordCloudDetail.vue'
 import { getSetting } from '../utils/settings'
 import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls'

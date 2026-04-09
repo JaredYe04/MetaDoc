@@ -10,7 +10,7 @@ import { URIUtils } from '../utils/workspace/fs-models'
 import { FSPlanner } from '../utils/workspace/fs-planner'
 import { FSExecutor, type ExecutionProgress } from '../utils/workspace/fs-executor'
 import { ClipboardService } from '../utils/workspace/clipboard-service'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import eventBus from '../utils/event-bus'
 
 const logger = createRendererLogger('WorkspaceOperations')

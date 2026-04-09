@@ -402,8 +402,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { toast } from '@renderer/utils/toast'
-import { messageBox } from '../../../utils/messageBox'
+import { toast } from '@renderer/utils/notification/toast'
+import { messageBox } from '../../../utils/notification/messageBox'
 import { themeState } from '../../../utils/themes'
 import messageBridge from '../../../bridge/message-bridge'
 import { refreshMcpToolsInAgentToolManager } from '../../../utils/agent-framework'

@@ -74,7 +74,7 @@ import ResizableDivider from '../components/base/ResizableDivider.vue'
 import { User, ArrowLeft, LayoutDashboard, Send, Download } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { useUserManual } from '../stores/userManual'
-import CelebrationOverlay from '../components/CelebrationOverlay.vue'
+import CelebrationOverlay from '../components/layout/CelebrationOverlay.vue'
 import { useWorkspace } from '../stores/workspace'
 import { toPureManualMarkdown } from '../manuals/pure-markdown'
 

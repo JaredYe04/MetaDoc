@@ -155,8 +155,8 @@ import {
   watch,
   shallowRef
 } from 'vue'
-import { messageBox } from '@renderer/utils/messageBox'
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+import { messageBox } from '@renderer/utils/notification/messageBox'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notification/notify'
 import { Button } from '@renderer/components/ui/button'
 import { Skeleton } from '@renderer/components/ui/skeleton'
 import Vditor from 'vditor'
@@ -173,45 +173,45 @@ import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
 import '../assets/title-menu.css'
 import eventBus, { isElectronEnv, getWindowType } from '../utils/event-bus'
-import { createRendererLogger } from '../utils/logger.ts'
+import { createRendererLogger } from '../utils/common/logger.ts'
 import {
   extractOutlineTreeFromMarkdown,
   generateMarkdownFromOutlineTree,
   convertLatexDelimiters
 } from '../utils/md-utils'
-import { wholeArticleContextPrompt } from '../utils/prompts.ts'
-import TitleMenu from '../components/TitleMenu.vue'
-import SectionOptimizer from '../components/SectionOptimizer.vue'
+import { wholeArticleContextPrompt } from '../utils/common/prompts.ts'
+import TitleMenu from '../components/menu/TitleMenu.vue'
+import SectionOptimizer from '../components/editor/SectionOptimizer.vue'
 import { MarkdownSectionAdapter } from '../components/section-optimizer/adapters/markdown-adapter'
-import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
+import SearchReplaceMenu from '../components/search/SearchReplaceMenu.vue'
 import {
   themeState,
   resolveVditorContentThemeSettingValue,
   resolveVditorCodeThemeSettingValue
 } from '../utils/themes'
-import { isSaveInProgress } from '../utils/save-guard'
+import { isSaveInProgress } from '../utils/common/save-guard'
 import { getSetting, setSetting, settings } from '../utils/settings'
 import { getLocalVditorCDN, vditorCDN } from '../utils/vditor-cdn'
-import { waitForService } from '../utils/service-status.ts'
+import { waitForService } from '../utils/common/service-status.ts'
 import { useI18n } from 'vue-i18n'
-import AISuggestionGhost from '../components/AISuggestionGhost.vue'
-import { aiCompletionService } from '../utils/ai-completion-service'
-import { VditorEditorAdapter } from '../utils/editor-adapters'
+import AISuggestionGhost from '../components/ai/AISuggestionGhost.vue'
+import { aiCompletionService } from '../utils/ai/ai-completion-service'
+import { VditorEditorAdapter } from '../utils/editor/editor-adapters'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import { getMarkdownOutlineContextMenuItems } from '../components/contextMenus/MarkdownOutlineContextMenu'
-import ContextMenu from '../components/ContextMenu.vue'
-import GraphQuickDialog from '../components/GraphQuickDialog.vue'
-import SelectionTranslateDialog from '../components/SelectionTranslateDialog.vue'
+import ContextMenu from '../components/menu/ContextMenu.vue'
+import GraphQuickDialog from '../components/dialog/GraphQuickDialog.vue'
+import SelectionTranslateDialog from '../components/dialog/SelectionTranslateDialog.vue'
 import { useWorkspace } from '../stores/workspace'
 import type { ArticleMetaData, DocumentOutlineNode, MaterialBasketItem } from '../../../types'
 import type { SectionInfo } from '../components/section-optimizer/types'
 import { debounce } from 'lodash'
 import { createVditorAdapter } from '../editor/vditor-adapter'
 import type { TextEditorAdapter, TextRange } from '../editor/text-editor-types'
-import { prependAiChatDialog } from '../utils/ai-chat-storage'
-import { TitleIndex } from '../utils/title-index'
+import { prependAiChatDialog } from '../utils/ai/ai-chat-storage'
+import { TitleIndex } from '../utils/text/title-index'
 import { normalizeMarkdownLeadingArtifacts } from '../utils/md-utils'
-import { buildOutlineSectionLineRanges } from '../utils/outline-section-lines'
+import { buildOutlineSectionLineRanges } from '../utils/outline/outline-section-lines'
 
 const MARKDOWN_LAYOUT = {
   editorMinWidth: 700,
@@ -1228,7 +1228,7 @@ async function buildSectionInfoForOutlineItem(
 ): Promise<SectionInfo | null> {
   const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value, true)
   if (!outline || !path) return null
-  const { searchNode } = await import('../utils/outline-helpers')
+  const { searchNode } = await import('../utils/outline/outline-helpers')
   const node = searchNode(path, outline)
   if (!node) return null
 
@@ -1611,7 +1611,7 @@ const handleMenuClick = async (item: string) => {
       const ctx = outlineContextSection.value
       if (!props.tabId || !ctx) break
       const outlineTree = extractOutlineTreeFromMarkdown(currentMarkdown.value, true)
-      const { searchNode } = await import('../utils/outline-helpers')
+      const { searchNode } = await import('../utils/outline/outline-helpers')
       const node = ctx.path && outlineTree ? searchNode(ctx.path, outlineTree) : null
       const id =
         typeof crypto !== 'undefined' && crypto.randomUUID
@@ -1640,7 +1640,7 @@ const handleMenuClick = async (item: string) => {
       // 获取文章标题：优先使用 meta.title，如果没有则从内容中提取
       let articleTitle = documentRef.value.meta?.title?.trim() || ''
       if (!articleTitle) {
-        const { extractTitleFromContent } = await import('../utils/title-extractor')
+        const { extractTitleFromContent } = await import('../utils/text/title-extractor')
         const extractedTitle = extractTitleFromContent(currentMarkdown.value, 'md')
         articleTitle = extractedTitle || ''
       }
@@ -2194,7 +2194,7 @@ const openSectionOptimizerFromContext = async () => {
             if (path) {
               const outline = extractOutlineTreeFromMarkdown(markdown, true)
               if (outline) {
-                const { searchNode } = await import('../utils/outline-helpers')
+                const { searchNode } = await import('../utils/outline/outline-helpers')
                 const outlineNode = searchNode(path, outline)
                 if (outlineNode) {
                   // 在 markdown 中查找这个标题
@@ -2314,7 +2314,7 @@ const openSectionOptimizerFromContext = async () => {
     const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value, true)
     if (outline && outline.children && outline.children.length > 0) {
       const firstSection = outline.children[0] as DocumentOutlineNode
-      const { searchNode } = await import('../utils/outline-helpers')
+      const { searchNode } = await import('../utils/outline/outline-helpers')
       const node = searchNode(firstSection.path, outline)
 
       // 获取内容
@@ -3012,7 +3012,7 @@ async function runMarkdownVditorInit() {
     const initialCodeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
 
     // 导入图片上传服务
-    const { uploadImage, processImagePath } = await import('../utils/image-upload-service')
+    const { uploadImage, processImagePath } = await import('../utils/image/image-upload-service')
 
     // 辅助函数：读取 SVG 文件内容并返回 SVG 字符串
     const getSvgIconContent = async (svgUrl: string): Promise<string> => {

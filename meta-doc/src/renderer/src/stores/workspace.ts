@@ -8,7 +8,7 @@ import type {
 } from '../../../types'
 import type { AgentSession } from '../types/agent'
 import eventBus from '../utils/event-bus'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import { i18n } from '../i18n'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils.js'
 import { convertLatexToMarkdown } from '../utils/latex-utils.js'
@@ -17,7 +17,7 @@ import type { DocumentTemplate, SupportedFormat } from '../types/formats'
 import { getSupportedFormatsFromTemplates } from '../templates/template-registry'
 import type { TranslateFn } from '../templates/template-registry'
 import { getUserTemplatesForLocaleFormat } from './user-templates'
-import { formatRegistry } from '../utils/format-registry'
+import { formatRegistry } from '../utils/editor/format-registry'
 import { saveWorkspaceDocument } from '../services/document-save'
 import {
   DEFAULT_ARTICLE_META,
@@ -26,7 +26,7 @@ import {
   DEFAULT_AGENT_SESSIONS
 } from '../constants/document'
 import { isElectronEnv } from '../utils/event-bus'
-import { extractTitleFromContent, sanitizeTitleForFilename } from '../utils/title-extractor'
+import { extractTitleFromContent, sanitizeTitleForFilename } from '../utils/text/title-extractor'
 
 export type WorkspaceTabKind = 'new' | 'file' | 'tool' | 'system'
 // WorkspaceTabFormat 现在支持动态格式，但为了向后兼容，保留 'md' | 'tex' 作为基础类型
@@ -1539,8 +1539,8 @@ async function saveAllDocuments(): Promise<{ saved: string[]; failed: string[] }
 
 // ===== 跨窗口文档信息获取（用于设置窗口的Agent Tool测试） =====
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
-import { mergeText } from '../utils/text-merge.js'
-import { removeMetaInfo } from '../utils/meta-info-remover'
+import { mergeText } from '../utils/text/text-merge.js'
+import { removeMetaInfo } from '../utils/metadata/meta-info-remover'
 
 /**
  * 初始化workspace的跨窗口事件监听器

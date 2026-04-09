@@ -1,8 +1,8 @@
 import { extractOutlineTreeFromMarkdown, filterMetaDataFromMd } from '../utils/md-utils'
 import { convertLatexToMarkdown } from '../utils/latex-utils'
-import { deserializeMetadataFromBase64 } from '../utils/metadata-serializer'
-import { deserializeMetadataFromBuffer, getSidecarPath } from '../utils/metadata-sidecar'
-import { createRendererLogger } from '../utils/logger'
+import { deserializeMetadataFromBase64 } from '../utils/metadata/metadata-serializer'
+import { deserializeMetadataFromBuffer, getSidecarPath } from '../utils/metadata/metadata-sidecar'
+import { createRendererLogger } from '../utils/common/logger'
 import type {
   ArticleMetaData,
   AIDialog,

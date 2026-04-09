@@ -131,7 +131,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { toast } from '@renderer/utils/toast'
+import { toast } from '@renderer/utils/notification/toast'
 import { useI18n } from 'vue-i18n'
 import { Document, Download, Check, Close } from '@element-plus/icons-vue'
 import { themeState } from '../utils/themes'

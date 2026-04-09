@@ -22,7 +22,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Empty } from '@renderer/components/ui/empty'
 import { FIXED_LOGO_COLORS } from '../utils/themes'
-import LogoIcon from '../components/LogoIcon.vue'
+import LogoIcon from '../components/layout/LogoIcon.vue'
 
 const { t } = useI18n()
 

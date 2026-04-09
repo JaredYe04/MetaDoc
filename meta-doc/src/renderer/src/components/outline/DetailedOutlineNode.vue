@@ -139,7 +139,7 @@ import { Button } from '@renderer/components/ui/button'
 import type { DocumentOutlineNode } from '../../../types'
 import { themeState } from '../../utils/themes'
 import VditorPreview from '../VditorPreview.vue'
-import { expandContent, abridgeContent, polishContent } from '../../utils/outline-ai-utils'
+import { expandContent, abridgeContent, polishContent } from '../../utils/ai/outline-ai-utils'
 
 const { t } = useI18n()
 

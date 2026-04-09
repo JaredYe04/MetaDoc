@@ -3,7 +3,7 @@
  * 已知代码/标记类扩展名则包一层 fenced code block。
  */
 import { extname } from '../utils/path-utils'
-import { getMonacoLanguage } from '../utils/format-initializer'
+import { getMonacoLanguage } from '../utils/editor/format-initializer'
 import { isExportImagePath } from './export-path-utils'
 
 const PLAIN_TEXT_EXT = new Set([

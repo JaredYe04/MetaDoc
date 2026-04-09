@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import eventBus from '../utils/event-bus'
 import messageBridge from '../bridge/message-bridge'
 import { useFocusMode } from './useFocusMode'

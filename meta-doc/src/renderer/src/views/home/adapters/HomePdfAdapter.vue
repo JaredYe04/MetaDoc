@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import PdfPreviewPanel from '../../../components/PdfPreviewPanel.vue'
+import PdfPreviewPanel from '../../../components/editor/PdfPreviewPanel.vue'
 
 defineProps<{
   pdfUrl: string

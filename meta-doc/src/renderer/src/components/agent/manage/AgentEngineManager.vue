@@ -236,8 +236,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { toast } from '@renderer/utils/toast'
-import { messageBox } from '../../../utils/messageBox'
+import { toast } from '@renderer/utils/notification/toast'
+import { messageBox } from '../../../utils/notification/messageBox'
 import { Plus } from '@element-plus/icons-vue'
 import { themeState } from '../../../utils/themes'
 import { agentEngineManager } from '../../../utils/agent-framework'

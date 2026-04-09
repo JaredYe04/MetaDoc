@@ -251,7 +251,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notification/notify'
 
 // Demo mode support
 const props = defineProps({
@@ -286,9 +286,9 @@ import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { aigcDetectionSessionsDb, type AigcDetectionSession } from '../utils/db/tool-sessions-db'
 import { themeState } from '../utils/themes'
-import { setupMonacoWorker } from '../utils/monaco-worker-config'
+import { setupMonacoWorker } from '../utils/editor/monaco-worker-config'
 import * as monaco from 'monaco-editor'
-import { createAiTask, ai_types } from '../utils/ai_tasks'
+import { createAiTask, ai_types } from '../utils/ai/ai_tasks'
 import type { AIDialogMessage } from '@/types'
 import {
   buildSchemaPrompt,
@@ -302,8 +302,8 @@ import {
   type AigcAnalysisResult,
   type AigcDimensionScore,
   type DocumentTitleSchemaResult
-} from '../utils/schemas'
-import { updateTitlePrompt } from '../utils/prompts'
+} from '../utils/common/schemas'
+import { updateTitlePrompt } from '../utils/common/prompts'
 import { referenceAdapterManager } from '../utils/agent-framework/reference-adapters'
 import {
   preprocessParagraphs,
@@ -311,10 +311,10 @@ import {
   DEFAULT_MIN_SEGMENTS,
   DEFAULT_MAX_SEGMENTS,
   type ContentFormat
-} from '../utils/aigc-paragraph-utils'
+} from '../utils/ai/aigc-paragraph-utils'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
-import VditorPreview from '../components/VditorPreview.vue'
+import VditorPreview from '../components/editor/VditorPreview.vue'
 import ResizableContainer from '../components/base/ResizableContainer.vue'
 import eventBus from '../utils/event-bus'
 import messageBridge from '../bridge/message-bridge'

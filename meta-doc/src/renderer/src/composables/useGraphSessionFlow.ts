@@ -2,19 +2,19 @@ import { ref, computed, watch, nextTick, type Ref } from 'vue'
 import { ref as vueRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AIDialogMessage } from '@/types'
-import { createAiTask, cancelAiTask, ai_types } from '../utils/ai_tasks'
+import { createAiTask, cancelAiTask, ai_types } from '../utils/ai/ai_tasks'
 import { graphSessionsDb, type GraphSession } from '../utils/db/tool-sessions-db'
 import { graphEngineConfig } from '../config/graph-engine-config'
 import { extractOuterJsonString } from '../utils/regex-utils'
-import { createRendererLogger } from '../utils/logger'
-import { updateTitlePrompt } from '../utils/prompts'
+import { createRendererLogger } from '../utils/common/logger'
+import { updateTitlePrompt } from '../utils/common/prompts'
 import {
   parseSchemaJson,
   DOCUMENT_TITLE_SCHEMA,
   type DocumentTitleSchemaResult
-} from '../utils/schemas'
+} from '../utils/common/schemas'
 import { getSetting } from '../utils/settings'
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '../utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '../utils/notification/notify'
 
 const logger = createRendererLogger('useGraphSessionFlow')
 
@@ -791,7 +791,7 @@ ${notes ? `注意事项：${notes}\n` : ''}
 
       const targetFormat = ext === 'png' ? 'png' : 'svg'
 
-      const { renderChart } = await import('../utils/chart-renderer')
+      const { renderChart } = await import('../utils/common/chart-renderer')
       const imageUrl = await renderChart({
         chartType: engine,
         code: code,

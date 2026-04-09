@@ -239,7 +239,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading, WarningFilled } from '@element-plus/icons-vue'
-import { toast } from '@renderer/utils/toast'
+import { toast } from '@renderer/utils/notification/toast'
 import { Button } from '@renderer/components/ui/button'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Textarea } from '@renderer/components/ui/textarea'

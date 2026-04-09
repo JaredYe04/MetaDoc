@@ -486,7 +486,7 @@ import {
   DialogTitle,
   DialogFooter
 } from '@renderer/components/ui/dialog'
-import { saveUserProfile } from '../../utils/user-profile'
+import { saveUserProfile } from '../../utils/common/user-profile'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile } from '../../stores/userManual'
 import { themeState } from '../../utils/themes'

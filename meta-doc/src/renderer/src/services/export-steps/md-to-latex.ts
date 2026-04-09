@@ -6,7 +6,7 @@
 import type { ExportOptions } from '../export-adapters/types'
 import type { WorkspaceDocument } from '../../stores/workspace'
 import { getRuntimeServerBaseUrlSync } from '../../config/runtime-server'
-import { createRendererLogger } from '../../utils/logger'
+import { createRendererLogger } from '../../utils/common/logger'
 import { preRenderCharts } from './chart-pre-render'
 
 const logger = createRendererLogger('ExportSteps.MdToLatex')

@@ -10,7 +10,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import * as monaco from 'monaco-editor'
 import { themeState } from '../../../utils/themes'
-import { setupMonacoWorker } from '../../../utils/monaco-worker-config'
+import { setupMonacoWorker } from '../../../utils/editor/monaco-worker-config'
 import { attachMonacoWheelScrollChain } from '../../../utils/agent-tools/monaco-scroll-chain'
 
 const props = defineProps<{

@@ -1065,8 +1065,8 @@ import {
   type Ref,
   type ComponentPublicInstance
 } from 'vue'
-import { messageBox } from '@renderer/utils/messageBox'
-import { notifyError, notifyInfo } from '@renderer/utils/notify'
+import { messageBox } from '@renderer/utils/notification/messageBox'
+import { notifyError, notifyInfo } from '@renderer/utils/notification/notify'
 
 // Demo mode support
 const props = defineProps<{
@@ -1114,7 +1114,7 @@ import {
 } from 'lucide-vue-next'
 import type { DocumentOutlineNode, MaterialBasketItem } from '../../../types'
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document'
-import { searchNode, searchParentNode, syncChildrenFromNodeText } from '../utils/outline-helpers'
+import { searchNode, searchParentNode, syncChildrenFromNodeText } from '../utils/outline/outline-helpers'
 import {
   adjustTitleIndex,
   adjustTitleLevel,
@@ -1127,11 +1127,11 @@ import {
   generateContentPrompt,
   generateParentNodeContentPrompt,
   outlineChangePrompt
-} from '../utils/prompts'
+} from '../utils/common/prompts'
 
 import { themeState } from '../utils/themes.js'
 import { extractOuterJsonString } from '../utils/regex-utils.js'
-import { getOutlineAdapter } from '../utils/outline-adapters'
+import { getOutlineAdapter } from '../utils/outline/outline-adapters'
 import {
   generateChildNodes as generateChildNodesUtil,
   generateNodeContent as generateNodeContentUtil,
@@ -1139,25 +1139,25 @@ import {
   generateChildrenContent as generateChildrenContentUtil,
   cleanNodeTitleMarkers,
   cleanRawContent
-} from '../utils/outline-ai-utils'
+} from '../utils/ai/outline-ai-utils'
 import DetailedOutlineNode from '../components/outline/DetailedOutlineNode.vue'
 import OutlineAiToolbar from '../components/outline/OutlineAiToolbar.vue'
 import OutlineNodeActionButton from '../components/outline/OutlineNodeActionButton.vue'
 import MaterialBasketPanel from '../components/outline/MaterialBasketPanel.vue'
 import StreamingJsonTree from '../components/outline/StreamingJsonTree.vue'
-import KeywordInput from '../components/KeywordInput.vue'
+import KeywordInput from '../components/input/KeywordInput.vue'
 import '../assets/noselect-display.css'
-import { generateWithSchema } from '../utils/ai-schema-task'
-import { OUTLINE_SECTION_KEYWORDS_SCHEMA, DOCUMENT_TITLE_SCHEMA } from '../utils/schemas'
+import { generateWithSchema } from '../utils/ai/ai-schema-task'
+import { OUTLINE_SECTION_KEYWORDS_SCHEMA, DOCUMENT_TITLE_SCHEMA } from '../utils/common/schemas'
 import {
   generateOutlineSectionKeywordsPrompt,
   getNewMaterialTitlePrompt,
   getNewMaterialKeywordsPrompt
-} from '../utils/prompts'
+} from '../utils/common/prompts'
 import { useI18n } from 'vue-i18n'
-import { ai_types, createAiTask, clearAiTasks } from '../utils/ai_tasks.ts'
+import { ai_types, createAiTask, clearAiTasks } from '../utils/ai/ai_tasks.ts'
 import { getSetting, setSetting } from '../utils/settings.js'
-import { createRendererLogger } from '../utils/logger.ts'
+import { createRendererLogger } from '../utils/common/logger.ts'
 import {
   Dialog,
   DialogContent,

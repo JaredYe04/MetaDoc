@@ -223,7 +223,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Form, FormField } from '@renderer/components/ui/form'
-import { notifyError, notifyWarning } from '@renderer/utils/notify'
+import { notifyError, notifyWarning } from '@renderer/utils/notification/notify'
 import { HelpCircle } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'

@@ -61,7 +61,7 @@ import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { convertLatexToMarkdown } from '../utils/latex-utils'
-import { svgContentToDataUrl } from '../utils/file-display-utils'
+import { svgContentToDataUrl } from '../utils/common/file-display-utils'
 import messageBridge from '../bridge/message-bridge'
 import {
   HomePdfAdapter,

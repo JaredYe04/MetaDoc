@@ -95,12 +95,12 @@
 
 <script setup lang="ts">
 import { computed, ref, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { messageBox } from '@renderer/utils/messageBox'
+import { messageBox } from '@renderer/utils/notification/messageBox'
 import { useI18n } from 'vue-i18n'
 import { useWorkspace, type WorkspaceTab } from '../../stores/workspace'
 import eventBus from '../../utils/event-bus'
 import { Plus, FilePlus, FolderPlus, X } from 'lucide-vue-next'
-import { createRendererLogger } from '../../utils/logger'
+import { createRendererLogger } from '../../utils/common/logger'
 import messageBridge from '../../bridge/message-bridge'
 import { Tabs, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 import {

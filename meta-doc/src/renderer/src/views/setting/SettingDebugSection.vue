@@ -2165,8 +2165,8 @@ const props = defineProps<{
   mode?: string
 }>()
 const isDemo = computed(() => props.mode === 'demo')
-import { messageBox } from '@renderer/utils/messageBox'
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+import { messageBox } from '@renderer/utils/notification/messageBox'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notification/notify'
 import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
 import { CheckCircle2, Info, XCircle, Timer } from 'lucide-vue-next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
@@ -2230,10 +2230,10 @@ import {
   Loading
 } from '@element-plus/icons-vue'
 import eventBus, { sendBroadcast } from '../../utils/event-bus'
-import { testFramework, type TestFunction } from '../../utils/test-framework'
+import { testFramework, type TestFunction } from '../../utils/testing/test-framework'
 import messageBridge from '../../bridge/message-bridge'
 import { join, extname } from '../../utils/path-utils.js'
-import { agentToolManager } from '../../utils/agent-tool-manager'
+import { agentToolManager } from '../../utils/agent/agent-tool-manager'
 import type { LocalizedText } from '../../types/agent-tool'
 import { getLocalizedInstruction } from '../../utils/agent-tools/i18n-helper'
 // 导入显示组件
@@ -2262,13 +2262,13 @@ import {
 } from '../../utils/agent-tools/tool-display-communication'
 import testCasesData from '../../utils/agent-tools/test-data/test-cases.json'
 import { themeState } from '../../utils/themes'
-import { updateMockService } from '../../utils/update-mock-service'
+import { updateMockService } from '../../utils/common/update-mock-service'
 import {
   createSnapshotFromHistoryEntry,
   serializeToolExecutionSnapshot,
   deserializeToolExecutionSnapshot
 } from '../../utils/agent-tools/tool-serialization'
-import { createRendererLogger } from '../../utils/logger'
+import { createRendererLogger } from '../../utils/common/logger'
 import { useWorkspace } from '../../stores/workspace'
 import { agentSessionManager } from '../../utils/agent-framework/agent-session-manager'
 import { agentEngineManager } from '../../utils/agent-framework/agent-engine-manager'

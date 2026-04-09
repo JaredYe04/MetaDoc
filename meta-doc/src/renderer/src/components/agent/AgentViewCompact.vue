@@ -489,7 +489,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { Clock, Loader2, Paperclip, Plus, Settings, X } from 'lucide-vue-next'
-import { messageBox } from '@renderer/utils/messageBox'
+import { messageBox } from '@renderer/utils/notification/messageBox'
 import { Button } from '@renderer/components/ui/button'
 import { Textarea } from '@renderer/components/ui/textarea'
 import {
@@ -535,10 +535,10 @@ import {
   createComposerSendQueueItem,
   isAgentSessionReadyForNextLlmTurn,
   retryComposerQueueDrainLater
-} from '../../utils/agent-composer-send-queue'
+} from '../../utils/agent/agent-composer-send-queue'
 import type { Reference } from '../../types/agent-framework'
-import { createRendererLogger } from '../../utils/logger'
-import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '../../utils/notify'
+import { createRendererLogger } from '../../utils/common/logger'
+import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '../../utils/notification/notify'
 import {
   agentEngineManager,
   agentConfigManager,
@@ -546,8 +546,8 @@ import {
   AIContextManager
 } from '../../utils/agent-framework'
 import type { ContextBreakdown } from '../../utils/agent-framework'
-import { generateConversationTitleByAi } from '../../utils/conversation-title'
-import { cancelAiTask, useAiTasks } from '../../utils/ai_tasks'
+import { generateConversationTitleByAi } from '../../utils/ai/conversation-title'
+import { cancelAiTask, useAiTasks } from '../../utils/ai/ai_tasks'
 import { processTextReference } from '../../utils/agent-framework/reference-processor'
 import { isLikelyFilesystemReferenceOrigin } from '../../utils/agent-framework/reference-artifact-paths'
 import messageBridge from '../../bridge/message-bridge'
@@ -556,7 +556,7 @@ import {
   getSessionComposerDraft,
   isAgentSessionPristine,
   pickLatestSessionIdAmongOpenTabs
-} from '../../utils/agent-session-pristine'
+} from '../../utils/agent/agent-session-pristine'
 
 const { t } = useI18n()
 const workspace = useWorkspace()

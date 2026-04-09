@@ -166,31 +166,31 @@
 // ============================================================================
 // 导入组件
 // ============================================================================
-import LeftMenu from '../components/LeftMenu.vue'
-import ViewMenu from '../components/ViewMenu.vue'
-import MainTabs from '../components/MainTabs.vue'
-import LogoTab from '../components/LogoTab.vue'
-import ViewMenuContainer from '../components/ViewMenuContainer.vue'
-import ViewMenuContainerFocus from '../components/ViewMenuContainerFocus.vue'
-import UserProfileCard from '../components/UserProfileCard.vue'
-import BottomMenu from '../components/BottomMenu.vue'
-import AITaskQueue from '../components/AITaskQueue.vue'
-import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
-import FileConflictDialog from '../components/FileConflictDialog.vue'
-import LlmApiErrorDialog from '../components/LlmApiErrorDialog.vue'
-import TabContentRenderer from '../components/TabContentRenderer.vue'
+import LeftMenu from '../components/menu/LeftMenu.vue'
+import ViewMenu from '../components/menu/ViewMenu.vue'
+import MainTabs from '../components/tab/MainTabs.vue'
+import LogoTab from '../components/layout/LogoTab.vue'
+import ViewMenuContainer from '../components/menu/ViewMenuContainer.vue'
+import ViewMenuContainerFocus from '../components/menu/ViewMenuContainerFocus.vue'
+import UserProfileCard from '../components/common/UserProfileCard.vue'
+import BottomMenu from '../components/menu/BottomMenu.vue'
+import AITaskQueue from '../components/ai/AITaskQueue.vue'
+import LoggerConsolePanel from '../components/console/LoggerConsolePanel.vue'
+import FileConflictDialog from '../components/dialog/FileConflictDialog.vue'
+import LlmApiErrorDialog from '../components/dialog/LlmApiErrorDialog.vue'
+import TabContentRenderer from '../components/tab/TabContentRenderer.vue'
 // ============================================================================
 // 导入工具和库
 // ============================================================================
 import { onMounted, onBeforeUnmount, ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { messageBox } from '@renderer/utils/messageBox'
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+import { messageBox } from '@renderer/utils/notification/messageBox'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notification/notify'
 import { getSetting, setSetting, updateRecentDocs } from '../utils/settings.js'
-import { isMacOSLayout } from '../utils/keyboard-scheme-defaults'
+import { isMacOSLayout } from '../utils/keyboard/keyboard-scheme-defaults'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
-import { takeStartupRecentHomeGuardIfArmed } from '../utils/startup-recent-home'
+import { takeStartupRecentHomeGuardIfArmed } from '../utils/common/startup-recent-home'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
 
 // 检测是否为 macOS（顶栏布局与 MainTabs 交通灯/窗口按钮一致）
@@ -204,16 +204,16 @@ import {
 } from '../services/document-loader'
 import type { WorkspaceDocument, WorkspaceTab, DocumentView } from '../stores/workspace'
 import { convertMarkdownBodyToLatex } from '../utils/latex-utils'
-import { verifyToken } from '../utils/web-utils.ts'
-import { createRendererLogger } from '../utils/logger.ts'
+import { verifyToken } from '../utils/common/web-utils.ts'
+import { createRendererLogger } from '../utils/common/logger.ts'
 import { extname } from '../utils/path-utils'
 import {
   IMAGE_EXTENSIONS,
   RENDERABLE_TEXT_EXTENSIONS
-} from '../utils/file-display-utils'
-import { formatRegistry } from '../utils/format-registry'
+} from '../utils/common/file-display-utils'
+import { formatRegistry } from '../utils/editor/format-registry'
 
-import TabSwitcherOverlay from '../components/TabSwitcherOverlay.vue'
+import TabSwitcherOverlay from '../components/tab/TabSwitcherOverlay.vue'
 import {
   Dialog,
   DialogContent,

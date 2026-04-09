@@ -28,8 +28,8 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted, computed } from 'vue'
 import eventBus from '../../utils/event-bus.js'
-import { parseSegments, serializeSegments } from '../../utils/ref-composer-segments'
-import type { Segment } from '../../utils/ref-composer-segments'
+import { parseSegments, serializeSegments } from '../../utils/common/ref-composer-segments'
+import type { Segment } from '../../utils/common/ref-composer-segments'
 
 const props = withDefaults(
   defineProps<{

@@ -1,7 +1,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { useWorkspace, type WorkspaceTab, type WorkspaceTabKind } from '../stores/workspace'
 import { useFocusMode } from './useFocusMode'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import { themeState } from '../utils/themes'
 import messageBridge from '../bridge/message-bridge'
 

@@ -35,7 +35,7 @@ import eventBus, { getWindowType, initWindowType } from './utils/event-bus'
 import {
   armAwaitingGlobalHomeAfterRecentOpen,
   registerStartupRecentHomeMainBridge
-} from './utils/startup-recent-home'
+} from './utils/common/startup-recent-home'
 import {
   getRecentDocs,
   getSetting,
@@ -43,24 +43,24 @@ import {
   initNonCriticalSettings
 } from './utils/settings'
 import { themeState, applyTheme } from './utils/themes'
-import { clearAiTasks } from './utils/ai_tasks'
+import { clearAiTasks } from './utils/ai/ai_tasks'
 import { useI18n } from 'vue-i18n'
 import { setI18nLocale } from './i18n.js'
-import { createRendererLogger } from './utils/logger'
-import { initMonacoEnvironment } from './utils/monaco-worker-config'
-import { initMonacoGlobalTheme } from './utils/monaco-global-theme'
+import { createRendererLogger } from './utils/common/logger'
+import { initMonacoEnvironment } from './utils/editor/monaco-worker-config'
+import { initMonacoGlobalTheme } from './utils/editor/monaco-global-theme'
 import { getRuntimeServerBaseUrl } from './config/runtime-server'
-import { aiCompletionService } from './utils/ai-completion-service'
+import { aiCompletionService } from './utils/ai/ai-completion-service'
 import { useWorkspace } from './stores/workspace'
 import { useAgentWorkspaceStore } from './stores/agent-workspace-store'
 import { useGlobalShortcuts } from './composables/useGlobalShortcuts'
 import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
-import NotificationStack from './components/NotificationStack.vue'
+import NotificationStack from './components/layout/NotificationStack.vue'
 import TerminalApprovalDialog from './components/global/TerminalApprovalDialog.vue'
 import { useNotificationStore } from './stores/notification'
-import { setNotificationStore } from './utils/notify'
-import { initNotificationLegacyAdapter } from './utils/notifications-legacy'
+import { setNotificationStore } from './utils/notification/notify'
+import { initNotificationLegacyAdapter } from './utils/notification/notifications-legacy'
 
 const route = useRoute()
 const { locale, t } = useI18n()

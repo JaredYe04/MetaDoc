@@ -118,7 +118,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notification/notify'
 
 // Demo mode support
 const props = defineProps<{ mode?: string }>()
@@ -137,8 +137,8 @@ import { Form, FormField } from '@renderer/components/ui/form'
 import { Upload, type UploadFile } from '@renderer/components/ui/upload'
 import * as monaco from 'monaco-editor'
 import { themeState } from '../utils/themes'
-import { getAppVersion } from '../utils/version'
-import { setupMonacoWorker } from '../utils/monaco-worker-config'
+import { getAppVersion } from '../utils/common/version'
+import { setupMonacoWorker } from '../utils/editor/monaco-worker-config'
 import ImagePreviewDialog from '../components/common/ImagePreviewDialog.vue'
 import messageBridge from '../bridge/message-bridge'
 

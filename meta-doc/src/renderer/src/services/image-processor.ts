@@ -7,7 +7,7 @@
  */
 
 import { embedImagesInline, local2httpProtocol } from '../utils/md-utils'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 
 // 懒加载logger，避免初始化顺序问题

@@ -215,7 +215,7 @@ import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import eventBus from '../utils/event-bus'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import { themeState, mixColors } from '../utils/themes'
 import { ElLoading, ElScrollbar } from 'element-plus'
 import messageBridge from '../bridge/message-bridge'
@@ -225,7 +225,7 @@ import {
   AGENT_HOME_PENDING_ATTACHMENT_SESSION_ID
 } from '../utils/agent-framework/reference-processor'
 import type { Reference } from '../types/agent-framework'
-import { notifyError, notifySuccess, notifyWarning } from '../utils/notify'
+import { notifyError, notifySuccess, notifyWarning } from '../utils/notification/notify'
 import { getRecentDocs, removeRecentDoc as removeRecentDocFromStorage } from '../utils/settings'
 import {
   FileText,
@@ -238,8 +238,8 @@ import {
   Paperclip
 } from 'lucide-vue-next'
 import { basename, extname } from '../utils/path-utils'
-import { formatRegistry } from '../utils/format-registry'
-import { hasCompletedProfile } from '../utils/user-profile'
+import { formatRegistry } from '../utils/editor/format-registry'
+import { hasCompletedProfile } from '../utils/common/user-profile'
 import { useWorkspace } from '../stores/workspace'
 import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
 import { useAgentManageUiStore } from '../stores/agent-manage-ui-store'

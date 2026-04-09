@@ -8,7 +8,7 @@ import { useWorkspace } from './workspace'
 import { agentSessionManager } from '../utils/agent-framework/agent-session-manager'
 import type { AgentSession } from '../types/agent'
 import type { Reference } from '../types/agent-framework'
-import { notifyError, notifySuccess } from '../utils/notify'
+import { notifyError, notifySuccess } from '../utils/notification/notify'
 import { i18n } from '../i18n'
 
 export type AgentManageDialogType =

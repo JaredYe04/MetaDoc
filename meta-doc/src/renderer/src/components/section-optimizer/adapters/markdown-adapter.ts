@@ -1,11 +1,11 @@
 import type { SectionOptimizerAdapter, SectionInfo } from '../types'
 import { extractOutlineTreeFromMarkdown } from '../../../utils/md-utils'
-import { searchNode } from '../../../utils/outline-helpers'
+import { searchNode } from '../../../utils/outline/outline-helpers'
 import { useWorkspace } from '../../../stores/workspace'
 import { useActiveDocument } from '../../../composables/useActiveDocument'
 // @ts-ignore - vue3-markdown-it 没有类型定义
 import MarkdownItEditor from 'vue3-markdown-it'
-import { createRendererLogger } from '../../../utils/logger.ts'
+import { createRendererLogger } from '../../../utils/common/logger.ts'
 
 export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
   private workspace = useWorkspace()

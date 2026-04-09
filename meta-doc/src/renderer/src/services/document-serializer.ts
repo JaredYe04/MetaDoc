@@ -1,8 +1,8 @@
 import { filterMetaDataFromMd } from '../utils/md-utils.js'
 import { convertMarkdownToLatex, convertLatexToMarkdown } from '../utils/latex-utils.js'
 import type { WorkspaceDocument } from '../stores/workspace'
-import { serializeMetadataToBase64 } from '../utils/metadata-serializer'
-import { serializeMetadataToBuffer } from '../utils/metadata-sidecar'
+import { serializeMetadataToBase64 } from '../utils/metadata/metadata-serializer'
+import { serializeMetadataToBuffer } from '../utils/metadata/metadata-sidecar'
 import { getSetting } from '../utils/settings.js'
 
 export interface SaveDataPayload {

@@ -10,9 +10,9 @@
 
 import eventBus from '../utils/event-bus'
 import type { useWorkspace } from '../stores/workspace'
-import { getEffectiveBindings } from '../utils/keyboard-scheme-manager'
-import { parseShortcutString, matchShortcut } from '../utils/keyboard-scheme-parse'
-import type { ShortcutBindings, ShortcutActionId } from '../utils/keyboard-scheme-types'
+import { getEffectiveBindings } from '../utils/keyboard/keyboard-scheme-manager'
+import { parseShortcutString, matchShortcut } from '../utils/keyboard/keyboard-scheme-parse'
+import type { ShortcutBindings, ShortcutActionId } from '../utils/keyboard/keyboard-scheme-types'
 import { useFocusMode } from './useFocusMode'
 
 export interface UseGlobalShortcutsOptions {

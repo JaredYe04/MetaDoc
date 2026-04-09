@@ -177,7 +177,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import ResizableContainer from '../base/ResizableContainer.vue'
-import { messageBox } from '@renderer/utils/messageBox'
+import { messageBox } from '@renderer/utils/notification/messageBox'
 import { AddIcon } from 'tdesign-icons-vue-next'
 import { themeState, mixColors } from '../../utils/themes'
 import { useI18n } from 'vue-i18n'

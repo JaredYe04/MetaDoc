@@ -212,7 +212,7 @@ import {
 } from '@renderer/components/ui/select'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { themeState } from '../utils/themes'
-import { notifySuccess, notifyInfo } from '../utils/notify'
+import { notifySuccess, notifyInfo } from '../utils/notification/notify'
 
 // Demo mode support
 const props = defineProps<{

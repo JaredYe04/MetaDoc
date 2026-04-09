@@ -234,11 +234,11 @@ import { DEFAULT_OUTLINE_TREE } from '../../constants/document'
 import { convertLatexToMarkdown } from '../../utils/latex-utils'
 import { themeState, mixColors } from '../../utils/themes'
 import eventBus, { getWindowType } from '../../utils/event-bus'
-import { generateLatexPrompt, getSuggestionPresets, getPresets } from '../../utils/prompts'
+import { generateLatexPrompt, getSuggestionPresets, getPresets } from '../../utils/common/prompts'
 import { getSetting } from '../../utils/settings'
-import { ai_types, createAiTask } from '../../utils/ai_tasks'
-import { createRendererLogger } from '../../utils/logger'
-import { setupMonacoWorker, registerLatexLanguage } from '../../utils/monaco-worker-config'
+import { ai_types, createAiTask } from '../../utils/ai/ai_tasks'
+import { createRendererLogger } from '../../utils/common/logger'
+import { setupMonacoWorker, registerLatexLanguage } from '../../utils/editor/monaco-worker-config'
 import type { AIDialogMessage } from '@/types'
 import SuggestionTags from './SuggestionTags.vue'
 import AutoResizeTextarea from '../base/AutoResizeTextarea.vue'
@@ -248,7 +248,7 @@ import {
   generateTitlePrompt,
   generateDescriptionPrompt,
   generateKeywordsPrompt
-} from '../../utils/prompts'
+} from '../../utils/common/prompts'
 import { extractOuterJsonString } from '../../utils/regex-utils'
 import { Tooltip } from '@renderer/components/ui/tooltip'
 

@@ -126,7 +126,7 @@ import {
 } from '@renderer/components/ui/collapsible'
 import { useWorkspace } from '../../stores/workspace'
 import { useAgentEditStagingStore, type StagingEditRecord } from '../../stores/agent-edit-staging-store'
-import { notifyError } from '../../utils/notify'
+import { notifyError } from '../../utils/notification/notify'
 import eventBus from '../../utils/event-bus'
 
 const props = defineProps<{

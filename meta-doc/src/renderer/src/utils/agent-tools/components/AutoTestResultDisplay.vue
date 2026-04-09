@@ -170,7 +170,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { toast } from '@renderer/utils/toast'
+import { toast } from '@renderer/utils/notification/toast'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
 import { Divider } from '@renderer/components/ui/separator'

@@ -9,7 +9,7 @@
 // import VueTree from "@ssthouse/vue3-tree-chart";
 // import "@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css";
 // import Setting from './views/Setting.vue';
-// import MicrophoneTest from './components/MicrophoneTest.vue';
+// import MicrophoneTest from './components/input/MicrophoneTest.vue';
 
 // // 挂载 Vue 组件到 new-window.html 的指定位置
 // const app = createApp(Setting);

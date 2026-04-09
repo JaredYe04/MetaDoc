@@ -436,11 +436,11 @@ import ReferenceDisplay from './ReferenceDisplay.vue'
 import { themeState, mixColors } from '../../utils/themes'
 import type { Reference } from '../../types/agent-framework'
 import { dayjs } from 'element-plus'
-import { agentToolManager } from '../../utils/agent-tool-manager'
+import { agentToolManager } from '../../utils/agent/agent-tool-manager'
 import { toolCallParserManager } from '../../utils/agent-framework/tool-call-parsers'
 import { useAgentEditStagingStore } from '../../stores/agent-edit-staging-store'
 import eventBus from '../../utils/event-bus'
-import { toast } from '@renderer/utils/toast'
+import { toast } from '@renderer/utils/notification/toast'
 
 const props = withDefaults(
   defineProps<{

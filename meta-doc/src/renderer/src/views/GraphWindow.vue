@@ -86,7 +86,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { notifySuccess, notifyError } from '@renderer/utils/notify'
+import { notifySuccess, notifyError } from '@renderer/utils/notification/notify'
 
 // Demo mode support
 const props = defineProps({
@@ -101,11 +101,11 @@ import type { SessionListItem } from '../components/common/SessionList.vue'
 import { LoadingOverlay } from '@renderer/components/ui/loading-overlay'
 import { graphSessionsDb } from '../utils/db/tool-sessions-db'
 import { themeState } from '../utils/themes'
-import GraphMessageBubble from '../components/GraphMessageBubble.vue'
+import GraphMessageBubble from '../components/chat/GraphMessageBubble.vue'
 import ChatComposer from '../components/chat/ChatComposer.vue'
 import { useWorkspace } from '../stores/workspace'
 import { useGraphSessionFlow } from '../composables/useGraphSessionFlow'
-import { createRendererLogger } from '../utils/logger'
+import { createRendererLogger } from '../utils/common/logger'
 import eventBus from '../utils/event-bus'
 
 const { t } = useI18n()

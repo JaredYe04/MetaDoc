@@ -153,7 +153,7 @@ import {
   type Ref,
   type WatchStopHandle
 } from 'vue'
-import MessageBubble from '../components/MessageBubble.vue'
+import MessageBubble from '../components/chat/MessageBubble.vue'
 //import { bindCode } from "../assets/aichat_legacy/utils";
 import SessionList from '../components/common/SessionList.vue'
 import { Button } from '@renderer/components/ui/button'
@@ -171,14 +171,14 @@ import type { SessionListItem } from '../components/common/SessionList.vue'
 import '../assets/input-box.css'
 import '../assets/title.css'
 
-import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
+import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notification/notify'
 import eventBus from '../utils/event-bus.js'
 import { themeState } from '../utils/themes.js'
 import { answerQuestion } from '../utils/llm-api.js'
 import '../assets/tool-group.css'
-import { updateTitlePrompt } from '../utils/prompts'
+import { updateTitlePrompt } from '../utils/common/prompts'
 import { useI18n } from 'vue-i18n'
-import { ai_types, createAiTask, cancelAiTask } from '../utils/ai_tasks.ts'
+import { ai_types, createAiTask, cancelAiTask } from '../utils/ai/ai_tasks.ts'
 import { getSetting } from '../utils/settings.js'
 // import { useActiveDocument } from '../composables/useActiveDocument';
 import { getDefaultAiChatMessages } from '../constants/document'
@@ -186,12 +186,12 @@ import { useWorkspace } from '../stores/workspace'
 import type { AIDialog, AIDialogMessage } from '../../../types'
 import type { AgentSession } from '../types/agent'
 import ChatComposer from '../components/chat/ChatComposer.vue'
-import { readAiChatDialogs, writeAiChatDialogs } from '../utils/ai-chat-storage'
+import { readAiChatDialogs, writeAiChatDialogs } from '../utils/ai/ai-chat-storage'
 import {
   parseSchemaJson,
   DOCUMENT_TITLE_SCHEMA,
   type DocumentTitleSchemaResult
-} from '../utils/schemas'
+} from '../utils/common/schemas'
 import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue'
 import ReferenceManager from '../components/agent/ReferenceManager.vue'
 import type { Reference } from '../types/agent-framework'
@@ -209,7 +209,7 @@ const ourTabId = computed(
   () => workspace.tabs.find((tab) => tab.kind === 'tool' && tab.route === '/ai-chat')?.id ?? null
 )
 
-import { createRendererLogger } from '../utils/logger.ts'
+import { createRendererLogger } from '../utils/common/logger.ts'
 const logger = createRendererLogger('AIChat')
 
 const props = defineProps({

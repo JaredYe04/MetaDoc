@@ -20,8 +20,8 @@ import {
   offsetToPosition,
   positionToOffset as textPositionToOffset,
   type TextSearchMatch
-} from '../utils/text-search-utils'
-import type { TitleIndex } from '../utils/title-index'
+} from '../utils/text/text-search-utils'
+import type { TitleIndex } from '../utils/text/title-index'
 import { useWorkspace } from '../stores/workspace'
 
 interface HighlightMatch {

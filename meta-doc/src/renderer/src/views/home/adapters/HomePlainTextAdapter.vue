@@ -23,9 +23,9 @@ import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import * as monaco from 'monaco-editor'
 import DocumentMetaSection from './DocumentMetaSection.vue'
 import { Skeleton } from '@renderer/components/ui/skeleton'
-import { getMonacoLanguage } from '../../../utils/format-initializer'
+import { getMonacoLanguage } from '../../../utils/editor/format-initializer'
 import { themeState, mixColors } from '../../../utils/themes'
-import { setupMonacoWorker } from '../../../utils/monaco-worker-config'
+import { setupMonacoWorker } from '../../../utils/editor/monaco-worker-config'
 import { getSetting } from '../../../utils/settings'
 
 const props = defineProps<{

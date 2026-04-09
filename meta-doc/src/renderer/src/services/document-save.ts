@@ -1,7 +1,7 @@
 import { serializeDocument } from './document-serializer'
 import type { WorkspaceDocument } from '../stores/workspace'
 import messageBridge from '../bridge/message-bridge'
-import { extractTitleFromContent, sanitizeTitleForFilename } from '../utils/title-extractor'
+import { extractTitleFromContent, sanitizeTitleForFilename } from '../utils/text/title-extractor'
 
 type SaveResult = {
   path: string

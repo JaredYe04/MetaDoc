@@ -237,10 +237,10 @@ import { extractOutlineTreeFromMarkdown } from '../../utils/md-utils'
 import { DEFAULT_OUTLINE_TREE } from '../../constants/document'
 import { themeState } from '../../utils/themes'
 import eventBus, { getWindowType } from '../../utils/event-bus'
-import { generateMarkdownPrompt, getSuggestionPresets, getPresets } from '../../utils/prompts'
+import { generateMarkdownPrompt, getSuggestionPresets, getPresets } from '../../utils/common/prompts'
 import { getSetting } from '../../utils/settings'
-import { ai_types, createAiTask } from '../../utils/ai_tasks'
-import { createRendererLogger } from '../../utils/logger'
+import { ai_types, createAiTask } from '../../utils/ai/ai_tasks'
+import { createRendererLogger } from '../../utils/common/logger'
 import type { AIDialogMessage } from '@/types'
 import SuggestionTags from './SuggestionTags.vue'
 import AutoResizeTextarea from '../base/AutoResizeTextarea.vue'
@@ -250,7 +250,7 @@ import {
   generateTitlePrompt,
   generateDescriptionPrompt,
   generateKeywordsPrompt
-} from '../../utils/prompts'
+} from '../../utils/common/prompts'
 import { extractOuterJsonString } from '../../utils/regex-utils'
 
 const emit = defineEmits(['close'])

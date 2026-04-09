@@ -160,11 +160,11 @@ import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 
 import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
 import { CheckCircle2, Info, XCircle } from 'lucide-vue-next'
-import { getAppVersion } from '../../utils/version'
+import { getAppVersion } from '../../utils/common/version'
 import { useWorkspace } from '../../stores/workspace'
 import { setSetting, getSetting } from '../../utils/settings'
 import messageBridge from '../../bridge/message-bridge'
-import { isDevEnvironment } from '../../utils/dev-env'
+import { isDevEnvironment } from '../../utils/common/dev-env'
 import { FIXED_LOGO_COLORS } from '../../utils/themes'
 import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw'
 import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw'
@@ -173,7 +173,7 @@ import { Label } from '@renderer/components/ui/label'
 import { Switch } from '@renderer/components/ui/switch'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Divider } from '@renderer/components/ui/separator'
-import LogoIcon from '../../components/LogoIcon.vue'
+import LogoIcon from '../../components/layout/LogoIcon.vue'
 
 // Logo 固定配色，不随亮/暗主题变化
 const bgColor = FIXED_LOGO_COLORS.bgColor

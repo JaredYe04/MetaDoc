@@ -2,11 +2,6 @@
  * Unified diff 解析（无 UI/store 依赖，便于单测与复用）
  */
 
-export interface HunkDisplayLine {
-  type: 'context' | 'remove' | 'add'
-  text: string
-}
-
 export interface UnifiedDiffHunk {
   oldStart: number
   oldCount: number
@@ -15,15 +10,6 @@ export interface UnifiedDiffHunk {
   oldLines: string[]
   newLines: string[]
   contextLines: string[]
-  /** 解析时保留的原始行顺序 */
-  _displayLines: HunkDisplayLine[]
-}
-
-/**
- * 返回 hunk 内各行按原始 diff 顺序排列的 display lines。
- */
-export function normalizeHunkDisplayLines(hunk: UnifiedDiffHunk): HunkDisplayLine[] {
-  return hunk._displayLines
 }
 
 /**
@@ -42,12 +28,7 @@ export function parseUnifiedDiff(diff: string): UnifiedDiffHunk[] {
     throw new Error('Diff 字符串不能为空')
   }
 
-  const rawLines = diff.split(/\r?\n/)
-  // 去除尾部空行（由 diff 字符串末尾换行产生，不属于 hunk 内容）
-  while (rawLines.length > 0 && rawLines[rawLines.length - 1] === '') {
-    rawLines.pop()
-  }
-  const lines = rawLines
+  const lines = diff.split(/\r?\n/)
   const hunks: UnifiedDiffHunk[] = []
   let currentHunk: UnifiedDiffHunk | null = null
   let i = 0
@@ -62,7 +43,7 @@ export function parseUnifiedDiff(diff: string): UnifiedDiffHunk[] {
       }
 
       const oldStart = parseInt(hunkHeaderMatch[1], 10)
-      const oldCount = hunkHeaderMatch[2] ? parseInt(hunkHeaderMatch[2], 10) : oldStart === 0 ? 0 : 1
+      const oldCount = hunkHeaderMatch[2] ? parseInt(hunkHeaderMatch[2], 10) : 1
       const newStart = parseInt(hunkHeaderMatch[3], 10)
       const newCount = hunkHeaderMatch[4] ? parseInt(hunkHeaderMatch[4], 10) : 1
 
@@ -73,8 +54,7 @@ export function parseUnifiedDiff(diff: string): UnifiedDiffHunk[] {
         newCount,
         oldLines: [],
         newLines: [],
-        contextLines: [],
-        _displayLines: []
+        contextLines: []
       }
       i++
       continue
@@ -85,27 +65,19 @@ export function parseUnifiedDiff(diff: string): UnifiedDiffHunk[] {
       continue
     }
 
-    if (line.startsWith('-') && currentHunk.oldCount > 0) {
-      const text = line.substring(1)
-      currentHunk.oldLines.push(text)
-      currentHunk._displayLines.push({ type: 'remove', text })
+    if (line.startsWith('-')) {
+      currentHunk.oldLines.push(line.substring(1))
     } else if (line.startsWith('+')) {
-      const text = line.substring(1)
-      currentHunk.newLines.push(text)
-      currentHunk._displayLines.push({ type: 'add', text })
+      currentHunk.newLines.push(line.substring(1))
     } else if (line.startsWith('\\')) {
       // \ No newline at end of file
     } else if (line.length >= 1 && line[0] === ' ') {
-      const text = line.length > 1 ? line.slice(1) : ''
-      currentHunk.contextLines.push(text)
-      currentHunk._displayLines.push({ type: 'context', text })
+      currentHunk.contextLines.push(line.length > 1 ? line.slice(1) : '')
     } else {
       if (currentHunk.oldCount === 0) {
         currentHunk.newLines.push(line)
-        currentHunk._displayLines.push({ type: 'add', text: line })
       } else {
         currentHunk.contextLines.push(line)
-        currentHunk._displayLines.push({ type: 'context', text: line })
       }
     }
 

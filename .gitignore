@@ -50,7 +50,6 @@ docs/.metadoc/agent/sessions-index.json
 .idea
 .vscode
 .devcontainer/
-.cursor/
 *.project
 *.settings/
 

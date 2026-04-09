@@ -9,10 +9,7 @@ const mockInvoke = vi.fn()
 vi.mock('../../bridge/message-bridge', () => {
   const bridge = {
     getIpc: () => ({ invoke: mockInvoke }),
-    invoke: (...args: unknown[]) => mockInvoke(...args),
-    on: () => {},
-    off: () => {},
-    removeListener: () => {}
+    invoke: (...args: unknown[]) => mockInvoke(...args)
   }
   return { default: bridge }
 })

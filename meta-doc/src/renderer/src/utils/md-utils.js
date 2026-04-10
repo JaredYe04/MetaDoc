@@ -2039,9 +2039,7 @@ export async function enhanceMd2htmlWithHljsForDocx(html) {
   let enhanced = html.replace(
     /<pre>\s*<code\b([^>]*?)\bclass=(["'])([^"']*)\2([^>]*)>/gi,
     (match, beforeClass, quote, classNames, afterClass) => {
-      const classes = String(classNames)
-        .split(/\s+/)
-        .filter(Boolean)
+      const classes = String(classNames).split(/\s+/).filter(Boolean)
       if (!classes.includes('hljs')) {
         classes.push('hljs')
       }
@@ -2738,7 +2736,9 @@ export const ConvertHtmlForPdf = async (md, pdfOptions = {}) => {
   const safeVditorMode = JSON.stringify(effectiveVditorMode)
 
   /** 写入 link href 的安全片段，防止异常设置值破坏路径 */
-  const safeThemeId = /^[a-zA-Z0-9._-]+$/.test(effectiveContentTheme) ? effectiveContentTheme : 'light'
+  const safeThemeId = /^[a-zA-Z0-9._-]+$/.test(effectiveContentTheme)
+    ? effectiveContentTheme
+    : 'light'
   const safeHljsId = /^[a-zA-Z0-9._-]+$/.test(effectiveCodeTheme) ? effectiveCodeTheme : 'github'
 
   const html = `<!DOCTYPE html>

@@ -463,10 +463,7 @@ export function escapeHtmlManualText(text: string): string {
 
 /** 转义 data-article-id 属性值 */
 export function escapeHtmlManualAttr(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
+  return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 }
 
 /**
@@ -491,13 +488,16 @@ export function replaceManualInternalLinksWithHtml(markdown: string): string {
   return parts
     .map((part, i) => {
       if (i % 2 === 1) return part
-      return part.replace(/\[\[([^|\]\r\n]+)\|([^\]\r\n]+)\]\]/g, (_m, rawId: string, rawText: string) => {
-        const id = String(rawId).trim()
-        const text = String(rawText).trim()
-        const safeId = escapeHtmlManualAttr(id)
-        const safeText = escapeHtmlManualText(text)
-        return `<a href="#" class="manual-internal-link" data-article-id="${safeId}">${safeText}</a>`
-      })
+      return part.replace(
+        /\[\[([^|\]\r\n]+)\|([^\]\r\n]+)\]\]/g,
+        (_m, rawId: string, rawText: string) => {
+          const id = String(rawId).trim()
+          const text = String(rawText).trim()
+          const safeId = escapeHtmlManualAttr(id)
+          const safeText = escapeHtmlManualText(text)
+          return `<a href="#" class="manual-internal-link" data-article-id="${safeId}">${safeText}</a>`
+        }
+      )
     })
     .join('')
 }

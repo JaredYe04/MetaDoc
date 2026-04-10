@@ -4386,6 +4386,8 @@
     "llmSettingsDescription": "Configure o acesso ao modelo de linguagem grande, temperatura, conclusão e outras opções. Suporta alternar entre múltiplas configurações, importar e exportar.",
     "llmTemperature": "Temperatura do LLM",
     "llmTemperatureHint": "Controla a aleatoriedade da saída da IA. Valores mais altos são mais aleatórios. Recomendado: 1.3",
+    "llmTemperatureRigorous": "Rigoroso",
+    "llmTemperatureCreative": "Criativo",
     "llmType": "Selecionar tipo de modelo de linguagem grande",
     "logDirectory": "Diretório de logs",
     "logFilePath": "Arquivo de log atual",
@@ -5132,7 +5134,21 @@
     "paragraphDistribution": "Distribuição de Parágrafos",
     "wordCloud": "Nuvem de Palavras",
     "wordCount": "Contagem de Palavras",
-    "wordFrequency": "Frequência de Palavras"
+    "wordFrequency": "Frequência de Palavras",
+    "structureSunburstTitle": "Volume por seção (hierarquia)",
+    "structureSunburstSeries": "Volume da seção",
+    "wordFlowAlongDocTitle": "Termos frequentes ao longo do documento",
+    "themeRiverEmptyWords": "Nenhum termo frequente elegível",
+    "themeRiverNoHits": "Zero ocorrências em todos os segmentos",
+    "wordFlowAxisCaption": "Eixo X: texto em 20 segmentos iguais de caracteres (marca = nº do segmento)\nEixo Y: faixas coloridas = termos; altura = ocorrências no segmento",
+    "wordFlowBinTick": "{n}",
+    "wordFlowHitUnit": "vezes",
+    "unnamedSection": "Seção sem título",
+    "emptyOutline": "Não há estrutura de tópicos neste documento",
+    "emptyPlainText": "Não há texto simples para analisar",
+    "segmentAxis": "Posição no documento",
+    "segmentLabel": "Segmento {index} (≈ primeiros {percent} %)",
+    "tooltipSectionChars": "Caracteres na subárvore"
   },
   "voiceInput": {
     "messages": {

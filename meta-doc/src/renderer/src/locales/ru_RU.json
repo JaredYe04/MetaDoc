@@ -4383,6 +4383,8 @@
     "llmSettingsDescription": "Настройка подключения к большой модели, температуры, завершения и других опций. Поддержка переключения, импорта и экспорта нескольких конфигураций.",
     "llmTemperature": "Температура LLM",
     "llmTemperatureHint": "Управляет случайностью вывода ИИ. Чем выше значение, тем случайнее. Рекомендуется 1.3",
+    "llmTemperatureRigorous": "Строгий",
+    "llmTemperatureCreative": "Творческий",
     "llmType": "Выберите тип большой модели",
     "logDirectory": "Каталог логов",
     "logFilePath": "Текущий файл лога",
@@ -5129,7 +5131,21 @@
     "paragraphDistribution": "Распределение абзацев",
     "wordCloud": "Облако слов",
     "wordCount": "Подсчёт слов",
-    "wordFrequency": "Частота слов"
+    "wordFrequency": "Частота слов",
+    "structureSunburstTitle": "Объём разделов (иерархия)",
+    "structureSunburstSeries": "Объём раздела",
+    "wordFlowAlongDocTitle": "Частые термины вдоль документа",
+    "themeRiverEmptyWords": "Нет подходящих частых терминов",
+    "themeRiverNoHits": "Нет совпадений ни в одном фрагменте",
+    "wordFlowAxisCaption": "Ось X: текст разбит на 20 равных сегментов по символам (метка = номер сегмента)\nОсь Y: цветные полосы = термины; высота = число вхождений в сегменте",
+    "wordFlowBinTick": "{n}",
+    "wordFlowHitUnit": "раз",
+    "unnamedSection": "Раздел без названия",
+    "emptyOutline": "В документе нет структуры оглавления",
+    "emptyPlainText": "Нет текста для анализа",
+    "segmentAxis": "Позиция в документе",
+    "segmentLabel": "Фрагмент {index} (≈ первые {percent} %)",
+    "tooltipSectionChars": "Символов в поддереве"
   },
   "voiceInput": {
     "messages": {

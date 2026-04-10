@@ -480,11 +480,7 @@ class OCRServiceImpl {
         if (abortSignal?.aborted) {
           throw new Error('操作已取消')
         }
-        const result = await this.recognizeFromBufferWithWorker(
-          imageBuffer,
-          langList,
-          abortSignal
-        )
+        const result = await this.recognizeFromBufferWithWorker(imageBuffer, langList, abortSignal)
         const text = await result.promise
         const cleanedText = cleanOcrText(text)
         logger.debug(
@@ -498,11 +494,7 @@ class OCRServiceImpl {
         if (abortSignal.aborted) {
           throw new Error('操作已取消')
         }
-        const result = await this.recognizeFromBufferWithWorker(
-          imageBuffer,
-          langList,
-          abortSignal
-        )
+        const result = await this.recognizeFromBufferWithWorker(imageBuffer, langList, abortSignal)
         const text = await result.promise
         return cleanOcrText(text)
       }

@@ -9,32 +9,32 @@ const EXCLUDE_SELECTORS =
   '.monaco-editor, .vditor-toolbar, [data-editor], .ql-editor, .tox-edit-area, .cm-editor, .CodeMirror, .ace_editor, .xterm, .xterm-instance, .context-menu, .input-context-menu'
 
 /** 这些区域由业务组件自行处理 contextmenu，全局只读菜单不得拦截 */
-const CUSTOM_CONTEXT_MENU_ROOTS =
-  [
-    '[data-no-global-selection-context-menu]',
-    '.workspace-explorer',
-    '.workspace-tree-node',
-    // 注意：勿使用 .session-list-root —— 它会包住 SessionList 的 #main 主内容区，
-    // 导致 DataAnalysisWindow / AIChat 右侧报告与消息区无法使用全局复制菜单。
-    '.session-list-wrapper',
-    '.collapsed-list',
-    '.collapsed-item',
-    '.main-tabs-wrapper',
-    // Agent 紧凑视图：仅排除自带「会话 Tab / 历史」右键菜单的区域，不要整页 .agent-compact
-    '.agent-compact-tabs',
-    '.agent-compact-tab-wrap',
-    '.agent-compact-tab-context',
-    '.agent-compact-history-dropdown',
-    '.agent-compact-history-item',
-    '.outline-viewport-tree',
-    '.material-basket-panel',
-    '.config-card-container'
-  ].join(', ')
+const CUSTOM_CONTEXT_MENU_ROOTS = [
+  '[data-no-global-selection-context-menu]',
+  '.workspace-explorer',
+  '.workspace-tree-node',
+  // 注意：勿使用 .session-list-root —— 它会包住 SessionList 的 #main 主内容区，
+  // 导致 DataAnalysisWindow / AIChat 右侧报告与消息区无法使用全局复制菜单。
+  '.session-list-wrapper',
+  '.collapsed-list',
+  '.collapsed-item',
+  '.main-tabs-wrapper',
+  // Agent 紧凑视图：仅排除自带「会话 Tab / 历史」右键菜单的区域，不要整页 .agent-compact
+  '.agent-compact-tabs',
+  '.agent-compact-tab-wrap',
+  '.agent-compact-tab-context',
+  '.agent-compact-history-dropdown',
+  '.agent-compact-history-item',
+  '.outline-viewport-tree',
+  '.material-basket-panel',
+  '.config-card-container'
+].join(', ')
 
 function isEditableTarget(target) {
   if (!target || typeof target.closest !== 'function') return false
   if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return true
-  if (target.closest('[contenteditable="true"], [contenteditable=""], [role="textbox"]')) return true
+  if (target.closest('[contenteditable="true"], [contenteditable=""], [role="textbox"]'))
+    return true
   if (target.closest('.el-input, .el-textarea, .el-input-number, [data-radix-number-field-input]'))
     return true
   return false
@@ -72,7 +72,8 @@ function isLikelyTextRegion(target) {
   )
     return true
   // 通用可复制区域标记
-  if (target.closest('.copyable, .selectable, .text-selectable, [data-selectable="true"]')) return true
+  if (target.closest('.copyable, .selectable, .text-selectable, [data-selectable="true"]'))
+    return true
   // 不再使用「任意含文字即弹出」的兜底：会误判侧栏树、会话列表、标签栏等带文案的控件，
   // 并因捕获阶段拦截而覆盖组件自有右键菜单。
   return false
@@ -106,4 +107,3 @@ export function initSelectionContextMenuHandler() {
   document.addEventListener('contextmenu', handler, { capture: true, passive: false })
   return () => document.removeEventListener('contextmenu', handler, true)
 }
-

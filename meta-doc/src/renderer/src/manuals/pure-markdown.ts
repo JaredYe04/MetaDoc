@@ -83,7 +83,10 @@ function stripMermaidCustomStyles(markdown: string): string {
     }
 
     // 清理多余空行
-    const cleaned = kept.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+    const cleaned = kept
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
     return `\`\`\`mermaid\n${cleaned}\n\`\`\``
   })
 }
@@ -94,4 +97,3 @@ export function toPureManualMarkdown(markdown: string): string {
   const noLinks = stripMarkdownLinks(noDemo)
   return stripMermaidCustomStyles(noLinks)
 }
-

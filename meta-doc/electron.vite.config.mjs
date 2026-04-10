@@ -26,7 +26,10 @@ function metaDocRendererManualChunks(id) {
   if (x.includes('/node_modules/ag-grid')) return 'chunk-ag-grid'
   if (x.includes('/node_modules/vditor/')) return 'chunk-vditor'
   if (x.includes('/node_modules/md-editor-v3/')) return 'chunk-md-editor'
-  if (x.includes('/node_modules/tdesign-vue-next/') || x.includes('/node_modules/tdesign-icons-vue-next/')) {
+  if (
+    x.includes('/node_modules/tdesign-vue-next/') ||
+    x.includes('/node_modules/tdesign-icons-vue-next/')
+  ) {
     return 'chunk-tdesign'
   }
   if (x.includes('/node_modules/d3/') || x.includes('/node_modules/d3-')) return 'chunk-d3'

@@ -121,7 +121,10 @@ export class TexToPdfAdapter extends BaseExportAdapter<'tex', 'pdf', TexPdfCompi
     ]
   }
 
-  validateOptions(_options: Partial<TexPdfCompileExportOptions>): { valid: boolean; error?: string } {
+  validateOptions(_options: Partial<TexPdfCompileExportOptions>): {
+    valid: boolean
+    error?: string
+  } {
     return { valid: true }
   }
 

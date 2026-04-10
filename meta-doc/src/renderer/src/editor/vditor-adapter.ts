@@ -830,9 +830,7 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     }
     // highlightSingleMatch 只保留一个 span，始终放在 highlights[0]；currentIndex 是全文中的第 N 个匹配
     const highlight =
-      this.highlights.length === 1
-        ? this.highlights[0]
-        : this.highlights[this.state.currentIndex]
+      this.highlights.length === 1 ? this.highlights[0] : this.highlights[this.state.currentIndex]
     if (!highlight) {
       return this.getSearchState()
     }
@@ -858,9 +856,7 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
       return this.getSearchState()
     }
     const highlight =
-      this.highlights.length === 1
-        ? this.highlights[0]
-        : this.highlights[this.state.currentIndex]
+      this.highlights.length === 1 ? this.highlights[0] : this.highlights[this.state.currentIndex]
     if (!highlight) {
       return this.getSearchState()
     }
@@ -1356,7 +1352,9 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
    * 查找替换等绕过 irInput 的 DOM 修改不会触发 debounce 的 processAfterRender，需在此处补记。
    */
   private pushVditorUndoSnapshot(): void {
-    const instance = this.getInstance() as { vditor?: { undo?: { addToUndoStack: (v: unknown) => void } } } | null
+    const instance = this.getInstance() as {
+      vditor?: { undo?: { addToUndoStack: (v: unknown) => void } }
+    } | null
     const iv = instance?.vditor
     if (!iv?.undo?.addToUndoStack) return
     try {

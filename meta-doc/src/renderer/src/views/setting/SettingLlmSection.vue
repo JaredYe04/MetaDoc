@@ -45,9 +45,9 @@
             class="w-full"
           />
           <div class="flex justify-between text-xs text-muted-foreground">
-            <span>{{ t('setting.lowPrecision') }}</span>
+            <span>{{ t('setting.llmTemperatureRigorous') }}</span>
             <span class="text-primary">{{ t('setting.recommended') }}</span>
-            <span>{{ t('setting.highPrecision') }}</span>
+            <span>{{ t('setting.llmTemperatureCreative') }}</span>
           </div>
           <!-- Temperature Hint -->
           <Tooltip>

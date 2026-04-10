@@ -96,7 +96,9 @@ export const useAgentManageUiStore = defineStore('agent-manage-ui', () => {
         })
 
         const existingIds = new Set(agentStore.sessions.map((s) => s.id))
-        const importedSessionId = existingIds.has(session.id) ? createImportedSessionId() : session.id
+        const importedSessionId = existingIds.has(session.id)
+          ? createImportedSessionId()
+          : session.id
 
         const legacySession: AgentSession = {
           id: importedSessionId,

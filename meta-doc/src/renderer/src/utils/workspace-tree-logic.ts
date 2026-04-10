@@ -36,8 +36,7 @@ export function isPathUnderMetadoc(filePath: string): boolean {
  * Sidecar 元数据文件名（与主进程 getSidecarPath：`.${basename}.meta` 一致）。
  * 例如 `note.md` → `.note.md.meta`；`a.b.tex` → `.a.b.tex.meta`
  */
-const DOCUMENT_SIDECAR_META_NAME_RE =
-  /^\.(.+)\.(?:md|markdown|mdx|tex|latex|ltx)\.meta$/i
+const DOCUMENT_SIDECAR_META_NAME_RE = /^\.(.+)\.(?:md|markdown|mdx|tex|latex|ltx)\.meta$/i
 
 export function isDocumentSidecarMetaFileName(name: string): boolean {
   return DOCUMENT_SIDECAR_META_NAME_RE.test(name || '')

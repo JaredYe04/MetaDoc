@@ -7,8 +7,14 @@ export function getMarkdownOutlineContextMenuItems(): ContextMenuItem[] {
     { label: 'markdownEditor.outlineMenu.copySection', value: 'outline-copy-section' },
     { label: 'markdownEditor.outlineMenu.copyTitle', value: 'outline-copy-title' },
     { type: 'divider' },
-    { label: 'markdownEditor.outlineMenu.generateIllustration', value: 'outline-generate-illustration' },
-    { label: 'markdownEditor.outlineMenu.addToMaterialBasket', value: 'outline-add-material-basket' },
+    {
+      label: 'markdownEditor.outlineMenu.generateIllustration',
+      value: 'outline-generate-illustration'
+    },
+    {
+      label: 'markdownEditor.outlineMenu.addToMaterialBasket',
+      value: 'outline-add-material-basket'
+    },
     { type: 'divider' },
     {
       label: 'markdownEditor.outlineMenu.deleteSection',

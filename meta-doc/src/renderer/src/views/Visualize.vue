@@ -12,30 +12,19 @@
     />
     <div class="main-panel" :style="mainPanelStyle">
       <div class="visualize-container">
-        <!-- 左侧：文章大纲和字数统计（用 class 供本实例 query，避免多 tab 重复 id） -->
+        <!-- 左侧：章节体量旭日图、高频词主题河流（class 供本实例 query，避免多 tab 重复 id） -->
         <div class="left-section">
-          <div class="outline-section panel-item">
-            <h3>{{ $t('visualize.articleOutline') }}</h3>
-            <ScrollArea class="outline-scrollbar">
-              <div
-                class="js-outline-graph"
-                :style="{
-                  color: themeState.currentTheme.textColor
-                }"
-              ></div>
-              <ScrollBar />
-            </ScrollArea>
+          <div class="structure-section panel-item">
+            <h3>{{ $t('visualize.structureSunburstTitle') }}</h3>
+            <div class="structure-chart-container">
+              <div class="js-structure-sunburst chart-container"></div>
+            </div>
           </div>
 
-          <div class="word-count-section panel-item">
-            <h3>{{ $t('visualize.wordCount') }}</h3>
-            <div class="word-count-chart-container">
-              <div
-                class="js-word-count-diagram chart-container"
-                :style="{
-                  color: themeState.currentTheme.textColor
-                }"
-              ></div>
+          <div class="theme-river-section panel-item">
+            <h3>{{ $t('visualize.wordFlowAlongDocTitle') }}</h3>
+            <div class="theme-river-chart-container">
+              <div class="js-theme-river chart-container"></div>
             </div>
           </div>
         </div>
@@ -96,12 +85,15 @@ function getRoot(): HTMLElement | null {
 import cloud from 'd3-cloud'
 // @ts-ignore - d3类型定义可能不完整
 import * as d3 from 'd3'
+import { generatePieFromData, generateWordFrequencyTrendChart } from '../utils/md-utils'
 import {
-  generatePieFromData,
-  generateWordCountBarChart,
-  generateWordFrequencyTrendChart,
-  outlineToMindMap
-} from '../utils/md-utils'
+  buildOutlineSunburstOption,
+  buildTopWordsThemeRiverOption,
+  patchTooltipUnclip,
+  type VisualizeChartThemeSlice
+} from '../utils/visualize-document-stats'
+import { colorForWord } from '../utils/wordcloud-shape-presets'
+import type { EChartsOption } from 'echarts'
 import { createVisualizeAdapter, type VisualizeAdapter } from '../utils/visualize-adapters'
 // @ts-ignore - lodash.debounce没有类型定义
 import debounce from 'lodash.debounce'
@@ -110,7 +102,6 @@ import type { DocumentOutlineNode } from '../../../types'
 import * as echarts from 'echarts'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
-import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import WordCloudDetail from '../components/WordCloudDetail.vue'
 import { getSetting } from '../utils/settings'
 import messageBridge from '../bridge/message-bridge'
@@ -133,7 +124,8 @@ const showTitleMenu = ref(false)
 
 // 保存图表实例引用
 const pieChart = ref<echarts.ECharts | null>(null)
-const wordCountChart = ref<echarts.ECharts | null>(null)
+const structureSunburstChart = ref<echarts.ECharts | null>(null)
+const themeRiverChart = ref<echarts.ECharts | null>(null)
 const wordFrequencyChart = ref<echarts.ECharts | null>(null)
 
 // ResizeObserver 实例
@@ -145,7 +137,12 @@ const handleTitleMenuClose = () => {
 const menuPosition = ref({ top: 0, left: 0 })
 const current_word = ref('')
 const current_frequency = ref(0)
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+const visualizeChartTheme = computed<VisualizeChartThemeSlice>(() => ({
+  type: themeState.currentTheme.type as VisualizeChartThemeSlice['type'],
+  textColor2: themeState.currentTheme.textColor2
+}))
 const workspace = useWorkspace()
 const { tabs, activeTabId, activeDocument, activateTab, removeTab } = workspace
 
@@ -209,9 +206,9 @@ const refreshAll = async () => {
     console.error('[Visualize] generateWordCloud failed:', e)
   }
   try {
-    await generateOutlineGraph()
+    await generateStructureSunburst()
   } catch (e) {
-    console.error('[Visualize] generateOutlineGraph failed:', e)
+    console.error('[Visualize] generateStructureSunburst failed:', e)
   }
   try {
     await generateWordFrequencyDiagram()
@@ -219,9 +216,9 @@ const refreshAll = async () => {
     console.error('[Visualize] generateWordFrequencyDiagram failed:', e)
   }
   try {
-    await generateWordCountDiagram()
+    await generateTopWordsThemeRiver()
   } catch (e) {
-    console.error('[Visualize] generateWordCountDiagram failed:', e)
+    console.error('[Visualize] generateTopWordsThemeRiver failed:', e)
   }
   try {
     await generatePie()
@@ -258,14 +255,28 @@ watch(
   { deep: true }
 )
 
+watch(locale, () => {
+  scheduleRefresh()
+})
+
+watch(
+  () => [themeState.currentTheme.type, themeState.currentTheme.textColor2] as const,
+  () => {
+    scheduleRefresh()
+  }
+)
+
 // 处理窗口大小变化（使用 debounce 避免频繁调用）
 const handleResize = debounce(() => {
   // 调整所有 ECharts 图表大小
   if (pieChart.value) {
     pieChart.value.resize()
   }
-  if (wordCountChart.value) {
-    wordCountChart.value.resize()
+  if (structureSunburstChart.value) {
+    structureSunburstChart.value.resize()
+  }
+  if (themeRiverChart.value) {
+    themeRiverChart.value.resize()
   }
   if (wordFrequencyChart.value) {
     wordFrequencyChart.value.resize()
@@ -281,9 +292,13 @@ const handleResize = debounce(() => {
   if (article_text.value?.trim() && pieNode && !echarts.getInstanceByDom(pieNode as HTMLElement)) {
     generatePie()
   }
-  const wcNode = root.querySelector('.js-word-count-diagram')
-  if (article_text.value?.trim() && wcNode && !echarts.getInstanceByDom(wcNode as HTMLElement)) {
-    generateWordCountDiagram()
+  const sunNode = root.querySelector('.js-structure-sunburst')
+  if (rawDocumentContent.value?.trim() && sunNode && !echarts.getInstanceByDom(sunNode as HTMLElement)) {
+    generateStructureSunburst()
+  }
+  const trNode = root.querySelector('.js-theme-river')
+  if (trNode && !echarts.getInstanceByDom(trNode as HTMLElement)) {
+    generateTopWordsThemeRiver()
   }
   const wfNode = root.querySelector('.js-word-frequency-diagram')
   if (wordCount.value.length > 0 && article_text.value?.trim() && wfNode && !echarts.getInstanceByDom(wfNode as HTMLElement)) {
@@ -333,9 +348,13 @@ onBeforeUnmount(() => {
     pieChart.value.dispose()
     pieChart.value = null
   }
-  if (wordCountChart.value) {
-    wordCountChart.value.dispose()
-    wordCountChart.value = null
+  if (structureSunburstChart.value) {
+    structureSunburstChart.value.dispose()
+    structureSunburstChart.value = null
+  }
+  if (themeRiverChart.value) {
+    themeRiverChart.value.dispose()
+    themeRiverChart.value = null
   }
   if (wordFrequencyChart.value) {
     wordFrequencyChart.value.dispose()
@@ -387,7 +406,7 @@ const generatePie = async () => {
 
   if (!data.length) return
 
-  const config = generatePieFromData(data, documentTitle.value)
+  const config = patchTooltipUnclip(generatePieFromData(data, documentTitle.value) as EChartsOption)
   const existingChart = echarts.getInstanceByDom(node)
   if (existingChart) existingChart.dispose()
   // 仅在容器已有尺寸时初始化，避免 ECharts 报 "Can't get DOM width or height"
@@ -403,20 +422,74 @@ const generatePie = async () => {
   tryInit()
 }
 
-const generateWordCountDiagram = async () => {
-  const node = getRoot()?.querySelector('.js-word-count-diagram') as HTMLElement | null
+const generateStructureSunburst = async () => {
+  const node = getRoot()?.querySelector('.js-structure-sunburst') as HTMLElement | null
   if (!node) return
-  if (!article_text.value?.trim()) {
+
+  const doc = activeDocument.value
+  const adapter = currentAdapter.value
+  if (!doc || !adapter || !rawDocumentContent.value?.trim()) {
+    const existing = echarts.getInstanceByDom(node)
+    if (existing) existing.dispose()
+    structureSunburstChart.value = null
     return
   }
+
+  let tree: DocumentOutlineNode | null = doc.outline || null
+  if (!tree || !tree.children?.length) {
+    tree = adapter.extractOutline(rawDocumentContent.value)
+  }
+
+  const sunburstLabels = {
+    seriesName: t('visualize.structureSunburstSeries'),
+    unnamedSection: t('visualize.unnamedSection'),
+    emptyOutline: t('visualize.emptyOutline'),
+    tooltipChars: t('visualize.tooltipSectionChars')
+  }
+  const config = buildOutlineSunburstOption(tree, sunburstLabels, visualizeChartTheme.value)
+
   const existingChart = echarts.getInstanceByDom(node)
   if (existingChart) existingChart.dispose()
-  const config = generateWordCountBarChart(article_text.value)
   const tryInit = (retries = 0) => {
     if (node.clientWidth && node.clientHeight) {
       const chart = echarts.init(node)
       chart.setOption(config)
-      wordCountChart.value = chart
+      structureSunburstChart.value = chart
+      requestAnimationFrame(() => chart.resize())
+      return
+    }
+    if (retries < 20) requestAnimationFrame(() => tryInit(retries + 1))
+  }
+  tryInit()
+}
+
+const generateTopWordsThemeRiver = async () => {
+  const node = getRoot()?.querySelector('.js-theme-river') as HTMLElement | null
+  if (!node) return
+
+  const riverLabels = {
+    emptyPlainText: t('visualize.emptyPlainText'),
+    emptyNoWords: t('visualize.themeRiverEmptyWords'),
+    themeRiverNoHits: t('visualize.themeRiverNoHits'),
+    axisCaption: t('visualize.wordFlowAxisCaption'),
+    binTickLabel: (segmentIndex: number) => t('visualize.wordFlowBinTick', { n: segmentIndex + 1 }),
+    hitUnit: t('visualize.wordFlowHitUnit')
+  }
+  const config = buildTopWordsThemeRiverOption(
+    article_text.value,
+    wordCount.value,
+    riverLabels,
+    visualizeChartTheme.value
+  )
+
+  const existingChart = echarts.getInstanceByDom(node)
+  if (existingChart) existingChart.dispose()
+  const tryInit = (retries = 0) => {
+    if (node.clientWidth && node.clientHeight) {
+      const chart = echarts.init(node)
+      chart.setOption(config)
+      themeRiverChart.value = chart
+      requestAnimationFrame(() => chart.resize())
       return
     }
     if (retries < 20) requestAnimationFrame(() => tryInit(retries + 1))
@@ -434,7 +507,9 @@ const generateWordFrequencyDiagram = async () => {
   if (existingChart) existingChart.dispose()
   const top5words = wordCount.value.slice(0, 5).map((item) => item.text)
   if (!top5words.length) return
-  const config = generateWordFrequencyTrendChart(article_text.value, top5words)
+  const config = patchTooltipUnclip(
+    generateWordFrequencyTrendChart(article_text.value, top5words) as EChartsOption
+  )
   const tryInit = (retries = 0) => {
     if (node.clientWidth && node.clientHeight) {
       const chart = echarts.init(node)
@@ -447,76 +522,6 @@ const generateWordFrequencyDiagram = async () => {
   tryInit()
 }
 
-/** 将 outline 的简单 Markdown（仅 "- Title" 缩进列表）转为 HTML，不依赖 Vditor，避免多 tab 下 Vditor 访问已移除 DOM 导致 classList 为 null */
-function outlineMarkdownToHtml(md: string): string {
-  const escape = (s: string) =>
-    s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;')
-  const lines = md.split('\n').filter((l) => l.trim())
-  const stack: number[] = []
-  const out: string[] = []
-  for (const line of lines) {
-    const m = line.match(/^(\s*)-\s+(.*)$/)
-    if (!m) continue
-    const indent = m[1].length
-    const title = escape(m[2].trim())
-    while (stack.length && stack[stack.length - 1]! > indent) {
-      stack.pop()
-      out.push('</li></ul>')
-    }
-    if (stack.length && stack[stack.length - 1] === indent) {
-      out.push('</li>')
-    }
-    while ((!stack.length && indent > 0) || (stack.length && stack[stack.length - 1]! < indent)) {
-      out.push('<ul>')
-      stack.push(indent)
-    }
-    out.push('<li>', title)
-  }
-  while (stack.length) {
-    stack.pop()
-    out.push('</li></ul>')
-  }
-  return out.join('')
-}
-
-const generateOutlineGraph = async () => {
-  const node = getRoot()?.querySelector('.js-outline-graph') as HTMLElement | null
-  if (!node) return
-
-  const doc = activeDocument.value
-  const adapter = currentAdapter.value
-  if (!doc || !adapter) {
-    return
-  }
-
-  let tree: DocumentOutlineNode | null = doc.outline || null
-  if (!tree || !tree.children?.length) {
-    tree = adapter.extractOutline(rawDocumentContent.value)
-  }
-  if (!tree) {
-    return
-  }
-
-  const md = outlineToMindMap(tree)
-  const html = outlineMarkdownToHtml(md)
-  node.innerHTML = html
-  const lis = node.getElementsByTagName('li')
-  for (let i = 0; i < lis.length; i++) {
-    if (lis[i].getElementsByTagName('ul').length > 0) continue
-    lis[i].style.cursor = 'pointer'
-    lis[i].addEventListener('mouseover', () => {
-      ;(lis[i].style as any).scale = '1.05'
-    })
-    lis[i].addEventListener('mouseout', () => {
-      ;(lis[i].style as any).scale = '1'
-    })
-  }
-}
 const article_text = ref('')
 const processWords = async () => {
   const doc = activeDocument.value
@@ -587,9 +592,9 @@ const generateWordCloud = async () => {
     return
   }
 
-  // 获取容器实际大小（已取到 containerNode）
-  const containerWidth = containerNode.clientWidth || 600
-  const containerHeight = containerNode.clientHeight || 600
+  // 获取容器实际大小；避免 flex 未布局完成时为 0 导致词云空白
+  const containerWidth = Math.max(120, containerNode.clientWidth || 0)
+  const containerHeight = Math.max(120, containerNode.clientHeight || 0)
   const size = Math.min(containerWidth, containerHeight, 600)
 
   const layout = cloud()
@@ -612,21 +617,22 @@ const generateWordCloud = async () => {
   layout.start()
 
   function draw(data: any[]) {
-    const svg = container
-      .append('svg')
-      .attr('width', layout.size()[0])
-      .attr('height', layout.size()[1])
-      .append('g')
-      .attr('transform', `translate(${layout.size()[0] / 2}, ${layout.size()[1] / 2})`)
+    const w = layout.size()[0]
+    const h = layout.size()[1]
 
-    svg
+    const svg = container.append('svg').attr('width', w).attr('height', h)
+    const rootG = svg.append('g').attr('transform', `translate(${w / 2}, ${h / 2})`)
+
+    rootG
       .selectAll('text')
       .data(data)
       .enter()
       .append('text')
       .style('font-family', 'Impact')
       .style('font-size', (d: any) => `${d.size}px`)
-      .style('fill', () => d3.schemeCategory10[Math.floor(Math.random() * 10)] as string)
+      /* 避免继承 body/shadcn 的 color（暗色下近白）被当作 SVG fill/currentColor */
+      .attr('fill', (d: any) => colorForWord(d.text))
+      .style('fill', (d: any) => colorForWord(d.text), 'important')
       .attr('class', 'wordcloud-text')
       .attr('text-anchor', 'middle')
       .style('padding', '10px')
@@ -691,7 +697,7 @@ const generateWordCloud = async () => {
   overflow: hidden;
 }
 
-/* 左侧区域：文章大纲和字数统计 */
+/* 左侧区域：章节旭日图与内容密度 */
 .left-section {
   display: flex;
   flex-direction: column;
@@ -723,25 +729,29 @@ const generateWordCloud = async () => {
   font-weight: bold;
 }
 
-.outline-section,
-.word-count-section {
+/* 上图略多占垂直空间，保证旭日图有足够边长贴近容器 */
+.structure-section {
+  flex: 1.35;
+  min-height: 0;
+}
+
+.theme-river-section {
   flex: 1;
   min-height: 0;
 }
 
-.outline-scrollbar {
+.structure-chart-container {
   flex: 1;
-  min-height: 0;
+  min-height: 220px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
-.outline-section :deep([data-radix-scroll-area-viewport]) {
+.theme-river-chart-container {
   flex: 1;
-  min-height: 0;
-}
-
-.word-count-chart-container {
-  flex: 1;
-  min-height: 0;
+  min-height: 240px;
   min-width: 0;
   width: 100%;
   max-width: 100%;

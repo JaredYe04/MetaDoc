@@ -1707,6 +1707,8 @@
     "llmSettingsDescription": "Configurez l'accès aux grands modèles, la température et les options de complétion ; prend en charge le basculement entre plusieurs configurations et l'import/export.",
     "llmTemperature": "Température LLM",
     "llmTemperatureHint": "Contrôle la randomisation des sorties IA, plus la valeur est élevée, plus c'est aléatoire. Recommandé : 1.3",
+    "llmTemperatureRigorous": "Rigoureux",
+    "llmTemperatureCreative": "Créatif",
     "logRetentionPeriod": "Période de conservation des journaux",
     "logRetentionPeriodHint": "Nettoyage automatique des anciens fichiers journaux dépassant la période de conservation. Exécuté automatiquement au démarrage du logiciel.",
     "logRetentionPeriods": {
@@ -2038,7 +2040,21 @@
     "paragraphDistribution": "Répartition par paragraphe",
     "wordCloud": "Nuage de mots",
     "wordCount": "Nombre de mots",
-    "wordFrequency": "Statistiques de fréquence des mots"
+    "wordFrequency": "Statistiques de fréquence des mots",
+    "structureSunburstTitle": "Volume des sections (hiérarchie)",
+    "structureSunburstSeries": "Volume des sections",
+    "wordFlowAlongDocTitle": "Termes fréquents le long du document",
+    "themeRiverEmptyWords": "Aucun terme fréquent éligible",
+    "themeRiverNoHits": "Aucune occurrence dans chaque segment",
+    "wordFlowAxisCaption": "Axe X : texte découpé en 20 segments de caractères (coche = n° de segment)\nAxe Y : bandes colorées = termes ; épaisseur = occurrences dans le segment",
+    "wordFlowBinTick": "{n}",
+    "wordFlowHitUnit": "occ.",
+    "unnamedSection": "Section sans titre",
+    "emptyOutline": "Aucune structure de plan dans ce document",
+    "emptyPlainText": "Aucun texte brut à analyser",
+    "segmentAxis": "Position dans le document",
+    "segmentLabel": "Segment {index} (≈ premiers {percent} %)",
+    "tooltipSectionChars": "Caractères du sous-arbre"
   },
   "voiceInput": {
     "messages": {

@@ -11,7 +11,9 @@ function getEditableElement(target) {
     return target
   }
   // contenteditable / role=textbox
-  const editableRoot = target.closest?.('[contenteditable="true"], [contenteditable=""], [role="textbox"]')
+  const editableRoot = target.closest?.(
+    '[contenteditable="true"], [contenteditable=""], [role="textbox"]'
+  )
   if (editableRoot && !editableRoot.closest(EXCLUDE_SELECTORS)) {
     return editableRoot
   }
@@ -30,7 +32,8 @@ function getEditableElement(target) {
 function shouldShowInputMenu(target) {
   if (!target || typeof target.closest !== 'function') return false
   if (target.closest(EXCLUDE_SELECTORS)) return false
-  if (target.closest('[contenteditable="true"], [contenteditable=""], [role="textbox"]')) return true
+  if (target.closest('[contenteditable="true"], [contenteditable=""], [role="textbox"]'))
+    return true
   // Support both Element Plus and shadcn/radix components
   if (
     target.closest('.el-input') ||

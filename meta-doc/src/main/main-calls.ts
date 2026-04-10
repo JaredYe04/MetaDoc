@@ -2635,14 +2635,17 @@ function bindExportHandlers(): void {
     }
   )
 
-  ipcBridge.registerHandle('cancel-ocr-task', async (_event: IpcMainInvokeEvent, requestId: string) => {
-    const c = ocrInvokeAbortControllers.get(requestId)
-    if (c) {
-      c.abort()
-      return true
+  ipcBridge.registerHandle(
+    'cancel-ocr-task',
+    async (_event: IpcMainInvokeEvent, requestId: string) => {
+      const c = ocrInvokeAbortControllers.get(requestId)
+      if (c) {
+        c.abort()
+        return true
+      }
+      return false
     }
-    return false
-  })
+  )
 
   ipcBridge.registerHandle(
     'export-arm-abort',
@@ -5017,132 +5020,132 @@ export const openDoc = async (filePath?: string, targetWindowId?: number): Promi
       }
     }
     try {
-    // 使用注册表查询文件状态
-    const fileEntry = findWindowWithFile(filePath)
+      // 使用注册表查询文件状态
+      const fileEntry = findWindowWithFile(filePath)
 
-    // transferring 状态：等 500ms 再查一次
-    if (fileEntry.state === 'transferring') {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      const retryEntry = findWindowWithFile(filePath)
-      if (retryEntry.windowId && retryEntry.tabId && retryEntry.state !== 'transferring') {
-        const win = getWindowById(retryEntry.windowId)
+      // transferring 状态：等 500ms 再查一次
+      if (fileEntry.state === 'transferring') {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        const retryEntry = findWindowWithFile(filePath)
+        if (retryEntry.windowId && retryEntry.tabId && retryEntry.state !== 'transferring') {
+          const win = getWindowById(retryEntry.windowId)
+          if (win && !win.isDestroyed()) {
+            win.webContents.send('activate-tab-by-id', retryEntry.tabId)
+            if (win.isMinimized()) win.restore()
+            win.show()
+            win.focus()
+            return
+          }
+        }
+      }
+
+      // 文件已在某窗口打开，且不是目标窗口
+      if (fileEntry.windowId && fileEntry.tabId && fileEntry.windowId !== targetWindowId) {
+        const win = getWindowById(fileEntry.windowId)
         if (win && !win.isDestroyed()) {
-          win.webContents.send('activate-tab-by-id', retryEntry.tabId)
+          win.webContents.send('activate-tab-by-id', fileEntry.tabId)
           if (win.isMinimized()) win.restore()
           win.show()
           win.focus()
           return
         }
       }
-    }
 
-    // 文件已在某窗口打开，且不是目标窗口
-    if (fileEntry.windowId && fileEntry.tabId && fileEntry.windowId !== targetWindowId) {
-      const win = getWindowById(fileEntry.windowId)
-      if (win && !win.isDestroyed()) {
-        win.webContents.send('activate-tab-by-id', fileEntry.tabId)
-        if (win.isMinimized()) win.restore()
-        win.show()
-        win.focus()
-        return
-      }
-    }
-
-    // 文件已在目标窗口打开
-    if (fileEntry.windowId === targetWindowId && fileEntry.tabId) {
-      const targetWin = getWindowById(targetWindowId)
-      if (targetWin && !targetWin.isDestroyed()) {
-        targetWin.webContents.send('activate-tab-by-id', fileEntry.tabId)
-        if (targetWin.isMinimized()) targetWin.restore()
-        targetWin.show()
-        targetWin.focus()
-        return
-      }
-    }
-
-    // 确定目标窗口（仅从已显示的窗口中选择，不选池中备用窗口）
-    let targetWin: BrowserWindow | null = null
-
-    // 检查用户设置：外部文件打开方式
-    // 如果没有指定目标窗口，根据设置决定是在新窗口还是当前窗口打开
-    const externalFileOpenMode = getSetting('externalFileOpenMode') || 'newWindow'
-    const shouldCreateNewWindow = !targetWindowId && externalFileOpenMode === 'newWindow'
-
-    if (targetWindowId) {
-      const byId = getWindowById(targetWindowId)
-      targetWin = byId && byId.isVisible() ? byId : null
-    }
-
-    // 如果需要在新窗口中打开，创建新窗口
-    if (shouldCreateNewWindow && !targetWin) {
-      try {
-        const newWindowResult = await createNewWindowForFile(filePath)
-        if (newWindowResult) {
-          return // 新窗口会自行加载文件
+      // 文件已在目标窗口打开
+      if (fileEntry.windowId === targetWindowId && fileEntry.tabId) {
+        const targetWin = getWindowById(targetWindowId)
+        if (targetWin && !targetWin.isDestroyed()) {
+          targetWin.webContents.send('activate-tab-by-id', fileEntry.tabId)
+          if (targetWin.isMinimized()) targetWin.restore()
+          targetWin.show()
+          targetWin.focus()
+          return
         }
-      } catch (error) {
-        logger.error('创建新窗口失败，回退到当前窗口:', error as Error)
-        // 继续执行，使用现有窗口
       }
-    }
 
-    if (!targetWin) {
-      const focusedWindow = BrowserWindow.getFocusedWindow()
-      if (focusedWindow && !focusedWindow.isDestroyed() && focusedWindow.isVisible()) {
-        targetWin = focusedWindow
+      // 确定目标窗口（仅从已显示的窗口中选择，不选池中备用窗口）
+      let targetWin: BrowserWindow | null = null
+
+      // 检查用户设置：外部文件打开方式
+      // 如果没有指定目标窗口，根据设置决定是在新窗口还是当前窗口打开
+      const externalFileOpenMode = getSetting('externalFileOpenMode') || 'newWindow'
+      const shouldCreateNewWindow = !targetWindowId && externalFileOpenMode === 'newWindow'
+
+      if (targetWindowId) {
+        const byId = getWindowById(targetWindowId)
+        targetWin = byId && byId.isVisible() ? byId : null
+      }
+
+      // 如果需要在新窗口中打开，创建新窗口
+      if (shouldCreateNewWindow && !targetWin) {
+        try {
+          const newWindowResult = await createNewWindowForFile(filePath)
+          if (newWindowResult) {
+            return // 新窗口会自行加载文件
+          }
+        } catch (error) {
+          logger.error('创建新窗口失败，回退到当前窗口:', error as Error)
+          // 继续执行，使用现有窗口
+        }
+      }
+
+      if (!targetWin) {
+        const focusedWindow = BrowserWindow.getFocusedWindow()
+        if (focusedWindow && !focusedWindow.isDestroyed() && focusedWindow.isVisible()) {
+          targetWin = focusedWindow
+        } else {
+          const visibleWindows = getVisibleMainWindows()
+          targetWin =
+            visibleWindows.length > 0
+              ? visibleWindows[0]
+              : mainWindow && mainWindow.isVisible()
+                ? mainWindow
+                : null
+        }
+      }
+
+      if (!targetWin || targetWin.isDestroyed()) {
+        logger.error('无法找到目标窗口')
+        return
+      }
+
+      const format = path.extname(filePath).slice(1).toLowerCase()
+
+      // PDF文件是二进制文件，不需要读取内容，让渲染进程处理
+      if (format === 'pdf') {
+        const payload = {
+          content: '', // PDF文件不在这里读取内容
+          format: 'pdf',
+          path: filePath,
+          fileName: path.basename(filePath)
+        }
+
+        targetWin.webContents.send('open-doc-success', payload)
+        markNotifiedOpenDocSuccessToRequester(targetWin)
+        targetWin.webContents.send('update-current-path', filePath)
       } else {
-        const visibleWindows = getVisibleMainWindows()
-        targetWin =
-          visibleWindows.length > 0
-            ? visibleWindows[0]
-            : mainWindow && mainWindow.isVisible()
-              ? mainWindow
-              : null
-      }
-    }
+        // 其他文本文件正常读取
+        const content = fs.readFileSync(filePath, 'utf-8')
 
-    if (!targetWin || targetWin.isDestroyed()) {
-      logger.error('无法找到目标窗口')
+        const payload = {
+          content,
+          format,
+          path: filePath,
+          fileName: path.basename(filePath)
+        }
+
+        targetWin.webContents.send('open-doc-success', payload)
+        markNotifiedOpenDocSuccessToRequester(targetWin)
+        targetWin.webContents.send('update-current-path', filePath)
+      }
+
+      // 显示并focus窗口
+      if (targetWin.isMinimized()) {
+        targetWin.restore()
+      }
+      targetWin.show()
+      targetWin.focus()
       return
-    }
-
-    const format = path.extname(filePath).slice(1).toLowerCase()
-
-    // PDF文件是二进制文件，不需要读取内容，让渲染进程处理
-    if (format === 'pdf') {
-      const payload = {
-        content: '', // PDF文件不在这里读取内容
-        format: 'pdf',
-        path: filePath,
-        fileName: path.basename(filePath)
-      }
-
-      targetWin.webContents.send('open-doc-success', payload)
-      markNotifiedOpenDocSuccessToRequester(targetWin)
-      targetWin.webContents.send('update-current-path', filePath)
-    } else {
-      // 其他文本文件正常读取
-      const content = fs.readFileSync(filePath, 'utf-8')
-
-      const payload = {
-        content,
-        format,
-        path: filePath,
-        fileName: path.basename(filePath)
-      }
-
-      targetWin.webContents.send('open-doc-success', payload)
-      markNotifiedOpenDocSuccessToRequester(targetWin)
-      targetWin.webContents.send('update-current-path', filePath)
-    }
-
-    // 显示并focus窗口
-    if (targetWin.isMinimized()) {
-      targetWin.restore()
-    }
-    targetWin.show()
-    targetWin.focus()
-    return
     } finally {
       if (targetWindowId && !notifiedOpenDocSuccessToRequester) {
         const reqWin = getWindowById(targetWindowId)

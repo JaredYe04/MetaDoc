@@ -1791,6 +1791,8 @@
     "llmSettingsDescription": "대형 모델 연결 방식, 온도 및 완성 옵션 등을 구성합니다. 여러 구성 전환 및 가져오기/내보내기를 지원합니다.",
     "llmTemperature": "LLM 온도",
     "llmTemperatureHint": "AI 출력의 무작위성을 제어하며, 값이 높을수록 더 무작위합니다. 1.3을 권장합니다",
+    "llmTemperatureRigorous": "엄격",
+    "llmTemperatureCreative": "창의적",
     "logRetentionPeriod": "로그 보존 기간",
     "logRetentionPeriodHint": "보존 기간을 초과한 오래된 로그 파일을 자동으로 정리하며, 소프트웨어 시작 시 자동으로 정리가 실행됩니다",
     "logRetentionPeriods": {
@@ -1961,7 +1963,21 @@
     "wordCount": "단어 수",
     "wordCloud": "워드 클라우드",
     "paragraphDistribution": "단락 분포",
-    "wordFrequency": "단어 빈도"
+    "wordFrequency": "단어 빈도",
+    "structureSunburstTitle": "목차별 분량(계층)",
+    "structureSunburstSeries": "섹션 분량",
+    "wordFlowAlongDocTitle": "문서를 따라가는 고빈도 용어",
+    "themeRiverEmptyWords": "조건에 맞는 고빈도 용어가 없습니다",
+    "themeRiverNoHits": "모든 구간에서 일치 없음",
+    "wordFlowAxisCaption": "가로축: 전체 글자 순서로 20등분(눈금=구간 번호)\n세로축: 색 띠는 각 용어, 높이=해당 구간 출현 횟수",
+    "wordFlowBinTick": "{n}",
+    "wordFlowHitUnit": "회",
+    "unnamedSection": "제목 없는 절",
+    "emptyOutline": "사용할 수 있는 목차 구조가 없습니다",
+    "emptyPlainText": "분석할 본문이 없습니다",
+    "segmentAxis": "문서 위치",
+    "segmentLabel": "{index}번 구간(약 앞 {percent}%)",
+    "tooltipSectionChars": "하위 트리 문자 수"
   },
   "bottomMenu": {
     "wordCount": "총 문자 수：",

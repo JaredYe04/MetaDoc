@@ -34,7 +34,9 @@ export type StartupRecentHomeGuard = {
 /**
  * 若已 arm 且路径一致，占用 arm 并返回 guard；否则返回 null。
  */
-export function takeStartupRecentHomeGuardIfArmed(resolvedPath: string): StartupRecentHomeGuard | null {
+export function takeStartupRecentHomeGuardIfArmed(
+  resolvedPath: string
+): StartupRecentHomeGuard | null {
   if (!armedPathNorm || !resolvedPath) return null
   const norm = normalizePathForStartupMatch(resolvedPath)
   if (norm !== armedPathNorm) return null

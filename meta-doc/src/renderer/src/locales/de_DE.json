@@ -1737,6 +1737,8 @@
     "llmSettingsDescription": "Konfigurieren Sie den LLM-Zugang, Temperatur und Vervollständigungsoptionen; unterstützt mehrere Konfigurationen zum Wechseln sowie Import/Export.",
     "llmTemperature": "LLM-Temperatur",
     "llmTemperatureHint": "Steuert die Zufälligkeit der KI-Ausgabe. Je höher der Wert, desto zufälliger. Empfohlen: 1.3",
+    "llmTemperatureRigorous": "Konsequent",
+    "llmTemperatureCreative": "Kreativ",
     "logRetentionPeriod": "Protokollaufbewahrungsdauer",
     "logRetentionPeriodHint": "Alte Protokolldateien, die die Aufbewahrungsdauer überschreiten, werden automatisch bereinigt. Die Bereinigung erfolgt automatisch beim Softwarestart.",
     "logRetentionPeriods": {
@@ -2002,7 +2004,21 @@
     "paragraphDistribution": "Absatzverteilungsdiagramm",
     "wordCloud": "Wortwolke",
     "wordCount": "Wortanzahl",
-    "wordFrequency": "Worthäufigkeit"
+    "wordFrequency": "Worthäufigkeit",
+    "structureSunburstTitle": "Abschnittsumfang (Hierarchie)",
+    "structureSunburstSeries": "Abschnittsumfang",
+    "wordFlowAlongDocTitle": "Häufige Begriffe entlang des Dokuments",
+    "themeRiverEmptyWords": "Keine passenden häufigen Begriffe",
+    "themeRiverNoHits": "In allen Segmenten keine Treffer",
+    "wordFlowAxisCaption": "X: Text in 20 gleiche Zeichensegmente (Strich = Segmentnr.)\nY: Farbbänder = Begriffe; Höhe = Treffer im Segment",
+    "wordFlowBinTick": "{n}",
+    "wordFlowHitUnit": "Treffer",
+    "unnamedSection": "Abschnitt ohne Titel",
+    "emptyOutline": "Keine Gliederung in diesem Dokument",
+    "emptyPlainText": "Kein analysierbarer Klartext",
+    "segmentAxis": "Position im Dokument",
+    "segmentLabel": "Segment {index} (≈ erste {percent} %)",
+    "tooltipSectionChars": "Zeichen im Teilbaum"
   },
   "voiceInput": {
     "messages": {

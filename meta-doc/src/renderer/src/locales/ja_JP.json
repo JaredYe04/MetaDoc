@@ -1790,6 +1790,8 @@
     "llmSettingsDescription": "大規模言語モデルの接続方法、温度設定、補完オプションを設定します。複数の設定の切り替えやインポート・エクスポートをサポートします。",
     "llmTemperature": "LLM温度",
     "llmTemperatureHint": "AI出力のランダム性を制御します。値が高いほどランダムになります。推奨値は1.3です",
+    "llmTemperatureRigorous": "厳密",
+    "llmTemperatureCreative": "創造的",
     "logRetentionPeriod": "ログ保持期間",
     "logRetentionPeriodHint": "保持期間を超えた古いログファイルを自動的に削除します。ソフトウェア起動時に自動的にクリーンアップが実行されます。",
     "logRetentionPeriods": {
@@ -1960,7 +1962,21 @@
     "wordCount": "文字数",
     "wordCloud": "ワードクラウド",
     "paragraphDistribution": "段落分布図",
-    "wordFrequency": "単語頻度"
+    "wordFrequency": "単語頻度",
+    "structureSunburstTitle": "見出し別の分量（階層）",
+    "structureSunburstSeries": "セクション分量",
+    "wordFlowAlongDocTitle": "文書に沿った高頻度語",
+    "themeRiverEmptyWords": "条件を満たす高頻度語がありません",
+    "themeRiverNoHits": "全区間で一致なしのため描画できません",
+    "wordFlowAxisCaption": "横軸：全文を文字順に20等分（目盛り＝区間番号）\n縦軸：色帯は各語、高さ＝その区間の出現回数",
+    "wordFlowBinTick": "{n}",
+    "wordFlowHitUnit": "回",
+    "unnamedSection": "無題の見出し",
+    "emptyOutline": "利用できるアウトラインがありません",
+    "emptyPlainText": "分析できる本文がありません",
+    "segmentAxis": "文書上の位置",
+    "segmentLabel": "第{index}区間（先頭約{percent}%）",
+    "tooltipSectionChars": "サブツリー文字数"
   },
   "bottomMenu": {
     "wordCount": "文字数：",

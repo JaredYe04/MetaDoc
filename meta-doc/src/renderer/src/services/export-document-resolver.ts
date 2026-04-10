@@ -70,7 +70,9 @@ function buildEphemeralDocument(
 /**
  * @param sourcePath 若提供则从该文件解析；否则使用当前活动标签文档
  */
-export async function resolveDocumentForExport(sourcePath?: string | null): Promise<WorkspaceDocument | null> {
+export async function resolveDocumentForExport(
+  sourcePath?: string | null
+): Promise<WorkspaceDocument | null> {
   const workspace = useWorkspace()
 
   if (sourcePath && sourcePath.trim()) {

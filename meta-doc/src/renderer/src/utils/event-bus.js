@@ -733,8 +733,7 @@ eventBus.on('export', async (payload) => {
   const presetTargetPath = opt.targetPath
   const sourcePath = sourcePathArg ?? opt.sourcePath
   const { targetPath: _tp, sourcePath: _sp, ...restOptions } = opt
-  const exportOptions =
-    restOptions && Object.keys(restOptions).length > 0 ? restOptions : undefined
+  const exportOptions = restOptions && Object.keys(restOptions).length > 0 ? restOptions : undefined
 
   const setCursorWaiting = () => {
     document.body.style.cursor = 'wait'
@@ -825,13 +824,9 @@ eventBus.on('export', async (payload) => {
       })
     }
 
-    const payloadPrepared = await prepareExportPayload(
-      doc,
-      format,
-      filename,
-      exportOptions,
-      { requestId }
-    )
+    const payloadPrepared = await prepareExportPayload(doc, format, filename, exportOptions, {
+      requestId
+    })
     const result = await messageBridge.invoke('perform-export-to-path', payloadPrepared, targetPath)
 
     if (!result.success && !result.error) {
@@ -878,7 +873,7 @@ eventBus.on('export', async (payload) => {
         const msg =
           error instanceof Error
             ? error.message
-            : i18n?.global?.t?.('export.unknownError', '导出失败') ?? '导出失败'
+            : (i18n?.global?.t?.('export.unknownError', '导出失败') ?? '导出失败')
         notifStore.updateNotification(notifId, {
           type: 'error',
           message: `${pathLabel} — ${phaseFail}: ${msg}`,

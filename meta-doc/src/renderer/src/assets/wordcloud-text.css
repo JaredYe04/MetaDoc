@@ -1,6 +1,9 @@
 .wordcloud-text {
   cursor: pointer;
-  transition: all 0.3s;
+  /* 勿用 transition: all，否则会参与 fill 等与主题色继承相关的插值，易出现「全白」字 */
+  transition:
+    opacity 0.3s ease,
+    filter 0.3s ease;
 }
 .wordcloud-text:hover {
   /*模糊*/

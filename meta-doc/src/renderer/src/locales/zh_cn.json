@@ -4566,6 +4566,8 @@
     "llmSettingsDescription": "配置大模型接入方式、温度与补全等选项；支持多套配置切换与导入导出。",
     "llmTemperature": "LLM温度",
     "llmTemperatureHint": "控制AI输出的随机性，值越高越随机，推荐1.3",
+    "llmTemperatureRigorous": "严谨",
+    "llmTemperatureCreative": "创意",
     "llmType": "选择大模型类型",
     "logDirectory": "日志目录",
     "logFilePath": "当前日志文件",
@@ -5260,7 +5262,21 @@
     "paragraphDistribution": "段落分布",
     "wordCloud": "词云图",
     "wordCount": "字数统计",
-    "wordFrequency": "词频统计"
+    "wordFrequency": "词频统计",
+    "structureSunburstTitle": "章节体量层级",
+    "structureSunburstSeries": "章节体量",
+    "wordFlowAlongDocTitle": "高频词沿文稿分布",
+    "themeRiverEmptyWords": "暂无符合条件的高频词",
+    "themeRiverNoHits": "各段内均未匹配到这些词，无法绘图",
+    "wordFlowAxisCaption": "横轴：全文按字符顺序均分为 20 段（刻度为段序号）\n纵轴：彩色条带为各词，高度 = 该段内出现次数",
+    "wordFlowBinTick": "{n}",
+    "wordFlowHitUnit": "次",
+    "unnamedSection": "未命名章节",
+    "emptyOutline": "当前文档无可用大纲结构",
+    "emptyPlainText": "暂无可分析的正文",
+    "segmentAxis": "文稿位置",
+    "segmentLabel": "第 {index} 段（≈前 {percent}%）",
+    "tooltipSectionChars": "子树字符量"
   },
   "voiceInput": {
     "messages": {

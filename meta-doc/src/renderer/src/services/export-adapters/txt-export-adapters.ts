@@ -2,7 +2,12 @@ import { MdToMdAdapter } from './md-to-md-adapter'
 import { MdToHtmlAdapter } from './md-to-html-adapter'
 import { MdToDocxAdapter } from './md-to-docx-adapter'
 import { MdToPdfAdapter } from './md-to-pdf-adapter'
-import type { DocxExportOptions, HtmlExportOptions, MarkdownExportOptions, PdfExportOptions } from './types'
+import type {
+  DocxExportOptions,
+  HtmlExportOptions,
+  MarkdownExportOptions,
+  PdfExportOptions
+} from './types'
 import { wrapPlainTextAsExportMarkdown } from '../plain-text-to-export-markdown'
 
 function wrapData(

@@ -158,9 +158,7 @@ export function exportDisarmAbortController(requestId: string): void {
   exportAbortControllers.delete(requestId)
 }
 
-export function exportAbortSignalForRequest(
-  requestId?: string | null
-): AbortSignal | undefined {
+export function exportAbortSignalForRequest(requestId?: string | null): AbortSignal | undefined {
   if (!requestId) return undefined
   return exportAbortControllers.get(requestId)?.signal
 }

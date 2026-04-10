@@ -6,7 +6,11 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import messageBridge from '../bridge/message-bridge'
 import type { EditOperation } from '../utils/agent-tools/edit-engine/types'
-import { applyEditSequenceRaw, applySingleEdit, postProcess } from '../utils/agent-tools/edit-engine'
+import {
+  applyEditSequenceRaw,
+  applySingleEdit,
+  postProcess
+} from '../utils/agent-tools/edit-engine'
 import { useAgentWorkspaceStore } from './agent-workspace-store'
 import { joinUnderWorkspaceRoot, REL_EDIT_CHECKPOINTS } from '../utils/agent-workspace-persistence'
 import {

@@ -212,9 +212,7 @@ parentPort!.once('message', async (msg: JobMsg) => {
       const svgBuf = await plantumlToBuffer(code, msg.format)
       // PNG 导出：在 Worker 内完成 resvg 栅格化，避免主进程同步 resvg.render() 阻塞 UI
       const outBuf =
-        msg.format === 'png'
-          ? resvgSvgStringToPngBuffer(svgBuf.toString('utf-8'), 2.0)
-          : svgBuf
+        msg.format === 'png' ? resvgSvgStringToPngBuffer(svgBuf.toString('utf-8'), 2.0) : svgBuf
       parentPort!.postMessage({ ok: true, kind: 'plantuml', base64: outBuf.toString('base64') })
       return
     }

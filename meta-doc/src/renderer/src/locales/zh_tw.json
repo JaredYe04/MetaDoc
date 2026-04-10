@@ -4447,6 +4447,8 @@
     "llmSettingsDescription": "配置大模型接入方式、溫度與補全等選項；支援多套配置切換與匯入匯出。",
     "llmTemperature": "LLM溫度",
     "llmTemperatureHint": "控制AI輸出的隨機性，值越高越隨機，推薦1.3",
+    "llmTemperatureRigorous": "嚴謹",
+    "llmTemperatureCreative": "創意",
     "llmType": "選擇大模型類型",
     "logDirectory": "日誌目錄",
     "logFilePath": "目前日誌檔案",
@@ -5160,7 +5162,21 @@
     "paragraphDistribution": "段落分佈",
     "wordCloud": "詞雲圖",
     "wordCount": "字數統計",
-    "wordFrequency": "詞頻統計"
+    "wordFrequency": "詞頻統計",
+    "structureSunburstTitle": "章節體量層級",
+    "structureSunburstSeries": "章節體量",
+    "wordFlowAlongDocTitle": "高頻詞沿文稿分佈",
+    "themeRiverEmptyWords": "暫無符合條件的高頻詞",
+    "themeRiverNoHits": "各段內均未匹配到這些詞，無法繪圖",
+    "wordFlowAxisCaption": "橫軸：全文依字元順序均分為 20 段（刻度為段序號）\n縱軸：彩色條帶為各詞，高度 = 該段內出現次數",
+    "wordFlowBinTick": "{n}",
+    "wordFlowHitUnit": "次",
+    "unnamedSection": "未命名章節",
+    "emptyOutline": "目前文件無可用大綱結構",
+    "emptyPlainText": "暫無可分析的正文",
+    "segmentAxis": "文稿位置",
+    "segmentLabel": "第 {index} 段（≈前 {percent}%）",
+    "tooltipSectionChars": "子樹字元量"
   },
   "voiceInput": {
     "messages": {

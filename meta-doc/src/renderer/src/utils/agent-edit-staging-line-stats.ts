@@ -4,7 +4,11 @@
 import { applySingleEdit } from './agent-tools/edit-engine'
 import type { EditOperation } from './agent-tools/edit-engine/types'
 
-type StagingHunkLike = { id: string; status: 'pending' | 'accepted' | 'rejected'; operation: EditOperation }
+type StagingHunkLike = {
+  id: string
+  status: 'pending' | 'accepted' | 'rejected'
+  operation: EditOperation
+}
 type StagingRecordLike = { oldContent?: string; hunkOperations?: StagingHunkLike[] }
 
 function lineCountSnippet(s: string): number {
@@ -13,7 +17,10 @@ function lineCountSnippet(s: string): number {
 }
 
 /** 单条 operation 在 baseline 上的毛糙增删行数 */
-export function grossLinesForOperation(baseline: string, op: EditOperation): { added: number; removed: number } {
+export function grossLinesForOperation(
+  baseline: string,
+  op: EditOperation
+): { added: number; removed: number } {
   try {
     const { log } = applySingleEdit(baseline, op)
     return {
@@ -28,7 +35,10 @@ export function grossLinesForOperation(baseline: string, op: EditOperation): { a
 /**
  * 当前 record 下：仅统计未拒绝 hunk 的毛糙 +/−，且每条 op 的 baseline 为「此前未拒绝 op 依次应用后」的文本。
  */
-export function computeRecordPendingGrossLines(record: StagingRecordLike): { added: number; removed: number } {
+export function computeRecordPendingGrossLines(record: StagingRecordLike): {
+  added: number
+  removed: number
+} {
   const hunks = record.hunkOperations
   if (!hunks?.length) {
     return { added: 0, removed: 0 }
@@ -129,7 +139,10 @@ export function buildPendingHunkDiffLeftLineRanges(record: StagingRecordLike): H
 }
 
 /** 无 hunk 时：按行 LCS 统计毛糙增删（非净差） */
-export function grossLineDiffLineArrays(oldLines: string[], newLines: string[]): { added: number; removed: number } {
+export function grossLineDiffLineArrays(
+  oldLines: string[],
+  newLines: string[]
+): { added: number; removed: number } {
   const n = oldLines.length
   const m = newLines.length
   const dp: number[][] = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0))
@@ -161,7 +174,10 @@ export function grossLineDiffLineArrays(oldLines: string[], newLines: string[]):
   return { added, removed }
 }
 
-export function grossLineDiffWholeFile(oldText: string, newText: string): { added: number; removed: number } {
+export function grossLineDiffWholeFile(
+  oldText: string,
+  newText: string
+): { added: number; removed: number } {
   const a = oldText === '' ? [] : oldText.split('\n')
   const b = newText === '' ? [] : newText.split('\n')
   return grossLineDiffLineArrays(a, b)

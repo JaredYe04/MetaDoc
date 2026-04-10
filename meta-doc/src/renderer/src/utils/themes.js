@@ -532,8 +532,8 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         referenceInactiveText: adjustSaturation(mixColors(themeColor, '#666666', 0.7), 0.8),
         // 引用容器边框颜色
         referenceContainerBorderColor: mixColors(themeColor, '#e0e0e0', 0.5),
-        // 左侧菜单 + 视图侧栏 + 面板统一背景（浅色下柔和略深，避免纯白）
-        sidebarPanelBackground: mixColors(themeColor, '#ebebeb', 0.25),
+        // 左侧菜单 + 视图侧栏 + 面板统一背景：浅灰为主、少量主题色点缀（mixColors 中 weight 为 c2 占比）
+        sidebarPanelBackground: mixColors(themeColor, '#ebebeb', 0.75),
         themeColor: themeColor
       }
       // 应用覆盖值

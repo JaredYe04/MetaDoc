@@ -1,39 +1,5 @@
 <template>
   <div class="main-container">
-    <!-- 首次使用：选择默认编辑器模式（卡片式，与 QuickStartPanel 一致） -->
-    <div
-      v-if="firstTimeEditorModeDialogVisible"
-      class="editor-mode-first-time-wrapper"
-      :style="editorModePanelWrapperStyle"
-    >
-      <div class="editor-mode-first-time-container" :style="editorModePanelContainerStyle">
-        <div class="editor-mode-panel-header">
-          <h2 class="editor-mode-panel-title">{{ t('editorModeFirstTime.title') }}</h2>
-        </div>
-        <p class="editor-mode-panel-desc">{{ t('editorModeFirstTime.message') }}</p>
-        <div class="editor-mode-cards">
-          <div
-            v-for="opt in editorModeOptions"
-            :key="opt.value"
-            class="editor-mode-card"
-            :class="{ selected: firstTimeEditorModeSelected === opt.value }"
-            :style="editorModeCardBgStyle"
-            @click="firstTimeEditorModeSelected = opt.value"
-          >
-            <div class="editor-mode-card-icon">{{ opt.icon }}</div>
-            <h3 class="editor-mode-card-title">{{ t(opt.titleKey) }}</h3>
-            <p class="editor-mode-card-desc">{{ t(opt.descKey) }}</p>
-          </div>
-        </div>
-        <p class="editor-mode-change-later">{{ t('editorModeFirstTime.changeLaterHint') }}</p>
-        <div class="editor-mode-panel-footer">
-          <Button variant="default" size="lg" @click="confirmFirstTimeEditorMode">
-            {{ t('common.confirm') }}
-          </Button>
-        </div>
-      </div>
-    </div>
-
     <div class="content-container" ref="containerRef">
       <!-- 左边：Vditor Markdown 编辑器 -->
       <!-- 菜单组件 -->
@@ -157,7 +123,6 @@ import {
 } from 'vue'
 import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
-import { Button } from '@renderer/components/ui/button'
 import { Skeleton } from '@renderer/components/ui/skeleton'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
@@ -1027,10 +992,6 @@ const selectionTranslateRange = ref<TextRange | null>(null)
 
 const vditorEl = ref<HTMLElement | null>(null)
 const lastAppliedContent = ref('')
-// 首次使用：选择默认编辑器模式弹窗
-const firstTimeEditorModeDialogVisible = ref(false)
-const firstTimeEditorModeSelected = ref<'wysiwyg' | 'ir' | 'sv'>('ir')
-let editorModeDialogResolve: ((mode: 'wysiwyg' | 'ir' | 'sv') => void) | null = null
 const isEditorInteracting = ref(false)
 let pendingExternalUpdate: { value: string; clearHistory?: boolean } | undefined
 // 关键修复：保存时抑制 watch 的 setValue，避免不必要的回写导致闪烁
@@ -2365,60 +2326,6 @@ const handleSectionOptimizerClose = () => {
   sectionOptimizerAdapter.value = null
 }
 
-const editorModeOptions = [
-  {
-    value: 'wysiwyg' as const,
-    icon: '📝',
-    titleKey: 'setting.editorModeWysiwyg',
-    descKey: 'setting.editorModeWysiwygHint'
-  },
-  {
-    value: 'ir' as const,
-    icon: '⚡',
-    titleKey: 'setting.editorModeIr',
-    descKey: 'setting.editorModeIrHint'
-  },
-  {
-    value: 'sv' as const,
-    icon: '📋',
-    titleKey: 'setting.editorModeSv',
-    descKey: 'setting.editorModeSvHint'
-  }
-]
-
-const editorModePanelWrapperStyle = computed(() => ({
-  color: themeState.currentTheme.textColor,
-  background: themeState.currentTheme.quickStartBackground2 ?? 'rgba(0, 0, 0, 0.4)'
-}))
-
-const editorModePanelContainerStyle = computed(() => ({
-  color: themeState.currentTheme.textColor,
-  background: themeState.currentTheme.quickStartBackground1 ?? themeState.currentTheme.background,
-  borderColor: themeState.currentTheme.borderColor ?? 'rgba(0, 0, 0, 0.1)'
-}))
-
-const editorModeCardBgStyle = computed(() => ({
-  background: themeState.currentTheme.quickStartBackground2 ?? themeState.currentTheme.background
-}))
-
-/** 首次使用：显示选择默认编辑器模式弹窗，返回用户选择后的 Promise */
-function showFirstTimeEditorModeDialog(): Promise<'wysiwyg' | 'ir' | 'sv'> {
-  return new Promise((resolve) => {
-    editorModeDialogResolve = resolve
-    firstTimeEditorModeSelected.value = (settings.vditorMode as 'wysiwyg' | 'ir' | 'sv') || 'ir'
-    firstTimeEditorModeDialogVisible.value = true
-  })
-}
-
-const confirmFirstTimeEditorMode = () => {
-  const mode = firstTimeEditorModeSelected.value
-  firstTimeEditorModeDialogVisible.value = false
-  if (editorModeDialogResolve) {
-    editorModeDialogResolve(mode)
-    editorModeDialogResolve = null
-  }
-}
-
 // 切换Vditor编辑模式
 const switchVditorMode = async (mode: 'wysiwyg' | 'ir' | 'sv') => {
   if (!vditor.value) return
@@ -2975,22 +2882,12 @@ async function runMarkdownVditorInit() {
       }
     }
 
-    // 首次使用：若未弹过编辑器模式选择，先弹窗让用户选择，再继续
-    let vditorMode: 'wysiwyg' | 'ir' | 'sv'
-    const editorModePromptShown = await getSetting('editorModePromptShown')
-    if (!editorModePromptShown) {
-      vditorMode = await showFirstTimeEditorModeDialog()
-      await setSetting('editorModePromptShown', true)
+    let vditorMode = (await getSetting('vditorMode')) as 'wysiwyg' | 'ir' | 'sv'
+    if (!vditorMode || !['wysiwyg', 'ir', 'sv'].includes(vditorMode)) {
+      vditorMode = 'ir'
       await setSetting('vditorMode', vditorMode)
-      settings.editorModePromptShown = true
-      settings.vditorMode = vditorMode
-    } else {
-      vditorMode = (await getSetting('vditorMode')) as 'wysiwyg' | 'ir' | 'sv'
-      if (!vditorMode || !['wysiwyg', 'ir', 'sv'].includes(vditorMode)) {
-        vditorMode = 'ir'
-        await setSetting('vditorMode', vditorMode)
-      }
     }
+    settings.vditorMode = vditorMode
     const supportedLang = [
       'en_US',
       'es_ES',
@@ -4135,24 +4032,25 @@ watch(
 }
 
 /* 勿对 pre 内节点强制 inherit：否则会压过 hljs 语法色，暗色主题下易变成「白字 + 浅色 github 代码底」 */
-.editor :deep(.vditor-reset *:not(pre *)),
-.editor :deep(.vditor-ir *:not(pre *)),
-.editor :deep(.vditor-wysiwyg *:not(pre *)),
-.editor :deep(.vditor-sv *:not(pre *)) {
+/* 勿对 .language-math 子树强制 inherit：公式为 language-math > .katex，与主页预览一致交给 KaTeX 自带样式 */
+.editor :deep(.vditor-reset *:not(pre *):not(.language-math):not(.language-math *)),
+.editor :deep(.vditor-ir *:not(pre *):not(.language-math):not(.language-math *)),
+.editor :deep(.vditor-wysiwyg *:not(pre *):not(.language-math):not(.language-math *)),
+.editor :deep(.vditor-sv *:not(pre *):not(.language-math):not(.language-math *)) {
   color: inherit;
 }
 
-/* 确保标题、段落等文字颜色正确 */
+/* 确保标题、段落等文字颜色正确（勿用 p/li 等命中含公式的块：!important 会通过继承盖住 KaTeX 内部对比度） */
 .editor :deep(.vditor-reset h1),
 .editor :deep(.vditor-reset h2),
 .editor :deep(.vditor-reset h3),
 .editor :deep(.vditor-reset h4),
 .editor :deep(.vditor-reset h5),
 .editor :deep(.vditor-reset h6),
-.editor :deep(.vditor-reset p),
-.editor :deep(.vditor-reset li),
-.editor :deep(.vditor-reset td),
-.editor :deep(.vditor-reset th),
+.editor :deep(.vditor-reset p:not(:has(.language-math))),
+.editor :deep(.vditor-reset li:not(:has(.language-math))),
+.editor :deep(.vditor-reset td:not(:has(.language-math))),
+.editor :deep(.vditor-reset th:not(:has(.language-math))),
 .editor :deep(.vditor-ir__node),
 .editor :deep(.vditor-wysiwyg__block),
 .editor :deep(.vditor-sv__node) {
@@ -4422,141 +4320,4 @@ watch(
   transition: none;
 }
 
-/* 首次使用：选择默认编辑器模式（卡片式，与 QuickStartPanel 一致） */
-.editor-mode-first-time-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  padding: 24px;
-  box-sizing: border-box;
-}
-
-.editor-mode-first-time-container {
-  width: 100%;
-  max-width: 900px;
-  display: flex;
-  flex-direction: column;
-  border-radius: 20px;
-  backdrop-filter: blur(20px) brightness(1.05);
-  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  padding: 32px 40px 28px;
-}
-
-.editor-mode-panel-header {
-  margin-bottom: 8px;
-}
-
-.editor-mode-panel-title {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0;
-  color: v-bind('themeState.currentTheme.textColor');
-  letter-spacing: -0.02em;
-}
-
-.editor-mode-panel-desc {
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 0 0 24px 0;
-  color: v-bind('themeState.currentTheme.textColor');
-  opacity: 0.85;
-}
-
-.editor-mode-cards {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 20px;
-}
-
-.editor-mode-card {
-  flex: 1;
-  min-width: 0;
-  padding: 28px 24px;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid transparent;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.editor-mode-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.editor-mode-card:hover::before {
-  opacity: 1;
-}
-
-.editor-mode-card:hover {
-  transform: translateY(-4px);
-  border-color: v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.2)"');
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-}
-
-.editor-mode-card.selected {
-  border-color: var(--el-color-primary);
-  box-shadow:
-    0 0 0 1px var(--el-color-primary),
-    0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.editor-mode-card-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-  transition: transform 0.3s ease;
-}
-
-.editor-mode-card:hover .editor-mode-card-icon {
-  transform: scale(1.08);
-}
-
-.editor-mode-card-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 10px 0;
-  color: v-bind('themeState.currentTheme.textColor');
-  letter-spacing: -0.01em;
-}
-
-.editor-mode-card-desc {
-  font-size: 13px;
-  line-height: 1.5;
-  margin: 0;
-  color: v-bind('themeState.currentTheme.textColor');
-  opacity: 0.8;
-}
-
-.editor-mode-change-later {
-  font-size: 12px;
-  color: v-bind('themeState.currentTheme.textColor');
-  opacity: 0.7;
-  margin: 0 0 20px 0;
-}
-
-.editor-mode-panel-footer {
-  display: flex;
-  justify-content: center;
-}
 </style>

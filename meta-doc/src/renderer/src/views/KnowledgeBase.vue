@@ -66,6 +66,7 @@
                     <input
                       ref="fileInput"
                       type="file"
+                      multiple
                       style="display: none"
                       @change="onFileSelected"
                       accept=".txt,.md,.pdf,.docx"
@@ -134,81 +135,97 @@
             >
               <CardContent class="kb-card-content kb-search-card-content">
                 <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
-                <FormItem :label="$t('setting.knowledgeBaseScoreThreshold')">
-                  <div class="flex items-center gap-4" style="margin-bottom: 5px">
-                    <Slider
-                      :model-value="settings.knowledgeBaseScoreThreshold"
-                      :min="0.01"
-                      :max="0.99"
-                      :step="0.01"
-                      @update:model-value="
-                        (val) => {
-                          settings.knowledgeBaseScoreThreshold = val
-                          setSetting('knowledgeBaseScoreThreshold', val)
-                        }
-                      "
-                      class="flex-1"
-                    />
-                    <NumberField
-                      :model-value="settings.knowledgeBaseScoreThreshold"
-                      :min="0.01"
-                      :max="0.99"
-                      :step="0.01"
-                      :precision="2"
-                      @update:model-value="
-                        (val) => {
-                          settings.knowledgeBaseScoreThreshold = val
-                          setSetting('knowledgeBaseScoreThreshold', val)
-                        }
-                      "
-                      class="w-28"
-                    >
-                      <NumberFieldContent>
-                        <NumberFieldDecrement />
-                        <NumberFieldInput />
-                        <NumberFieldIncrement />
-                      </NumberFieldContent>
-                    </NumberField>
-                  </div>
-                  <div class="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{{ $t('setting.lowPrecision') }} (0.3)</span>
-                    <span class="text-primary">{{ $t('setting.recommended') }} (0.5)</span>
-                    <span>{{ $t('setting.highPrecision') }} (0.8)</span>
-                  </div>
-                </FormItem>
                 <Input
                   v-model="searchQuery"
                   :placeholder="t('knowledgeBase.searchTest.placeholder')"
                   @keyup.enter="doSearch"
-                  class="mb-2"
+                  class="kb-search-query-input"
                 />
-                <Button variant="default" size="sm" @click="doSearch" :loading="searching">{{
-                  t('knowledgeBase.searchTest.searchBtn')
-                }}</Button>
-
-                <el-scrollbar class="kb-search-scroll">
-                  <Card
-                    class="kb-result-card"
-                    v-for="(result, index) in searchResults"
-                    :key="index"
-                    :style="{
-                      background: themeState.currentTheme.SideBackgroundColor,
-                      marginBottom: '6px'
-                    }"
-                  >
-                    <CardContent class="kb-result-card-content">
-                      <pre class="result-text">{{ result }}</pre>
-                    </CardContent>
-                  </Card>
-
-                  <div
-                    v-if="searchResults.length === 0 && !searching"
-                    :style="{ color: themeState.currentTheme.textColor2 }"
-                    class="placeholder"
-                  >
-                    {{ t('knowledgeBase.searchTest.noResult') }}
+                <div class="kb-search-controls-row">
+                  <div class="kb-search-threshold-col">
+                    <FormItem :label="$t('setting.knowledgeBaseScoreThreshold')">
+                      <div class="flex items-center gap-4 kb-search-slider-row">
+                        <Slider
+                          :model-value="settings.knowledgeBaseScoreThreshold"
+                          :min="0.01"
+                          :max="0.99"
+                          :step="0.01"
+                          @update:model-value="
+                            (val) => {
+                              settings.knowledgeBaseScoreThreshold = val
+                              setSetting('knowledgeBaseScoreThreshold', val)
+                            }
+                          "
+                          class="flex-1 min-w-0"
+                        />
+                        <NumberField
+                          :model-value="settings.knowledgeBaseScoreThreshold"
+                          :min="0.01"
+                          :max="0.99"
+                          :step="0.01"
+                          :precision="2"
+                          @update:model-value="
+                            (val) => {
+                              settings.knowledgeBaseScoreThreshold = val
+                              setSetting('knowledgeBaseScoreThreshold', val)
+                            }
+                          "
+                          class="w-28 shrink-0"
+                        >
+                          <NumberFieldContent>
+                            <NumberFieldDecrement />
+                            <NumberFieldInput />
+                            <NumberFieldIncrement />
+                          </NumberFieldContent>
+                        </NumberField>
+                      </div>
+                      <div class="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>{{ $t('setting.lowPrecision') }} (0.3)</span>
+                        <span class="text-primary">{{ $t('setting.recommended') }} (0.5)</span>
+                        <span>{{ $t('setting.highPrecision') }} (0.8)</span>
+                      </div>
+                    </FormItem>
                   </div>
-                </el-scrollbar>
+                  <div class="kb-search-action-col">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      class="kb-search-submit-btn"
+                      @click="doSearch"
+                      :loading="searching"
+                      >{{ t('knowledgeBase.searchTest.searchBtn') }}</Button
+                    >
+                  </div>
+                </div>
+
+                <div
+                  class="kb-search-results-area"
+                  :class="{ 'kb-search-results-area--empty': kbSearchResultsEmpty }"
+                >
+                  <el-scrollbar class="kb-search-scroll">
+                    <Card
+                      class="kb-result-card"
+                      v-for="(result, index) in searchResults"
+                      :key="index"
+                      :style="{
+                        background: themeState.currentTheme.SideBackgroundColor,
+                        marginBottom: '6px'
+                      }"
+                    >
+                      <CardContent class="kb-result-card-content">
+                        <pre class="result-text">{{ result }}</pre>
+                      </CardContent>
+                    </Card>
+
+                    <div
+                      v-if="kbSearchResultsEmpty"
+                      :style="{ color: themeState.currentTheme.textColor2 }"
+                      class="placeholder kb-search-empty-placeholder"
+                    >
+                      {{ t('knowledgeBase.searchTest.noResult') }}
+                    </div>
+                  </el-scrollbar>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -293,18 +310,33 @@
                   class="kb-config-skeleton"
                 >
                 <div v-if="selectedItem" class="config-content">
+                  <div class="config-actions">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      @click="rebuildVectors"
+                      :loading="isRebuilding"
+                    >
+                      {{ t('knowledgeBase.rebuild') }}
+                    </Button>
+                    <Button variant="secondary" size="sm" @click="downloadFile">
+                      {{ t('knowledgeBase.download') }}
+                    </Button>
+                    <Button variant="secondary" size="sm" @click="openFolder">
+                      {{ t('knowledgeBase.open_folder') }}
+                    </Button>
+                  </div>
                   <Descriptions
+                    class="kb-config-descriptions"
                     :column="1"
                     size="small"
                     border
                     :style="{
                       background: themeState.currentTheme.background2nd,
-                      '--descriptions-item-bordered-label-background':
-                        themeState.currentTheme.SideBackgroundColor,
+                      '--descriptions-item-bordered-label-background': kbDescriptionsFieldBg,
                       '--descriptions-item-bordered-label-color':
                         themeState.currentTheme.SideTextColor,
-                      '--descriptions-item-bordered-content-background':
-                        themeState.currentTheme.background2nd,
+                      '--descriptions-item-bordered-content-background': kbDescriptionsFieldBg,
                       '--descriptions-item-bordered-content-color':
                         themeState.currentTheme.textColor
                     }"
@@ -378,23 +410,6 @@
                       />
                     </DescriptionsItem>
                   </Descriptions>
-
-                  <div class="config-actions">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      @click="rebuildVectors"
-                      :loading="isRebuilding"
-                    >
-                      {{ t('knowledgeBase.rebuild') }}
-                    </Button>
-                    <Button variant="secondary" size="sm" @click="downloadFile">
-                      {{ t('knowledgeBase.download') }}
-                    </Button>
-                    <Button variant="secondary" size="sm" @click="openFolder">
-                      {{ t('knowledgeBase.open_folder') }}
-                    </Button>
-                  </div>
                 </div>
                 <div v-else class="placeholder">{{ t('knowledgeBase.choose_one') }}</div>
                 </Skeleton>
@@ -463,10 +478,12 @@ import { setSetting, settings } from '../utils/settings'
 import { waitForService } from '../utils/service-status.ts'
 import { createRendererLogger } from '../utils/logger.ts'
 import messageBridge from '../bridge/message-bridge'
+import { useNotificationStore } from '../stores/notification'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import * as monaco from 'monaco-editor'
 
 const { t } = useI18n()
+const notificationStore = useNotificationStore()
 const logger = createRendererLogger('KnowledgeBase', {
   windowTypeProvider: () => getWindowType()
 })
@@ -495,6 +512,8 @@ const previewText = ref<string>('')
 const isTruncated = ref<boolean>(false)
 const info = reactive<Record<string, any>>({})
 const isUploading = ref<boolean>(false)
+const uploadQueue = ref<File[]>([])
+const uploadProcessorRunning = ref(false)
 const isRebuilding = ref<boolean>(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const baseUrl = ref('')
@@ -553,6 +572,27 @@ const ensureExpressReady = async (): Promise<void> => {
 const searchQuery = ref<string>('')
 const searchResults = ref<string[]>([])
 const searching = ref<boolean>(false)
+
+/** 与手册大纲列一致：主题内 75% 灰 + 25% 主题色（manualOutlineColumnBackground） */
+const kbDescriptionsFieldBg = computed(() => {
+  const t = themeState.currentTheme as {
+    manualOutlineColumnBackground?: string
+    sidebarPanelBackground?: string
+    background2nd?: string
+    background?: string
+  }
+  return (
+    t.manualOutlineColumnBackground ||
+    t.sidebarPanelBackground ||
+    t.background2nd ||
+    t.background ||
+    '#ebebeb'
+  )
+})
+
+const kbSearchResultsEmpty = computed(
+  () => searchResults.value.length === 0 && !searching.value
+)
 const truncateEnd = (value: any, maxLength: number = 50): string => {
   if (!value) return '-'
   const str = String(value)
@@ -626,22 +666,65 @@ function triggerUpload(): void {
 
 async function onFileSelected(e: Event): Promise<void> {
   const target = e.target as HTMLInputElement
-  const f = target.files?.[0]
-  if (!f) return
-  await uploadFile(f)
-  // reset input
+  const list = target.files ? Array.from(target.files) : []
   target.value = ''
+  if (list.length === 0) return
+  uploadQueue.value.push(...list)
+  isUploading.value = true
+  void processUploadQueue()
 }
 
-async function uploadFile(file: File): Promise<void> {
-  isUploading.value = true
+async function processUploadQueue(): Promise<void> {
+  if (uploadProcessorRunning.value) return
+  uploadProcessorRunning.value = true
+  try {
+    while (uploadQueue.value.length > 0) {
+      const file = uploadQueue.value.shift()!
+      await uploadSingleFileWithTask(file)
+    }
+  } finally {
+    uploadProcessorRunning.value = false
+    if (uploadQueue.value.length > 0) {
+      void processUploadQueue()
+    } else {
+      isUploading.value = false
+    }
+  }
+}
+
+async function uploadSingleFileWithTask(file: File): Promise<void> {
+  const requestId = `knowledge-upload-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  const taskTitle = t('knowledgeBase.embeddingTaskTitle', '知识库向量化')
+  const phaseRunning = t('knowledgeBase.embeddingRunning', '向量化处理中…')
+  const phaseDone = t('knowledgeBase.embeddingDone', '已完成')
+  const phaseFail = t('knowledgeBase.embeddingFailed', '失败')
+
+  const notifId = notificationStore.notify({
+    title: taskTitle,
+    message: `${file.name} — ${phaseRunning}`,
+    type: 'info',
+    showToast: false,
+    duration: 86400000,
+    metadata: {
+      kind: 'knowledge-task',
+      requestId,
+      fileLabel: file.name,
+      phase: 'running',
+      canCancel: true
+    }
+  })
+  eventBus.emit('show-notification-stack-task')
+
   const fd = new FormData()
   fd.append('file', file)
   try {
     await ensureExpressReady()
-    const r = await fetch(`${baseUrl.value}/upload`, { method: 'POST', body: fd })
+    const r = await fetch(`${baseUrl.value}/upload`, {
+      method: 'POST',
+      headers: { 'X-Knowledge-Request-Id': requestId },
+      body: fd
+    })
 
-    // 检查响应类型
     const contentType = r.headers.get('content-type')
     if (!contentType || !contentType.includes('application/json')) {
       const text = await r.text()
@@ -650,42 +733,49 @@ async function uploadFile(file: File): Promise<void> {
         contentType,
         text: text.substring(0, 200)
       })
-      eventBus.emit(
-        'show-error',
-        (t('knowledgeBase.upload_error') || '上传出错') +
-          (t('knowledgeBase.nonJsonResponseMessage') || '服务器返回了非JSON响应，请检查服务器日志')
-      )
+      notificationStore.updateNotification(notifId, {
+        type: 'error',
+        message: `${file.name} — ${phaseFail}: ${t('knowledgeBase.nonJsonResponseMessage') || '非 JSON 响应'}`,
+        metadata: { phase: 'error', canCancel: false }
+      })
       return
     }
 
     const j = await r.json()
     if (j.success) {
-      eventBus.emit('show-success', t('knowledgeBase.upload_complete') || '知识库构建完成')
+      notificationStore.updateNotification(notifId, {
+        type: 'success',
+        message: `${file.name} — ${phaseDone}`,
+        metadata: { phase: 'done', canCancel: false }
+      })
+      setTimeout(() => notificationStore.remove(notifId), 6000)
       await fetchList()
     } else {
-      eventBus.emit(
-        'show-error',
-        (t('knowledgeBase.upload_failed') || '上传失败') +
-          ': ' +
-          (j.message || j.error || t('knowledgeBase.unknownError') || '未知错误')
-      )
+      const msg = j.message || j.error || t('knowledgeBase.unknownError') || '未知错误'
+      notificationStore.updateNotification(notifId, {
+        type: 'error',
+        message: `${file.name} — ${phaseFail}: ${msg}`,
+        metadata: { phase: 'error', canCancel: false }
+      })
     }
   } catch (e) {
     logger.error(e)
     const errorMessage = e instanceof Error ? e.message : String(e)
-    // 检查是否是JSON解析错误
     if (errorMessage.includes('JSON') || errorMessage.includes('<!DOCTYPE')) {
-      eventBus.emit(
-        'show-error',
-        (t('knowledgeBase.upload_error') || '上传出错') +
-          (t('knowledgeBase.invalidResponseFormat') ||
-            '服务器响应格式错误，请检查服务器是否正常运行')
-      )
+      notificationStore.updateNotification(notifId, {
+        type: 'error',
+        message: `${file.name} — ${phaseFail}: ${t('knowledgeBase.invalidResponseFormat') || '响应格式错误'}`,
+        metadata: { phase: 'error', canCancel: false }
+      })
+    } else if (errorMessage.includes('取消') || errorMessage.includes('aborted')) {
+      notificationStore.remove(notifId)
     } else {
-      eventBus.emit('show-error', (t('knowledgeBase.upload_error') || '上传出错') + errorMessage)
+      notificationStore.updateNotification(notifId, {
+        type: 'error',
+        message: `${file.name} — ${phaseFail}: ${errorMessage}`,
+        metadata: { phase: 'error', canCancel: false }
+      })
     }
-  } finally {
-    isUploading.value = false
   }
 }
 
@@ -938,21 +1028,65 @@ async function toggleEnable(row: KnowledgeBaseItem, val: boolean): Promise<void>
 // rebuild vectors
 async function rebuildVectors(): Promise<void> {
   if (!selectedItem.value) return
+  const row = selectedItem.value
+  const requestId = `knowledge-rebuild-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  const taskTitle = t('knowledgeBase.rebuildTaskTitle', '知识库重建向量')
+  const phaseRunning = t('knowledgeBase.rebuildRunning', '重建中…')
+  const phaseDone = t('knowledgeBase.rebuildDone', '重建完成')
+  const phaseFail = t('knowledgeBase.rebuildFailed', '重建失败')
+
+  const notifId = notificationStore.notify({
+    title: taskTitle,
+    message: `${row.name} — ${phaseRunning}`,
+    type: 'info',
+    showToast: false,
+    duration: 86400000,
+    metadata: {
+      kind: 'knowledge-task',
+      requestId,
+      fileLabel: row.name,
+      phase: 'running',
+      canCancel: true
+    }
+  })
+  eventBus.emit('show-notification-stack-task')
+
   isRebuilding.value = true
   try {
     await ensureExpressReady()
-    // 对文件名进行URL编码，处理特殊字符
-    const encodedId = encodeURIComponent(selectedItem.value.id)
-    const r = await fetch(`${baseUrl.value}/${encodedId}/rebuild`, { method: 'POST' })
+    const encodedId = encodeURIComponent(row.id)
+    const r = await fetch(`${baseUrl.value}/${encodedId}/rebuild`, {
+      method: 'POST',
+      headers: { 'X-Knowledge-Request-Id': requestId }
+    })
     const j = await r.json()
     if (j.success) {
-      eventBus.emit('show-success', t('knowledgeBase.rebuild_submitted'))
-      // refresh info
-      await fetchInfo(selectedItem.value.id)
-    } else eventBus.emit('show-error', j.message || t('knowledgeBase.rebuild_failed'))
+      notificationStore.updateNotification(notifId, {
+        type: 'success',
+        message: `${row.name} — ${phaseDone}`,
+        metadata: { phase: 'done', canCancel: false }
+      })
+      setTimeout(() => notificationStore.remove(notifId), 6000)
+      await fetchInfo(row.id)
+    } else {
+      notificationStore.updateNotification(notifId, {
+        type: 'error',
+        message: `${row.name} — ${phaseFail}: ${j.message || ''}`,
+        metadata: { phase: 'error', canCancel: false }
+      })
+    }
   } catch (e) {
     logger.error(e)
-    eventBus.emit('show-error', t('knowledgeBase.rebuild_error'))
+    const msg = e instanceof Error ? e.message : String(e)
+    if (msg.includes('取消') || msg.includes('aborted')) {
+      notificationStore.remove(notifId)
+    } else {
+      notificationStore.updateNotification(notifId, {
+        type: 'error',
+        message: `${row.name} — ${phaseFail}: ${msg}`,
+        metadata: { phase: 'error', canCancel: false }
+      })
+    }
   } finally {
     isRebuilding.value = false
   }
@@ -1088,12 +1222,46 @@ const handleKnowledgeBaseToggle = (payload: unknown) => {
 
 onMounted(async () => {
   if (isDemo.value) {
-    // Demo mode: use mock data only
     knowledgeBaseEnabled.value = true
-    knowledgeItems.value = [
-      { id: '1', name: '示例文档.md', size: '12.5 KB', created_at: Date.now() },
-      { id: '2', name: 'README.md', size: '8.2 KB', created_at: Date.now() - 3600000 }
+    items.value = [
+      {
+        id: '1',
+        name: '课堂笔记-示例.md',
+        enabled: true,
+        info: {
+          sizeText: '12.5 KB',
+          chunks: 24,
+          enabled: true,
+          vector_dim: 1536,
+          vector_count: 24,
+          path: '~/KnowledgeBase/demo/课堂笔记-示例.md'
+        }
+      },
+      {
+        id: '2',
+        name: 'README.md',
+        enabled: true,
+        info: { sizeText: '8.2 KB', chunks: 12, enabled: true }
+      }
     ]
+    selectedId.value = '1'
+    previewLoaded.value = true
+    previewText.value =
+      '# 课堂笔记（示例预览）\n\n' +
+      '这是模拟的知识库正文片段，真实使用时会上传你自己的 PDF、Word、TXT 等文件。\n\n' +
+      '## 重点\n\n- 定义与公式\n- 老师强调的例题\n'
+    Object.keys(info).forEach((k) => delete info[k])
+    Object.assign(info, {
+      sizeText: '12.5 KB',
+      chunks: 24,
+      path: '~/KnowledgeBase/demo/课堂笔记-示例.md',
+      vector_dim: 1536,
+      vector_count: 24,
+      enabled: true
+    })
+    await nextTick()
+    await initMonacoEditor()
+    updateEditorContent()
     return
   }
   // 初始化运行时服务器地址
@@ -1260,10 +1428,61 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+.kb-search-query-input {
+  margin-top: 4px;
+  width: 100%;
+}
+
+.kb-search-controls-row {
+  display: grid;
+  grid-template-columns: 4fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.kb-search-threshold-col {
+  min-width: 0;
+}
+
+.kb-search-slider-row {
+  margin-bottom: 4px;
+}
+
+.kb-search-action-col {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.kb-search-submit-btn {
+  width: 100%;
+  min-width: 0;
+}
+
+.kb-search-results-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+}
+
+.kb-search-results-area--empty {
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  border-radius: 8px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  min-height: 120px;
+}
+
+.kb-search-empty-placeholder {
+  padding: 8px 4px;
+}
+
 .kb-search-scroll {
   flex: 1;
   min-height: 0;
-  margin-top: 10px;
 }
 
 /* 上方面板用 wrapper 定高，内部 Card 填满，避免组件覆盖 flex */
@@ -1385,7 +1604,7 @@ onBeforeUnmount(() => {
 .config-actions {
   display: flex;
   gap: 8px;
-  margin-top: 16px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 
@@ -1465,30 +1684,57 @@ onBeforeUnmount(() => {
   background-color: v-bind('themeState.currentTheme.SideBackgroundColor');
 }
 
-/* 美化描述列表 */
-:deep(.descriptions) {
+/* 配置区描述列表：行间分割线、混色底、更宽松的 cell 内边距 */
+.config-content :deep(.kb-config-descriptions.descriptions) {
   border-radius: 8px;
   overflow: hidden;
 }
 
-:deep(.descriptions__cell--label) {
-  font-weight: 500;
-  background-color: v-bind('themeState.currentTheme.SideBackgroundColor') !important;
-  color: v-bind('themeState.currentTheme.SideTextColor') !important;
-}
-
-:deep(.descriptions__cell--content) {
-  background-color: v-bind('themeState.currentTheme.background2nd') !important;
-  color: v-bind('themeState.currentTheme.textColor') !important;
-}
-
-:deep(.descriptions__table) {
+.config-content :deep(.kb-config-descriptions .descriptions__table) {
   border-collapse: separate;
   border-spacing: 0;
 }
 
-:deep(.descriptions__table td) {
+.config-content :deep(.kb-config-descriptions .descriptions__table td) {
   border-color: v-bind('themeState.currentTheme.borderColor') !important;
+}
+
+/* 行与行之间的横向分割线（覆盖 descriptions 内对非首行去顶边的规则） */
+.config-content
+  :deep(
+    .kb-config-descriptions.descriptions--border
+      .descriptions__row:not(:first-child)
+      .descriptions__cell--label
+  ),
+.config-content
+  :deep(
+    .kb-config-descriptions.descriptions--border
+      .descriptions__row:not(:first-child)
+      .descriptions__cell--content
+  ) {
+  border-top: 1px solid v-bind('themeState.currentTheme.borderColor') !important;
+}
+
+.config-content :deep(.kb-config-descriptions .descriptions__cell--label) {
+  font-weight: 500;
+  background-color: v-bind('kbDescriptionsFieldBg') !important;
+  color: v-bind('themeState.currentTheme.SideTextColor') !important;
+}
+
+.config-content :deep(.kb-config-descriptions .descriptions__cell--content) {
+  background-color: v-bind('kbDescriptionsFieldBg') !important;
+  color: v-bind('themeState.currentTheme.textColor') !important;
+}
+
+.config-content
+  :deep(
+    .kb-config-descriptions.descriptions--small.descriptions--border .descriptions__cell--label
+  ),
+.config-content
+  :deep(
+    .kb-config-descriptions.descriptions--small.descriptions--border .descriptions__cell--content
+  ) {
+  padding: 12px 16px !important;
 }
 
 /* 知识库禁用状态样式 */

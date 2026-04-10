@@ -53,6 +53,8 @@ const setupLinkClickHandler = (container: HTMLElement | null) => {
 
     if (link && link.href) {
       if (link.classList.contains('manual-internal-link')) {
+        e.preventDefault()
+        e.stopPropagation()
         return
       }
 
@@ -129,7 +131,9 @@ const renderMarkdown = async () => {
       applyMermaidTheme: true,
       linkBase: '',
       renderCode: true,
-      renderMath: true
+      renderMath: true,
+      // 用户手册：与主窗口深浅色、代码高亮主题一致，不沿用 Markdown 编辑器里的内容区/代码主题设置
+      syncWithAppTheme: true
     })
     console.log(
       '[VditorPreview] Render complete, content length:',
@@ -163,6 +167,20 @@ watch(
     renderMarkdown()
   },
   { immediate: false }
+)
+
+// 主题切换时重新渲染，以更新 Vditor 内容区 / hljs 样式
+watch(
+  () => [
+    themeState.currentTheme?.type,
+    themeState.currentTheme?.codeTheme,
+    themeState.currentTheme?.vditorTheme
+  ],
+  () => {
+    if (props.markdown?.trim()) {
+      renderMarkdown()
+    }
+  }
 )
 
 onMounted(() => {

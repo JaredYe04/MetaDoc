@@ -25,16 +25,20 @@
         @click="handleToastClick($event, toast)"
         @mouseenter="handleToastMouseEnter(index)"
       >
-        <button class="toast-close" @click.stop="removeToast(toast.id)">
+        <button
+          v-if="!isBackgroundTaskToast(toast)"
+          class="toast-close"
+          @click.stop="removeToast(toast.id)"
+        >
           <X class="h-3 w-3" />
         </button>
 
         <div class="toast-icon">
           <Loader2
-            v-if="isExportTaskSpinner(toast)"
+            v-if="isBackgroundTaskSpinner(toast)"
             class="h-5 w-5 animate-spin text-primary"
           />
-          <component v-else :is="getIconForType(toast.type)" class="h-5 w-5" />
+          <component :is="getIconForType(toast.type)" v-else class="h-5 w-5" />
         </div>
 
         <div class="toast-content">
@@ -43,10 +47,10 @@
         </div>
 
         <button
-          v-if="toast.metadata?.kind === 'export-task' && toast.metadata?.canCancel"
+          v-if="isBackgroundTaskToast(toast) && toast.metadata?.canCancel"
           type="button"
           class="toast-export-cancel"
-          @click.stop="cancelExportTask(toast)"
+          @click.stop="cancelBackgroundTask(toast)"
         >
           {{ $t('export.taskCancel', '中断') }}
         </button>
@@ -85,24 +89,43 @@ import messageBridge from '../bridge/message-bridge'
 
 const store = useNotificationStore()
 
-function isExportTaskSpinner(toast: NotificationItem): boolean {
-  if (toast.metadata?.kind !== 'export-task') return false
-  if (toast.type === 'success' || toast.type === 'error') return false
-  const phase = toast.metadata?.phase as string | undefined
-  return phase === 'pick' || phase === 'prepare'
+const BACKGROUND_TASK_KINDS = ['export-task', 'knowledge-task', 'ocr-task'] as const
+
+function isBackgroundTaskToast(toast: NotificationItem): boolean {
+  const k = toast.metadata?.kind as string | undefined
+  return !!k && BACKGROUND_TASK_KINDS.includes(k as (typeof BACKGROUND_TASK_KINDS)[number])
 }
 
-function cancelExportTask(toast: NotificationItem): void {
+function isBackgroundTaskSpinner(toast: NotificationItem): boolean {
+  if (!isBackgroundTaskToast(toast)) return false
+  if (toast.type === 'success' || toast.type === 'error') return false
+  const phase = toast.metadata?.phase as string | undefined
+  const kind = toast.metadata?.kind as string
+  if (kind === 'export-task') {
+    return phase === 'pick' || phase === 'prepare'
+  }
+  return phase === 'pick' || phase === 'prepare' || phase === 'running'
+}
+
+function cancelBackgroundTask(toast: NotificationItem): void {
   const rid = toast.metadata?.requestId as string | undefined
+  const kind = toast.metadata?.kind as string | undefined
   if (rid) {
-    void messageBridge.invoke('cancel-export-task', rid)
-    eventBus.emit('cancel-progress', { requestId: rid })
+    if (kind === 'export-task') {
+      void messageBridge.invoke('cancel-export-task', rid)
+      eventBus.emit('cancel-progress', { requestId: rid })
+    } else if (kind === 'knowledge-task') {
+      void messageBridge.invoke('cancel-knowledge-progress', rid)
+      eventBus.emit('cancel-progress', { requestId: rid })
+    } else if (kind === 'ocr-task') {
+      void messageBridge.invoke('cancel-ocr-task', rid)
+    }
   }
   store.remove(toast.id)
 }
 
 function handleClearAll(): void {
-  store.removeAll()
+  store.removeNonBackgroundTasks()
 }
 const { notifications } = storeToRefs(store)
 
@@ -211,8 +234,8 @@ function toggleVisibility() {
   animateVisibility(newVisible ? 1 : 0)
 }
 
-/** 导出任务开始：露出堆叠区（3D 堆叠、非展开），避免用户看不到进度与「中断」 */
-function showStackForExportTask() {
+/** 后台任务（导出 / 知识库 / OCR）：露出堆叠区，便于查看进度与「中断」 */
+function showStackForBackgroundTask() {
   isExpanded.value = false
   expandProgress.value = 0
   if (expandRaf) {
@@ -247,12 +270,17 @@ function handleToastClick(event: MouseEvent, toast: NotificationItem) {
 }
 
 function removeToast(id: string) {
+  const n = store.getById(id)
+  if (n && isBackgroundTaskToast(n)) {
+    return
+  }
   store.remove(id)
 }
 
 onMounted(() => {
   eventBus.on('toggle-notification-queue', toggleVisibility)
-  eventBus.on('show-notification-stack-export', showStackForExportTask)
+  eventBus.on('show-notification-stack-export', showStackForBackgroundTask)
+  eventBus.on('show-notification-stack-task', showStackForBackgroundTask)
   // 初始状态：docked（隐藏），除非有未读通知
   if (notifications.value.length > 0 && notifications.value.some((n) => !n.read)) {
     isVisible.value = true
@@ -275,8 +303,12 @@ watch(
       expandRaf = null
       return
     }
-    if (len > (prevLen ?? 0) && notifications.value[0]?.metadata?.kind === 'export-task') {
-      showStackForExportTask()
+    if (
+      len > (prevLen ?? 0) &&
+      notifications.value[0] &&
+      isBackgroundTaskToast(notifications.value[0])
+    ) {
+      showStackForBackgroundTask()
     }
   },
   { flush: 'post' }
@@ -284,7 +316,8 @@ watch(
 
 onBeforeUnmount(() => {
   eventBus.off('toggle-notification-queue', toggleVisibility)
-  eventBus.off('show-notification-stack-export', showStackForExportTask)
+  eventBus.off('show-notification-stack-export', showStackForBackgroundTask)
+  eventBus.off('show-notification-stack-task', showStackForBackgroundTask)
   if (visibilityRaf) cancelAnimationFrame(visibilityRaf)
   if (expandRaf) cancelAnimationFrame(expandRaf)
 })

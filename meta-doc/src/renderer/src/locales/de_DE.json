@@ -27,6 +27,8 @@
     "enterToSend": "Enter zum Senden",
     "ctrlEnterToSend": "Strg+Enter zum Senden",
     "changeSendMode": "Klicken, um die Sende-Tastenkombination zu wechseln",
+    "llmConfigSwitchLabel": "LLM-Konfiguration wechseln",
+    "llmConfigSwitchPlaceholder": "Modellkonfiguration wählen",
     "atLeastOneRequired": "Mindestens ein Dialog muss erhalten bleiben",
     "attachTooltip": "Datei anhängen",
     "cancelTooltip": "KI-Generierung abbrechen",
@@ -1885,7 +1887,11 @@
     "referencePruneFailed": "Bereinigung fehlgeschlagen",
     "referencePruneNoRule": "Bitte setzen Sie zuerst unter \"Automatische Bereinigung\" mindestens eine Option (global oder Arbeitsbereich) auf \"älter als N Tage\" (oder verwenden Sie direkt \"Gesamten Cache leeren\").",
     "resetConfigSuccess": "Wurde auf voreingestellten Zustand zurückgesetzt",
-    "resetConfigToPreset": "Auf voreingestellten Zustand zurücksetzen"
+    "resetConfigToPreset": "Auf voreingestellten Zustand zurücksetzen",
+    "resetFirstRunWizard": "Reset first-run onboarding",
+    "resetFirstRunWizardButton": "Run again on next launch",
+    "resetFirstRunWizardHint": "Shows the full-screen onboarding on next launch and will ask again for the default Markdown editor mode.",
+    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch"
   },
   "titleMenu": {
     "contextMarks": {
@@ -2116,6 +2122,7 @@
     "tooltip": "KI-Vorschlag"
   },
   "latexEditor": {
+    "demoNotice": "Demomodus: Vereinfachte LaTeX-Editor-Vorschau; kann sich vom vollständigen Editor unterscheiden.",
     "nextPage": "Nächste Seite",
     "notification": {
       "compileFailed": "Fehler kompiliert, Fehlercode: {code}",
@@ -5225,6 +5232,8 @@
     "renderFailed": "Rendering fehlgeschlagen"
   },
   "userManual": {
+    "documentOutline": "Auf dieser Seite",
+    "documentOutlineEmpty": "Keine Überschriften zum Anspringen",
     "agent": {
       "introduction": {
         "title": "Agent-Einführung",
@@ -5254,6 +5263,9 @@
       }
     },
     "backToOverview": "Zurück zur Übersicht",
+    "onboardingLearningHintTitle": "Lernfortschritt ansehen",
+    "onboardingLearningHintBody": "Oben in der linken Seitenleiste finden Sie unter „Übersicht“ Ihren persönlichen Lernpfad und den Fortschritt. Der erste Schnellstart-Artikel ist bereits geöffnet – lesen Sie nach Belieben der Reihe nach.",
+    "onboardingLearningHintOk": "Verstanden",
     "charts": {
       "introduction": {
         "title": "Diagramme erstellen (Einführung)",
@@ -5466,7 +5478,8 @@
       "latexEditorHint:": "Bitte teilen Sie uns mit, welche LaTeX-Editoren Sie bereits verwendet haben.",
       "markdownEditorHint:": "Bitte teilen Sie uns mit, welche Markdown-Editoren Sie bereits verwendet haben.",
       "noExperienceQuestions:": "Basierend auf Ihren Antworten haben wir genügend Informationen erhalten.",
-      "reanalyzeConfirmMessage:": "Durch das Zurücksetzen des Nutzerprofils wird Ihr aktueller Lernfortschritt gelöscht. Fortfahren?"
+      "reanalyzeConfirmMessage:": "Durch das Zurücksetzen des Nutzerprofils wird Ihr aktueller Lernfortschritt gelöscht. Fortfahren?",
+      "prev": "Back"
     },
     "progress": {
       "label": "Lernfortschritt",
@@ -5664,5 +5677,87 @@
     "originalException": "Ursprüngliche Ausnahme (zum Anzeigen erweitern)",
     "title": "LLM-Aufruf fehlgeschlagen",
     "titleBuiltinFree": "Kostenloses Modell vorübergehend nicht verfügbar"
+  },
+  "onboarding": {
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish setup",
+    "stepProgress": "Step {current} of {total}",
+    "language": {
+      "title": "Oberflächensprache wählen",
+      "subtitle": "Sie können dies jederzeit unter Einstellungen → Allgemein ändern. Auf jeder Karte sehen Sie eine kurze Begrüßung in dieser Sprache.",
+      "labels": {
+        "zh_CN": "简体中文",
+        "zh_TW": "繁體中文",
+        "en_US": "English (US)",
+        "ja_JP": "日本語",
+        "ko_KR": "한국어",
+        "fr_FR": "Français",
+        "de_DE": "Deutsch",
+        "es_ES": "Español",
+        "pt_BR": "Português (BR)",
+        "ru_RU": "Русский"
+      },
+      "welcome": {
+        "zh_CN": "欢迎使用 MetaDoc！",
+        "zh_TW": "歡迎使用 MetaDoc！",
+        "en_US": "Welcome to MetaDoc!",
+        "ja_JP": "MetaDoc へようこそ",
+        "ko_KR": "MetaDoc에 오신 것을 환영합니다",
+        "fr_FR": "Bienvenue dans MetaDoc !",
+        "de_DE": "Willkommen bei MetaDoc!",
+        "es_ES": "¡Bienvenido a MetaDoc!",
+        "pt_BR": "Bem-vindo ao MetaDoc!",
+        "ru_RU": "Добро пожаловать в MetaDoc!"
+      }
+    },
+    "welcome": {
+      "title": "Welcome to MetaDoc",
+      "body": "We’ll walk you through language, layout, theme, and AI basics so you can get comfortable quickly."
+    },
+    "layout": {
+      "title": "Layout",
+      "subtitle": "Pick the layout that fits how you work. You can toggle it anytime from the top bar.",
+      "workstation": {
+        "title": "Workstation",
+        "badge": "Voller Modus",
+        "desc": "Full UI with sidebar and all entry points—best for multi-panel and advanced workflows."
+      },
+      "focus": {
+        "title": "Focus",
+        "badge": "Minimalmodus",
+        "desc": "Minimal chrome centered on the editor—best for distraction-free writing."
+      }
+    },
+    "theme": {
+      "title": "Theme",
+      "subtitle": "“Follow system” is recommended. Tap a card to switch; you can fine-tune later in Settings."
+    },
+    "llm": {
+      "title": "LLM API",
+      "subtitle": "Optional: add your own third-party API for full AI features.",
+      "builtinHint": "A small built-in free quota is included for trying features only; for serious use, configure a compatible third-party API.",
+      "thirdPartyHint": "Use “Test connection” before saving when possible.",
+      "skipLater": "Set up later",
+      "testConnection": "Test connection",
+      "saveAndUse": "Save and use",
+      "fillBeforeTest": "Please fill the name and required fields before testing.",
+      "fillBeforeSave": "Please complete the form before saving.",
+      "testOk": "Connection test succeeded",
+      "testFail": "Connection failed. Check URL, key, and model name.",
+      "saveOk": "Saved and selected as current configuration",
+      "saveFail": "Save failed",
+      "configNamePlaceholder": "e.g. My OpenAI"
+    },
+    "profile": {
+      "title": "Your preferences",
+      "subtitle": "Helps us suggest manual topics and learning paths.",
+      "continueToEditor": "Continue: editor mode"
+    },
+    "editorMode": {
+      "title": "Default Markdown editor mode",
+      "subtitle": "This mode is used when you open Markdown documents.",
+      "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
+    }
   }
 }

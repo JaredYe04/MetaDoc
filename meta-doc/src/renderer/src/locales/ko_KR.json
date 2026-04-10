@@ -469,6 +469,8 @@
     "enterToSend": "Enter로 전송",
     "ctrlEnterToSend": "Ctrl+Enter로 전송",
     "changeSendMode": "클릭하여 전송 단축키 전환",
+    "llmConfigSwitchLabel": "LLM 구성 전환",
+    "llmConfigSwitchPlaceholder": "모델 구성 선택",
     "atLeastOneRequired": "최소한 하나의 대화를 유지해야 합니다",
     "attachTooltip": "파일 첨부",
     "cancelTooltip": "AI 생성 취소",
@@ -1948,7 +1950,11 @@
     "referenceGlobalSectionDesc": "애플리케이션 데이터 디렉토리 아래의 참조 캐시 (예: 업로드 파싱 시 임시 파일).",
     "referencePruneDone": "규칙에 따라 만료된 참조 파일을 정리했습니다",
     "referencePruneFailed": "정리 실패",
-    "referencePruneNoRule": "먼저 '자동 정리'에서 전역 또는 작업공간 중 적어도 하나를 'N일 전'으로 설정하세요 (또는 '모든 캐시 비우기'를 직접 사용하세요)."
+    "referencePruneNoRule": "먼저 '자동 정리'에서 전역 또는 작업공간 중 적어도 하나를 'N일 전'으로 설정하세요 (또는 '모든 캐시 비우기'를 직접 사용하세요).",
+    "resetFirstRunWizard": "Reset first-run onboarding",
+    "resetFirstRunWizardButton": "Run again on next launch",
+    "resetFirstRunWizardHint": "Shows the full-screen onboarding on next launch and will ask again for the default Markdown editor mode.",
+    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch"
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -2120,6 +2126,7 @@
     "tooltip": "AI 제안"
   },
   "latexEditor": {
+    "demoNotice": "데모 모드: 간소화된 LaTeX 편집기입니다. 전체 편집기와 다를 수 있습니다.",
     "nextPage": "다음 페이지",
     "notification": {
       "compileFailed": "컴파일 실패, 오류 코드: 이름 *",
@@ -5110,6 +5117,11 @@
   },
   "userManual": {
     "backToOverview": "개요로 돌아가기",
+    "onboardingLearningHintTitle": "학습 진행 상황 보기",
+    "onboardingLearningHintBody": "왼쪽 사이드바 상단의 「개요」에서 맞춤 학습 경로와 진행률을 확인할 수 있습니다. 「빠른 시작」 첫 번째 문서가 이미 열려 있으니 순서대로 읽으시면 됩니다.",
+    "onboardingLearningHintOk": "알겠습니다",
+    "documentOutline": "이 문서 목차",
+    "documentOutlineEmpty": "이 글에 목차가 없습니다",
     "emptyContent": "왼쪽에서 장을 선택하세요",
     "graph": {
       "title": "학습 경로도",
@@ -5367,7 +5379,8 @@
       "markdownLevelHint:": "Markdown 문법에 대한 숙련도를 평가해 주세요",
       "noExperienceQuestions:": "답변을 바탕으로 충분한 정보를 수집했습니다.",
       "reanalyzeConfirmMessage:": "사용자 프로필을 재설정하면 현재 학습 진행률이 초기화됩니다. 계속하시겠습니까?",
-      "scenarioHint:": "주요 사용 시나리오를 선택해 주세요. 이를 바탕으로 가장 적합한 학습 경로를 추천해 드립니다."
+      "scenarioHint:": "주요 사용 시나리오를 선택해 주세요. 이를 바탕으로 가장 적합한 학습 경로를 추천해 드립니다.",
+      "prev": "Back"
     },
     "progress": {
       "label": "학습 진행 상황",
@@ -5569,5 +5582,87 @@
     "titleBuiltinFree": "무료 모델 일시적으로 사용 불가",
     "model": "모델",
     "originalException": "원본 예외 (펼쳐서 보기)"
+  },
+  "onboarding": {
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish setup",
+    "stepProgress": "Step {current} of {total}",
+    "language": {
+      "title": "인터페이스 언어 선택",
+      "subtitle": "「설정 → 일반」에서 언제든지 바꿀 수 있습니다. 각 카드에는 해당 언어로 된 짧은 환영 문구가 표시됩니다.",
+      "labels": {
+        "zh_CN": "简体中文",
+        "zh_TW": "繁體中文",
+        "en_US": "English (US)",
+        "ja_JP": "日本語",
+        "ko_KR": "한국어",
+        "fr_FR": "Français",
+        "de_DE": "Deutsch",
+        "es_ES": "Español",
+        "pt_BR": "Português (BR)",
+        "ru_RU": "Русский"
+      },
+      "welcome": {
+        "zh_CN": "欢迎使用 MetaDoc！",
+        "zh_TW": "歡迎使用 MetaDoc！",
+        "en_US": "Welcome to MetaDoc!",
+        "ja_JP": "MetaDoc へようこそ",
+        "ko_KR": "MetaDoc에 오신 것을 환영합니다",
+        "fr_FR": "Bienvenue dans MetaDoc !",
+        "de_DE": "Willkommen bei MetaDoc!",
+        "es_ES": "¡Bienvenido a MetaDoc!",
+        "pt_BR": "Bem-vindo ao MetaDoc!",
+        "ru_RU": "Добро пожаловать в MetaDoc!"
+      }
+    },
+    "welcome": {
+      "title": "Welcome to MetaDoc",
+      "body": "We’ll walk you through language, layout, theme, and AI basics so you can get comfortable quickly."
+    },
+    "layout": {
+      "title": "Layout",
+      "subtitle": "Pick the layout that fits how you work. You can toggle it anytime from the top bar.",
+      "workstation": {
+        "title": "Workstation",
+        "badge": "전체 모드",
+        "desc": "Full UI with sidebar and all entry points—best for multi-panel and advanced workflows."
+      },
+      "focus": {
+        "title": "Focus",
+        "badge": "미니멀 모드",
+        "desc": "Minimal chrome centered on the editor—best for distraction-free writing."
+      }
+    },
+    "theme": {
+      "title": "Theme",
+      "subtitle": "“Follow system” is recommended. Tap a card to switch; you can fine-tune later in Settings."
+    },
+    "llm": {
+      "title": "LLM API",
+      "subtitle": "Optional: add your own third-party API for full AI features.",
+      "builtinHint": "A small built-in free quota is included for trying features only; for serious use, configure a compatible third-party API.",
+      "thirdPartyHint": "Use “Test connection” before saving when possible.",
+      "skipLater": "Set up later",
+      "testConnection": "Test connection",
+      "saveAndUse": "Save and use",
+      "fillBeforeTest": "Please fill the name and required fields before testing.",
+      "fillBeforeSave": "Please complete the form before saving.",
+      "testOk": "Connection test succeeded",
+      "testFail": "Connection failed. Check URL, key, and model name.",
+      "saveOk": "Saved and selected as current configuration",
+      "saveFail": "Save failed",
+      "configNamePlaceholder": "e.g. My OpenAI"
+    },
+    "profile": {
+      "title": "Your preferences",
+      "subtitle": "Helps us suggest manual topics and learning paths.",
+      "continueToEditor": "Continue: editor mode"
+    },
+    "editorMode": {
+      "title": "Default Markdown editor mode",
+      "subtitle": "This mode is used when you open Markdown documents.",
+      "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
+    }
   }
 }

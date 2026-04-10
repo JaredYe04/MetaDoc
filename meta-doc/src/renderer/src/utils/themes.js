@@ -490,6 +490,8 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         referenceContainerBorderColor: mixColors(themeColor, '#404040', 0.5),
         // 左侧菜单 + 视图侧栏 + 面板统一背景（与 background2nd 一致，略浅）
         sidebarPanelBackground: mixColors(themeColor, '#2a2a2a', 0.85),
+        // 用户手册大纲侧栏：75% 深灰 + 25% 主题色（mixColors 的 weight 为灰色占比）
+        manualOutlineColumnBackground: mixColors(themeColor, '#2a2a2a', 0.75),
         themeColor: themeColor
       }
       // 应用覆盖值
@@ -534,6 +536,8 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         referenceContainerBorderColor: mixColors(themeColor, '#e0e0e0', 0.5),
         // 左侧菜单 + 视图侧栏 + 面板统一背景：浅灰为主、少量主题色点缀（mixColors 中 weight 为 c2 占比）
         sidebarPanelBackground: mixColors(themeColor, '#ebebeb', 0.75),
+        // 用户手册大纲侧栏：75% 浅灰 + 25% 主题色
+        manualOutlineColumnBackground: mixColors(themeColor, '#ebebeb', 0.75),
         themeColor: themeColor
       }
       // 应用覆盖值
@@ -583,6 +587,8 @@ export const lightTheme = customTheme('#ffffff', {
   secondaryColor: '#666666',
   // 左侧菜单 + 视图侧栏 + 面板统一背景（浅色下柔和、略深于 #f0f0f0）
   sidebarPanelBackground: '#ebebeb',
+  // 用户手册大纲侧栏：75% 浅灰 + 25% 主题色（内置浅色主题色为白）
+  manualOutlineColumnBackground: mixColors('#ffffff', '#ebebeb', 0.75),
   // 引用标签颜色（黑白灰）
   referenceActiveBg: '#555555',
   referenceActiveText: '#ffffff',
@@ -626,6 +632,8 @@ export const darkTheme = customTheme('#2c2c2c', {
   secondaryColor: '#909090', // 次要色用中灰
   // 左侧菜单 + 视图侧栏 + 面板统一背景（与原来一致且略浅，用 background2nd）
   sidebarPanelBackground: '#3a3a3a',
+  // 用户手册大纲侧栏：75% 深灰 + 25% 主题色（与内置深色基底一致）
+  manualOutlineColumnBackground: mixColors('#2c2c2c', '#3a3a3a', 0.75),
   // 引用标签颜色（黑白灰）
   referenceActiveBg: '#5a5a5a',
   referenceActiveText: '#ffffff',

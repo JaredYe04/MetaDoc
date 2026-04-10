@@ -42,6 +42,17 @@
       </FormField>
 
       <FormField
+        :label="t('setting.resetFirstRunWizard', '重置首次使用向导')"
+        name="resetFirstRunWizard"
+        layout="horizontal"
+        :hint="t('setting.resetFirstRunWizardHint', '将在下次启动时再次显示全屏入门向导')"
+      >
+        <Button type="button" variant="outline" class="w-[280px] justify-center" @click="requestResetFirstRunWizard">
+          {{ t('setting.resetFirstRunWizardButton', '下次启动时重新运行') }}
+        </Button>
+      </FormField>
+
+      <FormField
         :label="t('setting.autoOpenHomeOnStartup', '启动时自动打开主页')"
         name="autoOpenHomeOnStartup"
         layout="horizontal"
@@ -578,6 +589,12 @@ const currentEditorModeHint = computed(() => {
 
 const saveSetting = (key: string, value: unknown) => {
   setSetting(key, value)
+}
+
+const requestResetFirstRunWizard = async () => {
+  settings.resetFirstRunWizardOnNextLaunch = true
+  await setSetting('resetFirstRunWizardOnNextLaunch', true)
+  notifySuccess(t('setting.resetFirstRunWizardScheduled', '已设置：下次启动时将显示首次使用向导'))
 }
 
 // 应用字体设置（UI / 编辑器 / 预览）

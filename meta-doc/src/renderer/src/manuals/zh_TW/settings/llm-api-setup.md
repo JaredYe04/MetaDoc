@@ -23,6 +23,8 @@
 
 ## 🧭 在 MetaDoc 裡：您只需要完成三件事
 
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
 <SettingLlmSection mode="demo" />
 
 1. **選取或新增一張設定卡片**（新手可從「OpenAI 相容」或「DeepSeek」入手）🃏。

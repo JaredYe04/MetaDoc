@@ -1783,19 +1783,36 @@ export async function local2fileProtocolForHtmlInHtml(html) {
  * @param {boolean} options.renderCode - 是否渲染代码块（默认 true）
  * @param {boolean} options.renderMath - 是否渲染数学公式（默认 true）
  * @param {boolean} options.applyMermaidTheme - 是否应用 Mermaid 主题适配（默认 false，仅在用户手册中使用）
+ * @param {boolean} options.syncWithAppTheme - 为 true 时忽略编辑器 contentTheme/codeTheme 设置，按当前应用主题渲染（用户手册预览）
  * @returns {Promise<void>}
  */
 export async function renderMarkdownPreview(container, markdown, options = {}) {
-  const { linkBase = '', renderCode = true, renderMath = true, applyMermaidTheme = false } = options
+  const {
+    linkBase = '',
+    renderCode = true,
+    renderMath = true,
+    applyMermaidTheme = false,
+    syncWithAppTheme = false
+  } = options
 
   markdown = normalizeMarkdownLeadingArtifacts(typeof markdown === 'string' ? markdown : '')
 
   // 获取 CDN
   const cdn = isElectronEnv() ? getLocalVditorCDN() : vditorCDN
 
-  // 获取主题设置（内容区 theme 须为 dark/light/ant-design/wechat，不可使用工具栏的 classic）
-  const contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
-  const codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
+  // 获取主题：用户手册等与主界面一致时用 syncWithAppTheme，避免沿用编辑器「内容区/代码」设置导致深浅色错位
+  let contentTheme
+  let codeTheme
+  if (syncWithAppTheme) {
+    const ts = themeState.currentTheme
+    const isDark = ts?.type === 'dark'
+    contentTheme = ts?.vditorTheme === 'dark' || isDark ? 'dark' : 'light'
+    // 仅跟随应用当前主题的 codeTheme，避免混入 Markdown 编辑器里的代码高亮设置
+    codeTheme = ts?.codeTheme || (isDark ? 'github-dark' : 'github')
+  } else {
+    contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
+    codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
+  }
   const lineNumber = (await getSetting('lineNumber')) ?? true
   const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
 

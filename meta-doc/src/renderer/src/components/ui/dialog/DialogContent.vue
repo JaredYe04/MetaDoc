@@ -79,7 +79,7 @@ onUnmounted(() => {
 
 <template>
   <DialogPortal :to="'body'">
-    <!-- overlay 必须在 MainTabs(40px) 下方，不遮挡任务栏 -->
+    <!-- overlay 必须在 MainTabs(34px) 下方，不遮挡任务栏 -->
     <DialogOverlay class="fixed z-[9999] bg-black/60 dialog-overlay dialog-viewport-below-tabs" />
     <!-- 点击 overlay 不关闭：preventDefault 阻止 pointerDownOutside/interactOutside 的默认关闭行为 -->
     <DialogContent
@@ -160,12 +160,12 @@ onUnmounted(() => {
 /* 对话框内容层：必须在 MainTabs 下方，铺满剩余视口并居中 */
 .dialog-content-viewport {
   position: fixed !important;
-  top: 40px !important;
+  top: 34px !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
   width: 100vw !important;
-  height: calc(100vh - 40px) !important;
+  height: calc(100vh - 34px) !important;
   margin: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -229,12 +229,12 @@ onUnmounted(() => {
 <style>
 .dialog-overlay.dialog-viewport-below-tabs {
   position: fixed !important;
-  top: 40px !important;
+  top: 34px !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
   width: 100vw !important;
-  height: calc(100vh - 40px) !important;
+  height: calc(100vh - 34px) !important;
 }
 
 .dialog-overlay.dialog-viewport-below-tabs[data-state='open'] {

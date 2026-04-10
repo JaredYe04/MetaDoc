@@ -38,15 +38,15 @@
           cn(
             'el-tree-node__expand-icon',
             'mr-1 flex items-center justify-center',
-            'w-4 h-4',
-            'transition-transform duration-200',
-            isExpanded && 'is-expanded rotate-90'
+            'w-4 h-4 shrink-0',
+            'transition-colors duration-200'
           )
         "
         @click.stop="handleExpandClick"
       >
-        <ChevronRight v-if="!isLoading" class="w-4 h-4" />
-        <Loader2 v-else class="w-4 h-4 animate-spin" />
+        <Loader2 v-if="isLoading" class="w-4 h-4 animate-spin" />
+        <ChevronDown v-else-if="isExpanded" class="w-4 h-4" />
+        <ChevronRight v-else class="w-4 h-4" />
       </span>
 
       <span v-else class="w-4 h-4 mr-1 el-tree-node__expand-icon-placeholder" />
@@ -97,7 +97,7 @@
 
 <script setup lang="ts">
 import { computed, watch, ref } from 'vue'
-import { ChevronRight, Loader2 } from 'lucide-vue-next'
+import { ChevronRight, ChevronDown, Loader2 } from 'lucide-vue-next'
 import { cn } from '../../../lib/utils'
 import type { TreeNode, TreeProps } from './Tree.vue'
 
@@ -298,12 +298,6 @@ watch(
   cursor: pointer;
   color: hsl(var(--muted-foreground));
   font-size: 12px;
-  transform: rotate(0deg);
-  transition: transform 0.3s ease-in-out;
-}
-
-.el-tree-node__expand-icon.is-expanded {
-  transform: rotate(90deg);
 }
 
 .el-tree-node__expand-icon:hover {

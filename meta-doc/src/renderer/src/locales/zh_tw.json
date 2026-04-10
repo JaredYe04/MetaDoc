@@ -1188,6 +1188,8 @@
     "attachTooltip": "附加檔案",
     "cancelTooltip": "取消AI生成",
     "changeSendMode": "點擊切換傳送快速鍵",
+    "llmConfigSwitchLabel": "切換 LLM 設定",
+    "llmConfigSwitchPlaceholder": "選擇模型設定",
     "confirmDelete": "確定要刪除「{title}」嗎？",
     "ctrlEnterToSend": "按 Ctrl+Enter 傳送",
     "defaultTitle": "與AI助手對話",
@@ -2622,6 +2624,7 @@
     "vector_dim": "向量維度"
   },
   "latexEditor": {
+    "demoNotice": "演示模式：這是簡化版 LaTeX 編輯器示範，與完整編輯器功能可能不同。",
     "commandDocs": {
       "documentclass": "設定文件類別。範例：\\documentclass{article} 或 \\documentclass[12pt]{report}",
       "usepackage": "載入 LaTeX 套件。範例：\\usepackage{graphicx} 或 \\usepackage[utf8]{inputenc}",
@@ -4631,7 +4634,11 @@
     "builtinFreeConfigCannotExport": "內建免費模型設定不允許匯出",
     "defaultConfigBuiltinFree": "免費模型（內建）",
     "llmApiErrorDialog": "LLM 報錯彈窗",
-    "llmApiErrorDialogHint": "當 LLM API 呼叫失敗時，彈出對話方塊展示目前配置並引導查看手冊。"
+    "llmApiErrorDialogHint": "當 LLM API 呼叫失敗時，彈出對話方塊展示目前配置並引導查看手冊。",
+    "resetFirstRunWizard": "重置首次使用向导",
+    "resetFirstRunWizardButton": "下次启动时重新运行",
+    "resetFirstRunWizardHint": "将在下次启动时再次显示全屏入门向导，并会重新询问 Markdown 默认编辑模式。",
+    "resetFirstRunWizardScheduled": "已设置：下次启动时将显示首次使用向导"
   },
   "settingBasicSection": {
     "failedSize": "取得目錄大小失敗",
@@ -4836,6 +4843,9 @@
       }
     },
     "backToOverview": "返回概覽",
+    "onboardingLearningHintTitle": "查看您的學習進度",
+    "onboardingLearningHintBody": "左側邊欄頂部的「概覽」入口可查看為您生成的學習路線與完成進度；目前已開啟「快速開始」第一篇，可按順序閱讀。",
+    "onboardingLearningHintOk": "知道了",
     "charts": {
       "introduction": {
         "title": "圖表繪製介紹",
@@ -5030,7 +5040,8 @@
       "yes": "是",
       "no": "否",
       "skip": "跳過",
-      "submit": "提交"
+      "submit": "提交",
+      "prev": "上一步"
     },
     "progress": {
       "label": "學習進度",
@@ -5053,6 +5064,8 @@
       "onlyRecommended": "只顯示推薦路徑",
       "onlyRecommendedTip": "關閉後顯示完整手冊目錄"
     },
+    "documentOutline": "本文目錄",
+    "documentOutlineEmpty": "本篇暫無標題可導航",
     "title": "使用者手冊"
   },
   "userProfile": {
@@ -5321,5 +5334,87 @@
     "originalException": "原始異常（展開查看）",
     "title": "LLM 呼叫失敗",
     "titleBuiltinFree": "免費模型暫時無法使用"
+  },
+  "onboarding": {
+    "back": "上一步",
+    "next": "下一步",
+    "finish": "完成入门",
+    "stepProgress": "第 {current} / {total} 步",
+    "language": {
+      "title": "選擇介面語言",
+      "subtitle": "可隨時在「設定 → 基本」中變更。卡片上的歡迎語為該語言範例。",
+      "labels": {
+        "zh_CN": "简体中文",
+        "zh_TW": "繁體中文",
+        "en_US": "English (US)",
+        "ja_JP": "日本語",
+        "ko_KR": "한국어",
+        "fr_FR": "Français",
+        "de_DE": "Deutsch",
+        "es_ES": "Español",
+        "pt_BR": "Português (BR)",
+        "ru_RU": "Русский"
+      },
+      "welcome": {
+        "zh_CN": "欢迎使用 MetaDoc！",
+        "zh_TW": "歡迎使用 MetaDoc！",
+        "en_US": "Welcome to MetaDoc!",
+        "ja_JP": "MetaDoc へようこそ",
+        "ko_KR": "MetaDoc에 오신 것을 환영합니다",
+        "fr_FR": "Bienvenue dans MetaDoc !",
+        "de_DE": "Willkommen bei MetaDoc!",
+        "es_ES": "¡Bienvenido a MetaDoc!",
+        "pt_BR": "Bem-vindo ao MetaDoc!",
+        "ru_RU": "Добро пожаловать в MetaDoc!"
+      }
+    },
+    "welcome": {
+      "title": "欢迎使用 MetaDoc",
+      "body": "接下来将引导您完成语言、布局、主题与 AI 等基础设置，帮助您快速上手。"
+    },
+    "layout": {
+      "title": "界面布局",
+      "subtitle": "请选择更适合您使用习惯的布局，可随时在顶栏切换。",
+      "workstation": {
+        "title": "工作站布局",
+        "badge": "完整模式",
+        "desc": "默认布局，侧栏与完整功能入口齐全，适合多面板与复杂工作流。"
+      },
+      "focus": {
+        "title": "专注布局",
+        "badge": "極簡模式",
+        "desc": "轻量界面，突出编辑区域，适合当作纯编辑器专注写作。"
+      }
+    },
+    "theme": {
+      "title": "主题",
+      "subtitle": "默认推荐「跟随系统」。下方可随时点选切换，也可稍后在设置中细调。"
+    },
+    "llm": {
+      "title": "LLM API 配置",
+      "subtitle": "可选：添加您自己的第三方 API，以使用完整 AI 能力。",
+      "builtinHint": "应用内置了额度极少的免费 API，仅适合体验；完整功能请自行配置兼容 OpenAI 的第三方服务。",
+      "thirdPartyHint": "填写后建议先点「测试连接」，再保存并启用。",
+      "skipLater": "稍后设置",
+      "testConnection": "测试连接",
+      "saveAndUse": "保存并使用",
+      "fillBeforeTest": "请先填写名称与必填项后再测试。",
+      "fillBeforeSave": "请先填写完整后再保存。",
+      "testOk": "连接测试成功",
+      "testFail": "连接失败，请检查地址、密钥与模型名。",
+      "saveOk": "配置已保存并切换为当前",
+      "saveFail": "保存失败",
+      "configNamePlaceholder": "例如：我的 OpenAI"
+    },
+    "profile": {
+      "title": "使用偏好",
+      "subtitle": "帮助我们推荐更合适的手册与学习路径。",
+      "continueToEditor": "继续：选择编辑模式"
+    },
+    "editorMode": {
+      "title": "默认 Markdown 编辑模式",
+      "subtitle": "选择一种默认模式，打开 Markdown 时将直接使用。",
+      "settingsHint": "之后可在「设置 → 基础 → 默认编辑器模式」中随时修改。"
+    }
   }
 }

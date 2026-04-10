@@ -31,7 +31,7 @@ import {
 import type { FilePath, FileUploadResult, OperationResult, KnowledgeItem } from '../types/utils'
 import { createMainLogger } from './logger'
 import { updateServiceStatus } from './service-status'
-import { MainProgressHandle } from './utils/progress-handle'
+import { MainProgressHandle, registerHandle } from './utils/progress-handle'
 import type { BrowserWindow } from 'electron'
 import { LEGACY_CONFIG_FILES } from './utils/express-server-legacy'
 import { getRuntimeServerPort, getRuntimeServerBaseUrl } from './runtime-server-config'
@@ -73,6 +73,25 @@ interface UrlUploadRequest extends Request {
 export let imageUploadDir: FilePath = ''
 export let knowledgeUploadDir: FilePath = ''
 export let knowledgeItems: KnowledgeItem[] = []
+
+/** 知识库上传/重建进度句柄，供 IPC 按 requestId 中断 */
+const knowledgeProgressHandles = new Map<string, MainProgressHandle>()
+
+export function cancelKnowledgeProgressTask(requestId: string): boolean {
+  const h = knowledgeProgressHandles.get(requestId)
+  if (!h) return false
+  h.cancel()
+  knowledgeProgressHandles.delete(requestId)
+  return true
+}
+
+function parseKnowledgeClientRequestId(req: Request): string | undefined {
+  const headerId = req.headers['x-knowledge-request-id']
+  if (typeof headerId === 'string' && /^[a-zA-Z0-9._-]{1,128}$/.test(headerId)) {
+    return headerId
+  }
+  return undefined
+}
 
 // 知识库索引文件路径
 // knowledgeIndexPath 已移除，不再使用 JSON 文件
@@ -1017,14 +1036,15 @@ async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response)
 
   const fileName = req.file.filename
   const fullPath = path.join(knowledgeUploadDir, fileName)
+  const clientRid = parseKnowledgeClientRequestId(req)
+  const requestId =
+    clientRid ?? `knowledge-upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
+  let progressHandle: MainProgressHandle | null = null
   try {
-    // 获取 mainWindow 以发送进度
     const mainWindow = (global as any).mainWindow as BrowserWindow | undefined
-    const requestId = `knowledge-upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-    // 创建进度句柄
-    const progressHandle = mainWindow
+    progressHandle = mainWindow
       ? new MainProgressHandle({
           requestId,
           canCancel: true,
@@ -1038,6 +1058,10 @@ async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response)
         })
       : null
 
+    if (progressHandle) {
+      registerHandle(knowledgeProgressHandles, progressHandle)
+    }
+
     const progressCallback = progressHandle
       ? (progress: {
           message: string
@@ -1046,7 +1070,7 @@ async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response)
           status?: 'success' | 'exception' | 'warning' | ''
           params?: Record<string, any>
         }) => {
-          progressHandle.mark(progress.percentage, {
+          progressHandle!.mark(progress.percentage, {
             message: progress.message,
             subMessage: progress.subMessage,
             status: progress.status,
@@ -1055,21 +1079,18 @@ async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response)
         }
       : undefined
 
-    // addFileToKnowledgeBase 内部已经会更新数据库
     const result: FileUploadResult = await addFileToKnowledgeBase(
       fullPath,
       progressCallback,
       progressHandle?.signal
     )
 
-    // 如果成功，显示成功状态
     if (result.success && progressHandle) {
       progressHandle.success({ message: '知识库文件处理完成' })
     } else if (!result.success && progressHandle) {
       progressHandle.fail(result.message || '处理失败')
     }
 
-    // 刷新列表（会从数据库读取最新数据）
     refreshKnowledgeItems()
 
     if (result.success) {
@@ -1086,7 +1107,14 @@ async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response)
     res.json({ success: result.success, message: result.message })
   } catch (err) {
     logger.error('知识库添加文件失败', err)
+    if (progressHandle && !progressHandle.signal.aborted) {
+      progressHandle.fail('上传文件失败')
+    }
     return res.status(500).json({ success: false, error: '上传文件失败' })
+  } finally {
+    if (progressHandle) {
+      knowledgeProgressHandles.delete(requestId)
+    }
   }
 }
 
@@ -1232,13 +1260,15 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
     return res.json({ success: false, message: '找不到文件' })
   }
 
-  try {
-    // 获取 mainWindow 以发送进度
-    const mainWindow = (global as any).mainWindow as BrowserWindow | undefined
-    const requestId = `knowledge-rebuild-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const clientRid = parseKnowledgeClientRequestId(req)
+  const requestId =
+    clientRid ?? `knowledge-rebuild-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-    // 创建进度句柄
-    const progressHandle = mainWindow
+  let progressHandle: MainProgressHandle | null = null
+  try {
+    const mainWindow = (global as any).mainWindow as BrowserWindow | undefined
+
+    progressHandle = mainWindow
       ? new MainProgressHandle({
           requestId,
           canCancel: true,
@@ -1252,6 +1282,10 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
         })
       : null
 
+    if (progressHandle) {
+      registerHandle(knowledgeProgressHandles, progressHandle)
+    }
+
     const progressCallback = progressHandle
       ? (progress: {
           message: string
@@ -1260,7 +1294,7 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
           status?: 'success' | 'exception' | 'warning' | ''
           params?: Record<string, any>
         }) => {
-          progressHandle.mark(progress.percentage, {
+          progressHandle!.mark(progress.percentage, {
             message: progress.message,
             subMessage: progress.subMessage,
             status: progress.status,
@@ -1269,23 +1303,19 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
         }
       : undefined
 
-    // 重建单个文件
     const result = await addFileToKnowledgeBase(
       item.info.path,
       progressCallback,
       progressHandle?.signal
     )
 
-    // 如果成功，显示成功状态
     if (result.success) {
-      // 更新索引文件中的向量信息
       updateIndexVectorInfo(id, {
         chunks: result.chunks || 0,
         vector_dim: result.vector_dim || 0,
         vector_count: result.vector_count || 0
       })
 
-      // 刷新列表
       refreshKnowledgeItems()
 
       if (progressHandle) {
@@ -1304,6 +1334,10 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
   } catch (err) {
     logger.error('重建知识库失败', err)
     return res.status(500).json({ success: false, error: '重建失败' })
+  } finally {
+    if (progressHandle) {
+      knowledgeProgressHandles.delete(requestId)
+    }
   }
 }
 

@@ -70,36 +70,33 @@ html.dark {
   font-family: var(--font-family-editor) !important;
 }
 
-/* Vditor 编辑区 - 使用配置的编辑器字体 */
-.vditor-ir,
-.vditor-ir *,
-.vditor-wysiwyg,
-.vditor-wysiwyg *,
+/*
+ * Vditor 正文：只设置 .vditor-reset / .vditor-sv 等「容器」字体，勿使用 .vditor-ir * ——
+ * 否则会给 .katex 内每个 span 写入 !important，压死后载入的 KaTeX（KaTeX_AMS / \mathbb 等）。
+ * IR/WYSIWYG 编辑表面是 pre.vditor-reset，若再用全局 pre * { mono !important } 会整棵树变成等宽字（见下方「代码元素」修正）。
+ */
+.vditor-ir .vditor-reset,
+.vditor-wysiwyg .vditor-reset,
+.vditor-ir pre.vditor-ir__preview,
+.vditor-wysiwyg pre.vditor-wysiwyg__preview,
 .vditor-sv,
-.vditor-sv *,
-.vditor-toolbar,
-.vditor-toolbar *,
-.vditor-outline,
-.vditor-outline * {
+.vditor-sv.vditor-reset {
   font-family: var(--font-family-editor) !important;
 }
 
-/* Vditor 预览区 - 使用配置的预览字体（图表块由下方例外规则排除，不干涉图表库渲染） */
-.vditor-preview,
-.vditor-preview * {
+.vditor-preview .vditor-reset {
   font-family: var(--font-family-preview) !important;
 }
 
-/* 保持 KaTeX 公式字体为默认字体，而不是应用编辑器/预览字体 */
-.vditor-preview .katex,
-.vditor-preview .katex *,
-.vditor-ir .katex,
-.vditor-ir .katex *,
-.vditor-wysiwyg .katex,
-.vditor-wysiwyg .katex *,
-.vditor-sv .katex,
-.vditor-sv .katex * {
-  font-family: 'KaTeX_Main', 'Times New Roman', serif !important;
+.vditor-toolbar,
+.vditor-toolbar * {
+  font-family: var(--font-family-editor) !important;
+}
+
+/* 大纲：勿对 .vditor-outline__content 内公式子树写 font-family !important，与正文一致保留 KaTeX */
+.vditor-outline,
+.vditor-outline *:not(.language-math):not(.language-math *):not(.katex):not(.katex *) {
+  font-family: var(--font-family-editor) !important;
 }
 
 /* Vditor 图表由各图表库自行渲染，不强制应用预览/代码字体，避免布局与文字漂移；导出仍走预渲染模块 */
@@ -240,11 +237,17 @@ html.dark {
   font-family: Arial, Verdana, sans-serif !important;
 }
 
-/* 代码元素 - 等宽字体 */
+/*
+ * 代码元素 - 等宽字体。
+ * 禁止对以下 pre 及其后代使用「全局 pre *」等宽规则：
+ * - pre.vditor-reset：IR/WYSIWYG 正文容器；
+ * - pre.vditor-ir__preview / pre.vditor-wysiwyg__preview：块级公式等渲染预览（非 vditor-reset），
+ *   否则会命中 pre * 把 .katex-display 内全部 span 压成 Fira Code。
+ */
 code,
-pre,
+pre:not(.vditor-reset):not(.vditor-ir__preview):not(.vditor-wysiwyg__preview),
 code *,
-pre *,
+pre:not(.vditor-reset):not(.vditor-ir__preview):not(.vditor-wysiwyg__preview) *,
 .hljs,
 .hljs *,
 .code-block,

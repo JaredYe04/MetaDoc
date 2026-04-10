@@ -17,9 +17,9 @@
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
   flex-shrink: 0;
   box-sizing: border-box;
   background: var(--md-skeleton-top, #f5f5f5);
@@ -34,7 +34,7 @@
   width: 88px;
   min-width: 88px;
   flex-shrink: 0;
-  height: 40px;
+  height: 34px;
   box-sizing: border-box;
   -webkit-app-region: drag;
   app-region: drag;
@@ -71,15 +71,15 @@
   order: 2;
 }
 
-/* LogoTab.vue：64px 宽、左右 padding 8px、与 tabs 条同色底 */
+/* LogoTab.vue：52px 宽、左右 padding 6px、与 tabs 条同色底 */
 .metadoc-skeleton__logo-tab {
   display: flex;
   align-items: center;
-  width: 64px;
-  min-width: 64px;
+  width: 52px;
+  min-width: 52px;
   flex-shrink: 0;
-  padding: 0 8px;
-  height: 40px;
+  padding: 0 6px;
+  height: 34px;
   box-sizing: border-box;
   background: var(--md-skeleton-top, #f5f5f5);
   -webkit-app-region: no-drag;
@@ -88,7 +88,7 @@
 
 .metadoc-skeleton__logo-tab-inner {
   width: 100%;
-  height: 32px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -109,7 +109,7 @@
 .metadoc-skeleton__tab-strip {
   flex: 1;
   min-width: 0;
-  height: 40px;
+  height: 34px;
   -webkit-app-region: drag;
   app-region: drag;
 }
@@ -128,8 +128,8 @@
   flex-direction: row;
   align-items: center;
   flex-shrink: 0;
-  height: 40px;
-  max-height: 40px;
+  height: 34px;
+  max-height: 34px;
   box-sizing: border-box;
   -webkit-app-region: no-drag;
   app-region: no-drag;
@@ -264,9 +264,9 @@ html.dark .metadoc-skeleton__focus-doc-trigger {
   display: flex;
   align-items: center;
   align-self: stretch;
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
   margin: 0;
   padding: 0 4px;
   border: none;
@@ -402,8 +402,8 @@ html.dark .metadoc-skeleton__wc-icon--light {
 }
 
 .metadoc-skeleton__side {
-  width: 64px;
-  min-width: 64px;
+  width: 52px;
+  min-width: 52px;
   background: var(--md-skeleton-side, #f0f0f0);
 }
 
@@ -553,19 +553,8 @@ html.dark .metadoc-skeleton__shimmer {
   }
 }
 
-/* ========== 专注模式：与 MainTabs 34px 顶栏、ViewMenuContainerFocus 左栏对齐 ========== */
-.metadoc-skeleton.is-focus-mode .metadoc-skeleton__navbar {
-  height: 34px;
-  min-height: 34px;
-  max-height: 34px;
-}
-
-.metadoc-skeleton.is-focus-mode .metadoc-skeleton__macos-traffic-spacer {
-  height: 34px;
-}
-
+/* ========== 专注模式：顶栏布局与 MainTabs 一致（高度默认已为 34px）；ViewMenuContainerFocus 左栏 ========== */
 .metadoc-skeleton.is-focus-mode .metadoc-skeleton__tab-strip {
-  height: 34px;
   display: flex;
   align-items: center;
   min-width: 0;
@@ -587,14 +576,6 @@ html.dark .metadoc-skeleton__shimmer {
 
 .metadoc-skeleton.is-focus-mode .metadoc-skeleton__focus-chrome {
   display: flex;
-  height: 34px;
-  max-height: 34px;
-}
-
-.metadoc-skeleton.is-focus-mode .metadoc-skeleton__window-controls {
-  height: 34px;
-  min-height: 34px;
-  max-height: 34px;
 }
 
 .metadoc-skeleton.is-focus-mode .metadoc-skeleton__logo-tab {

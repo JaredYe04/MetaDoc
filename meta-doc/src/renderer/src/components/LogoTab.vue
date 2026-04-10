@@ -3,7 +3,7 @@
     <Tooltip :content="versionTooltip" side="bottom">
       <div class="logo-tab" @click="handleLogoClick">
         <LogoIcon
-          :size="24"
+          :size="20"
           :bg-color="bgColor"
           :symbol-color="symbolColor"
           class="logo-tab__image"
@@ -93,11 +93,11 @@ const handleLogoClick = () => {
 .logo-tab-wrapper {
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  height: 40px;
-  /* 与左侧栏总宽一致：LeftMenu 折叠 64px + .side-menu border-right 1px = 65px */
-  width: 64px;
-  min-width: 64px;
+  padding: 0 6px;
+  height: 34px;
+  /* 与左侧栏总宽一致：LeftMenu（UIMenu）折叠 52px + .side-menu border-right 1px = 53px */
+  width: 52px;
+  min-width: 52px;
   flex-shrink: 0;
   position: relative;
   -webkit-app-region: no-drag;
@@ -106,7 +106,7 @@ const handleLogoClick = () => {
 
 .logo-tab {
   width: 100%;
-  height: 32px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;

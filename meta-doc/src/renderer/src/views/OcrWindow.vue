@@ -6,7 +6,7 @@
         :title="t('ocr.sessionsTitle')"
         :items="sessions"
         :active-index="activeSessionId || undefined"
-        :disabled="processing || loadingSession"
+        :disabled="ocrBatchRunning || loadingSession"
         :create-button-tooltip="t('ocr.newSession')"
         :rename-label="t('common.rename')"
         :duplicate-label="t('common.duplicate')"
@@ -71,6 +71,13 @@
 
                     <Button variant="outline" @click="handlePasteFromClipboard">
                       {{ t('ocr.pasteFromClipboard') }}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      :disabled="ocrBatchRunning || !activeSession || ocrResults.length === 0"
+                      @click="handleOcr"
+                    >
+                      {{ t('ocr.batchRecognize', '批量识别未识别图片') }}
                     </Button>
                   </div>
 
@@ -483,9 +490,12 @@ import { ai_types, createAiTask } from '../utils/ai_tasks'
 import type { AIDialogMessage } from '@/types'
 import { computeDiff } from '../utils/agent-tools/diff-tool'
 import { useWorkspace } from '../stores/workspace'
+import { useNotificationStore } from '../stores/notification'
+import eventBus from '../utils/event-bus'
 
 const { t } = useI18n()
 const workspace = useWorkspace()
+const notificationStore = useNotificationStore()
 
 const ourTabId = computed(
   () => workspace.tabs.find((tab) => tab.kind === 'tool' && tab.route === '/ocr')?.id ?? null
@@ -501,7 +511,7 @@ const activeSession = computed(() => {
 const imageList = ref<any[]>([])
 const uploadRef = ref<any>(null)
 const selectedLanguages = ref<string[]>(['eng'])
-const processing = ref(false)
+const ocrBatchRunning = ref(false)
 const loadingSession = ref(false)
 const ocrResults = ref<
   Array<{
@@ -735,8 +745,14 @@ onBeforeUnmount(() => {
   newEditorRefs.value.clear()
 })
 
+const missingImagePlaceholderDataUrl =
+  'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+5Lit5paH5Zu+54mH5pyq5Yqg6L295paH5Lu2PC90ZXh0Pjwvc3ZnPg=='
+
 // 同步获取图片data URL（从缓存）
-const getImageDataUrlSync = (imagePath: string): string => {
+const getImageDataUrlSync = (imagePath: string | undefined | null): string => {
+  if (imagePath == null || typeof imagePath !== 'string' || imagePath.trim() === '') {
+    return missingImagePlaceholderDataUrl
+  }
   // 如果已经是data URL，直接返回
   if (
     imagePath.startsWith('data:') ||
@@ -757,7 +773,7 @@ const getImageDataUrlSync = (imagePath: string): string => {
   })
 
   // 返回占位符
-  return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+5Lit5paH5Zu+54mH5pyq5Yqg6L295paH5Lu2PC90ZXh0Pjwvc3ZnPg=='
+  return missingImagePlaceholderDataUrl
 }
 
 // 图片加载错误处理
@@ -772,7 +788,10 @@ const handleImageError = async (event: Event, imagePath: string) => {
 }
 
 // 将本地文件路径转换为data URL（用于Electron中显示图片）
-const getImageDataUrl = async (imagePath: string): Promise<string> => {
+const getImageDataUrl = async (imagePath: string | undefined | null): Promise<string> => {
+  if (imagePath == null || typeof imagePath !== 'string' || imagePath.trim() === '') {
+    return missingImagePlaceholderDataUrl
+  }
   // 如果已经是data URL，直接返回
   if (
     imagePath.startsWith('data:') ||
@@ -819,8 +838,7 @@ const getImageDataUrl = async (imagePath: string): Promise<string> => {
     return dataUrl
   } catch (error) {
     console.error('转换图片为data URL失败:', error)
-    // 返回空字符串或占位符
-    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+5Zu+54mH5pyq5Yqg6L295Lit5paHPC90ZXh0Pjwvc3ZnPg=='
+    return missingImagePlaceholderDataUrl
   }
 }
 
@@ -1349,58 +1367,63 @@ const handlePasteFromClipboard = async () => {
   }
 }
 
-// 识别单张图片
-const handleRecognizeSingle = async (index: number) => {
+/** 单张 OCR（含通知队列、可中断 requestId） */
+async function runOcrForIndex(index: number, opts: { rerecognize: boolean }): Promise<void> {
   if (!activeSessionId.value) {
     notifyWarning(t('ocr.noSession'))
     return
   }
-
   if (selectedLanguages.value.length === 0) {
     notifyWarning(t('ocr.noLanguages'))
     return
   }
 
   const result = ocrResults.value[index]
-  if (!result || result.recognized) {
-    return
-  }
+  if (!result) return
+  if (!opts.rerecognize && result.recognized) return
+
+  const requestId = `ocr-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  const label = `${t('ocr.image')} ${index + 1}`
+  const taskTitle = t('ocr.taskTitle', 'OCR 识别')
+  const phaseRunning = t('ocr.recognizing', '识别中…')
+  const phaseDone = opts.rerecognize ? t('ocr.reRecognizeSuccess') : t('ocr.recognizeSuccess')
+  const phaseFail = t('ocr.recognizeFailed', '识别失败')
+
+  const notifId = notificationStore.notify({
+    title: taskTitle,
+    message: `${label} — ${phaseRunning}`,
+    type: 'info',
+    showToast: false,
+    duration: 86400000,
+    metadata: {
+      kind: 'ocr-task',
+      requestId,
+      fileLabel: label,
+      phase: 'running',
+      canCancel: true
+    }
+  })
+  eventBus.emit('show-notification-stack-task')
 
   recognizingIndex.value.add(index)
-
   try {
-    // 找到对应的图片
     const image = imageList.value[index]
-    if (!image) {
-      throw new Error('找不到对应的图片')
-    }
+    if (!image) throw new Error('找不到对应的图片')
 
-    // 优先使用 path（实际文件路径），如果没有则使用 url
     let imagePath = image.path || image.url
-    if (!imagePath) {
-      throw new Error('图片路径为空')
-    }
-
-    // 如果是 file:// 协议，需要转换为实际路径（OCR 需要实际路径）
+    if (!imagePath) throw new Error('图片路径为空')
     if (imagePath.startsWith('file://')) {
       imagePath = imagePath.replace(/^file:\/\//, '')
-      // Windows路径处理：file:///C:/path -> C:/path
       if (imagePath.startsWith('/') && /^[A-Za-z]:/.test(imagePath.substring(1))) {
         imagePath = imagePath.substring(1)
       }
     }
 
     const messageBridge = (await import('../bridge/message-bridge')).default
-    if (!messageBridge.getIpc()) {
-      throw new Error('IPC渲染器不可用')
-    }
+    if (!messageBridge.getIpc()) throw new Error('IPC渲染器不可用')
 
-    // 确保languages是数组格式，且只传递字符串数组（可序列化）
-    const languages = Array.isArray(selectedLanguages.value)
-      ? [...selectedLanguages.value] // 创建新数组避免引用问题
-      : []
+    const languages = Array.isArray(selectedLanguages.value) ? [...selectedLanguages.value] : []
 
-    // 获取预处理参数，确保是可序列化的纯对象
     const preprocessingParams = result.preprocessingParams
       ? {
           brightness: Number(result.preprocessingParams.brightness) || 0,
@@ -1413,150 +1436,81 @@ const handleRecognizeSingle = async (index: number) => {
       : undefined
 
     const ocrText = (await messageBridge.invoke('ocr-recognize-file', {
-      imagePath: String(imagePath), // 确保是字符串，使用实际路径
-      languages: languages, // 传递可序列化的数组
-      preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
+      imagePath: String(imagePath),
+      languages,
+      preprocessingParams,
+      requestId
     })) as string
 
-    // 更新结果（保留AI修复后的文本）
     const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
-    ocrResults.value[index] = {
-      ...result,
-      text: ocrText,
-      recognized: true,
-      aiFixedText: existingAiFixedText, // 保留AI修复后的内容
-      preprocessingParams: preprocessingParams // 保留预处理参数
+
+    if (opts.rerecognize) {
+      const existingPreprocessingParams = result.preprocessingParams || undefined
+      ocrResults.value[index] = {
+        ...result,
+        text: ocrText,
+        recognized: true,
+        aiFixedText: existingAiFixedText,
+        preprocessingParams: existingPreprocessingParams
+      }
+    } else {
+      ocrResults.value[index] = {
+        ...result,
+        text: ocrText,
+        recognized: true,
+        aiFixedText: existingAiFixedText,
+        preprocessingParams: preprocessingParams
+      }
     }
 
-    // 保存结果到数据库
     await ocrSessionsDb.update(activeSessionId.value, {
       ocr_results: JSON.stringify(ocrResults.value),
       ocr_languages: JSON.stringify(selectedLanguages.value)
     })
 
-    // 更新编辑器
     await nextTick()
     updateEditorContent(index)
 
-    notifySuccess(t('ocr.recognizeSuccess'))
+    if (opts.rerecognize) {
+      const viewMode = viewModes.value.get(index)
+      if (viewMode === 'diff') {
+        const oldEditor = getOldEditor(index)
+        if (oldEditor) oldEditor.setValue(ocrText)
+      }
+    }
+
+    notificationStore.updateNotification(notifId, {
+      type: 'success',
+      message: `${label} — ${phaseDone}`,
+      metadata: { phase: 'done', canCancel: false }
+    })
+    setTimeout(() => notificationStore.remove(notifId), 6000)
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error)
+    if (errMsg === '操作已取消' || errMsg.includes('取消')) {
+      notificationStore.remove(notifId)
+      return
+    }
     console.error(`图片 ${index + 1} OCR 失败:`, error)
-    notifyError(`识别失败: ${error instanceof Error ? error.message : String(error)}`)
-  } finally {
-    recognizingIndex.value.delete(index)
-  }
-}
-
-// 重新识别单张图片（不会覆盖AI修复后的内容）
-const handleReRecognizeSingle = async (index: number) => {
-  if (!activeSessionId.value) {
-    notifyWarning(t('ocr.noSession'))
-    return
-  }
-
-  if (selectedLanguages.value.length === 0) {
-    notifyWarning(t('ocr.noLanguages'))
-    return
-  }
-
-  const result = ocrResults.value[index]
-  if (!result) {
-    return
-  }
-
-  recognizingIndex.value.add(index)
-
-  try {
-    // 找到对应的图片
-    const image = imageList.value[index]
-    if (!image) {
-      throw new Error('找不到对应的图片')
-    }
-
-    // 优先使用 path（实际文件路径），如果没有则使用 url
-    let imagePath = image.path || image.url
-    if (!imagePath) {
-      throw new Error('图片路径为空')
-    }
-
-    // 如果是 file:// 协议，需要转换为实际路径（OCR 需要实际路径）
-    if (imagePath.startsWith('file://')) {
-      imagePath = imagePath.replace(/^file:\/\//, '')
-      // Windows路径处理：file:///C:/path -> C:/path
-      if (imagePath.startsWith('/') && /^[A-Za-z]:/.test(imagePath.substring(1))) {
-        imagePath = imagePath.substring(1)
-      }
-    }
-
-    const messageBridge = (await import('../bridge/message-bridge')).default
-    if (!messageBridge.getIpc()) {
-      throw new Error('IPC渲染器不可用')
-    }
-
-    // 确保languages是数组格式，且只传递字符串数组（可序列化）
-    const languages = Array.isArray(selectedLanguages.value)
-      ? [...selectedLanguages.value] // 创建新数组避免引用问题
-      : []
-
-    // 获取预处理参数，确保是可序列化的纯对象
-    const preprocessingParams = result.preprocessingParams
-      ? {
-          brightness: Number(result.preprocessingParams.brightness) || 0,
-          contrast: Number(result.preprocessingParams.contrast) || 0,
-          saturation: Number(result.preprocessingParams.saturation) || 0,
-          sharpness: Number(result.preprocessingParams.sharpness) || 0,
-          grayscale: Boolean(result.preprocessingParams.grayscale) || false,
-          normalize: Boolean(result.preprocessingParams.normalize) || false
-        }
-      : undefined
-
-    const ocrText = (await messageBridge.invoke('ocr-recognize-file', {
-      imagePath: String(imagePath), // 确保是字符串，使用实际路径
-      languages: languages, // 传递可序列化的数组
-      preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
-    })) as string
-
-    // 只更新原始OCR文本，保留AI修复后的内容和预处理参数
-    const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
-    const existingPreprocessingParams = result.preprocessingParams || undefined
-    ocrResults.value[index] = {
-      ...result,
-      text: ocrText,
-      recognized: true,
-      aiFixedText: existingAiFixedText, // 保留AI修复后的内容
-      preprocessingParams: existingPreprocessingParams // 保留预处理参数
-    }
-    // 注意：不清除 aiFixedTexts.value.get(index)，保留AI修复后的内容
-
-    // 保存结果到数据库
-    await ocrSessionsDb.update(activeSessionId.value, {
-      ocr_results: JSON.stringify(ocrResults.value),
-      ocr_languages: JSON.stringify(selectedLanguages.value)
+    notificationStore.updateNotification(notifId, {
+      type: 'error',
+      message: `${label} — ${phaseFail}: ${errMsg}`,
+      metadata: { phase: 'error', canCancel: false }
     })
-
-    // 更新编辑器（只更新原始文本编辑器，不更新AI修复的编辑器）
-    await nextTick()
-    updateEditorContent(index)
-
-    // 如果当前是diff视图，更新原始文本编辑器
-    const viewMode = viewModes.value.get(index)
-    if (viewMode === 'diff') {
-      const oldEditor = getOldEditor(index)
-      if (oldEditor) {
-        oldEditor.setValue(ocrText)
-      }
-    }
-
-    notifySuccess(t('ocr.reRecognizeSuccess'))
-  } catch (error) {
-    console.error(`图片 ${index + 1} 重新识别失败:`, error)
-    notifyError(`重新识别失败: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     recognizingIndex.value.delete(index)
   }
 }
 
-// 执行OCR（批量识别所有未识别的图片）
+const handleRecognizeSingle = async (index: number) => {
+  await runOcrForIndex(index, { rerecognize: false })
+}
+
+const handleReRecognizeSingle = async (index: number) => {
+  await runOcrForIndex(index, { rerecognize: true })
+}
+
+// 批量识别所有未识别图片（顺序执行，每张一条队列通知，可分别中断）
 const handleOcr = async () => {
   if (!activeSessionId.value || ocrResults.value.length === 0) {
     notifyWarning(t('ocr.noImages'))
@@ -1568,7 +1522,6 @@ const handleOcr = async () => {
     return
   }
 
-  // 找到所有未识别的图片
   const unrecognizedIndices = ocrResults.value
     .map((r, i) => (!r.recognized ? i : -1))
     .filter((i) => i !== -1)
@@ -1578,102 +1531,14 @@ const handleOcr = async () => {
     return
   }
 
-  processing.value = true
-
+  ocrBatchRunning.value = true
   try {
-    const messageBridge = (await import('../bridge/message-bridge')).default
-    if (!messageBridge.getIpc()) {
-      throw new Error('IPC渲染器不可用')
-    }
-
-    // 确保languages是数组格式，且只传递字符串数组（可序列化）
-    const languages = Array.isArray(selectedLanguages.value)
-      ? [...selectedLanguages.value] // 创建新数组避免引用问题
-      : []
-
-    // 对每张未识别的图片进行OCR
     for (const index of unrecognizedIndices) {
-      recognizingIndex.value.add(index)
-
-      try {
-        const result = ocrResults.value[index]
-        const image = imageList.value[index]
-
-        if (!image) {
-          console.warn(`图片 ${index + 1} 不存在，跳过`)
-          continue
-        }
-
-        // 优先使用 path（实际文件路径），如果没有则使用 url
-        let imagePath = image.path || image.url
-        if (!imagePath) {
-          console.warn(`图片 ${index + 1} 路径为空，跳过`)
-          continue
-        }
-
-        // 如果是 file:// 协议，需要转换为实际路径（OCR 需要实际路径）
-        if (imagePath.startsWith('file://')) {
-          imagePath = imagePath.replace(/^file:\/\//, '')
-          // Windows路径处理：file:///C:/path -> C:/path
-          if (imagePath.startsWith('/') && /^[A-Za-z]:/.test(imagePath.substring(1))) {
-            imagePath = imagePath.substring(1)
-          }
-        }
-
-        // 获取预处理参数，确保是可序列化的纯对象
-        const preprocessingParams = result.preprocessingParams
-          ? {
-              brightness: Number(result.preprocessingParams.brightness) || 0,
-              contrast: Number(result.preprocessingParams.contrast) || 0,
-              saturation: Number(result.preprocessingParams.saturation) || 0,
-              sharpness: Number(result.preprocessingParams.sharpness) || 0,
-              grayscale: Boolean(result.preprocessingParams.grayscale) || false,
-              normalize: Boolean(result.preprocessingParams.normalize) || false
-            }
-          : undefined
-
-        const ocrText = (await messageBridge.invoke('ocr-recognize-file', {
-          imagePath: String(imagePath), // 确保是字符串，使用实际路径
-          languages: languages, // 传递可序列化的数组
-          preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
-        })) as string
-
-        // 更新结果（保留AI修复后的文本）
-        const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
-        ocrResults.value[index] = {
-          ...result,
-          text: ocrText,
-          recognized: true,
-          aiFixedText: existingAiFixedText, // 保留AI修复后的内容
-          preprocessingParams: preprocessingParams // 保留预处理参数
-        }
-
-        // 更新编辑器
-        await nextTick()
-        updateEditorContent(index)
-
-        console.log(`图片 ${index + 1} OCR 成功`)
-      } catch (error) {
-        console.error(`图片 ${index + 1} OCR 失败:`, error)
-        notifyWarning(
-          `图片 ${index + 1} OCR 识别失败: ${error instanceof Error ? error.message : String(error)}`
-        )
-      } finally {
-        recognizingIndex.value.delete(index)
-      }
+      await runOcrForIndex(index, { rerecognize: false })
     }
-
-    // 保存结果到数据库
-    await ocrSessionsDb.update(activeSessionId.value, {
-      ocr_results: JSON.stringify(ocrResults.value),
-      ocr_languages: JSON.stringify(selectedLanguages.value)
-    })
-
     notifySuccess(t('ocr.ocrSuccess'))
-  } catch (error) {
-    notifyError('OCR识别失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
-    processing.value = false
+    ocrBatchRunning.value = false
   }
 }
 
@@ -1792,6 +1657,10 @@ const handleTabHover = async (e: MouseEvent, index: number) => {
   }
 
   const imageUrl = imageList.value[index].url || imageList.value[index].path
+  if (!imageUrl) {
+    thumbnailVisible.value = false
+    return
+  }
   thumbnailImageUrl.value = getImageDataUrlSync(imageUrl)
   thumbnailVisible.value = true
 }

@@ -1750,18 +1750,14 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-/* 顶部容器：Logo + MainTabs（与 MainTabs 专注模式 34px 顶栏对齐，避免占位与浮动条高度不一致产生缝隙） */
+/* 顶部容器：Logo + MainTabs（与 MainTabs 顶栏 34px 一致） */
 .top-header-container {
   display: flex;
-  height: 40px;
+  height: 34px;
   background-color: var(--el-bg-color, #ffffff);
   border: none;
   /* border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0); */
   z-index: 100;
-}
-
-.top-header-container.is-focus-mode {
-  height: 34px;
 }
 
 /* 占位：保持布局高度 */
@@ -1787,26 +1783,21 @@ onBeforeUnmount(() => {
   order: 1;
 }
 
-/* 顶部Header - MainTabs */
+/* 顶部Header - MainTabs（与 MainTabs 34px 顶栏一致，覆盖 el-header 默认高度） */
+.top-header.el-header,
 .top-header {
   flex: 1;
   min-width: 0; /* 确保 flex item 可以收缩，防止 tab 区域溢出时顶掉 window controls */
-  height: 40px;
-  padding: 0;
-  margin: 0;
-  line-height: 40px;
-  background-color: var(--el-bg-color, #ffffff);
-  border-bottom: none;
-  z-index: 100;
-}
-
-.top-header-container.is-focus-mode .top-header.el-header,
-.top-header-container.is-focus-mode .top-header {
   --el-header-height: 34px;
   height: 34px !important;
   min-height: 34px !important;
   max-height: 34px;
+  padding: 0;
+  margin: 0;
   line-height: 34px;
+  background-color: var(--el-bg-color, #ffffff);
+  border-bottom: none;
+  z-index: 100;
   box-sizing: border-box;
 }
 
@@ -1831,7 +1822,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: row; /* 确保水平排列 */
   min-height: 0; /* flex 子项默认可收缩，避免内层高度为 0 白屏 */
-  height: calc(100vh - 40px - 30px); /* 减去顶部Logo和底部BottomMenu的高度 */
+  height: calc(100vh - 34px - 30px); /* 减去顶部 Logo/MainTabs 与底部 BottomMenu */
   overflow: hidden;
   background-color: var(--el-bg-color, #ffffff);
 }
@@ -1853,7 +1844,7 @@ onBeforeUnmount(() => {
 }
 
 .common-layout:not(.is-focus-mode) .view-menu-main-wrap {
-  min-height: calc(100vh - 40px - 30px);
+  min-height: calc(100vh - 34px - 30px);
 }
 
 .view-menu-main-wrap > .view-menu-container-wrapper {
@@ -1886,8 +1877,8 @@ onBeforeUnmount(() => {
 
 .side-menu {
   width: fit-content;
-  min-width: 64px;
-  width: 64px;
+  min-width: 52px;
+  width: 52px;
   /* background-color: var(--el-bg-color, #ffffff); */
   /* border-right: 1px solid var(--el-border-color-lighter, #f0f0f0); */
   overflow: hidden;

@@ -75,7 +75,7 @@ defineExpose({ closeAllClickSubMenus })
 
 <style scoped>
 .ui-menu {
-  width: 64px;
+  width: 52px;
   height: 100%;
   transition:
     width 0.2s ease,

@@ -1725,14 +1725,14 @@ const handleWrapperDragOver = (event: DragEvent) => {
   if (!wrapperRect) return
 
   const trafficLeft = isMac.value ? 88 : 0 // .macos-traffic-lights-spacer
-  const outerLogoLeft = !isMac.value ? 64 : 0 // Main.vue 左侧 LogoTab
+  const outerLogoLeft = !isMac.value ? 52 : 0 // Main.vue 左侧 LogoTab（与 UIMenu 折叠宽一致）
   const tabAreaLeft = wrapperRect.left + trafficLeft + outerLogoLeft
 
   let rightChrome = 0
   if (!isMac.value) {
     rightChrome = 140 // .window-controls
   } else {
-    const trailingAndLogo = isFocusMode.value ? 74 : 64 + 74
+    const trailingAndLogo = isFocusMode.value ? 74 : 52 + 74
     rightChrome = trailingAndLogo
   }
   const tabAreaRight = wrapperRect.right - rightChrome
@@ -2140,8 +2140,8 @@ onUnmounted(() => {
 .main-tabs-wrapper {
   display: flex;
   align-items: stretch;
-  height: 40px;
-  max-height: 40px;
+  height: 34px;
+  max-height: 34px;
   min-width: 0; /* 确保作为 flex item 时可以收缩 */
   background-color: v-bind('tabsContainerBackgroundColor');
   user-select: none;
@@ -2150,39 +2150,6 @@ onUnmounted(() => {
   position: relative;
   box-sizing: border-box;
   z-index: 99999;
-}
-
-/* 专注模式：顶栏略矮，与左侧文档标题正常字号一致 */
-.main-tabs-wrapper.is-focus-mode {
-  height: 34px;
-  max-height: 34px;
-}
-
-.main-tabs-wrapper.is-focus-mode .macos-traffic-lights-spacer,
-.main-tabs-wrapper.is-focus-mode .tab-region,
-.main-tabs-wrapper.is-focus-mode .tabs-viewport,
-.main-tabs-wrapper.is-focus-mode .main-tabs-focus-menu-host,
-.main-tabs-wrapper.is-focus-mode .tab-trailing-actions,
-.main-tabs-wrapper.is-focus-mode .window-controls {
-  height: 34px;
-  max-height: 34px;
-  min-height: 34px;
-}
-
-.main-tabs-wrapper.is-focus-mode .window-controls {
-  min-height: 34px;
-}
-
-.main-tabs-wrapper.is-focus-mode .focus-doc-picker-trigger {
-  height: 26px;
-  padding: 0 8px;
-}
-
-/* 专注模式：普通 .tabs-list 仍为 40px 会高于视口，文档按钮在栏内会显「贴底」 */
-.main-tabs-wrapper.is-focus-mode .tabs-list {
-  height: 34px;
-  max-height: 34px;
-  align-items: center;
 }
 
 .main-tabs-wrapper.is-focus-mode .tabs-viewport.tabs-viewport--focus-mode {
@@ -2242,7 +2209,7 @@ onUnmounted(() => {
   width: 88px;
   min-width: 88px;
   flex-shrink: 0;
-  height: 40px;
+  height: 34px;
   -webkit-app-region: drag;
 }
 
@@ -2250,8 +2217,8 @@ onUnmounted(() => {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  height: 40px;
-  max-height: 40px;
+  height: 34px;
+  max-height: 34px;
   padding-right: 6px;
   box-sizing: border-box;
   -webkit-app-region: no-drag;
@@ -2262,8 +2229,8 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: center;
   flex-shrink: 0;
-  height: 40px;
-  max-height: 40px;
+  height: 34px;
+  max-height: 34px;
   -webkit-app-region: no-drag;
 }
 
@@ -2282,8 +2249,8 @@ onUnmounted(() => {
   min-width: 0;
   display: flex;
   align-items: center;
-  height: 40px;
-  max-height: 40px;
+  height: 34px;
+  max-height: 34px;
   overflow: hidden;
 }
 
@@ -2291,8 +2258,8 @@ onUnmounted(() => {
 .tabs-viewport {
   flex: 1;
   min-width: 0;
-  height: 40px;
-  max-height: 40px;
+  height: 34px;
+  max-height: 34px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
@@ -2341,8 +2308,8 @@ onUnmounted(() => {
   gap: 6px;
   max-width: 100%;
   min-width: 0;
-  height: 30px;
-  padding: 0 10px;
+  height: 26px;
+  padding: 0 8px;
   margin: 0;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -2543,7 +2510,7 @@ onUnmounted(() => {
 .tabs-list {
   display: flex;
   flex-wrap: nowrap;
-  height: 40px;
+  height: 34px;
   margin: 0;
   padding: 0;
   background-color: v-bind('tabsContainerBackgroundColor');
@@ -2553,7 +2520,7 @@ onUnmounted(() => {
 .tab-item {
   display: flex;
   align-items: center;
-  height: 40px;
+  height: 34px;
   padding-left: 12px;
   padding-right: 2px;
   margin-right: 2px;
@@ -2731,9 +2698,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   align-self: stretch;
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
   margin: 0;
   padding: 0 4px;
   border: none;

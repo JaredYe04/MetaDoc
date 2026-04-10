@@ -504,6 +504,7 @@ onBeforeUnmount(() => {
 .ui-sub-menu__title.is-collapsed {
   padding: 0;
   justify-content: center;
+  margin: 2px 4px;
 }
 
 .ui-sub-menu__title-content {

@@ -451,54 +451,77 @@ class OCRServiceImpl {
    * @param imagePath 图片文件路径
    * @param languages 语言列表，如果不指定则使用默认语言（英语 + 当前用户语言）
    * @param preprocessingParams 预处理参数（可选）
+   * @param abortSignal 取消信号（可选；传入时使用独立 Worker 路径以支持中断）
    * @returns OCR识别结果文本
    */
   async recognizeFromFile(
     imagePath: string,
     languages?: string[],
-    preprocessingParams?: any
+    preprocessingParams?: any,
+    abortSignal?: AbortSignal
   ): Promise<string> {
     try {
       if (!fs.existsSync(imagePath)) {
         throw new Error(`图片文件不存在: ${imagePath}`)
       }
 
+      if (abortSignal?.aborted) {
+        throw new Error('操作已取消')
+      }
+
       const langList = languages || this.getDefaultLanguages()
 
-      // 如果提供了预处理参数，需要先读取文件、应用预处理，然后使用处理后的Buffer进行OCR
-      let imageBuffer: Buffer
       if (preprocessingParams) {
-        // 读取原始图片
-        imageBuffer = fs.readFileSync(imagePath)
-        // 应用预处理
+        let imageBuffer = fs.readFileSync(imagePath)
+        if (abortSignal?.aborted) {
+          throw new Error('操作已取消')
+        }
         imageBuffer = await this.preprocessImage(imageBuffer, preprocessingParams)
-        // 使用处理后的Buffer进行OCR
-        const result = await this.recognizeFromBufferWithWorker(imageBuffer, langList)
+        if (abortSignal?.aborted) {
+          throw new Error('操作已取消')
+        }
+        const result = await this.recognizeFromBufferWithWorker(
+          imageBuffer,
+          langList,
+          abortSignal
+        )
         const text = await result.promise
-        // 清理worker
-        result.worker.terminate()
-        // 智能清理OCR文本
         const cleanedText = cleanOcrText(text)
         logger.debug(
           `OCR识别完成（使用预处理参数），原始文本长度: ${text.length}，清理后长度: ${cleanedText.length}`
         )
         return cleanedText
-      } else {
-        // 没有预处理参数，直接使用文件路径进行OCR（更快）
-        const worker = await this.getWorker(langList)
-        logger.debug(`开始OCR识别: ${imagePath}`)
-
-        const {
-          data: { text }
-        } = await worker.recognize(imagePath)
-
-        // 智能清理OCR文本
-        const cleanedText = cleanOcrText(text)
-
-        logger.debug(`OCR识别完成，原始文本长度: ${text.length}，清理后长度: ${cleanedText.length}`)
-        return cleanedText
       }
+
+      if (abortSignal) {
+        const imageBuffer = fs.readFileSync(imagePath)
+        if (abortSignal.aborted) {
+          throw new Error('操作已取消')
+        }
+        const result = await this.recognizeFromBufferWithWorker(
+          imageBuffer,
+          langList,
+          abortSignal
+        )
+        const text = await result.promise
+        return cleanOcrText(text)
+      }
+
+      const worker = await this.getWorker(langList)
+      logger.debug(`开始OCR识别: ${imagePath}`)
+
+      const {
+        data: { text }
+      } = await worker.recognize(imagePath)
+
+      const cleanedText = cleanOcrText(text)
+
+      logger.debug(`OCR识别完成，原始文本长度: ${text.length}，清理后长度: ${cleanedText.length}`)
+      return cleanedText
     } catch (error) {
+      if (error instanceof Error && error.message === '操作已取消') {
+        throw error
+      }
       logger.error('OCR识别失败:', error)
       throw new Error(`OCR识别失败: ${error instanceof Error ? error.message : String(error)}`)
     }

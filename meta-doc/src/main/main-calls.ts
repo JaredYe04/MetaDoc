@@ -65,7 +65,7 @@ import {
 } from './index'
 import { acquirePoolWindow } from './window-pool'
 import { dirname } from './index'
-import { imageUploadDir } from './express-server'
+import { imageUploadDir, cancelKnowledgeProgressTask } from './express-server'
 import {
   getRuntimeServerBaseUrl,
   getRuntimeServerHost,
@@ -197,6 +197,9 @@ function cancelTask(requestId: string): void {
 function cleanupCancellationToken(requestId: string): void {
   cancellationTokens.delete(requestId)
 }
+
+/** OCR 识别任务（带 requestId 时）可经 IPC 中断 */
+const ocrInvokeAbortControllers = new Map<string, AbortController>()
 
 // ============ 全局标签页注册表接口 ============
 
@@ -2118,18 +2121,37 @@ function bindFileHandlers(): void {
   ipcBridge.registerHandle(
     'ocr-recognize-file',
     async (
-      event: IpcMainInvokeEvent,
-      payload: { imagePath: string; languages?: string[]; preprocessingParams?: any }
+      _event: IpcMainInvokeEvent,
+      payload: {
+        imagePath: string
+        languages?: string[]
+        preprocessingParams?: any
+        requestId?: string
+      }
     ): Promise<string> => {
+      const { imagePath, languages, preprocessingParams, requestId } = payload
+      let controller: AbortController | undefined
+      if (requestId) {
+        controller = new AbortController()
+        ocrInvokeAbortControllers.set(requestId, controller)
+      }
       try {
-        const { imagePath, languages, preprocessingParams } = payload
         if (!imagePath) {
           throw new Error('图片路径不能为空')
         }
-        return await ocrService.recognizeFromFile(imagePath, languages, preprocessingParams)
+        return await ocrService.recognizeFromFile(
+          imagePath,
+          languages,
+          preprocessingParams,
+          controller?.signal
+        )
       } catch (error) {
         logger.error('OCR识别失败:', error)
         throw error
+      } finally {
+        if (requestId) {
+          ocrInvokeAbortControllers.delete(requestId)
+        }
       }
     }
   )
@@ -2605,6 +2627,22 @@ function bindExportHandlers(): void {
       return abortExportTask(requestId)
     }
   )
+
+  ipcBridge.registerHandle(
+    'cancel-knowledge-progress',
+    async (_event: IpcMainInvokeEvent, requestId: string) => {
+      return cancelKnowledgeProgressTask(requestId)
+    }
+  )
+
+  ipcBridge.registerHandle('cancel-ocr-task', async (_event: IpcMainInvokeEvent, requestId: string) => {
+    const c = ocrInvokeAbortControllers.get(requestId)
+    if (c) {
+      c.abort()
+      return true
+    }
+    return false
+  })
 
   ipcBridge.registerHandle(
     'export-arm-abort',

@@ -1,7 +1,7 @@
 <template>
-  <div class="outline-page" :data-direction="direction">
+  <div class="outline-page" :class="{ 'outline-page--demo': isDemo }" :data-direction="direction">
     <!-- AI 工具栏与格式化标题：通过子组件 + inject 使用 selectedAiTool，避免 Outline 因 selectedAiTool 变化而 re-render 导致树图位置重置 -->
-    <OutlineAiToolbar />
+    <OutlineAiToolbar v-if="!isDemo" />
 
     <div class="container">
       <div
@@ -226,6 +226,7 @@
         @wheel="handleViewportWheel"
         @mousedown.capture="onViewportMouseDownCapture"
         @mouseleave="onViewportMouseLeave"
+        @contextmenu.capture="onOutlineDemoBlockContextMenu"
       >
         <vue-tree
           ref="treeRef"
@@ -251,7 +252,7 @@
                   '--outline-primary': themeState.currentTheme.primaryColor
                 }"
                 :class="dropPreview.targetPath === node.path ? 'drop-' + dropPreview.mode : ''"
-                :draggable="node.path !== 'dummy'"
+                :draggable="!isDemo && node.path !== 'dummy'"
                 @dragstart.stop="onNodeDragStart(node)"
                 @dragover.prevent="onNodeDragOver($event, node)"
                 @dragleave="onNodeDragLeave(node)"
@@ -287,7 +288,7 @@
                   </Tooltip>
                 </TooltipProvider>
                 <!-- 展开按钮：未选中 AI 工具时显示 -->
-                <TooltipProvider v-if="!selectedAiTool">
+                <TooltipProvider v-if="!isDemo && !selectedAiTool">
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <button
@@ -347,7 +348,7 @@
                   hasNodeChildren(node) ? 'tree-node--has-children-collapsed' : ''
                 ]"
                 :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-                :draggable="node.path !== 'dummy'"
+                :draggable="!isDemo && node.path !== 'dummy'"
                 @dragstart.stop="onNodeDragStart(node)"
                 @dragover.prevent="onNodeDragOver($event, node)"
                 @dragleave="onNodeDragLeave(node)"
@@ -373,7 +374,7 @@
                   </Tooltip>
                 </TooltipProvider>
                 <!-- 展开按钮：未选中 AI 工具时显示 -->
-                <TooltipProvider v-if="!selectedAiTool">
+                <TooltipProvider v-if="!isDemo && !selectedAiTool">
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <button
@@ -406,7 +407,7 @@
               </div>
               <!-- 节点操作按钮：仅在选中 AI 工具时显示，点击打开 AI 配置 -->
               <OutlineNodeActionButton
-                v-if="selectedAiTool"
+                v-if="!isDemo && selectedAiTool"
                 :node="node"
                 :pending-accept="pendingAccept"
                 :generating="generating"
@@ -420,7 +421,7 @@
       <Teleport to="body">
         <transition name="fade">
           <div
-            v-if="nodeContextMenuPath && nodeContextMenuPosition"
+            v-if="!isDemo && nodeContextMenuPath && nodeContextMenuPosition"
             class="outline-node-context-menu item-menu-context"
             :style="{ ...nodeContextMenuStyle, ...nodeContextMenuPositionStyle }"
             @click.stop
@@ -995,7 +996,7 @@
         @edit-item="openEditMaterialDialog"
       />
 
-      <div class="bottom-menu">
+      <div v-if="!isDemo" class="bottom-menu">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger as-child>
@@ -1224,6 +1225,68 @@ const {
 
 const cloneOutline = (outline?: DocumentOutlineNode): DocumentOutlineNode =>
   JSON.parse(JSON.stringify(outline ?? DEFAULT_OUTLINE_TREE))
+
+/** 用户手册内嵌 Demo：无活动文档时给树图一份可见示例数据 */
+const OUTLINE_MANUAL_DEMO_TREE: DocumentOutlineNode = {
+  path: 'dummy',
+  title: '',
+  text: '',
+  title_level: 0,
+  children: [
+    {
+      path: '1',
+      title: '第一章 概述',
+      text: '',
+      title_level: 1,
+      children: [
+        {
+          path: '1.1',
+          title: '1.1 背景介绍',
+          text: '',
+          title_level: 2,
+          children: []
+        },
+        {
+          path: '1.2',
+          title: '1.2 结构安排',
+          text: '',
+          title_level: 2,
+          children: []
+        }
+      ]
+    },
+    {
+      path: '2',
+      title: '第二章 主体',
+      text: '',
+      title_level: 1,
+      children: [
+        {
+          path: '2.1',
+          title: '2.1 详细说明',
+          text: '',
+          title_level: 2,
+          children: []
+        }
+      ]
+    },
+    {
+      path: '3',
+      title: '第三章 小结与展望',
+      text: '',
+      title_level: 1,
+      children: [
+        {
+          path: '3.1',
+          title: '3.1 结论',
+          text: '',
+          title_level: 2,
+          children: []
+        }
+      ]
+    }
+  ]
+}
 
 const activeDocument = computed(() => {
   if (!activeTabId.value) return null
@@ -1602,6 +1665,7 @@ function outlineStructuralEqual(
 watch(
   () => activeDocument.value?.outline,
   (newOutline) => {
+    if (isDemo.value) return
     if (outlineCommittedFromOutlineView) {
       outlineCommittedFromOutlineView = false
       return
@@ -1635,6 +1699,20 @@ onMounted(async () => {
   }
   // 树绘制后强制连接线不透明，覆盖 D3 的 opacity 动画
   scheduleForceOutlineLinkStyles()
+
+  if (isDemo.value) {
+    const demo = cloneOutline(OUTLINE_MANUAL_DEMO_TREE)
+    treeData.value = demo
+    chartDataset.value = demo
+    outlineTreeKey.value++
+    await nextTick()
+    scheduleForceOutlineLinkStyles()
+    setTimeout(() => {
+      outlineFitToScreen()
+      applyOutlineDemoInitialZoom()
+      scheduleForceOutlineLinkStyles()
+    }, 150)
+  }
 })
 
 const updateTreeConfig = (dir: 'horizontal' | 'vertical') => {
@@ -1675,6 +1753,24 @@ const outlineZoomOut = () => {
 const outlineFitToScreen = () => {
   const tree = treeRef.value
   if (tree && typeof tree.restoreScale === 'function') tree.restoreScale()
+}
+
+/** 手册内嵌 demo：在 restoreScale(1) 后将树图缩放到 50%（@ssthouse/vue3-tree-chart 的 TreeChartCore#setScale） */
+function applyOutlineDemoInitialZoom() {
+  const tree = treeRef.value as
+    | { treeChartCore?: { setScale?: (n: number) => void }; zoomOut?: () => void }
+    | null
+    | undefined
+  if (!tree) return
+  const core = tree.treeChartCore
+  if (core && typeof core.setScale === 'function') {
+    core.setScale(0.5)
+    return
+  }
+  // 无 treeChartCore 时回退：zoomOut 每步约 /1.2，4 次约 48%
+  if (typeof tree.zoomOut === 'function') {
+    for (let i = 0; i < 4; i++) tree.zoomOut()
+  }
 }
 
 // Ctrl/Cmd + 滚轮缩放（调用 vue-tree 内置缩放）
@@ -2690,6 +2786,13 @@ function onViewportMouseDownCapture() {
 
 function onViewportMouseLeave() {
   releaseTreePan()
+}
+
+/** 手册内嵌 Demo：禁用右键菜单，避免 Teleport 菜单挂到 body 盖住整页 */
+function onOutlineDemoBlockContextMenu(e: MouseEvent) {
+  if (!isDemo.value) return
+  e.preventDefault()
+  e.stopPropagation()
 }
 
 // 在节点上 mousedown 时立即置位，避免 dragstart 前 outline watch 覆盖 treeData 导致视口跳回

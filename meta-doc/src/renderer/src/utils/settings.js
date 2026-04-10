@@ -140,6 +140,10 @@ export const settings = reactive({
   llmTemperature: 1.3, // LLM 全局温度配置
   vditorMode: 'ir', // Vditor编辑模式：'wysiwyg'、'ir'、'sv'，默认'ir'
   editorModePromptShown: false, // 是否已显示过“首次选择编辑器模式”弹窗
+  /** 首次使用全屏向导是否已完成（新版 Onboarding） */
+  firstRunWizardCompleted: false,
+  /** 设置页勾选「下次启动重置向导」后，下次冷启动时消费并清除 */
+  resetFirstRunWizardOnNextLaunch: false,
   metadataSaveMode: 'sidecar', // 元信息保存模式：'sidecar'（隐藏伴生文件，默认）、'embed'（嵌入注释）、'none'（不保存）
   mathInlineDigit: true, // 内联数学公式起始 $ 后是否允许数字，默认 true
   externalFileOpenMode: 'newWindow', // 外部打开文件模式：'newWindow'（新窗口）或 'newTab'（当前窗口新标签页）
@@ -240,4 +244,36 @@ export async function initSettings() {
 export async function getLlmTemperature() {
   const temperature = await getSetting('llmTemperature')
   return temperature !== undefined ? temperature : 1.3
+}
+
+/**
+ * 冷启动时：消费「下次启动重置向导」、迁移老用户 firstRunWizardCompleted。
+ * 应在 initCriticalSettings 之后、展示 Onboarding 之前调用。
+ * @returns {Promise<boolean>} 是否应显示首次使用向导
+ */
+export async function prepareFirstRunWizardOnStartup() {
+  const resetNext = await getSetting('resetFirstRunWizardOnNextLaunch')
+  if (resetNext === true) {
+    settings.firstRunWizardCompleted = false
+    settings.editorModePromptShown = false
+    settings.resetFirstRunWizardOnNextLaunch = false
+    await setSetting('firstRunWizardCompleted', false)
+    await setSetting('editorModePromptShown', false)
+    await setSetting('resetFirstRunWizardOnNextLaunch', false)
+  }
+
+  let completed = await getSetting('firstRunWizardCompleted')
+  if (completed === undefined || completed === null) {
+    const editorPromptDone = await getSetting('editorModePromptShown')
+    if (editorPromptDone === true) {
+      settings.firstRunWizardCompleted = true
+      await setSetting('firstRunWizardCompleted', true)
+    } else {
+      settings.firstRunWizardCompleted = false
+    }
+  } else {
+    settings.firstRunWizardCompleted = !!completed
+  }
+
+  return !settings.firstRunWizardCompleted
 }

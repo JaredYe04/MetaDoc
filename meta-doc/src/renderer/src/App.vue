@@ -7,6 +7,7 @@
         color: themeState.currentTheme.textColor
       }"
     >
+      <FirstRunWizard v-if="firstRunWizardVisible" @completed="onFirstRunWizardCompleted" />
       <!-- 布局仅在需要时显示 -->
       <Main v-if="requiresLayout" />
       <!-- 如果不需要布局，则直接渲染路由页面 -->
@@ -31,7 +32,7 @@ import Main from './views/Main.vue'
 import InputContextMenu from './components/common/InputContextMenu.vue'
 import SelectionContextMenu from './components/common/SelectionContextMenu.vue'
 
-import eventBus, { getWindowType, initWindowType } from './utils/event-bus'
+import eventBus, { getWindowType, initWindowType, isMainWindow } from './utils/event-bus'
 import {
   armAwaitingGlobalHomeAfterRecentOpen,
   registerStartupRecentHomeMainBridge
@@ -40,7 +41,8 @@ import {
   getRecentDocs,
   getSetting,
   initCriticalSettings,
-  initNonCriticalSettings
+  initNonCriticalSettings,
+  prepareFirstRunWizardOnStartup
 } from './utils/settings'
 import { themeState, applyTheme } from './utils/themes'
 import { clearAiTasks } from './utils/ai_tasks'
@@ -58,6 +60,7 @@ import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
 import NotificationStack from './components/NotificationStack.vue'
 import TerminalApprovalDialog from './components/global/TerminalApprovalDialog.vue'
+import FirstRunWizard from './components/onboarding/FirstRunWizard.vue'
 import { useNotificationStore } from './stores/notification'
 import { setNotificationStore } from './utils/notify'
 import { initNotificationLegacyAdapter } from './utils/notifications-legacy'
@@ -75,6 +78,11 @@ const globalShortcuts = useGlobalShortcuts({ workspace, t })
 // 根据路由的 meta 信息判断是否需要顶部菜单和侧边菜单
 const requiresLayout = computed(() => route.meta.requiresLayout !== false)
 const initialLoad = ref(true)
+const firstRunWizardVisible = ref(false)
+
+function onFirstRunWizardCompleted() {
+  firstRunWizardVisible.value = false
+}
 
 /**
  * 注册全局事件监听器
@@ -323,8 +331,17 @@ onMounted(async () => {
   // const windowType=route.query.windowType
   // initWindowType(windowType);
 
+  initWindowType(route.query.windowType)
+
   // 先加载关键设置（主题相关等，需要在窗口显示前完成）
   await initCriticalSettings()
+
+  if (isMainWindow()) {
+    const needWizard = await prepareFirstRunWizardOnStartup()
+    if (needWizard) {
+      firstRunWizardVisible.value = true
+    }
+  }
 
   // // 触发一次主题同步事件（用于同步其他组件，如编辑器主题等）
   // // 注意：主题已经在 main.js 中应用过了，这里只需要同步其他组件
@@ -810,12 +827,13 @@ a {
 /* Toast 容器 */
 [data-sonner-toaster] {
   position: fixed !important;
-  z-index: 9999 !important;
+  /* 高于首次向导全屏层 (10050)，避免提示在向导背后且与遮罩交互异常 */
+  z-index: 10060 !important;
 }
 
 /* Toast 项 */
 [data-sonner-toast] {
-  z-index: 9999 !important;
+  z-index: 10060 !important;
 }
 
 /* Sonner 关闭按钮 - shadcn 风格，在内容区域内，尊重全局主题 */

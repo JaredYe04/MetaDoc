@@ -99,10 +99,10 @@ const filmstripTransform = computed(() => {
 <style scoped>
 .tab-switcher-overlay {
   position: fixed;
-  top: 40px;
+  top: 34px;
   left: 0;
   width: 100vw;
-  height: calc(100vh - 40px);
+  height: calc(100vh - 34px);
   background-color: rgba(0, 0, 0, 0.4);
   z-index: 9999;
   display: flex;

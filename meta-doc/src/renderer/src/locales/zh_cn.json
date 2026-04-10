@@ -1188,6 +1188,8 @@
     "attachTooltip": "附加文件",
     "cancelTooltip": "取消AI生成",
     "changeSendMode": "点击切换发送快捷键",
+    "llmConfigSwitchLabel": "切换 LLM 配置",
+    "llmConfigSwitchPlaceholder": "选择模型配置",
     "confirmDelete": "确定要删除「{title}」吗？",
     "ctrlEnterToSend": "按 Ctrl+Enter 发送",
     "defaultTitle": "与AI助手对话",
@@ -1856,6 +1858,88 @@
     "changeLaterHint": "稍后可在「设置」中修改默认编辑模式。",
     "message": "请选择您习惯的 Markdown 编辑模式，之后可在设置中修改。",
     "title": "选择默认编辑器模式"
+  },
+  "onboarding": {
+    "back": "上一步",
+    "next": "下一步",
+    "finish": "完成入门",
+    "stepProgress": "第 {current} / {total} 步",
+    "language": {
+      "title": "选择界面语言",
+      "subtitle": "可随时在「设置 → 基础」中更改。卡片上的欢迎语为该语言示例。",
+      "labels": {
+        "zh_CN": "简体中文",
+        "zh_TW": "繁體中文",
+        "en_US": "English (US)",
+        "ja_JP": "日本語",
+        "ko_KR": "한국어",
+        "fr_FR": "Français",
+        "de_DE": "Deutsch",
+        "es_ES": "Español",
+        "pt_BR": "Português (BR)",
+        "ru_RU": "Русский"
+      },
+      "welcome": {
+        "zh_CN": "欢迎使用 MetaDoc！",
+        "zh_TW": "歡迎使用 MetaDoc！",
+        "en_US": "Welcome to MetaDoc!",
+        "ja_JP": "MetaDoc へようこそ",
+        "ko_KR": "MetaDoc에 오신 것을 환영합니다",
+        "fr_FR": "Bienvenue dans MetaDoc !",
+        "de_DE": "Willkommen bei MetaDoc!",
+        "es_ES": "¡Bienvenido a MetaDoc!",
+        "pt_BR": "Bem-vindo ao MetaDoc!",
+        "ru_RU": "Добро пожаловать в MetaDoc!"
+      }
+    },
+    "welcome": {
+      "title": "欢迎使用 MetaDoc",
+      "body": "接下来将引导您完成语言、布局、主题与 AI 等基础设置，帮助您快速上手。"
+    },
+    "layout": {
+      "title": "界面布局",
+      "subtitle": "请选择更适合您使用习惯的布局，可随时在顶栏切换。",
+      "workstation": {
+        "title": "工作站布局",
+        "badge": "完整模式",
+        "desc": "默认布局，侧栏与完整功能入口齐全，适合多面板与复杂工作流。"
+      },
+      "focus": {
+        "title": "专注布局",
+        "badge": "极简模式",
+        "desc": "轻量界面，突出编辑区域，适合当作纯编辑器专注写作。"
+      }
+    },
+    "theme": {
+      "title": "主题",
+      "subtitle": "默认推荐「跟随系统」。下方可随时点选切换，也可稍后在设置中细调。"
+    },
+    "llm": {
+      "title": "LLM API 配置",
+      "subtitle": "可选：添加您自己的第三方 API，以使用完整 AI 能力。",
+      "builtinHint": "应用内置了额度极少的免费 API，仅适合体验；完整功能请自行配置兼容 OpenAI 的第三方服务。",
+      "thirdPartyHint": "填写后建议先点「测试连接」，再保存并启用。",
+      "skipLater": "稍后设置",
+      "testConnection": "测试连接",
+      "saveAndUse": "保存并使用",
+      "fillBeforeTest": "请先填写名称与必填项后再测试。",
+      "fillBeforeSave": "请先填写完整后再保存。",
+      "testOk": "连接测试成功",
+      "testFail": "连接失败，请检查地址、密钥与模型名。",
+      "saveOk": "配置已保存并切换为当前",
+      "saveFail": "保存失败",
+      "configNamePlaceholder": "例如：我的 OpenAI"
+    },
+    "profile": {
+      "title": "使用偏好",
+      "subtitle": "帮助我们推荐更合适的手册与学习路径。",
+      "continueToEditor": "继续：选择编辑模式"
+    },
+    "editorMode": {
+      "title": "默认 Markdown 编辑模式",
+      "subtitle": "选择一种默认模式，打开 Markdown 时将直接使用。",
+      "settingsHint": "之后可在「设置 → 基础 → 默认编辑器模式」中随时修改。"
+    }
   },
   "export": {
     "adapters": {
@@ -2592,6 +2676,7 @@
     "vector_dim": "向量维度"
   },
   "latexEditor": {
+    "demoNotice": "演示模式：这是简化版 LaTeX 编辑器演示，与完整编辑器功能可能不同。",
     "commandDocs": {
       "documentclass": "设置文档类。示例：\\documentclass{article} 或 \\documentclass[12pt]{report}",
       "usepackage": "加载 LaTeX 包。示例：\\usepackage{graphicx} 或 \\usepackage[utf8]{inputenc}",
@@ -4621,6 +4706,10 @@
     "selectPendingRequest": "选择待处理请求",
     "selectWesternFont": "选择西文字体",
     "interfaceLanguage": "界面语言",
+    "resetFirstRunWizard": "重置首次使用向导",
+    "resetFirstRunWizardButton": "下次启动时重新运行",
+    "resetFirstRunWizardHint": "将在下次启动时再次显示全屏入门向导，并会重新询问 Markdown 默认编辑模式。",
+    "resetFirstRunWizardScheduled": "已设置：下次启动时将显示首次使用向导",
     "startupOption": "启动选项",
     "submitFailed": "提交失败",
     "submitManualResponse": "提交响应",
@@ -4854,6 +4943,9 @@
       }
     },
     "backToOverview": "返回概览",
+    "onboardingLearningHintTitle": "查看您的学习进度",
+    "onboardingLearningHintBody": "左侧边栏顶部的「概览」入口可查看为您生成的学习路线与完成进度；当前已打开「快速开始」第一篇，可按顺序阅读。",
+    "onboardingLearningHintOk": "知道了",
     "charts": {
       "introduction": {
         "title": "图表绘制介绍",
@@ -5039,6 +5131,7 @@
       "experienceHint": "请告诉我们您使用过的编辑器经验",
       "noExperienceQuestions": "根据您的回答，我们已收集到足够的信息。",
       "next": "下一步",
+      "prev": "上一步",
       "levels": {
         "none": "完全不了解",
         "basic": "知道基本概念",
@@ -5071,6 +5164,8 @@
       "onlyRecommended": "只显示推荐路径",
       "onlyRecommendedTip": "关闭后显示完整手册目录"
     },
+    "documentOutline": "本文目录",
+    "documentOutlineEmpty": "本篇暂无标题可导航",
     "title": "用户手册"
   },
   "userProfile": {

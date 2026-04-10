@@ -59,11 +59,27 @@
       @close="showCelebration = false"
       @continue="handleCelebrationContinue"
     />
+
+    <Dialog v-model:open="onboardingLearningHintOpen" modal>
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{{ t('userManual.onboardingLearningHintTitle') }}</DialogTitle>
+          <DialogDescription class="text-left">
+            {{ t('userManual.onboardingLearningHintBody') }}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" @click="dismissOnboardingLearningHint">
+            {{ t('userManual.onboardingLearningHintOk') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onActivated, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ManualNavigation from '../components/manual/ManualNavigation.vue'
 import ManualContent from '../components/manual/ManualContent.vue'
@@ -73,6 +89,14 @@ import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
 import ResizableDivider from '../components/base/ResizableDivider.vue'
 import { User, ArrowLeft, LayoutDashboard, Send, Download } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
 import { useUserManual } from '../stores/userManual'
 import CelebrationOverlay from '../components/CelebrationOverlay.vue'
 import { useWorkspace } from '../stores/workspace'
@@ -93,13 +117,27 @@ const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null
 /** 是否显示庆祝动画 */
 const showCelebration = ref(false)
 
-// 组件挂载时打印诊断信息
-onMounted(() => {
-  console.log('[UserManual] Component mounted:', {
-    learningProgress: learningProgress.value,
-    hasLearningProgress: learningProgress.value > 0
-  })
-})
+const MANUAL_ONBOARDING_HINT_KEY = 'metadoc_show_manual_learning_hint'
+const onboardingLearningHintOpen = ref(false)
+
+function dismissOnboardingLearningHint() {
+  onboardingLearningHintOpen.value = false
+  try {
+    sessionStorage.removeItem(MANUAL_ONBOARDING_HINT_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+function tryOpenOnboardingLearningHint() {
+  try {
+    if (sessionStorage.getItem(MANUAL_ONBOARDING_HINT_KEY) === '1') {
+      onboardingLearningHintOpen.value = true
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 const SIDEBAR_MIN = 240
 const SIDEBAR_MAX = 520
@@ -189,13 +227,26 @@ const handleCelebrationContinue = () => {
   showCelebration.value = false
 }
 
-onMounted(async () => {
+onMounted(() => {
+  console.log('[UserManual] Component mounted:', {
+    learningProgress: learningProgress.value,
+    hasLearningProgress: learningProgress.value > 0
+  })
   window.addEventListener('keydown', handleKeyDown)
+})
+
+onActivated(() => {
+  tryOpenOnboardingLearningHint()
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeyDown)
 })
+</script>
+
+<script lang="ts">
+import { themeState } from '../utils/themes'
+export { themeState }
 </script>
 
 <style scoped>
@@ -309,8 +360,3 @@ onBeforeUnmount(() => {
   background-color: v-bind('themeState.currentTheme.background');
 }
 </style>
-
-<script lang="ts">
-import { themeState } from '../utils/themes'
-export { themeState }
-</script>

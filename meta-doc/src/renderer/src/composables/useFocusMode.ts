@@ -28,10 +28,14 @@ if (urlFocusMode === null) {
   })
 }
 
+export function setFocusModePersisted(value: boolean) {
+  isFocusMode.value = value
+  void setSetting(FOCUS_MODE_SETTING_KEY, value)
+}
+
 export function useFocusMode() {
   const toggleFocusMode = () => {
-    isFocusMode.value = !isFocusMode.value
-    void setSetting(FOCUS_MODE_SETTING_KEY, isFocusMode.value)
+    setFocusModePersisted(!isFocusMode.value)
   }
   const enterFocusMode = () => {
     isFocusMode.value = true
@@ -40,5 +44,5 @@ export function useFocusMode() {
     isFocusMode.value = false
   }
 
-  return { isFocusMode, toggleFocusMode, enterFocusMode, exitFocusMode }
+  return { isFocusMode, toggleFocusMode, enterFocusMode, exitFocusMode, setFocusModePersisted }
 }

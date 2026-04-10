@@ -1,8 +1,8 @@
 <template>
-  <div class="theme-settings">
-    <h3 class="section-title">{{ t('setting.themeSettings') }}</h3>
-    <!-- 主题卡片网格 -->
-    <div class="theme-cards-container">
+  <div class="theme-settings" :class="{ 'theme-settings--embedded': embedded }">
+    <h3 v-if="!embedded" class="section-title">{{ t('setting.themeSettings') }}</h3>
+    <!-- 主题卡片网格（embedded：随父级 flex 占满剩余高度，内部滚动） -->
+    <div class="theme-cards-container" :class="{ 'theme-cards-container--embedded': embedded }">
       <div
         v-for="theme in themeList"
         :key="theme.id"
@@ -10,24 +10,11 @@
         :class="{ 'is-selected': theme.id === selectedThemeId, 'is-default': theme.isDefault }"
         @click="selectTheme(theme)"
       >
-        <!-- 主题色预览 -->
+        <!-- 主题色预览（含跟随系统明暗 / 跟随系统强调色：显示实际颜色） -->
         <div
-          v-if="theme.type !== 'sync-color' && theme.type !== 'sync'"
           class="theme-card__preview"
           :style="{ backgroundColor: getThemePreviewColor(theme) }"
         ></div>
-        <div
-          v-else-if="theme.type === 'sync-color'"
-          class="theme-card__preview theme-card__preview--sync"
-        >
-          {{ t('setting.themeSyncColor') }}
-        </div>
-        <div
-          v-else-if="theme.type === 'sync'"
-          class="theme-card__preview theme-card__preview--sync"
-        >
-          {{ t('setting.themeSync') }}
-        </div>
 
         <!-- 主题信息 -->
         <div class="theme-card__info">
@@ -37,16 +24,10 @@
               {{ theme.themeColor }}
             </div>
           </div>
-          <div
-            v-else-if="theme.type === 'sync-color'"
-            class="theme-card__color theme-card__color--sync"
-          >
-            {{ t('setting.themeSyncColor') }}
-          </div>
         </div>
 
         <!-- 操作按钮 -->
-        <div class="theme-card__actions" @click.stop>
+        <div v-if="!embedded" class="theme-card__actions" @click.stop>
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button type="text" circle size="small">
@@ -64,8 +45,8 @@
               </DropdownMenuItem>
               <DropdownMenuItem
                 v-if="!theme.isDefault"
-                @click="handleAction('delete', theme)"
                 class="text-red-600 focus:text-red-600"
+                @click="handleAction('delete', theme)"
               >
                 <Trash2 class="w-4 h-4 mr-2" />
                 {{ t('setting.delete') }}
@@ -81,7 +62,7 @@
       </div>
 
       <!-- 新建主题卡片 -->
-      <div class="theme-card theme-card--new" @click="handleNewTheme">
+      <div v-if="!embedded" class="theme-card theme-card--new" @click="handleNewTheme">
         <div class="theme-card__preview theme-card__preview--new">
           <Plus class="w-6 h-6" />
         </div>
@@ -91,8 +72,8 @@
       </div>
     </div>
 
-    <!-- 其他设置 -->
-    <Form class="settings-form space-y-6">
+    <!-- 其他设置（首次向导仅选主题卡片，其余进设置页再调） -->
+    <Form v-if="!embedded" class="settings-form space-y-6">
       <FormField :label="t('setting.contentTheme')" name="contentTheme" layout="horizontal">
         <Select v-model="settings.contentTheme" @update:model-value="handleContentThemeChange">
           <SelectTrigger class="w-[180px]">
@@ -234,6 +215,11 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'normal'
+  },
+  /** 首次向导内嵌：隐藏标题、新建卡片与卡片菜单 */
+  embedded: {
+    type: Boolean,
+    default: false
   }
 })
 const isDemo = computed(() => props.mode === 'demo')
@@ -392,17 +378,21 @@ const getThemePreviewColor = (theme: ThemeConfig): string => {
     }
     return colorToHex(theme.themeColor || '#ffffff')
   }
-  if (theme.type === 'sync-color' && osThemeInfo.value?.accentColor) {
-    return colorToHex(osThemeInfo.value.accentColor)
+  if (theme.type === 'sync-color') {
+    if (osThemeInfo.value?.accentColor) {
+      return colorToHex(osThemeInfo.value.accentColor)
+    }
+    return colorToHex(themeState.currentTheme.primaryColor || '#888888')
   }
   if (theme.type === 'light') {
-    return '#ffffff'
+    return colorToHex(lightTheme.themeColor || '#ffffff')
   }
   if (theme.type === 'dark') {
-    return '#2c2c2c'
+    return colorToHex(darkTheme.themeColor || '#2c2c2c')
   }
   if (theme.type === 'sync') {
-    return osThemeInfo.value?.mode === 'dark' ? '#2c2c2c' : '#ffffff'
+    const dark = osThemeInfo.value?.mode === 'dark'
+    return colorToHex(dark ? darkTheme.themeColor || '#2c2c2c' : lightTheme.themeColor || '#ffffff')
   }
   return '#ffffff'
 }
@@ -911,6 +901,14 @@ onMounted(async () => {
   color: var(--el-text-color-primary);
 }
 
+.theme-settings.theme-settings--embedded {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .theme-cards-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -920,6 +918,15 @@ onMounted(async () => {
   overflow-y: auto;
   padding-right: 8px;
   padding-bottom: 8px;
+}
+
+.theme-cards-container.theme-cards-container--embedded {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  margin-bottom: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .theme-cards-container::-webkit-scrollbar {
@@ -1002,22 +1009,6 @@ onMounted(async () => {
   font-size: 32px;
 }
 
-.theme-card__preview--sync {
-  background-color: v-bind('themeState.currentTheme.background2nd');
-  border: 2px dashed v-bind('themeState.currentTheme.borderColor');
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: v-bind('themeState.currentTheme.textColor2');
-  font-size: 12px;
-  text-align: center;
-  box-sizing: border-box;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
 .theme-card__info {
   flex: 1;
   display: flex;
@@ -1048,10 +1039,6 @@ onMounted(async () => {
   height: 24px;
   border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 4px;
-}
-
-.theme-card__color--sync {
-  font-style: italic;
 }
 
 .theme-card__actions {

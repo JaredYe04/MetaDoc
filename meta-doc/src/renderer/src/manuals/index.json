@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
   "version": "1.0.0",
-  "lastUpdated": "2026-03-26",
+  "lastUpdated": "2026-04-10",
   "categories": [
     {
       "id": "quick-start",
@@ -45,6 +45,41 @@
             "core.editor-basics"
           ],
           "file": "quick-start/guide.md"
+        },
+        {
+          "id": "quick-start.best-practices",
+          "universalInLearningPath": true,
+          "title": {
+            "zh_CN": "最佳实践手册",
+            "en_US": "Best Practices Handbook",
+            "zh_TW": "最佳實踐手冊",
+            "es_ES": "Manual de buenas prácticas",
+            "pt_BR": "Manual de boas práticas",
+            "ru_RU": "Руководство по лучшим практикам",
+            "ja_JP": "ベストプラクティス手順書",
+            "ko_KR": "모범 사례 안내서",
+            "de_DE": "Leitfaden zu Best Practices",
+            "fr_FR": "Guide des bonnes pratiques"
+          },
+          "tags": [
+            "工作流",
+            "进阶"
+          ],
+          "difficulty": 2,
+          "estimatedTime": 30,
+          "prerequisites": [
+            "quick-start.guide"
+          ],
+          "relatedArticles": [
+            "quick-start.guide",
+            "core.export",
+            "ai.chat",
+            "agent.introduction",
+            "knowledge-base.usage",
+            "charts.introduction",
+            "features.paragraph-optimization"
+          ],
+          "file": "quick-start/best-practices.md"
         }
       ]
     },

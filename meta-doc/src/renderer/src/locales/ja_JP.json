@@ -443,6 +443,8 @@
     "enterToSend": "Enterで送信",
     "ctrlEnterToSend": "Ctrl+Enterで送信",
     "changeSendMode": "クリックして送信ショートカットを切り替え",
+    "llmConfigSwitchLabel": "LLM 設定を切り替え",
+    "llmConfigSwitchPlaceholder": "モデル設定を選択",
     "atLeastOneRequired": "少なくとも1つの会話を保持する必要があります",
     "attachTooltip": "ファイルを添付",
     "cancelTooltip": "AI生成をキャンセル",
@@ -1947,7 +1949,11 @@
     "referencePruneFailed": "クリーンアップに失敗しました",
     "referencePruneNoRule": "「自動クリーンアップ」で、グローバルまたはワークスペースの少なくともいずれかを「N 日前」（または「すべてのキャッシュを空にする」を直接使用）に設定してください。",
     "resetConfigSuccess": "プリセット状態にリセットしました",
-    "resetConfigToPreset": "プリセット状態にリセット"
+    "resetConfigToPreset": "プリセット状態にリセット",
+    "resetFirstRunWizard": "Reset first-run onboarding",
+    "resetFirstRunWizardButton": "Run again on next launch",
+    "resetFirstRunWizardHint": "Shows the full-screen onboarding on next launch and will ask again for the default Markdown editor mode.",
+    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -2126,6 +2132,7 @@
     "tooltip": "AI提案"
   },
   "latexEditor": {
+    "demoNotice": "デモモード：簡易版の LaTeX エディターです。本番エディターと挙動が異なる場合があります。",
     "nextPage": "次のページ",
     "notification": {
       "compileFailed": "コンパイル失敗、エラーコード: お問い合わせ",
@@ -5262,6 +5269,9 @@
       }
     },
     "backToOverview": "概要に戻る",
+    "onboardingLearningHintTitle": "学習の進捗を確認",
+    "onboardingLearningHintBody": "左サイドバー上部の「概要」から、あなた向けの学習ルートと進捗を確認できます。「クイックスタート」の最初の記事はすでに開いています。順番に読み進めてください。",
+    "onboardingLearningHintOk": "了解",
     "charts": {
       "introduction": {
         "title": "グラフ作成の概要",
@@ -5499,7 +5509,8 @@
       "experienceHint:": "これまでに使用したエディターの経験をお聞かせください",
       "noExperienceQuestions:": "ご回答に基づき、十分な情報を収集しました。",
       "reanalyzeConfirmMessage:": "ユーザープロフィールをリセットすると、現在の学習進捗が消去されます。続行しますか？",
-      "scenarioHint:": "主な使用シナリオを選択してください。これにより、最適な学習パスをご提案できます。"
+      "scenarioHint:": "主な使用シナリオを選択してください。これにより、最適な学習パスをご提案できます。",
+      "prev": "Back"
     },
     "progress": {
       "label": "学習進捗",
@@ -5522,6 +5533,8 @@
       "onlyRecommendedTip": "オフにすると、マニュアルの完全な目次を表示します",
       "learningPathTooltip": "学習の進捗状況とおすすめの学習パスを確認する"
     },
+    "documentOutline": "このページ",
+    "documentOutlineEmpty": "見出しがありません",
     "title": "ユーザーマニュアル",
     "exportPureMarkdown": "純粋なMarkdownをエクスポート"
   },
@@ -5684,5 +5697,87 @@
     "originalException": "元の例外（展開して表示）",
     "title": "LLM呼び出し失敗",
     "titleBuiltinFree": "無料モデルは一時的に利用できません"
+  },
+  "onboarding": {
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish setup",
+    "stepProgress": "Step {current} of {total}",
+    "language": {
+      "title": "表示言語を選択",
+      "subtitle": "「設定 → 基本」からいつでも変更できます。各カードにはその言語での短いあいさつが表示されます。",
+      "labels": {
+        "zh_CN": "简体中文",
+        "zh_TW": "繁體中文",
+        "en_US": "English (US)",
+        "ja_JP": "日本語",
+        "ko_KR": "한국어",
+        "fr_FR": "Français",
+        "de_DE": "Deutsch",
+        "es_ES": "Español",
+        "pt_BR": "Português (BR)",
+        "ru_RU": "Русский"
+      },
+      "welcome": {
+        "zh_CN": "欢迎使用 MetaDoc！",
+        "zh_TW": "歡迎使用 MetaDoc！",
+        "en_US": "Welcome to MetaDoc!",
+        "ja_JP": "MetaDoc へようこそ",
+        "ko_KR": "MetaDoc에 오신 것을 환영합니다",
+        "fr_FR": "Bienvenue dans MetaDoc !",
+        "de_DE": "Willkommen bei MetaDoc!",
+        "es_ES": "¡Bienvenido a MetaDoc!",
+        "pt_BR": "Bem-vindo ao MetaDoc!",
+        "ru_RU": "Добро пожаловать в MetaDoc!"
+      }
+    },
+    "welcome": {
+      "title": "Welcome to MetaDoc",
+      "body": "We’ll walk you through language, layout, theme, and AI basics so you can get comfortable quickly."
+    },
+    "layout": {
+      "title": "Layout",
+      "subtitle": "Pick the layout that fits how you work. You can toggle it anytime from the top bar.",
+      "workstation": {
+        "title": "Workstation",
+        "badge": "フルモード",
+        "desc": "Full UI with sidebar and all entry points—best for multi-panel and advanced workflows."
+      },
+      "focus": {
+        "title": "Focus",
+        "badge": "ミニマルモード",
+        "desc": "Minimal chrome centered on the editor—best for distraction-free writing."
+      }
+    },
+    "theme": {
+      "title": "Theme",
+      "subtitle": "“Follow system” is recommended. Tap a card to switch; you can fine-tune later in Settings."
+    },
+    "llm": {
+      "title": "LLM API",
+      "subtitle": "Optional: add your own third-party API for full AI features.",
+      "builtinHint": "A small built-in free quota is included for trying features only; for serious use, configure a compatible third-party API.",
+      "thirdPartyHint": "Use “Test connection” before saving when possible.",
+      "skipLater": "Set up later",
+      "testConnection": "Test connection",
+      "saveAndUse": "Save and use",
+      "fillBeforeTest": "Please fill the name and required fields before testing.",
+      "fillBeforeSave": "Please complete the form before saving.",
+      "testOk": "Connection test succeeded",
+      "testFail": "Connection failed. Check URL, key, and model name.",
+      "saveOk": "Saved and selected as current configuration",
+      "saveFail": "Save failed",
+      "configNamePlaceholder": "e.g. My OpenAI"
+    },
+    "profile": {
+      "title": "Your preferences",
+      "subtitle": "Helps us suggest manual topics and learning paths.",
+      "continueToEditor": "Continue: editor mode"
+    },
+    "editorMode": {
+      "title": "Default Markdown editor mode",
+      "subtitle": "This mode is used when you open Markdown documents.",
+      "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
+    }
   }
 }

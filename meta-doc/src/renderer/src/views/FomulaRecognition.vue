@@ -31,7 +31,7 @@
           <div v-else class="session-content-panel" :style="panelStyle">
             <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
             <div class="toolbar-group" :style="toolbarGroupStyle">
-              <div class="flex flex-col items-start tool-group">
+              <div class="tool-group">
                 <ToggleGroup v-model="tool" type="single" class="formula-tool-toggle-group">
                   <ToggleGroupItem
                     v-for="option in toolOptions"

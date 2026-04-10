@@ -201,10 +201,18 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
   let path = [...basePath.articles]
   const articleMap = new Map(allArticles.map((a) => [a.id, a]))
 
-  // 过滤不适合的文档
+  // 全员推荐阅读：写入索引 universalInLearningPath 的文档并入路径（去重，后续排序会处理前置依赖）
+  for (const article of allArticles) {
+    if (article.universalInLearningPath && !path.includes(article.id)) {
+      path.push(article.id)
+    }
+  }
+
+  // 过滤不适合的文档（索引 universalInLearningPath 的篇目不因画像被排除）
   path = path.filter((id) => {
     const article = articleMap.get(id)
     if (!article) return false
+    if (article.universalInLearningPath) return true
     return isArticleSuitableForProfile(article, profile)
   })
 
@@ -214,6 +222,7 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
     path = path.filter((id) => {
       const article = articleMap.get(id)
       if (!article) return true
+      if (article.universalInLearningPath) return true
       // 跳过基础Markdown教程
       if (
         id.startsWith('markdown.basics') ||
@@ -230,6 +239,7 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
     path = path.filter((id) => {
       const article = articleMap.get(id)
       if (!article) return true
+      if (article.universalInLearningPath) return true
       // 跳过基础LaTeX教程
       if (
         id.startsWith('latex.basics') ||
@@ -246,6 +256,7 @@ export async function generateLearningPath(profile: UserProfile): Promise<string
     path = path.filter((id) => {
       const article = articleMap.get(id)
       if (!article) return true
+      if (article.universalInLearningPath) return true
       // 移除需要Agent经验的文档
       if (
         article.requiredExperience?.agent !== undefined &&
@@ -439,6 +450,56 @@ export function calculateProgress(
   }).length
 
   return Math.round((completed / articleIds.length) * 100)
+}
+
+/** 转义为安全的 HTML 文本节点内容 */
+export function escapeHtmlManualText(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/** 转义 data-article-id 属性值 */
+export function escapeHtmlManualAttr(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+}
+
+/**
+ * 将 [[articleId|显示文本]] 转为内联 HTML，避免在 GFM 表格中被 `|` 拆列，并供 Vditor 渲染为可点击链接。
+ * 不处理围栏代码块内的内容。
+ */
+/**
+ * 将手册内部链接 [[articleId|显示文本]] 或 [[articleId]] 转为纯显示文本（用于大纲等非 HTML 场景）。
+ */
+export function stripManualInternalLinksToPlainText(text: string): string {
+  if (!text) return ''
+  return text
+    .replace(/\[\[([^\]|]+)\|([^\]\r\n]+)\]\]/g, (_m, _id: string, label: string) =>
+      String(label).trim()
+    )
+    .replace(/\[\[([^\]\r\n|]+)\]\]/g, (_m, id: string) => String(id).trim())
+}
+
+export function replaceManualInternalLinksWithHtml(markdown: string): string {
+  if (!markdown) return ''
+  const parts = markdown.split(/(```[\s\S]*?```)/g)
+  return parts
+    .map((part, i) => {
+      if (i % 2 === 1) return part
+      return part.replace(/\[\[([^|\]\r\n]+)\|([^\]\r\n]+)\]\]/g, (_m, rawId: string, rawText: string) => {
+        const id = String(rawId).trim()
+        const text = String(rawText).trim()
+        const safeId = escapeHtmlManualAttr(id)
+        const safeText = escapeHtmlManualText(text)
+        return `<a href="#" class="manual-internal-link" data-article-id="${safeId}">${safeText}</a>`
+      })
+    })
+    .join('')
 }
 
 /**

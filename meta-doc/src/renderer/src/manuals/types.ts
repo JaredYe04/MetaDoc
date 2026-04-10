@@ -35,6 +35,8 @@ export interface ManualArticle {
     latexEditor?: boolean
     otherMarkdownEditor?: boolean
   }
+  /** 为 true 时纳入所有场景的学习路径（不因画像过滤而省略） */
+  universalInLearningPath?: boolean
 }
 
 export interface ManualCategory {

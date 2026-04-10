@@ -1,21 +1,69 @@
 <template>
   <div class="manual-content">
     <ManualBreadcrumb />
-    <el-scrollbar ref="scrollbarRef" class="content-scrollbar" @scroll="onContentScroll">
-      <div class="content-wrapper">
-        <div v-show="processedContent && processedContent.trim()" class="markdown-wrapper">
-          <VditorPreview
-            :markdown="processedContent"
-            :key="`content-${currentArticleId}-${locale}`"
-            class="markdown-preview"
-            @rendered="handleRendered"
-          />
+    <div class="manual-content-body">
+      <ResizableContainer
+        v-if="currentArticleId"
+        class="manual-outline-resize"
+        direction="vertical"
+        sidebar-position="start"
+        :sidebar-on-left="true"
+        :initial-sidebar-size="OUTLINE_DEFAULT"
+        :min-size="OUTLINE_MIN"
+        :max-size="OUTLINE_MAX"
+        :divider-size="6"
+        storage-key="manual-outline-sidebar"
+        :show-sidebar="true"
+        :collapsible="true"
+        :show-collapse-button="true"
+        :seamless-divider="true"
+        :collapse-button-title="$t('viewMenuContainer.collapse')"
+        :expand-button-title="$t('viewMenuContainer.expand')"
+      >
+        <template #sidebar>
+          <div class="manual-outline-column">
+            <ManualDocumentOutline :markdown="outlineMarkdown" @jump="scrollToHeadingByIndex" />
+          </div>
+        </template>
+        <template #main>
+          <el-scrollbar ref="scrollbarRef" class="content-scrollbar" @scroll="onContentScroll">
+            <div class="content-wrapper">
+              <div v-show="processedContent && processedContent.trim()" class="markdown-wrapper">
+                <VditorPreview
+                  :markdown="processedContent"
+                  :key="`content-${currentArticleId}-${locale}`"
+                  class="markdown-preview"
+                  @rendered="handleRendered"
+                />
+              </div>
+              <div v-show="!processedContent || !processedContent.trim()" class="empty-content">
+                <Empty :description="$t('userManual.emptyContent') || '暂无内容'" />
+              </div>
+            </div>
+          </el-scrollbar>
+        </template>
+      </ResizableContainer>
+      <el-scrollbar
+        v-else
+        ref="scrollbarRef"
+        class="content-scrollbar content-scrollbar--full"
+        @scroll="onContentScroll"
+      >
+        <div class="content-wrapper">
+          <div v-show="processedContent && processedContent.trim()" class="markdown-wrapper">
+            <VditorPreview
+              :markdown="processedContent"
+              :key="`content-${currentArticleId}-${locale}`"
+              class="markdown-preview"
+              @rendered="handleRendered"
+            />
+          </div>
+          <div v-show="!processedContent || !processedContent.trim()" class="empty-content">
+            <Empty :description="$t('userManual.emptyContent') || '暂无内容'" />
+          </div>
         </div>
-        <div v-show="!processedContent || !processedContent.trim()" class="empty-content">
-          <Empty :description="$t('userManual.emptyContent') || '暂无内容'" />
-        </div>
-      </div>
-    </el-scrollbar>
+      </el-scrollbar>
+    </div>
   </div>
 </template>
 
@@ -33,18 +81,43 @@ import {
 } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserManual } from '../../stores/userManual'
-import { parseInternalLinks } from '../../manuals/utils'
+import { replaceManualInternalLinksWithHtml } from '../../manuals/utils'
 import { preprocessMarkdownWithDemoPlaceholders } from '../../manuals/demo-mode'
 import { getDemoComponent } from '../../manuals/demo-registry'
-import { themeState } from '../../utils/themes'
-import { mixColors } from '../../utils/themes'
+import { mixColors, themeState } from '../../utils/themes'
 import VditorPreview from '../VditorPreview.vue'
 import ManualBreadcrumb from './ManualBreadcrumb.vue'
+import ManualDocumentOutline from './ManualDocumentOutline.vue'
+import ResizableContainer from '../base/ResizableContainer.vue'
 import { Empty } from '@renderer/components/ui/empty'
 
 const { locale } = useI18n()
 const { currentArticleContent, currentArticleId, setCurrentArticle, markArticleAsRead } =
   useUserManual()
+
+const OUTLINE_MIN = 200
+const OUTLINE_MAX = 400
+const OUTLINE_DEFAULT = 260
+
+const outlineMarkdown = computed(() => currentArticleContent.value ?? '')
+
+function scrollToHeadingByIndex(index: number) {
+  nextTick(() => {
+    const scrollbarEl = scrollbarRef.value?.$el as HTMLElement | undefined
+    const wrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | undefined
+    const container = document.querySelector(
+      '.manual-content .vditor-preview-container'
+    ) as HTMLElement | null
+    if (!wrap || !container || index < 0) return
+    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6')
+    const el = headings[index] as HTMLElement | undefined
+    if (!el) return
+    const wrapRect = wrap.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+    const top = wrap.scrollTop + (elRect.top - wrapRect.top) - 12
+    wrap.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
+  })
+}
 
 // 计算 ViewMenu 活跃状态的背景色和文字颜色（用于 CSS v-bind）
 const activeMenuBgColor = computed(() => {
@@ -60,6 +133,23 @@ const activeMenuTextColor = computed(() => {
   return theme.textColor || '#333333'
 })
 
+/** 手册大纲列背景：由 themes.js 按 75% 灰 + 25% 主题色生成 */
+const manualOutlineColumnBackground = computed(() => {
+  const theme = themeState.currentTheme as {
+    manualOutlineColumnBackground?: string
+    sidebarPanelBackground?: string
+    background2nd?: string
+    background?: string
+  }
+  return (
+    theme.manualOutlineColumnBackground ||
+    theme.sidebarPanelBackground ||
+    theme.background2nd ||
+    theme.background ||
+    '#ebebeb'
+  )
+})
+
 // 在 setup 顶层捕获 appContext，事件回调中 getCurrentInstance() 可能为 null
 const capturedAppContext = getCurrentInstance()?.appContext ?? null
 
@@ -69,7 +159,8 @@ const hasMarkedReadForArticle = ref<string | null>(null)
 // 先占位符替换再交给 Vditor，不破坏 Mermaid 等渲染；渲染完成后再把占位 div 替换成 Vue 组件
 const processedContent = computed(() => {
   const rawContent = currentArticleContent.value ?? ''
-  const processed = preprocessMarkdownWithDemoPlaceholders(rawContent)
+  const withLinks = replaceManualInternalLinksWithHtml(rawContent)
+  const processed = preprocessMarkdownWithDemoPlaceholders(withLinks)
   console.log('[ManualContent] processedContent computed:', {
     currentArticleId: currentArticleId.value,
     rawLength: rawContent.length,
@@ -191,8 +282,9 @@ const handleRendered = (container?: HTMLElement | null) => {
       console.log('[ManualContent] Processing rendered content...')
       // 确保滚动位置在顶部（避免切换文章时保留滚动位置）
       resetScrollPosition()
-      processInternalLinks()
+      bindManualInternalLinkClicks(targetContainer as HTMLElement | null)
       await injectDemoComponents(capturedAppContext, targetContainer as HTMLElement | null)
+      bindManualInternalLinkClicks(targetContainer as HTMLElement | null)
       // 设置高度监听器，在内容高度稳定后检查是否需要自动标记
       setupHeightObserver()
       console.log('[ManualContent] Rendered content processing complete')
@@ -294,8 +386,11 @@ watch(
     }
     processTimer = setTimeout(() => {
       nextTick(() => {
-        console.log('[ManualContent] Watch timer: processing internal links')
-        processInternalLinks()
+        console.log('[ManualContent] Watch timer: binding internal links')
+        const c = document.querySelector('.manual-content .vditor-preview-container') as
+          | HTMLElement
+          | null
+        bindManualInternalLinkClicks(c)
         // 高度监听器会在 handleRendered 中设置
       })
     }, 200)
@@ -316,99 +411,22 @@ onBeforeUnmount(() => {
   }
 })
 
-// 处理内部链接：在渲染后的 DOM 中查找并替换
-function processInternalLinks() {
-  const content = currentArticleContent.value
-  if (!content) return
-
-  const containers = Array.from(document.querySelectorAll('.vditor-preview-container'))
-  if (containers.length === 0) return
-
-  const links = parseInternalLinks(content)
-  if (links.length === 0) return
-
-  for (const container of containers) {
-    const existingLinks = container.querySelectorAll('.manual-internal-link')
-    existingLinks.forEach((link) => {
-      const text = link.textContent || ''
-      const parent = link.parentNode
-      if (parent) {
-        parent.replaceChild(document.createTextNode(text), link)
-        parent.normalize()
-      }
+/** 为 Vditor 渲染后的 <a class="manual-internal-link"> 绑定跳转（Markdown 中已预处理为 HTML） */
+function bindManualInternalLinkClicks(root: HTMLElement | null) {
+  if (!root) return
+  root.querySelectorAll('a.manual-internal-link[data-article-id]').forEach((el) => {
+    const link = el as HTMLAnchorElement
+    if (link.dataset.manualLinkBound === '1') return
+    link.dataset.manualLinkBound = '1'
+    link.setAttribute('href', '#')
+    link.style.cursor = 'pointer'
+    link.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const id = link.getAttribute('data-article-id')
+      if (id) setCurrentArticle(id, 'link')
     })
-
-    function isInCodeBlock(node: Node): boolean {
-      let checkNode: Node | null = node
-      while (checkNode && checkNode !== container) {
-        if (checkNode.nodeType === Node.ELEMENT_NODE) {
-          const element = checkNode as Element
-          if (element.tagName === 'CODE' || element.tagName === 'PRE') return true
-        }
-        checkNode = checkNode.parentNode
-      }
-      return false
-    }
-
-    function replaceTextInNode(
-      node: Node,
-      link: ReturnType<typeof parseInternalLinks>[0]
-    ): boolean {
-      if (isInCodeBlock(node)) return false
-      if (node.nodeType === Node.TEXT_NODE) {
-        const textNode = node as Text
-        const text = textNode.textContent || ''
-        const parent = textNode.parentElement
-        if (parent?.tagName === 'A' && parent.classList.contains('manual-internal-link'))
-          return false
-        let index = text.indexOf(link.fullMatch)
-        let matchLength = link.fullMatch.length
-        let replaceText = link.displayText
-        if (index < 0) {
-          index = text.indexOf(link.displayText)
-          matchLength = link.displayText.length
-        }
-        if (index < 0) return false
-        const linkElement = document.createElement('a')
-        linkElement.className = 'manual-internal-link'
-        linkElement.setAttribute('data-article-id', link.articleId)
-        linkElement.textContent = replaceText
-        linkElement.href = '#'
-        linkElement.style.color = 'var(--el-color-primary, #409EFF)'
-        linkElement.style.textDecoration = 'none'
-        linkElement.style.borderBottom = '1px solid var(--el-color-primary, #409EFF)'
-        linkElement.style.cursor = 'pointer'
-        linkElement.addEventListener('click', (e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setCurrentArticle(link.articleId, 'link')
-        })
-        const beforeText = text.substring(0, index)
-        const afterText = text.substring(index + matchLength)
-        const fragment = document.createDocumentFragment()
-        if (beforeText) fragment.appendChild(document.createTextNode(beforeText))
-        fragment.appendChild(linkElement)
-        if (afterText) fragment.appendChild(document.createTextNode(afterText))
-        textNode.parentNode?.replaceChild(fragment, textNode)
-        return true
-      }
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const element = node as Element
-        if (element.tagName === 'A' && element.classList.contains('manual-internal-link'))
-          return false
-        if (element.tagName === 'CODE' || element.tagName === 'PRE') return false
-        const children = Array.from(element.childNodes).reverse()
-        for (const child of children) {
-          if (replaceTextInNode(child, link)) return true
-        }
-      }
-      return false
-    }
-
-    for (const link of links.reverse()) {
-      replaceTextInNode(container, link)
-    }
-  }
+  })
 }
 </script>
 
@@ -418,12 +436,47 @@ function processInternalLinks() {
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   background-color: v-bind('themeState.currentTheme.background');
+}
+
+.manual-content-body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* 与编辑器侧栏一致：用绝对坐标计算宽度，避免 flex + delta 拖拽在缩放布局下只改主区域 */
+.manual-outline-resize {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.manual-outline-column {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0 12px 12px;
+  box-sizing: border-box;
+  background-color: v-bind('manualOutlineColumnBackground');
 }
 
 .content-scrollbar {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   height: 100%;
+}
+
+.content-scrollbar--full {
+  width: 100%;
 }
 
 .content-wrapper {
@@ -464,6 +517,14 @@ function processInternalLinks() {
 }
 
 /* 手册内 Demo：样式与交互均在此处统一处理，不依赖各组件内部逻辑 */
+/* 大纲等需要横向占满正文栏的 Demo：覆盖下方 fit-content，避免演示框过窄 */
+.markdown-preview :deep(.manual-demo-inline:has(.outline-page)) {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .markdown-preview :deep(.manual-demo-inline) {
   /* 创建新的定位上下文，让内部 absolute 元素相对于此容器定位（而不是视口） */
   position: relative;
@@ -515,6 +576,56 @@ function processInternalLinks() {
 .markdown-preview :deep(.manual-demo-inline .agent-view-page .sidebar-footer-content) {
   /* 防止 footer 区域被压缩到看不见（导致只剩一个巨大的 icon 叠在内容上） */
   flex-shrink: 0;
+}
+
+/* 手册内 AI 对话 Demo：左侧会话列表与整体填满高度 */
+.markdown-preview :deep(.manual-demo-inline .ai-chat-container) {
+  min-height: 380px !important;
+  height: 380px !important;
+  max-height: 440px !important;
+}
+.markdown-preview :deep(.manual-demo-inline .ai-chat-container .main-container) {
+  min-height: 340px !important;
+  flex: 1 !important;
+  height: 100% !important;
+}
+.markdown-preview :deep(.manual-demo-inline .session-list-root) {
+  min-height: 340px !important;
+  height: 100% !important;
+}
+
+/* 知识库 Demo：四宫格需要明确高度 */
+.markdown-preview :deep(.manual-demo-inline .kb-root) {
+  min-height: 420px !important;
+  height: 420px !important;
+  max-height: 460px !important;
+}
+
+/* 绘图窗口 Demo */
+.markdown-preview :deep(.manual-demo-inline .graph-window) {
+  min-height: 400px !important;
+  height: 400px !important;
+  max-height: 460px !important;
+}
+.markdown-preview :deep(.manual-demo-inline .graph-window .main-container) {
+  min-height: 360px !important;
+  height: 100% !important;
+}
+
+/* 大纲树图 Demo：给 vue-tree 稳定视口 */
+.markdown-preview :deep(.manual-demo-inline .outline-page) {
+  width: 100% !important;
+  min-height: 400px !important;
+  height: 400px !important;
+  max-height: 460px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.markdown-preview :deep(.manual-demo-inline .outline-page .container) {
+  min-height: 320px !important;
+}
+.markdown-preview :deep(.manual-demo-inline .outline-viewport) {
+  min-height: 260px !important;
 }
 
 /* 手册内 Demo：只改变定位方式（防止浮层），保持组件原始尺寸和布局 */
@@ -607,12 +718,11 @@ function processInternalLinks() {
   z-index: 1;
 }
 
-/* MainTabs: 保持原始固定高度（40px），只改定位 */
+/* MainTabs: 保持与主窗口顶栏一致的固定高度（34px），只改定位 */
 .markdown-preview :deep(.manual-demo-inline .main-tabs-wrapper) {
   position: relative !important;
-  /* 保持原始高度：height: 40px; max-height: 40px */
-  height: 40px !important;
-  max-height: 40px !important;
+  height: 34px !important;
+  max-height: 34px !important;
   width: 100% !important;
 }
 

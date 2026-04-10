@@ -36,6 +36,7 @@
               :disabled="false"
               :show-attach="false"
               :show-voice="false"
+              :show-llm-config-switch="true"
               :placeholder="homeAgentComposerPlaceholder"
               :show-knowledge-base="false"
               :show-reasoning="true"

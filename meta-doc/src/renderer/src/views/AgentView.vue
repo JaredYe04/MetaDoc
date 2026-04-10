@@ -42,18 +42,24 @@
         @delete="handleSessionListDelete"
         @export="handleSessionListExport"
       >
-        <template #sidebar-footer>
-          <div class="sidebar-footer-content">
+        <template #sidebar-footer="{ collapsed }">
+          <div class="sidebar-footer-content" :class="{ 'is-collapsed': collapsed }">
             <div class="sidebar-footer-menu">
               <DropdownMenu :modal="false">
                 <DropdownMenuTrigger as-child>
                   <Button
                     size="small"
                     type="info"
-                    class="w-full justify-start gap-1.5 [&_svg]:size-4"
+                    :class="[
+                      'gap-1.5 [&_svg]:size-4',
+                      collapsed
+                        ? 'w-full justify-center px-0'
+                        : 'w-full justify-start'
+                    ]"
+                    :title="t('agent.manage.settingsMenu')"
                   >
                     <Setting class="h-4 w-4 shrink-0" />
-                    <span class="min-w-0 flex-1 truncate">{{
+                    <span v-if="!collapsed" class="min-w-0 flex-1 truncate">{{
                       t('agent.manage.settingsMenu')
                     }}</span>
                   </Button>
@@ -149,6 +155,7 @@
                   :disabled="!activeSession"
                   :show-attach="false"
                   :show-voice="false"
+                  :show-llm-config-switch="true"
                   :placeholder="t('aiChat.inputPlaceholder')"
                   :show-knowledge-base="false"
                   :show-reasoning="true"
@@ -3093,6 +3100,12 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
+.sidebar-footer-content.is-collapsed {
+  justify-content: center;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
 .tool-pane {
   border-left: none; /* 由 .tool-pane 主样式中的 border-left 控制 */
 }
@@ -3178,9 +3191,17 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+/* 占满主内容区：覆盖 ChatComposer 默认 max-width: min(960px,100%) 与居中 */
+.agent-view-composer.chat-composer {
+  justify-content: stretch;
+  width: 100%;
+  max-width: 100%;
+}
+
 /* AgentView 专用：输入框占满 panel 宽度，长短文本模式与底部空隙 */
 .agent-view-composer :deep(.composer-shell) {
   width: 100%;
+  max-width: 100%;
   border-radius: 5px;
   padding: 4px 6px;
   gap: 4px;

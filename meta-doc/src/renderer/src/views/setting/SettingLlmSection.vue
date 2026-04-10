@@ -748,7 +748,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import axios from 'axios'
 import { useI18n } from 'vue-i18n'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
@@ -777,6 +777,7 @@ import {
   resetConfigToPreset,
   type LlmConfigItem
 } from '../../utils/llm-config-manager'
+import { getLlmConfigDisplayName } from '../../utils/llm-config-display'
 
 // Icons
 import {
@@ -957,28 +958,8 @@ const saveSetting = (key: string, value: unknown) => {
   setSetting(key, value)
 }
 
-const getConfigDisplayName = (config: LlmConfigItem): string => {
-  if (config.isDefault) {
-    if (config.presetKind === 'builtin-free') {
-      return t('setting.defaultConfigBuiltinFree')
-    }
-    const typeKeyMap: Record<string, string> = {
-      ollama: 'setting.defaultConfigOllama',
-      openai: 'setting.defaultConfigOpenai',
-      'openai-official': 'setting.defaultConfigOpenaiOfficial',
-      deepseek: 'setting.defaultConfigDeepseek',
-      gemini: 'setting.defaultConfigGemini',
-      qwen: 'setting.defaultConfigQwen',
-      metadoc: 'setting.defaultConfigMetadoc',
-      manual: 'setting.defaultConfigManual'
-    }
-    const i18nKey = typeKeyMap[config.type]
-    if (i18nKey) {
-      return t(i18nKey)
-    }
-  }
-  return config.name
-}
+const getConfigDisplayName = (config: LlmConfigItem): string =>
+  getLlmConfigDisplayName(config, t)
 
 const getConfigTypeLabel = (type: string): string => {
   const keyMap: Record<string, string> = {
@@ -2093,6 +2074,12 @@ onMounted(async () => {
       }
     }, 2000)
   }
+
+  eventBus.on('llm-config-updated', loadConfigs)
+})
+
+onBeforeUnmount(() => {
+  eventBus.off('llm-config-updated', loadConfigs)
 })
 </script>
 

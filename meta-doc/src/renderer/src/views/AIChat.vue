@@ -80,6 +80,7 @@
                 :placeholder="t('aiChat.inputPlaceholder')"
                 :show-voice="false"
                 :show-attach="true"
+                :show-llm-config-switch="true"
                 :show-knowledge-base="true"
                 :show-reasoning="true"
                 v-model:enable-knowledge-base-query="enableKnowledgeBaseQuery"
@@ -975,7 +976,25 @@ watch(
 
 onMounted(() => {
   if (isDemo.value) {
-    // Demo mode: use mock data only, no real initialization
+    const d1 = createDefaultDialog(t('aiChat.demoSession1Title', '示例：列个提纲'))
+    d1.messages = [
+      {
+        role: 'user',
+        content: t('aiChat.demoUserMsg', '帮我列一个简短的复习提纲'),
+        timestamp: Date.now()
+      } as AIDialogMessage,
+      {
+        role: 'assistant',
+        content: t(
+          'aiChat.demoAssistantMsg',
+          '可以按「概念 → 例题 → 易错点」三块来整理，下面是一份可直接改的草稿……'
+        ),
+        timestamp: Date.now()
+      } as AIDialogMessage
+    ]
+    const d2 = createDefaultDialog(t('aiChat.demoSession2Title', '示例：另一会话'))
+    dialogs.value = [d1, d2]
+    loadDialog(0)
     return
   }
   initCurrentDialog()

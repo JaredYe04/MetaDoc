@@ -63,6 +63,43 @@
       </el-scrollbar>
 
       <div class="composer-actions">
+        <div
+          v-if="showLlmConfigSwitch && llmSwitchVisible"
+          class="composer-llm-select"
+        >
+          <Select
+            :model-value="selectedConfigId"
+            :disabled="disabled || loading || llmConfigSwitching"
+            @update:model-value="onLlmConfigSelect"
+          >
+            <SelectTrigger
+              :title="currentLlmOptionTitle"
+              :aria-label="`${t('aiChat.llmConfigSwitchLabel')}: ${currentLlmOptionTitle || t('aiChat.llmConfigSwitchPlaceholder')}`"
+              class="composer-llm-select-trigger border border-input bg-transparent shadow-none focus:ring-1"
+            >
+              <SelectValue :placeholder="t('aiChat.llmConfigSwitchPlaceholder')">
+                <span
+                  class="truncate"
+                  :class="{
+                    'text-muted-foreground': !selectedConfigId
+                  }"
+                >
+                  {{ llmSelectTriggerDisplay }}
+                </span>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent class="max-h-[min(280px,40vh)] w-[min(100vw-24px,320px)]">
+              <SelectItem
+                v-for="cfg in llmConfigList"
+                :key="cfg.id"
+                :value="cfg.id"
+                class="whitespace-normal break-words py-2"
+              >
+                {{ getLlmConfigOptionLabel(cfg, t) }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div class="composer-send-switch">
           <Button
             :title="t('aiChat.changeSendMode')"
@@ -154,12 +191,28 @@
 import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed, useSlots } from 'vue'
 import { Paperclip, Mic, ArrowUp, RefreshCw, Link, Brain } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
 import { useI18n } from 'vue-i18n'
 import { ElScrollbar } from 'element-plus'
 import { themeState } from '../../utils/themes'
 import { selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
 import messageBridge from '../../bridge/message-bridge'
 import AgentRefComposerInput from '../agent/AgentRefComposerInput.vue'
+import { settings } from '../../utils/settings.js'
+import {
+  getAllConfigs,
+  getCurrentConfig,
+  loadLlmConfigs,
+  switchConfig,
+  type LlmConfigItem
+} from '../../utils/llm-config-manager'
+import { getLlmConfigOptionLabel, getLlmConfigSelectedModel } from '../../utils/llm-config-display'
 
 const props = withDefaults(
   defineProps<{
@@ -196,6 +249,8 @@ const props = withDefaults(
      * 为假时隐藏主「发送」按钮；生成中仍会显示「停止」或入队发送（与 Graph 快速对话框首轮由页脚统一发送一致）
      */
     showPrimarySubmit?: boolean
+    /** 显示与设置页等效的 LLM 配置切换（写入当前全局配置） */
+    showLlmConfigSwitch?: boolean
   }>(),
   {
     modelValue: '',
@@ -216,7 +271,8 @@ const props = withDefaults(
     forceMultilineLayout: false,
     allowSendWithoutComposerText: false,
     queueWhileLoading: false,
-    showPrimarySubmit: true
+    showPrimarySubmit: true,
+    showLlmConfigSwitch: false
   }
 )
 
@@ -236,6 +292,88 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const slots = useSlots()
+
+const llmConfigList = ref<LlmConfigItem[]>([])
+const selectedConfigId = ref<string>('')
+const llmConfigSwitching = ref(false)
+let removeLlmEventListeners: (() => void) | null = null
+
+const llmSwitchVisible = computed(
+  () => settings.llmEnabled && llmConfigList.value.length > 0
+)
+
+const currentLlmOptionTitle = computed(() => {
+  const id = selectedConfigId.value
+  const cfg = llmConfigList.value.find((c) => c.id === id)
+  return cfg ? getLlmConfigOptionLabel(cfg, t) : ''
+})
+
+/** 触发器上仅展示模型 id，完整「模型 - 配置」见 title 与下拉项 */
+const currentLlmModelOnly = computed(() => {
+  const id = selectedConfigId.value
+  const cfg = llmConfigList.value.find((c) => c.id === id)
+  return cfg ? getLlmConfigSelectedModel(cfg) : ''
+})
+
+/**
+ * 触发器文案：不依赖 SelectValue 的 scoped slot（shadcn 包装层未把 reka 的 selectedLabel 透传下来）
+ */
+const llmSelectTriggerDisplay = computed(() => {
+  if (!selectedConfigId.value) return t('aiChat.llmConfigSwitchPlaceholder')
+  const m = currentLlmModelOnly.value
+  return m || t('aiChat.llmConfigSwitchPlaceholder')
+})
+
+async function refreshLlmConfigUi() {
+  llmConfigList.value = getAllConfigs()
+  const cur = getCurrentConfig()
+  selectedConfigId.value = cur?.id ?? ''
+}
+
+async function setupLlmConfigEventListeners() {
+  if (removeLlmEventListeners) return
+  const eventBus = (await import('../../utils/event-bus.js')).default
+  const handler = () => {
+    void refreshLlmConfigUi()
+  }
+  eventBus.on('llm-config-updated', handler)
+  eventBus.on('llm-api-updated', handler)
+  removeLlmEventListeners = () => {
+    eventBus.off('llm-config-updated', handler)
+    eventBus.off('llm-api-updated', handler)
+    removeLlmEventListeners = null
+  }
+}
+
+function teardownLlmConfigEventListeners() {
+  removeLlmEventListeners?.()
+}
+
+async function onLlmConfigSelect(value: unknown) {
+  const id = typeof value === 'string' ? value : ''
+  if (!id || id === selectedConfigId.value) return
+  llmConfigSwitching.value = true
+  try {
+    await switchConfig(id)
+    await refreshLlmConfigUi()
+  } finally {
+    llmConfigSwitching.value = false
+  }
+}
+
+watch(
+  () => props.showLlmConfigSwitch,
+  async (enabled) => {
+    if (enabled) {
+      await loadLlmConfigs()
+      await refreshLlmConfigUi()
+      await setupLlmConfigEventListeners()
+    } else {
+      teardownLlmConfigEventListeners()
+    }
+  },
+  { immediate: true }
+)
 /** 无 leading 列时仍用三列 grid 会把输入区挤进第一列 auto，导致宽度极窄 */
 const hasLeadingColumn = computed(() => props.showAttach || !!slots.leading)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
@@ -575,6 +713,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(async () => {
+  teardownLlmConfigEventListeners()
   // 清理事件监听
   const eventBus = (await import('../../utils/event-bus.js')).default
   eventBus.off('knowledge-base-toggle')
@@ -749,6 +888,35 @@ onBeforeUnmount(() => {
 .composer-send-switch {
   display: flex;
   align-items: center;
+}
+
+.composer-llm-select {
+  display: flex;
+  align-items: center;
+  max-width: min(200px, 42vw);
+  min-width: 0;
+}
+
+.composer-llm-select-trigger {
+  height: 2rem;
+  min-height: 2rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  font-size: 12px;
+  max-width: min(200px, 42vw);
+}
+
+.chat-composer--compact .composer-llm-select {
+  max-width: min(140px, 36vw);
+}
+
+.chat-composer--compact .composer-llm-select-trigger {
+  height: 22px;
+  min-height: 22px;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 10px;
+  max-width: min(140px, 36vw);
 }
 
 .composer-send-toggle {

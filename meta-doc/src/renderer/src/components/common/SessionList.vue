@@ -106,7 +106,7 @@
               </template>
             </div>
           </el-scrollbar>
-          <slot name="sidebar-footer"></slot>
+          <slot name="sidebar-footer" :collapsed="isCollapsed"></slot>
           <!-- 右键菜单（固定定位，展开/折叠态共用） -->
           <transition name="fade">
             <div

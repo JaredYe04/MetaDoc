@@ -284,6 +284,7 @@
           :disabled="!activeSession"
           :show-attach="false"
           :show-voice="false"
+          :show-llm-config-switch="true"
           :placeholder="t('aiChat.inputPlaceholder')"
           :show-knowledge-base="false"
           :show-reasoning="true"

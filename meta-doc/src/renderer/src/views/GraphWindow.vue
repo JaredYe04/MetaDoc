@@ -69,6 +69,7 @@
                 "
                 :show-voice="false"
                 :show-attach="false"
+                :show-llm-config-switch="true"
                 :show-knowledge-base="false"
                 :show-reasoning="true"
                 :compact="true"
@@ -246,8 +247,43 @@ const onGraphOpenInsertMode = async (payload?: unknown) => {
   })
 }
 
+const DEMO_PLANTUML_BLOCK =
+  '```plantuml\n@startuml\nskinparam backgroundColor transparent\nAlice -> Bob: 登录请求\nBob --> Alice: 返回会话\n@enduml\n```'
+
+function applyDemoGraphMessages(sessionId: string) {
+  activeSessionId.value = sessionId
+  if (sessionId === 'demo-1') {
+    messages.value = [
+      { role: 'user', content: t('graph.demoUserPlantUml', '画一个简单的登录示意') },
+      {
+        role: 'assistant',
+        content: t('graph.demoAssistantPlantUml', '这是一个 PlantUML 时序图示例：'),
+        chartMarkdown: DEMO_PLANTUML_BLOCK
+      }
+    ]
+    lastGeneratedChartCode.value = DEMO_PLANTUML_BLOCK
+  } else {
+    messages.value = [
+      { role: 'user', content: t('graph.demoUserChart', '生成折线图示例') },
+      {
+        role: 'assistant',
+        content: t('graph.demoAssistantChart', '下方为 ECharts 折线图示例：'),
+        chartMarkdown:
+          '```echarts\n{"title":{"text":"示例"},"xAxis":{"type":"category","data":["一","二","三","四","五"]},"yAxis":{"type":"value"},"series":[{"type":"line","data":[3,5,4,7,6]}]}\n```'
+      }
+    ]
+    lastGeneratedChartCode.value =
+      messages.value.find((m) => m.role === 'assistant' && m.chartMarkdown)?.chartMarkdown ?? null
+  }
+  nextTick(() => scrollConversationToBottom())
+}
+
 // 选择会话
 const handleSelectSession = async (item: SessionListItem) => {
+  if (isDemo.value) {
+    applyDemoGraphMessages(item.id)
+    return
+  }
   if (loadingSession.value) {
     return
   }
@@ -371,12 +407,15 @@ onMounted(() => {
   eventBus.on('graph-sessions-changed', onGraphSessionsChanged as (payload?: unknown) => void)
   eventBus.on('graph-open-insert-mode', onGraphOpenInsertMode as (payload?: unknown) => void)
   if (isDemo.value) {
-    // Demo mode: use mock data only
     sessions.value = [
-      { id: 'demo-1', title: '流程图示例', updatedAt: Date.now() },
-      { id: 'demo-2', title: '数据可视化', updatedAt: Date.now() - 3600000 }
+      { id: 'demo-1', title: t('graph.demoSessionPlantUml', 'PlantUML 示例'), updatedAt: Date.now() },
+      {
+        id: 'demo-2',
+        title: t('graph.demoSessionEcharts', '图表示例'),
+        updatedAt: Date.now() - 3600000
+      }
     ]
-    activeSessionId.value = 'demo-1'
+    applyDemoGraphMessages('demo-1')
     return
   }
   loadSessions()

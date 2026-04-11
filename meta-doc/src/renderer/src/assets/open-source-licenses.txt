@@ -398,12 +398,6 @@ License: MIT
 Repository: https://github.com/expressjs/multer
 
 
-Package: mxgraph@4.2.2
-License: Apache-2.0
-Repository: https://github.com/jgraph/mxgraph
-Publisher: JGraph Ltd <support@jgraph.com>
-
-
 Package: natural@8.1.0
 License: MIT
 Repository: https://github.com/NaturalNode/natural

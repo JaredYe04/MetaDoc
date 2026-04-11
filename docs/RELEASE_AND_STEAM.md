@@ -29,11 +29,16 @@
 - **触发**：手动 `workflow_dispatch`，或推送标签 `v*`、`dev-*`。
 - **行为**：与历史一致——多矩阵构建后，用 `softprops/action-gh-release` 上传到 MetaDoc-Releases。
 
-### 2.2 `steam-connectivity-test.yml`（仅测 Steam 登录）
+### 2.2 `steam-connectivity-test.yml`（Steam 发布前置校验）
 
 - **触发**：手动 `workflow_dispatch`。
-- **作用**：用与正式发版相同的 `STEAM_USERNAME`、`STEAM_CONFIG_VDF`，在 Docker 内跑 **SteamCMD 仅 `+login` + `+quit`**，**不上传 depot、不构建应用**。发 `release-steam` 前可先跑本工作流，避免长时间构建后因账号或 sentry 失效才失败。
-- **可选**：若未把凭据写进 `config.vdf`、而是用密码登录，可额外配置 **`STEAM_PASSWORD`**（仓库 Secret）；否则会传空密码（与 game-ci 使用 configVdf 时行为一致）。
+- **作用（与 `release-steam` 对齐的思路）**：
+  1. **写入 `config.vdf`**：支持 Secret 为 Base64 或明文；同步到 `~/Steam` 与 `~/.local/share/Steam`（与此前登录修复一致）。
+  2. **SteamCMD**：`+login` 后执行 **`app_info_print <AppID>`**，检查退出码与日志，确认账号能读到 **AppID 4359310** 的元数据；并尽量在输出中匹配 **Depot 4359311**（默认 depot1），不匹配时仅告警（Steam 文本格式可能变化）。
+  3. **SteamPipe / game-ci（默认开启）**：在仓库内生成 **仅含一个文本文件** 的 `steam_probe/windows/`，调用与 **`release-steam` 相同的 `game-ci/steam-deploy@v3`**（`rootPath` + `depot1Path: windows`，`releaseBranch` 留空），向 **Depot 4359311** 上传一次**真实构建**。用于验证 **上传权限、SteamPipe、与发版相同的 Docker 链路**。
+- **参数 `skip_depot_upload`**：选 **`yes`** 时只做步骤 1～2，**不在 Steam 上产生新构建**；日常快速验账号可用。发版前建议至少跑一次 **`no`**，确保上传链路也通过。
+- **与发版的差异**：本工作流**不**跑 Electron 构建；若此处通过且 `release-steam` 矩阵构建成功，则 Steam 侧失败概率已很低（剩余风险主要是 depot 内容过大、网络波动、Steam 服务端临时问题等）。
+- **可选 Secret `STEAM_PASSWORD`**：与密码/TOTP 登录方式配合使用；仅用 sentry 时可不配。
 
 ### 2.3 `release-steam.yml`（仅 Steam）
 
@@ -157,3 +162,4 @@
 | 2026-04-11 | Steam 工作流移除 `force_rebuild` 输入，固定为始终构建；手册补充 SteamCMD 下载说明。 |
 | 2026-04-11 | 新增 `steam-connectivity-test.yml`：仅 SteamCMD 登录自检。 |
 | 2026-04-11 | 连通性测试：同时挂载 `~/.local/share/Steam/config` 与 `~/Steam/config`，避免 Linux steamcmd 找不到 sentry。 |
+| 2026-04-11 | `steam-connectivity-test`：增加 `app_info_print` 与可选 game-ci 最小包上传，贴近 `release-steam` 验证面。 |

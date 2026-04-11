@@ -1,0 +1,97 @@
+# 仅验证 SteamCMD 能否用当前 Secrets 登录，不上传任何 depot、不跑 electron 构建。
+# 使用与 game-ci/steam-deploy 相同系列的官方 SteamCMD 镜像（见 https://github.com/steamcmd/docker ）。
+name: Steam 连通性测试（仅登录）
+
+on:
+  workflow_dispatch:
+
+jobs:
+  steam_login:
+    name: SteamCMD 登录
+    runs-on: ubuntu-latest
+    steps:
+      # 不把整段 Base64 放进 env，避免体积触达 Runner 环境变量上限
+      - name: 检查 Secrets 是否已配置
+        run: |
+          if [ -z "${{ secrets.STEAM_USERNAME }}" ]; then
+            echo "❌ 请配置 STEAM_USERNAME"
+            exit 1
+          fi
+          if [ -z "${{ secrets.STEAM_CONFIG_VDF }}" ]; then
+            echo "❌ 请配置 STEAM_CONFIG_VDF（发版须 Base64；连通性测试也支持明文整份 config.vdf）"
+            exit 1
+          fi
+          echo "✅ STEAM_USERNAME 与 STEAM_CONFIG_VDF 已配置"
+
+      # 184 字节级「config」几乎不可能含 sentry：多为 Secret 填错（见下方校验）
+      # Ubuntu steamcmd 也会读 ~/.local/share/Steam/config
+      - name: 写入 config.vdf（自动识别 Base64 或明文，并写入两处路径）
+        env:
+          STEAM_CONFIG_VDF: ${{ secrets.STEAM_CONFIG_VDF }}
+        run: |
+          set -euo pipefail
+          M="$GITHUB_WORKSPACE/steam_mount"
+          mkdir -p "$M/Steam/config" "$M/dot_local/share/Steam/config"
+          OUT="$M/Steam/config/config.vdf"
+          SECRET_TMP=$(mktemp)
+          DEC_TMP=$(mktemp)
+          printf '%s' "$STEAM_CONFIG_VDF" > "$SECRET_TMP"
+
+          wrote=false
+          if base64 -d "$SECRET_TMP" > "$DEC_TMP" 2>/dev/null; then
+            if grep -qE 'InstallConfigStore|MachineUserConfigStore' "$DEC_TMP" 2>/dev/null; then
+              mv "$DEC_TMP" "$OUT"
+              wrote=true
+              echo "已识别：Secret 为 **Base64(config.vdf)**"
+            fi
+          fi
+          rm -f "$DEC_TMP"
+          if [ "$wrote" != true ]; then
+            if grep -qE 'InstallConfigStore|MachineUserConfigStore' "$SECRET_TMP" 2>/dev/null; then
+              cp "$SECRET_TMP" "$OUT"
+              wrote=true
+              echo "已识别：Secret 为 **明文 config.vdf**（未 Base64）"
+              echo "::warning::发版工作流 game-ci 仍要求 Base64；测试通过后请对同文件执行 base64 再写入 Secret，或仅用本测试校验明文。"
+            fi
+          fi
+          rm -f "$SECRET_TMP"
+
+          if [ "$wrote" != true ]; then
+            echo "❌ STEAM_CONFIG_VDF 既不是可解码的 Base64 VDF，也不像明文 config.vdf（需含 InstallConfigStore 等段落）。"
+            exit 1
+          fi
+
+          SZ=$(wc -c < "$OUT")
+          echo "config.vdf 字节数：$SZ"
+          if [ "$SZ" -lt 400 ]; then
+            echo "❌ 文件过小（<400 字节），不可能包含有效 Steam Guard / sentry。常见错误："
+            echo "   · 只复制了片段，或把 **Base64 文本** 当成明文再编了一次码"
+            echo "   · 在本机先执行：steamcmd +login <用户名> +quit，**成功后再** 复制 **完整** config/config.vdf"
+            exit 1
+          fi
+          if ! grep -qiE 'ConnectCache|RefreshToken|autologinuser' "$OUT" 2>/dev/null; then
+            echo "::warning::未检测到 ConnectCache / RefreshToken 等字段；若登录仍失败，请确认已用该账号在本机 steamcmd 完整登录过一次。"
+          fi
+
+          cp "$OUT" "$M/dot_local/share/Steam/config/config.vdf"
+          chmod 600 "$M/Steam/config/config.vdf" "$M/dot_local/share/Steam/config/config.vdf"
+
+      - name: SteamCMD 登录并退出
+        env:
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+          STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
+        run: |
+          set -e
+          # 无密码时不要用 +set_steam_guard_code INVALID，否则易绕过 sentry、被迫走空密码登录 → Invalid Password
+          if [ -n "${STEAM_PASSWORD}" ]; then
+            LOGIN_ARGS=(+set_steam_guard_code "INVALID" +login "$STEAM_USERNAME" "$STEAM_PASSWORD" +quit)
+          else
+            LOGIN_ARGS=(+login "$STEAM_USERNAME" "" +quit)
+          fi
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/steam_mount/Steam:/root/Steam" \
+            -v "$GITHUB_WORKSPACE/steam_mount/dot_local/share/Steam:/root/.local/share/Steam" \
+            steamcmd/steamcmd:ubuntu-22 \
+            "${LOGIN_ARGS[@]}"
+          echo ""
+          echo "✅ SteamCMD 登录成功，Secrets 与 sentry 配置可用。可继续跑 release-steam。"

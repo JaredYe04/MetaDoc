@@ -1,18 +1,19 @@
-# GitHub Releases（MetaDoc-Releases）。Steam 发版见 .github/workflows/release-steam.yml 与 docs/RELEASE_AND_STEAM.md。
-name: 发布到 Releases 仓库（多平台统一）
+# SteamPipe 专用；版本号/标签逻辑与 release-unified.yml 共用同一套 meta-doc/scripts。
+# 仅 workflow_dispatch，避免与推标签发 GitHub Release 的流程混触。
+name: 发布到 Steam（SteamPipe，多平台目录构建）
 
 on:
   workflow_dispatch:
     inputs:
       channel:
-        description: '渠道'
+        description: '渠道（与 get-release-info 一致，通常正式上架 Steam 用 prod）'
         required: true
         type: choice
         options:
           - dev
           - prod
       version_type:
-        description: '版本类型'
+        description: '版本类型（与 release-unified 相同语义）'
         required: true
         type: choice
         options:
@@ -21,11 +22,16 @@ on:
           - major
           - custom
       custom_version:
-        description: '自定义版本号（仅当 version_type 为 custom 时必填，如 0.1.0）'
+        description: '自定义版本号（仅当 version_type 为 custom 时必填）'
         required: false
         type: string
+      steam_release_branch:
+        description: '上传后自动设为该分支默认构建（留空=仅上传；勿填 default 作分支名）'
+        required: false
+        type: string
+        default: ''
       runner_win:
-        description: 'Windows Runner（关=不构建该平台）'
+        description: 'Windows Runner（关=本构建不包含 Windows depot）'
         required: false
         type: choice
         options:
@@ -34,7 +40,7 @@ on:
           - github-hosted
         default: self-hosted
       runner_linux:
-        description: 'Linux Runner（关=不构建该平台）'
+        description: 'Linux Runner（关=本构建不包含 Linux depot）'
         required: false
         type: choice
         options:
@@ -43,7 +49,7 @@ on:
           - github-hosted
         default: github-hosted
       runner_mac:
-        description: 'macOS ARM64 Runner（关=不构建该平台）'
+        description: 'macOS ARM64 Runner（关=不包含 Apple Silicon depot）'
         required: false
         type: choice
         options:
@@ -52,7 +58,7 @@ on:
           - github-hosted
         default: github-hosted
       runner_mac_amd64:
-        description: 'macOS x64/Intel Runner（关=不构建该平台）'
+        description: 'macOS x64/Intel Runner（关=不包含 Intel depot）'
         required: false
         type: choice
         options:
@@ -60,26 +66,15 @@ on:
           - self-hosted
           - github-hosted
         default: github-hosted
-      force_rebuild:
-        description: '是否强制重新构建'
-        required: false
-        type: choice
-        options:
-          - 'true'
-          - 'false'
-        default: 'true'
       release_notes:
-        description: '发布说明（可选，留空则自动生成）'
+        description: '发布说明（写入 final-notes.txt，供日志；Steam 商店文案仍须在 Steamworks 编辑）'
         required: false
         type: string
-  push:
-    tags:
-      - 'v*'
-      - 'dev-*'
 
 env:
   RELEASE_REPO_OWNER: ${{ github.repository_owner }}
   RELEASE_REPO: MetaDoc-Releases
+  STEAM_APP_ID: '4359310'
 
 jobs:
   prepare:
@@ -94,6 +89,7 @@ jobs:
       version: ${{ steps.version_info.outputs.version }}
       release_type: ${{ steps.release_type.outputs.type }}
       matrix: ${{ steps.matrix.outputs.matrix }}
+      steam_release_branch: ${{ steps.steam_depots.outputs.steam_release_branch }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -125,7 +121,7 @@ jobs:
         run: npm ci
 
       - name: 验证自定义版本号
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version_type == 'custom'
+        if: github.event.inputs.version_type == 'custom'
         run: |
           if [ -z "${{ github.event.inputs.custom_version }}" ] || [ "${{ github.event.inputs.custom_version }}" = "" ]; then
             echo "❌ version_type 为 custom 时必须填写 custom_version"
@@ -135,33 +131,20 @@ jobs:
 
       - name: 确定发布类型（channel）
         id: release_type
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "type=${{ github.event.inputs.channel }}" >> $GITHUB_OUTPUT
-          else
-            if echo "${{ github.ref }}" | grep -q 'refs/tags/dev-'; then
-              echo "type=dev" >> $GITHUB_OUTPUT
-            else
-              echo "type=prod" >> $GITHUB_OUTPUT
-            fi
-          fi
+        run: echo "type=${{ github.event.inputs.channel }}" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: 读取版本信息
         id: version_info
         working-directory: meta-doc
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ "${{ github.event.inputs.version_type }}" = "custom" ]; then
-              node scripts/get-version-info.js "${{ github.event.inputs.custom_version }}" ""
-            else
-              node scripts/get-version-info.js "" "${{ github.event.inputs.version_type }}"
-            fi
+          if [ "${{ github.event.inputs.version_type }}" = "custom" ]; then
+            node scripts/get-version-info.js "${{ github.event.inputs.custom_version }}" ""
           else
-            node scripts/get-version-info.js
+            node scripts/get-version-info.js "" "${{ github.event.inputs.version_type }}"
           fi
         env:
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_NAME: workflow_dispatch
           GITHUB_REF: ${{ github.ref }}
 
       - name: 确定标签和 Release 名称
@@ -171,10 +154,9 @@ jobs:
         env:
           RELEASE_TYPE: ${{ steps.release_type.outputs.type }}
           CLEAN_VERSION: ${{ steps.version_info.outputs.clean_version }}
-          LATEST_TAG: ""
+          LATEST_TAG: ''
 
       - name: 提交版本更改到仓库
-        if: github.event_name == 'workflow_dispatch'
         working-directory: meta-doc
         run: node scripts/commit-version-changes.js "${{ steps.version_info.outputs.version }}"
         env:
@@ -183,17 +165,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: 创建 Git 标签（如果不存在）
-        if: github.event_name == 'workflow_dispatch'
         working-directory: meta-doc
         run: node scripts/create-release-tag.js "${{ steps.release_info.outputs.tag }}" "${{ steps.release_info.outputs.release_name }}"
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      # 矩阵设计说明（避免逻辑/类型错误）：
-      # 1. enabled 必须输出 JSON 字符串 "true"/"false"，不能是布尔。release 里用 matrix.enabled == 'true' 比较，布尔 true != 字符串 'true' 会判反。
-      # 2. 平台为 off 时 runner_array 必须输出 JSON 字符串 "ubuntu-latest"，不能是数组 ["ubuntu-latest"]。数组会被当作 self-hosted 标签，一直等 runner。
-      # 3. 写入 GITHUB_OUTPUT 的矩阵 JSON 不能带尾部换行，否则 fromJson() 可能解析失败。
       - name: 输出 Runner 矩阵
         id: matrix
         run: |
@@ -201,18 +178,15 @@ jobs:
           RL="${{ github.event.inputs.runner_linux || 'github-hosted' }}"
           RM="${{ github.event.inputs.runner_mac || 'github-hosted' }}"
           RM64="${{ github.event.inputs.runner_mac_amd64 || 'github-hosted' }}"
-          # 选项为 off 时部分环境可能传 "false"，两种都视为关闭
           is_off() { [ "$1" = "off" ] || [ "$1" = "false" ]; }
           ew=$([ "$RW" = "github-hosted" ] && echo '["windows-latest"]' || echo '["self-hosted","Windows","X64"]')
           el=$([ "$RL" = "github-hosted" ] && echo '["ubuntu-latest"]' || echo '["self-hosted","Linux","X64","ubuntu"]')
           em=$([ "$RM" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","ARM64"]')
           e64=$([ "$RM64" = "github-hosted" ] && echo '["macos-latest"]' || echo '["self-hosted","macOS","x64"]')
-          # off 时 runner_array 必须是字符串 "ubuntu-latest"（不能是数组），否则会当 self-hosted 标签一直等
           r_win=$(is_off "$RW" && echo '"ubuntu-latest"' || echo "$ew")
           r_linux=$(is_off "$RL" && echo '"ubuntu-latest"' || echo "$el")
           r_mac=$(is_off "$RM" && echo '"ubuntu-latest"' || echo "$em")
           r_mac64=$(is_off "$RM64" && echo '"ubuntu-latest"' || echo "$e64")
-          # enabled 必须输出字符串 "true"/"false"，否则 matrix.enabled == 'true' 会和 JSON 布尔 true 不匹配导致逻辑反了
           entries=()
           entries+=("{\"platform\":\"win\",\"enabled\":$(is_off "$RW" && echo '"false"' || echo '"true"'),\"runner_array\":$r_win}")
           entries+=("{\"platform\":\"linux\",\"enabled\":$(is_off "$RL" && echo '"false"' || echo '"true"'),\"runner_array\":$r_linux}")
@@ -220,11 +194,25 @@ jobs:
           entries+=("{\"platform\":\"mac-amd64\",\"enabled\":$(is_off "$RM64" && echo '"false"' || echo '"true"'),\"runner_array\":$r_mac64}")
           json_str="$(IFS=,; echo "${entries[*]}")"
           matrix_json="[$json_str]"
-          printf '%s\n' "$matrix_json" > matrix.json
-          # heredoc 要求分隔符 EOF 单独占一行，必须在 JSON 后先换行再写 EOF；值必须是合法 JSON（含外层 []）
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
           printf '%s\n' "$matrix_json" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
+
+      # depot 槽位与 Steamworks Depot ID 对应关系见 docs/RELEASE_AND_STEAM.md；实际上传路径由 steam_deploy 按 artifact 检测结果填写
+      - name: Steam 前置校验与分支参数
+        id: steam_depots
+        run: |
+          RW="${{ github.event.inputs.runner_win || 'self-hosted' }}"
+          RL="${{ github.event.inputs.runner_linux || 'github-hosted' }}"
+          RM="${{ github.event.inputs.runner_mac || 'github-hosted' }}"
+          RM64="${{ github.event.inputs.runner_mac_amd64 || 'github-hosted' }}"
+          is_off() { [ "$1" = "off" ] || [ "$1" = "false" ]; }
+          if is_off "$RW" && is_off "$RL" && is_off "$RM" && is_off "$RM64"; then
+            echo "❌ 至少需要启用一个平台"
+            exit 1
+          fi
+          echo "steam_release_branch=${{ github.event.inputs.steam_release_branch }}" >> $GITHUB_OUTPUT
         shell: bash
 
   release:
@@ -237,10 +225,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: 平台已关闭（off），跳过构建与发布
+      - name: 平台已关闭（off），跳过
         if: matrix.enabled != 'true'
         run: |
-          echo "::error::平台 ${{ matrix.platform }} 已选择为关闭（off），不进行构建与发布。此结果不影响其他平台的发布。"
+          echo "::error::平台 ${{ matrix.platform }} 已关闭"
           exit 1
         continue-on-error: true
 
@@ -272,8 +260,8 @@ jobs:
       - name: 安装 Git（macOS）
         if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64')
         run: |
-          if ! command -v git &>/dev/null; then
-            if command -v brew &>/dev/null; then
+          if ! command -v git &> /dev/null; then
+            if command -v brew &> /dev/null; then
               brew install git
             else
               echo "请先安装 Homebrew"
@@ -286,14 +274,14 @@ jobs:
         if: matrix.enabled == 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.tag || github.ref }}
+          ref: ${{ needs.prepare.outputs.tag }}
           fetch-depth: 0
           persist-credentials: true
           clean: true
 
       - name: 更新仓库到最新状态
         if: matrix.enabled == 'true'
-        run: node meta-doc/scripts/update-repo.js "${{ needs.prepare.outputs.tag || github.ref }}" "${{ needs.prepare.outputs.tag || github.ref_name }}"
+        run: node meta-doc/scripts/update-repo.js "${{ needs.prepare.outputs.tag }}" "${{ needs.prepare.outputs.tag }}"
         continue-on-error: true
 
       - name: 设置 Node.js
@@ -317,7 +305,6 @@ jobs:
         if: matrix.enabled == 'true'
         run: |
           echo "node_modules cache-hit=${{ steps.node-modules.outputs.cache-hit }}"
-          echo "cache-key=${{ runner.os }}-${{ matrix.platform }}-meta-doc-node-<hash>"
 
       - name: 恢复 Electron 缓存 (Windows)
         if: matrix.enabled == 'true' && matrix.platform == 'win'
@@ -359,44 +346,9 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.platform }}-electron-builder-${{ hashFiles('meta-doc/package-lock.json') }}
           restore-keys: ${{ runner.os }}-${{ matrix.platform }}-electron-builder-
 
-      - name: 检查当前平台文件是否已发布
-        if: matrix.enabled == 'true'
-        id: check_platform_release
-        run: node meta-doc/scripts/check-platform-release.js "${{ needs.prepare.outputs.tag }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'mac' && 'macos' || (matrix.platform == 'mac-amd64' && 'macos-x64' || 'linux')) }}"
-        env:
-          RELEASE_REPO_OWNER: ${{ env.RELEASE_REPO_OWNER }}
-          RELEASE_REPO: ${{ env.RELEASE_REPO }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        continue-on-error: true
-
-      - name: 确定是否需要构建
-        if: matrix.enabled == 'true'
-        id: should_build
-        run: |
-          node -e "
-          const force = (process.env.FORCE_REBUILD || 'true').toLowerCase() === 'true';
-          const hasFiles = process.env.HAS_PLATFORM_FILES === 'true';
-          let shouldBuild, forceRebuild;
-          if (force) { shouldBuild = true; forceRebuild = true; }
-          else if (hasFiles) { shouldBuild = false; forceRebuild = false; }
-          else { shouldBuild = true; forceRebuild = false; }
-          const fs = require('fs');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'should_build=' + shouldBuild + '\nforce_rebuild=' + forceRebuild + '\n');
-          "
-        env:
-          FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'true' }}
-          HAS_PLATFORM_FILES: ${{ steps.check_platform_release.outputs.has_platform_files }}
-
-      - name: 检查本地构建产物
-        if: matrix.enabled == 'true' && steps.should_build.outputs.should_build == 'true' && steps.should_build.outputs.force_rebuild != 'true'
-        id: check_local_build
-        working-directory: meta-doc
-        run: |
-          node scripts/check-local-build.js "${{ needs.prepare.outputs.clean_version }}" "${{ matrix.platform == 'win' && 'windows' || (matrix.platform == 'linux' && 'linux' || 'macos') }}"
-        continue-on-error: true
-
+      # Steam 仅打 dir 包，与 GitHub Releases 产物校验逻辑不一致，故始终完整构建，不做跳过优化
       - name: 安装依赖
-        if: matrix.enabled == 'true' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true') && steps.node-modules.outputs.cache-hit != 'true'
+        if: matrix.enabled == 'true' && steps.node-modules.outputs.cache-hit != 'true'
         working-directory: meta-doc
         run: |
           node -e "
@@ -410,139 +362,101 @@ jobs:
           }
           "
 
-      - name: 生成发布说明（release 阶段本地生成，不依赖 prepare artifact）
+      - name: 生成发布说明文件
         if: matrix.enabled == 'true'
         run: |
           node meta-doc/scripts/generate-changelog-to-file.js "${{ needs.prepare.outputs.version }}" "${{ needs.prepare.outputs.release_type }}" release-notes.txt
           node meta-doc/scripts/prepare-release-notes.js "${{ github.event.inputs.release_notes || '' }}" release-notes.txt final-notes.txt
 
       - name: 生成 Linux 图标（如果不存在）
-        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && matrix.platform == 'linux'
         working-directory: meta-doc
         run: '[ -f build/icon.png ] || npm run generate-icons || true'
 
       - name: 生成 macOS 图标（如果不存在）
-        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64')
         working-directory: meta-doc
         run: '[ -f build/icon.icns ] || npm run generate-icons || true'
 
       - name: 构建项目
-        if: matrix.enabled == 'true' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        if: matrix.enabled == 'true'
         working-directory: meta-doc
         run: npm run build
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
 
-      - name: 清理旧 Linux 产物
-        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+      - name: 清理旧 Linux 包格式产物（dir 构建不需要）
+        if: matrix.enabled == 'true' && matrix.platform == 'linux'
         run: rm -f meta-doc/dist/*.AppImage meta-doc/dist/*.deb meta-doc/dist/*.snap || true
 
-      - name: 打包 Windows 版本
-        if: matrix.enabled == 'true' && matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+      - name: 打包 Windows（dir / SteamPipe）
+        if: matrix.enabled == 'true' && matrix.platform == 'win'
         working-directory: meta-doc
-        run: npx electron-builder --win --publish never
+        run: npx electron-builder --win dir --publish never
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: 打包 Linux x64 版本
-        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+      - name: 打包 Linux x64（dir / SteamPipe）
+        if: matrix.enabled == 'true' && matrix.platform == 'linux'
         working-directory: meta-doc
-        run: npx electron-builder --linux --x64 --publish never
+        run: npx electron-builder --linux dir --x64 --publish never
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: 打包 macOS ARM64 版本
-        if: matrix.enabled == 'true' && matrix.platform == 'mac' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+      - name: 打包 macOS ARM64（dir / SteamPipe）
+        if: matrix.enabled == 'true' && matrix.platform == 'mac'
         working-directory: meta-doc
-        run: npx electron-builder --mac --arm64 --publish never
+        run: npx electron-builder --mac dir --arm64 --publish never
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: 打包 macOS x64 版本
-        if: matrix.enabled == 'true' && matrix.platform == 'mac-amd64' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+      - name: 打包 macOS x64（dir / SteamPipe）
+        if: matrix.enabled == 'true' && matrix.platform == 'mac-amd64'
         working-directory: meta-doc
-        run: npx electron-builder --mac --x64 --publish never
+        run: npx electron-builder --mac dir --x64 --publish never
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: 发布 Windows 产物
-        if: matrix.enabled == 'true' && matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true'
-        uses: softprops/action-gh-release@v2
+      - name: 上传 Steam depot 产物（Windows）
+        if: matrix.enabled == 'true' && matrix.platform == 'win'
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}
-          repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
-          tag_name: ${{ needs.prepare.outputs.tag }}
-          target_commitish: main
-          name: ${{ needs.prepare.outputs.release_name }}
-          body_path: final-notes.txt
-          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
-          files: |
-            meta-doc/dist/*.exe
-            meta-doc/dist/*.yml
-            meta-doc/dist/*.blockmap
-          draft: false
+          name: steam-depot-windows
+          path: meta-doc/dist/win-unpacked/
+          retention-days: 14
 
-      - name: 准备 Linux 产物列表
-        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
-        id: release_files_linux
-        run: |
-          echo "files<<EOF" >> $GITHUB_OUTPUT
-          echo "meta-doc/dist/meta-doc-${{ needs.prepare.outputs.clean_version }}.AppImage" >> $GITHUB_OUTPUT
-          echo "meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.deb" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "snap_file=meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.snap" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: 发布 Linux 产物（AppImage + deb）
-        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
-        id: release_linux
-        uses: softprops/action-gh-release@v2
+      - name: 上传 Steam depot 产物（Linux）
+        if: matrix.enabled == 'true' && matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}
-          repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
-          tag_name: ${{ needs.prepare.outputs.tag }}
-          target_commitish: main
-          name: ${{ needs.prepare.outputs.release_name }}
-          body_path: final-notes.txt
-          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
-          files: ${{ steps.release_files_linux.outputs.files }}
-          draft: false
+          name: steam-depot-linux
+          path: meta-doc/dist/linux-unpacked/
+          retention-days: 14
 
-      - name: 上传 Snap 包（Linux）
-        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && steps.release_linux.outcome == 'success'
-        run: |
-          SNAP="meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.snap"
-          if [ ! -f "$SNAP" ]; then exit 0; fi
-          URL="${{ steps.release_linux.outputs.upload_url }}"
-          URL="${URL%%\{*}"
-          curl -sL -X POST -H "Authorization: token ${{ secrets.GH_TOKEN }}" -H "Content-Type: application/octet-stream" --data-binary "@$SNAP" "${URL}?name=$(basename "$SNAP")" -o /dev/null -w "%{http_code}" || true
-        continue-on-error: true
-        shell: bash
-
-      - name: 发布 macOS 产物
-        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true'
-        uses: softprops/action-gh-release@v2
+      - name: 上传 Steam depot 产物（macOS ARM64）
+        if: matrix.enabled == 'true' && matrix.platform == 'mac'
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}
-          repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
-          tag_name: ${{ needs.prepare.outputs.tag }}
-          target_commitish: main
-          name: ${{ needs.prepare.outputs.release_name }}
-          body_path: final-notes.txt
-          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
-          files: |
-            meta-doc/dist/*.dmg
-            meta-doc/dist/*.zip
-          draft: false
+          name: steam-depot-mac-arm64
+          path: meta-doc/dist/mac-arm64/
+          retention-days: 14
+
+      - name: 上传 Steam depot 产物（macOS x64）
+        if: matrix.enabled == 'true' && matrix.platform == 'mac-amd64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: steam-depot-mac-x64
+          path: meta-doc/dist/mac/
+          retention-days: 14
 
       - name: 保存发布日志
         if: matrix.enabled == 'true'
@@ -557,6 +471,77 @@ jobs:
         if: ${{ matrix.enabled == 'true' && always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: release-log-${{ needs.prepare.outputs.tag }}-${{ matrix.platform }}
+          name: release-log-steam-${{ needs.prepare.outputs.tag }}-${{ matrix.platform }}
           path: .github/release-logs/release_${{ needs.prepare.outputs.tag }}_*.json
           retention-days: 90
+
+  steam_deploy:
+    name: Steam 上传（SteamCMD / Docker）
+    needs: [prepare, release]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取 Windows depot
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: steam-depot-windows
+          path: steam_layout/windows
+
+      - name: 拉取 Linux depot
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: steam-depot-linux
+          path: steam_layout/linux
+
+      - name: 拉取 macOS ARM64 depot
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: steam-depot-mac-arm64
+          path: steam_layout/mac-arm64
+
+      - name: 拉取 macOS x64 depot
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: steam-depot-mac-x64
+          path: steam_layout/mac-x64
+
+      - name: 根据磁盘内容生成 game-ci depot 路径（与槽位 1..4 及 Depot ID 对齐）
+        id: steam_depot_paths
+        run: |
+          set -e
+          nonempty() { [ -d "$1" ] && [ -n "$(find "$1" -type f 2>/dev/null | head -1)" ]; }
+          d1=; d2=; d3=; d4=
+          nonempty steam_layout/windows && d1=windows
+          nonempty steam_layout/linux && d2=linux
+          nonempty steam_layout/mac-arm64 && d3=mac-arm64
+          nonempty steam_layout/mac-x64 && d4=mac-x64
+          if [ -z "${d1}${d2}${d3}${d4}" ]; then
+            echo "❌ 未找到任何可上传的 depot 内容（artifact 缺失或对应平台矩阵失败）。"
+            exit 1
+          fi
+          echo "depot1_path=$d1" >> $GITHUB_OUTPUT
+          echo "depot2_path=$d2" >> $GITHUB_OUTPUT
+          echo "depot3_path=$d3" >> $GITHUB_OUTPUT
+          echo "depot4_path=$d4" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: 上传到 Steam
+        uses: game-ci/steam-deploy@v3
+        with:
+          username: ${{ secrets.STEAM_USERNAME }}
+          configVdf: ${{ secrets.STEAM_CONFIG_VDF }}
+          appId: ${{ env.STEAM_APP_ID }}
+          buildDescription: 'MetaDoc ${{ needs.prepare.outputs.clean_version }} (${{ needs.prepare.outputs.tag }})'
+          rootPath: steam_layout
+          depot1Path: ${{ steps.steam_depot_paths.outputs.depot1_path }}
+          depot2Path: ${{ steps.steam_depot_paths.outputs.depot2_path }}
+          depot3Path: ${{ steps.steam_depot_paths.outputs.depot3_path }}
+          depot4Path: ${{ steps.steam_depot_paths.outputs.depot4_path }}
+          releaseBranch: ${{ needs.prepare.outputs.steam_release_branch }}

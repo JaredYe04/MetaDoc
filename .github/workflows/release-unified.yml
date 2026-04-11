@@ -50,7 +50,7 @@ on:
           - off
           - self-hosted
           - github-hosted
-        default: github-hosted
+        default: self-hosted
       runner_mac_amd64:
         description: 'macOS x64/Intel Runner（关=不构建该平台）'
         required: false
@@ -59,7 +59,7 @@ on:
           - off
           - self-hosted
           - github-hosted
-        default: github-hosted
+        default: off
       force_rebuild:
         description: '是否强制重新构建'
         required: false
@@ -163,6 +163,7 @@ jobs:
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_REF: ${{ github.ref }}
+          METADOC_DEFER_VERSION_FILES: ${{ github.event_name == 'workflow_dispatch' && 'true' || '' }}
 
       - name: 确定标签和 Release 名称
         id: release_info
@@ -173,22 +174,7 @@ jobs:
           CLEAN_VERSION: ${{ steps.version_info.outputs.clean_version }}
           LATEST_TAG: ""
 
-      - name: 提交版本更改到仓库
-        if: github.event_name == 'workflow_dispatch'
-        working-directory: meta-doc
-        run: node scripts/commit-version-changes.js "${{ steps.version_info.outputs.version }}"
-        env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: 创建 Git 标签（如果不存在）
-        if: github.event_name == 'workflow_dispatch'
-        working-directory: meta-doc
-        run: node scripts/create-release-tag.js "${{ steps.release_info.outputs.tag }}" "${{ steps.release_info.outputs.release_name }}"
-        env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      # workflow_dispatch：版本文件与 tag 在矩阵全部成功后由 finalize 写入并推送（见 jobs.finalize）
 
       # 矩阵设计说明（避免逻辑/类型错误）：
       # 1. enabled 必须输出 JSON 字符串 "true"/"false"，不能是布尔。release 里用 matrix.enabled == 'true' 比较，布尔 true != 字符串 'true' 会判反。
@@ -199,8 +185,8 @@ jobs:
         run: |
           RW="${{ github.event.inputs.runner_win || 'self-hosted' }}"
           RL="${{ github.event.inputs.runner_linux || 'github-hosted' }}"
-          RM="${{ github.event.inputs.runner_mac || 'github-hosted' }}"
-          RM64="${{ github.event.inputs.runner_mac_amd64 || 'github-hosted' }}"
+          RM="${{ github.event.inputs.runner_mac || 'self-hosted' }}"
+          RM64="${{ github.event.inputs.runner_mac_amd64 || 'off' }}"
           # 选项为 off 时部分环境可能传 "false"，两种都视为关闭
           is_off() { [ "$1" = "off" ] || [ "$1" = "false" ]; }
           ew=$([ "$RW" = "github-hosted" ] && echo '["windows-latest"]' || echo '["self-hosted","Windows","X64"]')
@@ -286,15 +272,20 @@ jobs:
         if: matrix.enabled == 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.tag || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || (needs.prepare.outputs.tag || github.ref) }}
           fetch-depth: 0
           persist-credentials: true
           clean: true
 
       - name: 更新仓库到最新状态
         if: matrix.enabled == 'true'
-        run: node meta-doc/scripts/update-repo.js "${{ needs.prepare.outputs.tag || github.ref }}" "${{ needs.prepare.outputs.tag || github.ref_name }}"
+        run: node meta-doc/scripts/update-repo.js "${{ github.event_name == 'workflow_dispatch' && github.sha || (needs.prepare.outputs.tag || github.ref) }}" "${{ github.ref_name }}"
         continue-on-error: true
+
+      - name: 写入版本号（仅此 job 工作区；dispatch 在 finalize 前不落库）
+        if: matrix.enabled == 'true' && github.event_name == 'workflow_dispatch'
+        working-directory: meta-doc
+        run: node scripts/apply-release-version.js "${{ needs.prepare.outputs.version }}"
 
       - name: 设置 Node.js
         if: matrix.enabled == 'true'
@@ -416,6 +407,15 @@ jobs:
           node meta-doc/scripts/generate-changelog-to-file.js "${{ needs.prepare.outputs.version }}" "${{ needs.prepare.outputs.release_type }}" release-notes.txt
           node meta-doc/scripts/prepare-release-notes.js "${{ github.event.inputs.release_notes || '' }}" release-notes.txt final-notes.txt
 
+      - name: 上传发布说明 artifact（final-notes.txt）
+        if: matrix.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-notes-${{ needs.prepare.outputs.tag }}-${{ matrix.platform }}
+          path: final-notes.txt
+          retention-days: 90
+          if-no-files-found: error
+
       - name: 生成 Linux 图标（如果不存在）
         if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
@@ -475,7 +475,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: 发布 Windows 产物
-        if: matrix.enabled == 'true' && matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true'
+        if: matrix.enabled == 'true' && matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true' && github.event_name != 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GH_TOKEN }}
@@ -491,6 +491,18 @@ jobs:
             meta-doc/dist/*.blockmap
           draft: false
 
+      - name: 收集 Windows 发布产物（dispatch，finalize 后统一上传 Release）
+        if: matrix.enabled == 'true' && matrix.platform == 'win' && steps.should_build.outputs.should_build == 'true' && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gh-${{ needs.prepare.outputs.tag }}-win
+          path: |
+            meta-doc/dist/*.exe
+            meta-doc/dist/*.yml
+            meta-doc/dist/*.blockmap
+          retention-days: 90
+          if-no-files-found: warn
+
       - name: 准备 Linux 产物列表
         if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
         id: release_files_linux
@@ -503,7 +515,7 @@ jobs:
         shell: bash
 
       - name: 发布 Linux 产物（AppImage + deb）
-        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true'
+        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && github.event_name != 'workflow_dispatch'
         id: release_linux
         uses: softprops/action-gh-release@v2
         with:
@@ -518,7 +530,7 @@ jobs:
           draft: false
 
       - name: 上传 Snap 包（Linux）
-        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && steps.release_linux.outcome == 'success'
+        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && github.event_name != 'workflow_dispatch' && steps.release_linux.outcome == 'success'
         run: |
           SNAP="meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.snap"
           if [ ! -f "$SNAP" ]; then exit 0; fi
@@ -528,8 +540,20 @@ jobs:
         continue-on-error: true
         shell: bash
 
+      - name: 收集 Linux 发布产物（dispatch）
+        if: matrix.enabled == 'true' && matrix.platform == 'linux' && steps.should_build.outputs.should_build == 'true' && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gh-${{ needs.prepare.outputs.tag }}-linux
+          path: |
+            meta-doc/dist/meta-doc-${{ needs.prepare.outputs.clean_version }}.AppImage
+            meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.deb
+            meta-doc/dist/meta-doc_${{ needs.prepare.outputs.clean_version }}_amd64.snap
+          retention-days: 90
+          if-no-files-found: warn
+
       - name: 发布 macOS 产物
-        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true'
+        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true' && github.event_name != 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GH_TOKEN }}
@@ -543,6 +567,17 @@ jobs:
             meta-doc/dist/*.dmg
             meta-doc/dist/*.zip
           draft: false
+
+      - name: 收集 macOS 发布产物（dispatch）
+        if: matrix.enabled == 'true' && (matrix.platform == 'mac' || matrix.platform == 'mac-amd64') && steps.should_build.outputs.should_build == 'true' && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gh-${{ needs.prepare.outputs.tag }}-${{ matrix.platform }}
+          path: |
+            meta-doc/dist/*.dmg
+            meta-doc/dist/*.zip
+          retention-days: 90
+          if-no-files-found: warn
 
       - name: 保存发布日志
         if: matrix.enabled == 'true'
@@ -560,3 +595,86 @@ jobs:
           name: release-log-${{ needs.prepare.outputs.tag }}-${{ matrix.platform }}
           path: .github/release-logs/release_${{ needs.prepare.outputs.tag }}_*.json
           retention-days: 90
+
+  finalize:
+    needs: [prepare, release]
+    if: github.event_name == 'workflow_dispatch' && needs.prepare.result == 'success' && needs.release.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 检出触发时的提交（与矩阵构建一致）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: true
+
+      - name: 应用版本、提交并推送标签
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          node meta-doc/scripts/apply-release-version.js "${{ needs.prepare.outputs.version }}"
+          node meta-doc/scripts/commit-version-changes.js "${{ needs.prepare.outputs.version }}"
+          node meta-doc/scripts/create-release-tag.js "${{ needs.prepare.outputs.tag }}" "${{ needs.prepare.outputs.release_name }}"
+
+  publish_github:
+    needs: [prepare, release, finalize]
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      needs.prepare.result == 'success' &&
+      needs.release.result == 'success' &&
+      needs.finalize.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 下载矩阵收集的安装包
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-gh-${{ needs.prepare.outputs.tag }}-*
+          merge-multiple: true
+          path: gh-assets
+        continue-on-error: true
+
+      - name: 下载发布说明
+        uses: actions/download-artifact@v4
+        with:
+          pattern: final-notes-${{ needs.prepare.outputs.tag }}-*
+          merge-multiple: true
+          path: gh-notes
+        continue-on-error: true
+
+      - name: 准备 release body
+        run: |
+          set -e
+          n=$(find gh-notes -name 'final-notes.txt' -type f 2>/dev/null | head -1 || true)
+          if [ -n "$n" ]; then cp "$n" release-body.txt
+          else echo "自动发版（无附加说明）" > release-body.txt
+          fi
+        shell: bash
+
+      - name: 发布到 GitHub Releases 仓库
+        id: gh_release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: ${{ github.ref_name }}
+          name: ${{ needs.prepare.outputs.release_name }}
+          body_path: release-body.txt
+          prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
+          files: |
+            gh-assets/**/*.exe
+            gh-assets/**/*.yml
+            gh-assets/**/*.blockmap
+            gh-assets/**/*.AppImage
+            gh-assets/**/*.deb
+            gh-assets/**/*.dmg
+            gh-assets/**/*.zip
+            gh-assets/**/*.snap
+          draft: false

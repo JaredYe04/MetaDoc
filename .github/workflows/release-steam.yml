@@ -56,7 +56,7 @@ on:
           - off
           - self-hosted
           - github-hosted
-        default: github-hosted
+        default: self-hosted
       runner_mac_amd64:
         description: 'macOS x64/Intel Runner（关=不包含 Intel depot）'
         required: false
@@ -65,7 +65,7 @@ on:
           - off
           - self-hosted
           - github-hosted
-        default: github-hosted
+        default: off
       release_notes:
         description: '发布说明（写入 final-notes.txt，供日志；Steam 商店文案仍须在 Steamworks 编辑）'
         required: false
@@ -146,6 +146,7 @@ jobs:
         env:
           GITHUB_EVENT_NAME: workflow_dispatch
           GITHUB_REF: ${{ github.ref }}
+          METADOC_DEFER_VERSION_FILES: 'true'
 
       - name: 确定标签和 Release 名称
         id: release_info
@@ -156,28 +157,15 @@ jobs:
           CLEAN_VERSION: ${{ steps.version_info.outputs.clean_version }}
           LATEST_TAG: ''
 
-      - name: 提交版本更改到仓库
-        working-directory: meta-doc
-        run: node scripts/commit-version-changes.js "${{ steps.version_info.outputs.version }}"
-        env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: 创建 Git 标签（如果不存在）
-        working-directory: meta-doc
-        run: node scripts/create-release-tag.js "${{ steps.release_info.outputs.tag }}" "${{ steps.release_info.outputs.release_name }}"
-        env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      # 版本提交与 tag 在矩阵全部成功后由 finalize 执行
 
       - name: 输出 Runner 矩阵
         id: matrix
         run: |
           RW="${{ github.event.inputs.runner_win || 'self-hosted' }}"
           RL="${{ github.event.inputs.runner_linux || 'github-hosted' }}"
-          RM="${{ github.event.inputs.runner_mac || 'github-hosted' }}"
-          RM64="${{ github.event.inputs.runner_mac_amd64 || 'github-hosted' }}"
+          RM="${{ github.event.inputs.runner_mac || 'self-hosted' }}"
+          RM64="${{ github.event.inputs.runner_mac_amd64 || 'off' }}"
           is_off() { [ "$1" = "off" ] || [ "$1" = "false" ]; }
           ew=$([ "$RW" = "github-hosted" ] && echo '["windows-latest"]' || echo '["self-hosted","Windows","X64"]')
           el=$([ "$RL" = "github-hosted" ] && echo '["ubuntu-latest"]' || echo '["self-hosted","Linux","X64","ubuntu"]')
@@ -205,8 +193,8 @@ jobs:
         run: |
           RW="${{ github.event.inputs.runner_win || 'self-hosted' }}"
           RL="${{ github.event.inputs.runner_linux || 'github-hosted' }}"
-          RM="${{ github.event.inputs.runner_mac || 'github-hosted' }}"
-          RM64="${{ github.event.inputs.runner_mac_amd64 || 'github-hosted' }}"
+          RM="${{ github.event.inputs.runner_mac || 'self-hosted' }}"
+          RM64="${{ github.event.inputs.runner_mac_amd64 || 'off' }}"
           is_off() { [ "$1" = "off" ] || [ "$1" = "false" ]; }
           if is_off "$RW" && is_off "$RL" && is_off "$RM" && is_off "$RM64"; then
             echo "❌ 至少需要启用一个平台"
@@ -274,15 +262,20 @@ jobs:
         if: matrix.enabled == 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.tag }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: true
           clean: true
 
       - name: 更新仓库到最新状态
         if: matrix.enabled == 'true'
-        run: node meta-doc/scripts/update-repo.js "${{ needs.prepare.outputs.tag }}" "${{ needs.prepare.outputs.tag }}"
+        run: node meta-doc/scripts/update-repo.js "${{ github.sha }}" "${{ github.ref_name }}"
         continue-on-error: true
+
+      - name: 写入版本号（工作区；finalize 前不落库）
+        if: matrix.enabled == 'true'
+        working-directory: meta-doc
+        run: node scripts/apply-release-version.js "${{ needs.prepare.outputs.version }}"
 
       - name: 设置 Node.js
         if: matrix.enabled == 'true'
@@ -367,6 +360,15 @@ jobs:
         run: |
           node meta-doc/scripts/generate-changelog-to-file.js "${{ needs.prepare.outputs.version }}" "${{ needs.prepare.outputs.release_type }}" release-notes.txt
           node meta-doc/scripts/prepare-release-notes.js "${{ github.event.inputs.release_notes || '' }}" release-notes.txt final-notes.txt
+
+      - name: 上传发布说明 artifact（final-notes.txt）
+        if: matrix.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-notes-steam-${{ needs.prepare.outputs.tag }}-${{ matrix.platform }}
+          path: final-notes.txt
+          retention-days: 90
+          if-no-files-found: error
 
       - name: 生成 Linux 图标（如果不存在）
         if: matrix.enabled == 'true' && matrix.platform == 'linux'
@@ -475,13 +477,40 @@ jobs:
           path: .github/release-logs/release_${{ needs.prepare.outputs.tag }}_*.json
           retention-days: 90
 
+  finalize:
+    needs: [prepare, release]
+    if: needs.prepare.result == 'success' && needs.release.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 检出触发时的提交（与矩阵构建一致）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: true
+
+      - name: 应用版本、提交并推送标签
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          node meta-doc/scripts/apply-release-version.js "${{ needs.prepare.outputs.version }}"
+          node meta-doc/scripts/commit-version-changes.js "${{ needs.prepare.outputs.version }}"
+          node meta-doc/scripts/create-release-tag.js "${{ needs.prepare.outputs.tag }}" "${{ needs.prepare.outputs.release_name }}"
+
   steam_deploy:
     name: Steam 上传（SteamCMD / Docker）
-    needs: [prepare, release]
+    needs: [prepare, release, finalize]
     if: |
       always() &&
       !cancelled() &&
-      needs.prepare.result == 'success'
+      needs.prepare.result == 'success' &&
+      needs.release.result == 'success' &&
+      needs.finalize.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: 拉取 Windows depot

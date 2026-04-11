@@ -45,7 +45,7 @@ if (!version) {
 }
 
 if (!token) {
-  console.warn('⚠️  警告: 未提供 GH_TOKEN，可能无法推送更改')
+  console.warn('⚠️  警告: 未提供 GH_TOKEN 或 GITHUB_TOKEN，可能无法推送更改')
 }
 
 try {

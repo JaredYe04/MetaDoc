@@ -18,10 +18,82 @@ env:
   STEAM_APP_ID: '4359310'
   # 与 release-steam / game-ci 默认 depot1 = AppID+1 一致
   STEAM_DEPOT1_ID: '4359311'
+  # 与发版工作流 env 对齐，供 API 探测
+  RELEASE_REPO: MetaDoc-Releases
 
 jobs:
+  # 先发制人：与 release-steam finalize 相同检出方式；避免整管道跑完才在 checkout 403
+  github_tokens_smoke:
+    name: GitHub 本仓检出（对齐 finalize）
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: 检出当前 workflow 的 SHA（与 finalize 一致，仅 GITHUB_TOKEN）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+          token: ${{ github.token }}
+          persist-credentials: true
+
+      - name: 校验 GITHUB_TOKEN 可访问本仓库 API
+        env:
+          # 不会默认注入到 shell；配合 set -u 必须显式传入
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          url="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          code=$(curl -sS -o /tmp/gr.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$url")
+          echo "GET $url → HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "❌ GITHUB_TOKEN 无法读取本仓库。若在组织仓库：检查 Settings → Actions → General → Workflow permissions（建议 Read and write 或至少允许本工作流 contents: read）。"
+            head -c 800 /tmp/gr.json 2>/dev/null || true
+            exit 1
+          fi
+          echo "✅ GITHUB_TOKEN 已注入且可读 ${{ github.repository }}"
+
+      - name: 可选探测 secrets.GH_TOKEN 边界
+        env:
+          PAT: ${{ secrets.GH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PAT}" ]; then
+            echo "ℹ️ 未配置 secrets.GH_TOKEN，跳过（跨仓发 Release 时再依赖该 PAT）"
+            exit 0
+          fi
+          url="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          code=$(curl -sS -o /tmp/pat_self.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${PAT}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$url")
+          echo "GH_TOKEN 访问本仓 → HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::warning::GH_TOKEN 不能读取本仓库（$code）。这是常见配置（PAT 只授权 MetaDoc-Releases）。切勿把该 secret 传给本仓的 actions/checkout，否则会 403 / Write access not granted。"
+          else
+            echo "✅ GH_TOKEN 也可读本仓（finalize 仍应只用 github.token 检出，边界更清晰）"
+          fi
+          rel="https://api.github.com/repos/${GITHUB_REPOSITORY_OWNER}/${RELEASE_REPO}"
+          code2=$(curl -sS -o /tmp/pat_rel.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${PAT}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$rel")
+          echo "GH_TOKEN 访问 ${GITHUB_REPOSITORY_OWNER}/${RELEASE_REPO} → HTTP $code2"
+          if [ "$code2" != "200" ]; then
+            echo "::warning::GH_TOKEN 无法读取 Releases 仓库（$code2）；发布到 MetaDoc-Releases 的步骤将失败，请为 PAT 授权该仓库或更新 Secret。"
+          else
+            echo "✅ GH_TOKEN 可读 ${RELEASE_REPO}"
+          fi
+
   steam_validate:
     name: SteamCMD + SteamPipe
+    needs: github_tokens_smoke
     runs-on: ubuntu-latest
     steps:
       - name: 检查 Secrets

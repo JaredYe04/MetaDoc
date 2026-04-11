@@ -6,8 +6,8 @@
       <div
         v-else-if="item.type === 'submenu' && item.children?.length"
         class="context-menu__submenu-wrap"
-        @mouseenter="openSubmenuIndex = index"
-        @mouseleave="openSubmenuIndex = null"
+        @mouseenter="handleSubmenuWrapEnter($event, index)"
+        @mouseleave="handleSubmenuWrapLeave"
       >
         <div
           class="context-menu__item context-menu__item--submenu-parent"
@@ -15,14 +15,17 @@
           :class="{ 'is-disabled': item.disabled }"
         >
           <span class="context-menu__label">{{ item.label ? $t(item.label) : '' }}</span>
-          <span class="context-menu__submenu-chevron">›</span>
+          <span class="context-menu__submenu-chevron">{{
+            openSubmenuIndex === index && submenuFlipLeft ? '‹' : '›'
+          }}</span>
         </div>
         <div
           v-show="openSubmenuIndex === index"
           class="context-menu__submenu-panel"
+          :class="{ 'is-flip-left': openSubmenuIndex === index && submenuFlipLeft }"
           :style="submenuPanelStyle"
-          @mouseenter="openSubmenuIndex = index"
-          @mouseleave="openSubmenuIndex = null"
+          @mouseenter="handleSubmenuPanelEnter(index)"
+          @mouseleave="handleSubmenuPanelLeave"
         >
           <template v-for="(child, ci) in item.children" :key="child.value ?? `sub-${ci}`">
             <div v-if="child.type === 'divider'" class="context-menu__divider" />
@@ -83,6 +86,41 @@ const emit = defineEmits<{
 const menuRef = ref<HTMLElement | null>(null)
 const menuPosition = ref({ top: props.y ?? 0, left: props.x ?? 0 })
 const openSubmenuIndex = ref<number | null>(null)
+/** 子菜单在右侧空间不足时翻到父项左侧，避免右侧边栏等场景溢出窗口 */
+const submenuFlipLeft = ref(false)
+
+const measureSubmenuFlip = (wrapEl: HTMLElement) => {
+  const panel = wrapEl.querySelector('.context-menu__submenu-panel') as HTMLElement | null
+  if (!panel) return
+  const padding = 8
+  const rect = panel.getBoundingClientRect()
+  submenuFlipLeft.value = rect.right > window.innerWidth - padding
+}
+
+const handleSubmenuWrapEnter = (event: MouseEvent, index: number) => {
+  openSubmenuIndex.value = index
+  submenuFlipLeft.value = false
+  const wrap = event.currentTarget as HTMLElement
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      measureSubmenuFlip(wrap)
+    })
+  })
+}
+
+const handleSubmenuWrapLeave = () => {
+  openSubmenuIndex.value = null
+  submenuFlipLeft.value = false
+}
+
+const handleSubmenuPanelEnter = (index: number) => {
+  openSubmenuIndex.value = index
+}
+
+const handleSubmenuPanelLeave = () => {
+  openSubmenuIndex.value = null
+  submenuFlipLeft.value = false
+}
 
 const adjustWithinViewport = () => {
   const el = menuRef.value
@@ -113,6 +151,7 @@ watch(
   () => props.items,
   () => {
     openSubmenuIndex.value = null
+    submenuFlipLeft.value = false
   }
 )
 
@@ -288,6 +327,14 @@ const onMenuItemMouseDown = (item: ContextMenuItem) => {
   top: 0;
   margin-left: 2px;
   z-index: 100061;
+}
+
+/* 右侧空间不足时向左展开，避免靠右侧栏时二级菜单溢出视口 */
+.context-menu__submenu-panel.is-flip-left {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 2px;
 }
 
 .context-menu__item--submenu-parent {

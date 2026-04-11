@@ -20,7 +20,7 @@ if (!tag) {
 }
 
 if (!token) {
-  console.warn('⚠️  警告: 未提供 GH_TOKEN，可能无法推送标签')
+  console.warn('⚠️  警告: 未提供 GH_TOKEN 或 GITHUB_TOKEN，可能无法推送标签')
 }
 
 try {

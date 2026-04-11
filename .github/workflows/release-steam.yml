@@ -497,19 +497,21 @@ jobs:
     permissions:
       contents: write
     steps:
+      # 显式 github.token，避免与 secrets.GH_TOKEN 混用；勿把 GH_TOKEN 传给本仓 checkout
       - name: 检出触发时的提交（与矩阵构建一致）
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.sha }}
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ github.token }}
           persist-credentials: true
 
       - name: 应用版本、提交并推送标签
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # 显式传入，commit/create-release-tag 脚本读 GITHUB_TOKEN；勿用 secrets.GH_TOKEN
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           node meta-doc/scripts/apply-release-version.js "${{ needs.prepare.outputs.version }}"
           node meta-doc/scripts/commit-version-changes.js "${{ needs.prepare.outputs.version }}"

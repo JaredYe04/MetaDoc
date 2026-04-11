@@ -285,8 +285,21 @@ jobs:
           cache: 'npm'
           cache-dependency-path: meta-doc/package-lock.json
 
-      - name: 恢复 node_modules 缓存
+      - name: node_modules 全量缓存策略
+        id: nm_full_cache
         if: matrix.enabled == 'true'
+        run: |
+          RUNNERS='${{ toJSON(matrix.runner_array) }}'
+          if [ "${{ matrix.platform }}" = "win" ] && echo "$RUNNERS" | grep -q self-hosted; then
+            echo "enabled=false" >> $GITHUB_OUTPUT
+            echo "跳过 meta-doc/node_modules 的 actions/cache（缩短 Post job cleanup）"
+          else
+            echo "enabled=true" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: 恢复 node_modules 缓存
+        if: matrix.enabled == 'true' && steps.nm_full_cache.outputs.enabled == 'true'
         uses: actions/cache@v4
         id: node-modules
         with:
@@ -341,7 +354,7 @@ jobs:
 
       # Steam 仅打 dir 包，与 GitHub Releases 产物校验逻辑不一致，故始终完整构建，不做跳过优化
       - name: 安装依赖
-        if: matrix.enabled == 'true' && steps.node-modules.outputs.cache-hit != 'true'
+        if: matrix.enabled == 'true' && ((steps.nm_full_cache.outputs.enabled == 'true' && steps.node-modules.outputs.cache-hit != 'true') || (steps.nm_full_cache.outputs.enabled != 'true'))
         working-directory: meta-doc
         run: |
           node -e "

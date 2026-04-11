@@ -295,8 +295,22 @@ jobs:
           cache: 'npm'
           cache-dependency-path: meta-doc/package-lock.json
 
-      - name: 恢复 node_modules 缓存
+      # Windows 自托管：整包缓存 meta-doc/node_modules 体积巨大，Post job 用 tar 打包上传时常被 Defender/磁盘拖成「假死」
+      - name: node_modules 全量缓存策略
+        id: nm_full_cache
         if: matrix.enabled == 'true'
+        run: |
+          RUNNERS='${{ toJSON(matrix.runner_array) }}'
+          if [ "${{ matrix.platform }}" = "win" ] && echo "$RUNNERS" | grep -q self-hosted; then
+            echo "enabled=false" >> $GITHUB_OUTPUT
+            echo "跳过 meta-doc/node_modules 的 actions/cache（缩短 Post job cleanup）"
+          else
+            echo "enabled=true" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: 恢复 node_modules 缓存
+        if: matrix.enabled == 'true' && steps.nm_full_cache.outputs.enabled == 'true'
         uses: actions/cache@v4
         id: node-modules
         with:
@@ -387,7 +401,7 @@ jobs:
         continue-on-error: true
 
       - name: 安装依赖
-        if: matrix.enabled == 'true' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true') && steps.node-modules.outputs.cache-hit != 'true'
+        if: matrix.enabled == 'true' && steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true') && ((steps.nm_full_cache.outputs.enabled == 'true' && steps.node-modules.outputs.cache-hit != 'true') || (steps.nm_full_cache.outputs.enabled != 'true'))
         working-directory: meta-doc
         run: |
           node -e "

@@ -248,9 +248,6 @@ importers:
       multer:
         specifier: ^1.4.5-lts.1
         version: 1.4.5-lts.2
-      mxgraph:
-        specifier: ^4.2.2
-        version: 4.2.2
       natural:
         specifier: ^8.1.0
         version: 8.1.0(socks@2.8.7)
@@ -7588,10 +7585,6 @@ packages:
 
   mute-stream@0.0.8:
     resolution: {integrity: sha512-nnbWWOkoWyUsTjKrhgD0dcz22mdkSnpYqbEjIm2nhwhuxlSkpywJmBo8h0ZqJdkp73mb90SssHkN4rsRaBAfAA==}
-
-  mxgraph@4.2.2:
-    resolution: {integrity: sha512-FrJc5AxzXSqiQNF+8CyJk6VxuKO4UVPgw32FZuFZ3X9W+JqOAQBTokZhh0ZkEqGpEOyp3z778ssmBTvdrTAdqw==}
-    deprecated: Package no longer supported. Use at your own risk
 
   nan@2.24.0:
     resolution: {integrity: sha512-Vpf9qnVW1RaDkoNKFUvfxqAbtI8ncb8OJlqZ9wwpXzWPEsvsB1nvdUi6oYrHIkQ1Y/tMDnr1h4nczS0VB9Xykg==}
@@ -18623,8 +18616,6 @@ snapshots:
       xtend: 4.0.2
 
   mute-stream@0.0.8: {}
-
-  mxgraph@4.2.2: {}
 
   nan@2.24.0:
     optional: true

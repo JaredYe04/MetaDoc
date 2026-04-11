@@ -27,6 +27,23 @@ const versionManagerPath = path.join(__dirname, 'version-manager.js')
 // 引入版本管理模块
 const versionManager = require('./version-manager.js')
 
+function shouldDeferVersionFiles() {
+  const v = (process.env.METADOC_DEFER_VERSION_FILES || '').toLowerCase()
+  return v === 'true' || v === '1' || v === 'yes'
+}
+
+/** 规范化展示用版本号（Beta 前缀），不写入磁盘 */
+function normalizeTargetVersion(versionArg) {
+  let targetVersion = versionArg.trim()
+  if (!targetVersion.startsWith('Beta')) {
+    if (/^\d+\.\d+\.\d+/.test(targetVersion)) {
+      targetVersion = `Beta${targetVersion}`
+    }
+  }
+  versionManager.parseVersion(targetVersion)
+  return targetVersion
+}
+
 function getCurrentVersionFromFile() {
   // 尝试从 version.json 读取
   if (fs.existsSync(versionJsonPath)) {
@@ -93,6 +110,11 @@ function getVersion() {
           targetVersion = `Beta${targetVersion}`
         }
       }
+      versionManager.parseVersion(targetVersion)
+      if (shouldDeferVersionFiles()) {
+        console.log(`✅ 复用最新版本模式（延后写盘）: ${targetVersion}`)
+        return targetVersion
+      }
       // 使用 versionManager 设置版本号，这会更新 version.json 和 package.json
       versionManager.setVersion(targetVersion)
       versionManager.updatePackageJson(targetVersion)
@@ -125,13 +147,9 @@ function getVersion() {
   // 1. 如果提供了版本号参数（且不是升级类型关键词），设置该版本号
   if (versionArg && !['major', 'minor', 'patch', 'rebuild'].includes(versionArg)) {
     try {
-      // 确保版本号格式正确（如果有 Beta 前缀则保留，否则添加）
-      let targetVersion = versionArg.trim()
-      if (!targetVersion.startsWith('Beta')) {
-        // 如果版本号是纯数字格式（如 0.17.0），添加 Beta 前缀
-        if (/^\d+\.\d+\.\d+/.test(targetVersion)) {
-          targetVersion = `Beta${targetVersion}`
-        }
+      const targetVersion = normalizeTargetVersion(versionArg)
+      if (shouldDeferVersionFiles()) {
+        return targetVersion
       }
       // 使用 versionManager 设置版本号，这会更新 version.json 和 package.json
       versionManager.setVersion(targetVersion)
@@ -146,6 +164,11 @@ function getVersion() {
   // 2. 如果提供了升级类型，根据当前版本进行升级
   if (versionBump && ['major', 'minor', 'patch', 'rebuild'].includes(versionBump)) {
     try {
+      if (shouldDeferVersionFiles()) {
+        const newVersion = versionManager.previewManualBumpVersion(versionBump)
+        console.log(`ℹ️  延后写盘: 计算得到版本 ${newVersion} (${versionBump})`)
+        return newVersion
+      }
       const newVersion = versionManager.manualBumpVersion(versionBump)
       // 同时更新 package.json
       versionManager.updatePackageJson(newVersion)

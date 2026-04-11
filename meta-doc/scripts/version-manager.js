@@ -279,6 +279,20 @@ function manualBumpVersion(level) {
 }
 
 /**
+ * 计算手动升级后的版本号，不写 version.json / package.json（供 CI 延后落盘）
+ * @param {string} level - major | minor | patch | rebuild
+ * @returns {string}
+ */
+function previewManualBumpVersion(level) {
+  if (level === 'rebuild') {
+    const currentData = readVersionFile()
+    return currentData.version
+  }
+  const currentData = readVersionFile()
+  return incrementVersionByLevel(currentData.version, level)
+}
+
+/**
  * 自动更新版本（基于 Conventional Commits）
  * @deprecated 此函数已废弃，不再使用自动版本升级。请使用 manualBumpVersion 进行手动版本升级。
  * @param {boolean} force - 是否强制更新（即使没有新 commits）
@@ -524,6 +538,7 @@ module.exports = {
   setVersion,
   autoUpdateVersion, // 已废弃，保留用于兼容
   manualBumpVersion,
+  previewManualBumpVersion,
   incrementVersionByLevel,
   updatePackageJson,
   parseVersion,

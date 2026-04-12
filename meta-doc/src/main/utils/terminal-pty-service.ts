@@ -176,6 +176,14 @@ export function resizePty(
   }
 }
 
+/** 应用退出时终止全部 PTY，避免 shell/conhost 残留 */
+export function killAllPtys(): void {
+  const keys = Array.from(ptyMap.keys())
+  for (const key of keys) {
+    killPty(key)
+  }
+}
+
 /** 终止 PTY */
 export function killPty(consoleKey: string): { success: boolean; error?: string } {
   const entry = ptyMap.get(consoleKey)

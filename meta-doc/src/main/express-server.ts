@@ -107,9 +107,34 @@ const logger = createMainLogger('ExpressServer')
 let server: Server | null = null
 let externalOpenHandler: ((payload: { path: string }) => Promise<void> | void) | null = null
 let focusRequestHandler: (() => Promise<void> | void) | null = null
+/** EADDRINUSE 时重试 listen 的定时器，退出时必须 clear，否则会拖住事件循环 */
+let portRetryTimer: ReturnType<typeof setTimeout> | null = null
+let expressShutdownRequested = false
 
 const isServerRunning = (): boolean => {
   return server !== null
+}
+
+/**
+ * 应用退出时关闭 HTTP 服务并取消端口重试，避免进程与端口残留。
+ */
+export function shutdownExpressServer(): void {
+  expressShutdownRequested = true
+  if (portRetryTimer !== null) {
+    clearTimeout(portRetryTimer)
+    portRetryTimer = null
+  }
+  const s = server
+  server = null
+  if (s) {
+    s.removeAllListeners()
+    try {
+      s.close()
+    } catch (err) {
+      logger.debug('Express shutdown close', err as Error)
+    }
+  }
+  updateServiceStatus('express', 'idle')
 }
 
 export const registerExternalOpenHandler = (
@@ -128,6 +153,9 @@ export const registerFocusRequestHandler = (handler: () => Promise<void> | void)
  * 启动Express服务器
  */
 export const runExpressServer = (): void => {
+  if (expressShutdownRequested) {
+    return
+  }
   if (isServerRunning()) {
     updateServiceStatus('express', 'ready')
     logger.debug('Express 服务已在运行')
@@ -262,6 +290,9 @@ function setupRuntimeAPI(): void {
  * 启动HTTP服务器
  */
 function startServer(): void {
+  if (expressShutdownRequested) {
+    return
+  }
   try {
     const port = getRuntimeServerPort()
     server = expressApp.listen(port, () => {
@@ -274,8 +305,20 @@ function startServer(): void {
       updateServiceStatus('express', 'error', error.message)
 
       if (error.code === 'EADDRINUSE') {
+        if (expressShutdownRequested) {
+          server = null
+          return
+        }
         logger.warn(`端口 ${port} 已被占用，10 秒后重试`)
-        setTimeout(() => {
+        if (portRetryTimer !== null) {
+          clearTimeout(portRetryTimer)
+          portRetryTimer = null
+        }
+        portRetryTimer = setTimeout(() => {
+          portRetryTimer = null
+          if (expressShutdownRequested) {
+            return
+          }
           try {
             if (server) {
               server.close()

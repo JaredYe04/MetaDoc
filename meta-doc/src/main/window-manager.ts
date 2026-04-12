@@ -122,6 +122,9 @@ const windowStates: Record<AuxWindowId, WindowState> = {
 
 let parentWindowProvider: ParentProvider = () => null
 
+/** 为 true 时辅助窗口的 close 不再 preventDefault，且退出流程可 destroy */
+let auxiliaryWindowsQuitMode = false
+
 const resolveWindowUrl = (route: string): string => {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     return `${process.env['ELECTRON_RENDERER_URL']}/index.html${route}`
@@ -156,17 +159,20 @@ const setupWindowLifecycle = (id: AuxWindowId, win: BrowserWindow): void => {
 
   win.on('close', (event) => {
     if (win.isDestroyed()) return
+    if (auxiliaryWindowsQuitMode) {
+      return
+    }
     event.preventDefault()
     state.pendingShow = false
     win.hide()
   })
 
   win.on('closed', () => {
-    // 清理全局注册表中该窗口的标签页
+    // 清理全局注册表中该窗口的标签页（使用与主窗口一致的 webContents.id）
     try {
-      globalTabRegistry.cleanupWindowTabs(id)
+      globalTabRegistry.cleanupWindowTabs(win.webContents.id)
     } catch (error) {
-      logger.warn('清理窗口标签页失败:', error)
+      logger.warn('清理窗口标签页失败:', error as Error)
     }
     windowStates[id] = { instance: null, ready: false, pendingShow: false }
   })
@@ -232,6 +238,25 @@ const setWindowTitle = (id: AuxWindowId): void => {
 
 export const initWindowManager = (parentProvider: ParentProvider): void => {
   parentWindowProvider = parentProvider
+}
+
+/**
+ * 应用退出：允许辅助窗口真正关闭，并销毁仍存在的实例（避免 hide+preventDefault 阻止 quit）。
+ */
+export function shutdownAuxiliaryWindowsForAppQuit(): void {
+  auxiliaryWindowsQuitMode = true
+  for (const id of Object.keys(windowDefinitions) as AuxWindowId[]) {
+    const state = windowStates[id]
+    const win = state.instance
+    if (win && !win.isDestroyed()) {
+      try {
+        win.destroy()
+      } catch (e) {
+        logger.warn(`销毁辅助窗口失败: ${id}`, e as Error)
+      }
+    }
+    windowStates[id] = { instance: null, ready: false, pendingShow: false }
+  }
 }
 
 /**

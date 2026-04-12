@@ -1964,14 +1964,21 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-/* 浮动置顶：Teleport 到 body，无条件始终在最顶层，高于 Dialog(10000) 和 GlobalMessageBox(100002) */
+/* 浮动置顶：Teleport 到 body，无条件始终在最顶层；须高于 AlertDialog(11000)、GlobalMessageBox(100002)、编辑器内高层(如 100070) */
 .top-header-floating {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  z-index: 100003 !important;
+  z-index: 300000 !important;
   flex-shrink: 0;
+  /*
+   * 模态层（reka-ui / Radix）打开时常把 document.body 设为 pointer-events:none；
+   * 该属性可继承，会导致整条顶栏「看得见但点不动」（Tab、窗口按钮均失效）。
+   * 在此显式恢复命中，使顶栏子树不受 body 锁定影响。
+   */
+  pointer-events: auto !important;
+  isolation: isolate;
 }
 
 /* 非 Mac：Logo 与 MainTabs 并排时保证「Logo | 标签」 */

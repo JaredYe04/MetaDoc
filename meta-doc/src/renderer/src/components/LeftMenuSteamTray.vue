@@ -16,7 +16,7 @@
             width="28"
             height="28"
           />
-          <span v-else class="left-menu-steam-fallback">S</span>
+          <span v-else class="left-menu-steam-fallback">{{ steamAvatarLetter }}</span>
         </button>
       </PopoverTrigger>
       <PopoverPortal>
@@ -35,7 +35,7 @@
               width="48"
               height="48"
             />
-            <div v-else class="left-menu-steam-fallback-lg shrink-0">S</div>
+            <div v-else class="left-menu-steam-fallback-lg shrink-0">{{ steamAvatarLetter }}</div>
             <div class="min-w-0 flex-1 space-y-0.5">
               <div class="text-sm font-medium truncate">{{ user?.name }}</div>
               <div class="text-xs text-muted-foreground">
@@ -104,6 +104,18 @@ const summary = ref<Pick<
   'secondsPlayed' | 'aiRequests' | 'charsTyped'
 > | null>(null)
 const open = ref(false)
+
+/** 无头像 URL 时用显示名首字符（与常见头像占位一致）；无名称时用中性占位。 */
+function firstLetterFromDisplayName(name: string | undefined): string {
+  const trimmed = (name ?? '').trim()
+  if (!trimmed) return '?'
+  const first = Array.from(trimmed)[0]
+  if (!first) return '?'
+  if (/^[a-z]$/u.test(first)) return first.toUpperCase()
+  return first
+}
+
+const steamAvatarLetter = computed(() => firstLetterFromDisplayName(user.value?.name))
 
 const playtimeLabel = computed(() => formatPlaytime(t, summary.value?.secondsPlayed ?? 0))
 

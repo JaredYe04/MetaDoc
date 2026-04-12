@@ -12,8 +12,8 @@
     <!-- HTML: 沙箱 iframe 渲染 -->
     <div v-else-if="displayType === 'html'" class="file-content-rendered">
       <iframe
-        :srcdoc="file.content"
-        sandbox="allow-same-origin"
+        :srcdoc="htmlIframeSrcdoc"
+        sandbox="allow-same-origin allow-scripts"
         class="rendered-html"
         title="HTML Preview"
       />
@@ -29,8 +29,10 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import * as monaco from 'monaco-editor'
 import {
+  encodeFileDirectoryUrl,
   getFileDisplayType,
   getMonacoLanguageForPath,
+  injectHtmlBaseHref,
   svgContentToDataUrl,
   type FileDisplayType
 } from '../../file-display-utils'
@@ -52,6 +54,13 @@ const displayType = computed((): FileDisplayType => getFileDisplayType(props.fil
 const svgDataUrl = computed(() => {
   if (displayType.value !== 'svg') return ''
   return svgContentToDataUrl(props.file.content)
+})
+
+const htmlIframeSrcdoc = computed(() => {
+  if (displayType.value !== 'html') return ''
+  const raw = props.file.content ?? ''
+  const dirUrl = props.file.path ? encodeFileDirectoryUrl(props.file.path) : ''
+  return dirUrl ? injectHtmlBaseHref(raw, dirUrl) : raw
 })
 
 function initMonaco() {

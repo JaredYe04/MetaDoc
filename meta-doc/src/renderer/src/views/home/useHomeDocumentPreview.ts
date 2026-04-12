@@ -10,6 +10,7 @@ import messageBridge from '../../bridge/message-bridge'
 import { createRendererLogger } from '../../utils/logger'
 import { formatRegistry } from '../../utils/format-registry'
 import {
+  encodeFilePathToUrl,
   getFileDisplayType,
   isRenderableTextFormat,
   isImageFormat
@@ -125,18 +126,6 @@ export function useHomeDocumentPreview(options?: { windowTypeProvider?: () => st
     if (!path) return ''
     return workspace.getLinkBase(path)
   })
-
-  function encodeFilePathToUrl(filePath: string): string {
-    if (!filePath) return ''
-    let path = filePath.replace(/^file:\/\/\//, '')
-    path = path.replace(/\\/g, '/')
-    const parts = path.split('/')
-    const encodedParts = parts.map((part: string, index: number) => {
-      if (index === 0 && part.endsWith(':')) return part
-      return encodeURIComponent(part).replace(/%2F/g, '/')
-    })
-    return `file:///${encodedParts.join('/')}`
-  }
 
   const loadFileStats = async () => {
     if ((!isPlainTextFormat.value && !isRenderableFormat.value) || !currentFilePath.value) {

@@ -138,3 +138,46 @@ export function svgContentToDataUrl(content: string): string {
     return ''
   }
 }
+
+/** 本地路径 → file:// URL（与 Home / 预览等处一致，段编码） */
+export function encodeFilePathToUrl(filePath: string): string {
+  if (!filePath) return ''
+  let path = filePath.replace(/^file:\/\/\//, '')
+  path = path.replace(/\\/g, '/')
+  const parts = path.split('/')
+  const encodedParts = parts.map((part: string, index: number) => {
+    if (index === 0 && part.endsWith(':')) return part
+    return encodeURIComponent(part).replace(/%2F/g, '/')
+  })
+  return `file:///${encodedParts.join('/')}`
+}
+
+/** 文件所在目录的 file:// URL，末尾带 `/`，供 HTML `<base href>` 解析相对资源 */
+export function encodeFileDirectoryUrl(filePath: string): string {
+  if (!filePath) return ''
+  const path = filePath.replace(/^file:\/\/\//, '').replace(/\\/g, '/')
+  const lastSlash = path.lastIndexOf('/')
+  if (lastSlash < 0) return ''
+  const dir = path.slice(0, lastSlash)
+  if (!dir) return ''
+  const base = encodeFilePathToUrl(dir)
+  return base.endsWith('/') ? base : `${base}/`
+}
+
+/**
+ * 为 HTML 注入 `<base href>`，使 srcdoc 内相对路径指向磁盘上文件目录。
+ * 若文档已有 `<base>` 则不改。
+ */
+export function injectHtmlBaseHref(html: string, directoryFileUrl: string): string {
+  if (!html || !directoryFileUrl) return html
+  if (/<base[\s>]/i.test(html)) return html
+  const hrefEsc = directoryFileUrl.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+  const tag = `<base href="${hrefEsc}">`
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head[^>]*>/i, (m) => `${m}${tag}`)
+  }
+  if (/<html[^>]*>/i.test(html)) {
+    return html.replace(/<html[^>]*>/i, (m) => `${m}<head><meta charset="utf-8">${tag}</head>`)
+  }
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">${tag}</head><body>${html}</body></html>`
+}

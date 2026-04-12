@@ -27,8 +27,8 @@
           class="content-preview content-preview-rendered content-preview-html"
         >
           <iframe
-            :srcdoc="content"
-            sandbox="allow-same-origin"
+            :srcdoc="htmlIframeSrcdoc"
+            sandbox="allow-same-origin allow-scripts"
             class="rendered-html-iframe"
             title="HTML Preview"
           />
@@ -39,11 +39,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import DocumentMetaSection from './DocumentMetaSection.vue'
 import ImagePreviewViewer from '../../../components/common/ImagePreviewViewer.vue'
+import { encodeFileDirectoryUrl, injectHtmlBaseHref } from '../../../utils/file-display-utils'
 import { themeState } from '../../../utils/themes'
 
-defineProps<{
+const props = defineProps<{
   fileName: string
   fileFormat?: string
   creationDate?: string
@@ -53,7 +55,16 @@ defineProps<{
   content: string
   svgDataUrl: string
   imageUrl: string
+  /** 源文件路径：用于 HTML 相对资源解析（注入 base href） */
+  sourceFilePath?: string
 }>()
+
+const htmlIframeSrcdoc = computed(() => {
+  if (props.displayType !== 'html') return ''
+  const raw = props.content ?? ''
+  const dirUrl = props.sourceFilePath ? encodeFileDirectoryUrl(props.sourceFilePath) : ''
+  return dirUrl ? injectHtmlBaseHref(raw, dirUrl) : raw
+})
 </script>
 
 <style scoped>
@@ -99,12 +110,16 @@ defineProps<{
 
 .content-preview-html {
   padding: 0 8px;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .content-preview-html .rendered-html-iframe {
+  flex: 1;
   width: 100%;
-  min-height: 100%;
+  min-height: 0;
   border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.08)"');
   border-radius: 8px;
 }

@@ -55,7 +55,7 @@ export default defineConfig({
         },
         // 将 node-llama-cpp 标记为 external，因为它只在 devDependencies 中
         // 将 cspell-lib 标记为 external，因为它是纯 ESM 模块，需要在运行时动态导入
-        external: ['node-llama-cpp', /^@node-llama-cpp\/./, 'cspell-lib', 'dotenv']
+        external: ['node-llama-cpp', /^@node-llama-cpp\/./, 'cspell-lib', 'dotenv', 'greenworks']
       },
       chunkSizeWarningLimit: 1000 // 增大警告阈值，因为monaco-editor等库本身就很大
     }
@@ -71,7 +71,9 @@ export default defineConfig({
     publicDir: resolve('src/renderer/public'),
     resolve: {
       alias: {
+        '@common': resolve('src/common'),
         '@renderer': resolve('src/renderer/src'),
+        '@logos': resolve('../logos'),
         // CSS 子路径必须单独映射，否则会被下面的别名误解析为 index.js/dist/...
         '@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css': resolve(
           'node_modules/@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css'

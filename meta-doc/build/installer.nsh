@@ -27,6 +27,11 @@
   DeleteRegKey HKLM "Software\Classes\Applications\MetaDoc.exe"
   DeleteRegKey HKLM "Software\Classes\Applications\metadoc.exe"
   DeleteRegKey HKLM "Software\Classes\Applications\Meta-Doc.exe"
+
+  ; 清理「默认应用」Capabilities / App Paths（与 customInstall 成对）
+  DeleteRegKey HKLM "Software\ByteLight\MetaDoc"
+  DeleteRegValue HKLM "Software\RegisteredApplications" "MetaDoc"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\meta-doc.exe"
   
   ; 清理用户级别的文件关联（如果存在）
   DeleteRegKey HKCU "Software\Classes\.md"
@@ -64,12 +69,26 @@
   IfFileExists "$0\resources\build\icon.ico" 0 +2
     StrCpy $4 "$0\resources\build\icon.ico"
   
-  ; 注册应用程序到注册表，使"打开方式"能找到应用
-  ; 这是关键：确保应用程序在注册表中正确注册，并使用正确的图标
+  ; 注册应用程序到注册表，使「打开方式」与 ASSOCSTR_FRIENDLYAPPNAME 能显示产品名（非裸 exe 名）
+  ; FriendlyAppName 必须是 Applications\*.exe 上的「值」，不能是 FriendlyAppName 子键（否则系统仍显示 meta-doc.exe）
   WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}" "" "${PRODUCT_NAME}"
+  WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}" "FriendlyAppName" "${PRODUCT_NAME}"
   WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\DefaultIcon" "" "$4"
   WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\shell\open\command" "" '"$1" "%1"'
-  WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\FriendlyAppName" "" "${PRODUCT_NAME}"
+  ; SupportedTypes：纳入 Open with 推荐列表，便于选「始终」而非仅一次
+  WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\SupportedTypes\.md" "" ""
+  WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\SupportedTypes\.tex" "" ""
+
+  ; App Paths：ShellExecute / 打开方式 解析 exe 全路径
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_FILENAME}" "" "$1"
+
+  ; RegisteredApplications + Capabilities：出现在「设置 → 默认应用」中，并与 ProgID 绑定
+  WriteRegStr HKLM "Software\RegisteredApplications" "MetaDoc" "SOFTWARE\ByteLight\MetaDoc\Capabilities"
+  WriteRegStr HKLM "Software\ByteLight\MetaDoc\Capabilities" "ApplicationName" "${PRODUCT_NAME}"
+  WriteRegStr HKLM "Software\ByteLight\MetaDoc\Capabilities" "ApplicationDescription" "${PRODUCT_NAME}"
+  WriteRegStr HKLM "Software\ByteLight\MetaDoc\Capabilities" "ApplicationIcon" "$4"
+  WriteRegStr HKLM "Software\ByteLight\MetaDoc\Capabilities\FileAssociations" ".md" "MetaDoc.Markdown"
+  WriteRegStr HKLM "Software\ByteLight\MetaDoc\Capabilities\FileAssociations" ".tex" "MetaDoc.LaTeX"
   
   ; 查找文件关联图标文件
   ; electron-builder 会将图标文件复制到安装目录
@@ -113,14 +132,12 @@
   WriteRegStr HKCR "MetaDoc.Markdown" "" "Markdown Document"
   WriteRegStr HKCR "MetaDoc.Markdown\DefaultIcon" "" "$2"
   WriteRegStr HKCR "MetaDoc.Markdown\shell\open\command" "" '"$1" "%1"'
-  WriteRegStr HKCR "MetaDoc.Markdown\shell\open" "FriendlyAppName" "${PRODUCT_NAME}"
   
   ; 注册 .tex 文件关联
   WriteRegStr HKCR ".tex" "" "MetaDoc.LaTeX"
   WriteRegStr HKCR "MetaDoc.LaTeX" "" "LaTeX Document"
   WriteRegStr HKCR "MetaDoc.LaTeX\DefaultIcon" "" "$3"
   WriteRegStr HKCR "MetaDoc.LaTeX\shell\open\command" "" '"$1" "%1"'
-  WriteRegStr HKCR "MetaDoc.LaTeX\shell\open" "FriendlyAppName" "${PRODUCT_NAME}"
   
   ; 刷新 Shell 图标缓存，使文件关联图标立即生效
   System::Call 'shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
@@ -136,6 +153,9 @@
   
   ; 删除应用程序注册
   DeleteRegKey HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}"
+  DeleteRegKey HKLM "Software\ByteLight\MetaDoc"
+  DeleteRegValue HKLM "Software\RegisteredApplications" "MetaDoc"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_FILENAME}"
   
   ; 清理用户级别的文件关联（如果存在）
   DeleteRegKey HKCU "Software\Classes\.md"

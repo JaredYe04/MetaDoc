@@ -20,6 +20,7 @@
         :content="renderableContent"
         :svg-data-url="renderableSvgDataUrl"
         :image-url="renderableFileUrl"
+        :source-file-path="currentFilePath"
       />
       <HomePlainTextAdapter
         v-else-if="isPlainTextFormat"

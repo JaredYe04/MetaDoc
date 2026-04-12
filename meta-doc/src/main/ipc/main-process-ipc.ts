@@ -3,7 +3,11 @@
  * 后续可将各 bind* 拆入本目录子模块并在 registerMainProcessIpc 内按需 dynamic import。
  */
 import { mainCalls } from '../main-calls'
+import { registerSteamIpc } from '../steam/register-steam-ipc'
+import { registerFileAssociationIpc } from './register-file-association-ipc'
 
 export function registerMainProcessIpc(): void {
+  registerSteamIpc()
+  registerFileAssociationIpc()
   mainCalls()
 }

@@ -99,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
@@ -111,7 +111,11 @@ import {
   buildOutlineSectionLineRangesFromLatex,
   findSectionForLine
 } from '../utils/outline-section-lines'
-import { outlineSidebarSearchAdapterRef } from '../composables/outline-sidebar-search-adapter'
+import {
+  outlineSidebarSearchAdapterRef,
+  outlineSidebarAdapterTabIdRef
+} from '../composables/outline-sidebar-search-adapter'
+import { VIEW_MENU_DOCUMENT_TAB_ID } from './view-menu-context'
 import { useWorkspace } from '../stores/workspace'
 import type { FindResult } from '../editor/text-editor-types'
 import { VditorTextEditorAdapter } from '../editor/vditor-adapter'
@@ -121,7 +125,32 @@ const { t } = useI18n()
 const workspace = useWorkspace()
 const { activeDocument } = storeToRefs(workspace)
 
-const adapter = computed(() => outlineSidebarSearchAdapterRef.value)
+const viewMenuDocumentTabId = inject(
+  VIEW_MENU_DOCUMENT_TAB_ID,
+  computed(() => null as string | null)
+)
+const effectiveTabId = computed(() => viewMenuDocumentTabId.value)
+
+const effectiveDocument = computed(() => {
+  const tid = effectiveTabId.value
+  if (tid) {
+    try {
+      return workspace.ensureDocument(tid)
+    } catch {
+      return null
+    }
+  }
+  return activeDocument.value
+})
+
+/** 分屏工作区：仅当注册的编辑器属于当前 ViewMenu 绑定的 Tab 时才用适配器搜索 */
+const adapter = computed(() => {
+  const ad = outlineSidebarSearchAdapterRef.value
+  const regId = outlineSidebarAdapterTabIdRef.value
+  const tid = effectiveTabId.value
+  if (tid && regId && regId !== tid) return null
+  return ad
+})
 
 const findText = ref('')
 const matchCase = ref(false)
@@ -176,7 +205,7 @@ type Grouped = {
 
 const grouped = computed((): Grouped[] => {
   const ad = adapter.value
-  const doc = activeDocument.value
+  const doc = effectiveDocument.value
   const format = doc?.format?.toLowerCase() ?? 'md'
   const body = format === 'tex' ? (doc?.tex ?? '') : (doc?.markdown ?? '')
   if (!ad || !matches.value.length) return []
@@ -282,11 +311,13 @@ function scheduleSearch() {
 
 watch(
   () => [
-    outlineSidebarSearchAdapterRef.value,
-    activeDocument.value?.tabId,
-    activeDocument.value?.markdown,
-    activeDocument.value?.tex,
-    activeDocument.value?.format,
+    adapter.value,
+    effectiveDocument.value?.tabId,
+    effectiveDocument.value?.markdown,
+    effectiveDocument.value?.tex,
+    effectiveDocument.value?.format,
+    outlineSidebarAdapterTabIdRef.value,
+    effectiveTabId.value,
     findText.value,
     matchCase.value,
     wholeWord.value,

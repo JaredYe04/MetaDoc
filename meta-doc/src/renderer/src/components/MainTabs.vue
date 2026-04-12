@@ -8,7 +8,6 @@
       'is-focus-mode': isFocusMode
     }"
     @dblclick="handleDoubleClick"
-    @dragover.prevent="handleWrapperDragOver"
     @auxclick="handleWrapperAuxClick"
   >
     <!-- macOS 平台：左边预留空间给原生按钮 -->
@@ -18,25 +17,50 @@
     <div class="tab-region">
       <template v-if="!isFocusMode">
         <div ref="tabsViewportRef" class="tabs-viewport" @wheel.prevent="handleTabWheel">
-          <div ref="tabsListRef" class="tabs-list">
+          <div
+            ref="tabsListRef"
+            class="tabs-list"
+            :class="{
+              'is-main-tabs-external-drop-target':
+                mainTabsExternalDropHighlight ||
+                dropPreview.targetId === MAIN_TABS_PANE_APPEND_SENTINEL
+            }"
+            @dragover.prevent="handleTabsListDragOverCombined"
+            @dragleave="handleTabsListDragLeave"
+            @drop.prevent="handleTabsListDrop"
+          >
             <div
-              v-for="tab in allTabs"
+              v-for="tab in mainBarTabs"
               :key="tab.id"
               class="tab-item"
               :class="{
                 'is-active': currentActiveId === tab.id,
                 'is-pinned': tab.pinned,
                 'is-closing': tab._isClosing,
-                'drop-before': dropPreview.targetId === tab.id && dropPreview.mode === 'before',
-                'drop-after': dropPreview.targetId === tab.id && dropPreview.mode === 'after'
+                'drop-before':
+                  (dropPreview.targetId === tab.id && dropPreview.mode === 'before') ||
+                  (pathBarInsertHint?.tabBarAnchorTabId === tab.id &&
+                    pathBarInsertHint?.tabBarInsertMode === 'before'),
+                'drop-after':
+                  (dropPreview.targetId === tab.id && dropPreview.mode === 'after') ||
+                  (pathBarInsertHint?.tabBarAnchorTabId === tab.id &&
+                    pathBarInsertHint?.tabBarInsertMode === 'after'),
+                'drop-split-left':
+                  dropPreview.targetId === tab.id && dropPreview.splitEdge === 'left',
+                'drop-split-right':
+                  dropPreview.targetId === tab.id && dropPreview.splitEdge === 'right',
+                'drop-split-top':
+                  dropPreview.targetId === tab.id && dropPreview.splitEdge === 'top',
+                'drop-split-bottom':
+                  dropPreview.targetId === tab.id && dropPreview.splitEdge === 'bottom'
               }"
               :data-tab-id="tab.id"
+              :draggable="canDragTab(tab)"
               @click.stop="handleTabClickActivate(tab)"
               @mousedown="handleTabMouseDown($event, tab)"
               @dblclick.stop="handleTabLabelDblclick(tab)"
               @contextmenu.prevent="openTabContextMenu($event, tab)"
               @auxclick.stop.prevent="handleTabItemAuxClick($event, tab)"
-              :draggable="canDragTab(tab)"
               @dragstart.stop="handleDragStart(tab.id, $event)"
               @dragover.prevent="handleDragOver(tab.id, $event)"
               @dragleave="handleDragLeave"
@@ -65,12 +89,36 @@
                 </span>
               </div>
             </div>
+            <!-- Electron：父级 drag 会吞掉 HTML5 drop；列表保持 no-drag，仅尾部条为 drag 以拖窗 -->
+            <div
+              class="tabs-list-window-drag-sash"
+              aria-hidden="true"
+              @dragover.prevent="handleTabsListDragOverCombined"
+              @dragleave="handleTabsListDragLeave"
+              @drop.prevent="handleTabsListDrop"
+            />
+            <div class="tabs-strip-window-drag-nub" aria-hidden="true" />
           </div>
         </div>
       </template>
       <template v-else>
-        <div ref="tabsViewportRef" class="tabs-viewport tabs-viewport--focus-mode" @wheel.prevent="handleTabWheel">
-          <div ref="tabsListRef" class="tabs-list tabs-list--focus-mode">
+        <div
+          ref="tabsViewportRef"
+          class="tabs-viewport tabs-viewport--focus-mode"
+          @wheel.prevent="handleTabWheel"
+        >
+          <div
+            ref="tabsListRef"
+            class="tabs-list tabs-list--focus-mode"
+            :class="{
+              'is-main-tabs-external-drop-target':
+                mainTabsExternalDropHighlight ||
+                dropPreview.targetId === MAIN_TABS_PANE_APPEND_SENTINEL
+            }"
+            @dragover.prevent="handleTabsListDragOverCombined"
+            @dragleave="handleTabsListDragLeave"
+            @drop.prevent="handleTabsListDrop"
+          >
             <div class="focus-doc-slot">
               <button
                 ref="focusDocTriggerRef"
@@ -91,11 +139,13 @@
                   :bg-color="focusTriggerLogoBg"
                   :symbol-color="focusTriggerLogoSymbol"
                 />
-                <span class="focus-doc-picker-trigger__text">{{
-                  focusDocPickerButtonLabel
-                }}</span>
+                <span class="focus-doc-picker-trigger__text">{{ focusDocPickerButtonLabel }}</span>
                 <span
-                  v-if="focusActivePickerTab && focusActivePickerTab.dirty && !focusActivePickerTab.pinned"
+                  v-if="
+                    focusActivePickerTab &&
+                    focusActivePickerTab.dirty &&
+                    !focusActivePickerTab.pinned
+                  "
                   class="focus-doc-picker-trigger__dot"
                   aria-hidden="true"
                 />
@@ -104,6 +154,14 @@
                 </el-icon>
               </button>
             </div>
+            <div
+              class="tabs-list-window-drag-sash tabs-list-window-drag-sash--focus"
+              aria-hidden="true"
+              @dragover.prevent="handleTabsListDragOverCombined"
+              @dragleave="handleTabsListDragLeave"
+              @drop.prevent="handleTabsListDrop"
+            />
+            <div class="tabs-strip-window-drag-nub" aria-hidden="true" />
           </div>
         </div>
         <Teleport to="body">
@@ -113,10 +171,10 @@
             :style="focusDocPickerShellStyle"
           >
             <div
+              :id="focusDocListboxId"
               ref="focusDocPickerPanelRef"
               class="focus-doc-picker-panel"
               role="listbox"
-              :id="focusDocListboxId"
               tabindex="-1"
               @keydown="onFocusDocListKeydown"
             >
@@ -134,19 +192,25 @@
                     'is-active': currentActiveId === tab.id,
                     'is-pinned': tab.pinned,
                     'is-closing': tab._isClosing,
-                    'drop-before': dropPreview.targetId === tab.id && dropPreview.mode === 'before',
-                    'drop-after': dropPreview.targetId === tab.id && dropPreview.mode === 'after',
+                    'drop-before':
+                      (dropPreview.targetId === tab.id && dropPreview.mode === 'before') ||
+                      (pathBarInsertHint?.tabBarAnchorTabId === tab.id &&
+                        pathBarInsertHint?.tabBarInsertMode === 'before'),
+                    'drop-after':
+                      (dropPreview.targetId === tab.id && dropPreview.mode === 'after') ||
+                      (pathBarInsertHint?.tabBarAnchorTabId === tab.id &&
+                        pathBarInsertHint?.tabBarInsertMode === 'after'),
                     'is-keyboard-focus': focusDocListHighlightIndex === index
                   }"
                   :data-tab-id="tab.id"
                   role="option"
                   :aria-selected="currentActiveId === tab.id"
+                  :draggable="canDragTab(tab)"
                   @click.stop="handleFocusDocRowClick(tab)"
                   @mousedown="handleTabMouseDown($event, tab)"
                   @dblclick.stop="handleTabLabelDblclick(tab)"
                   @contextmenu.prevent="openTabContextMenu($event, tab)"
                   @auxclick.stop.prevent="handleTabItemAuxClick($event, tab)"
-                  :draggable="canDragTab(tab)"
                   @dragstart.stop="handleDragStart(tab.id, $event)"
                   @dragover.prevent="handleDragOver(tab.id, $event)"
                   @dragleave="handleDragLeave"
@@ -197,12 +261,95 @@
     <div id="main-tabs-focus-menu-host" class="main-tabs-focus-menu-host"></div>
 
     <div class="tab-trailing-actions">
+      <PopoverRoot v-if="!isFocusMode" v-model:open="openDocsPopoverOpen">
+        <div class="open-docs-trigger-slot">
+          <PopoverTrigger as-child>
+            <button
+              type="button"
+              class="focus-doc-picker-trigger"
+              :class="{ 'is-open': openDocsPopoverOpen, 'is-locked': isLockedEffective }"
+              :title="focusDocPickerTriggerTooltip"
+              :aria-expanded="openDocsPopoverOpen"
+              aria-haspopup="dialog"
+              aria-controls="main-tabs-open-docs-popover"
+              :disabled="isLockedEffective"
+            >
+              <LogoIcon
+                class="focus-doc-picker-trigger__logo"
+                :size="20"
+                :bg-color="focusTriggerLogoBg"
+                :symbol-color="focusTriggerLogoSymbol"
+              />
+              <span class="focus-doc-picker-trigger__text">{{ focusDocPickerButtonLabel }}</span>
+              <span
+                v-if="
+                  focusActivePickerTab &&
+                  focusActivePickerTab.dirty &&
+                  !focusActivePickerTab.pinned
+                "
+                class="focus-doc-picker-trigger__dot"
+                aria-hidden="true"
+              />
+              <el-icon class="focus-doc-picker-trigger__chevron" aria-hidden="true">
+                <ArrowDown />
+              </el-icon>
+            </button>
+          </PopoverTrigger>
+        </div>
+        <PopoverContent
+          id="main-tabs-open-docs-popover"
+          class="open-docs-popover z-[100005] w-[min(360px,80vw)] border bg-popover p-0 text-popover-foreground shadow-md"
+          align="end"
+          side="bottom"
+          :side-offset="6"
+        >
+          <div class="open-docs-popover__header">
+            {{ t('mainTabs.openDocumentsTitle', '文档') }}
+          </div>
+          <ScrollArea class="open-docs-popover__scroll h-[min(320px,50vh)]">
+            <template v-if="focusPickerTabs.length === 0">
+              <div class="open-docs-popover__empty" role="presentation">
+                {{ t('mainTabs.focusMode.emptyList') }}
+              </div>
+            </template>
+            <template v-else>
+              <button
+                v-for="tab in focusPickerTabs"
+                :key="tab.id"
+                type="button"
+                class="open-docs-row"
+                :class="{ 'is-active': currentActiveId === tab.id }"
+                @click="activateDocumentFromOpenList(tab)"
+              >
+                <img
+                  class="open-docs-row__icon"
+                  :src="getFocusPickerRowIcon(tab)"
+                  alt=""
+                  draggable="false"
+                />
+                <span class="open-docs-row__title">{{ getTabLabel(tab) }}</span>
+                <span v-if="tab.dirty && !tab.pinned" class="open-docs-row__dot" aria-hidden="true" />
+                <span
+                  v-if="canCloseTab(tab) && !tab.pinned && !tab._isClosing"
+                  class="open-docs-row__close"
+                  :class="{ 'open-docs-row__close--active': currentActiveId === tab.id }"
+                  role="presentation"
+                  @click.stop="handleCloseTabFromOpenDocsPopover(tab.id)"
+                >
+                  <el-icon><Close /></el-icon>
+                </span>
+              </button>
+            </template>
+            <ScrollBar />
+          </ScrollArea>
+        </PopoverContent>
+      </PopoverRoot>
       <!-- 新建文档按钮 - 在 scroll 外面，永远可见 -->
       <div
         class="new-tab-button"
         :class="{ 'is-locked': isLockedEffective }"
-        @click="handleNewTabClick"
         :title="$t('mainTabs.newDocumentTooltip')"
+        @click="handleNewTabClick"
       >
         <el-icon><Plus /></el-icon>
       </div>
@@ -210,8 +357,8 @@
       <div
         class="focus-mode-button"
         :class="{ 'is-locked': isLockedEffective }"
-        @click="handleToggleFocusMode"
         :title="isFocusMode ? $t('focusMode.exitTooltip') : $t('focusMode.enterTooltip')"
+        @click="handleToggleFocusMode"
       >
         <img
           class="focus-mode-button-icon"
@@ -407,6 +554,9 @@ import eventBus from '../utils/event-bus'
 import messageBridge from '../bridge/message-bridge'
 import { createRendererLogger } from '../utils/logger'
 import { ArrowDown, Close, Plus, ArrowRight } from '@element-plus/icons-vue'
+import { PopoverRoot, PopoverTrigger } from 'reka-ui'
+import { PopoverContent } from './ui/popover'
+import { ScrollArea, ScrollBar } from './ui/scroll-area'
 import { mixColors, themeState, FIXED_LOGO_COLORS } from '../utils/themes'
 import { useCloseTab } from '../composables/useCloseTab'
 import {
@@ -415,7 +565,21 @@ import {
   serializeTabData,
   checkCanDragToOtherWindow,
   setTabBarElement,
-  prefetchDragThumbnail
+  prefetchDragThumbnail,
+  consumeTabDropPreviewIfNeeded,
+  consumeEditorContentDropIfNeeded,
+  setTabDragSourceSurface,
+  snapshotEditorPaneDropHighlightBeforeConsume,
+  snapshotDragEndDropHighlightFromPreview,
+  promotePaneTabToMainBarWithInsertHint,
+  TAB_DRAG_MIME_TYPE,
+  WORKSPACE_FILE_PATH_DRAG_MIME,
+  readWorkspacePathFromDataTransfer,
+  shouldTreatAsExternalWorkspacePathDrag,
+  WORKBENCH_SYNTHETIC_ID,
+  MAIN_TABS_PANE_APPEND_SENTINEL,
+  tabDragSourceSurface,
+  dndLog
 } from '../composables/useTabDrag'
 import { useTabAnimation } from '../composables/useTabAnimation'
 import GlobalMessageBox from './global/GlobalMessageBox.vue'
@@ -423,6 +587,12 @@ import GlobalToast from './global/GlobalToast.vue'
 import LogoTab from './LogoTab.vue'
 import LogoIcon from './LogoIcon.vue'
 import { useFocusMode } from '../composables/useFocusMode'
+import { useEditorChromeLayout } from '../composables/useEditorChromeLayout'
+import {
+  collectTabIdsInLayout,
+  forEachGroup,
+  layoutQualifiesForWorkbenchMainTab
+} from '../stores/workspace-layout'
 import { isMacOSLayout } from '../utils/keyboard-scheme-defaults'
 
 // 主题中的窗口控制图标（themes.js 中注册，TS 无类型声明故用 Record 访问）
@@ -439,6 +609,13 @@ const route = useRoute()
 const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 
 const workspace = useWorkspace()
+const openDocsPopoverOpen = ref(false)
+/** 资源树路径 / 窗格 Tab 拖过顶栏时整栏高亮 */
+const mainTabsExternalDropHighlight = ref(false)
+/** 资源树 path 在主栏上的插入位置（与 dropPreview 分列，避免干扰 Tab 排序） */
+type PathBarInsertHint = { tabBarAnchorTabId: string; tabBarInsertMode: 'before' | 'after' }
+const pathBarInsertHint = ref<PathBarInsertHint | null>(null)
+
 const tabsWrapperRef = ref<HTMLElement | null>(null)
 const tabsViewportRef = ref<HTMLElement | null>(null)
 const tabsListRef = ref<HTMLElement | null>(null)
@@ -461,6 +638,39 @@ const { checkCanCloseTab, doRemoveTab, isLocked } = useCloseTab()
 const isLockedEffective = computed<boolean>(() => props.mode === 'demo' || isLocked.value)
 
 const { isFocusMode, toggleFocusMode, enterFocusMode, exitFocusMode } = useFocusMode()
+const { editorChromeLayout } = useEditorChromeLayout()
+
+/** 分屏中「文档组」数量：单组为工作台1，左右分屏两组为工作台2，以此类推 */
+const workbenchMainTabOrdinal = computed(() => {
+  const root = workspace.workspaceLayoutRoot.value
+  let n = 0
+  forEachGroup(root, (g) => {
+    if (g.tabIds.length > 0) n++
+  })
+  return Math.max(1, n)
+})
+
+const workbenchSyntheticTab = computed(
+  (): WorkspaceTab => ({
+    id: WORKBENCH_SYNTHETIC_ID,
+    kind: 'system',
+    title: t('mainTabs.workbenchTabWithSessionCount', {
+      count: workbenchMainTabOrdinal.value
+    }),
+    subtitle: '',
+    path: '',
+    format: 'md',
+    dirty: false,
+    pinned: false
+  })
+)
+
+function resolveWorkbenchMainBarTargetId(tabId: string): string {
+  if (tabId !== WORKBENCH_SYNTHETIC_ID) return tabId
+  const set = collectTabIdsInLayout(workspace.workspaceLayoutRoot.value)
+  const first = workspace.tabs.find((x) => set.has(x.id))
+  return first?.id ?? tabId
+}
 
 const focusModeButtonIconSrc = computed(() => {
   const t = themeState.currentTheme as unknown as Record<string, string>
@@ -516,6 +726,31 @@ const {
     await nextTick()
   }
 })
+
+/** document capture 先消费顶栏 path drop 时不会走到 handleTabsListDrop，须同步清掉高亮 */
+function clearMainTabsExternalDropUi() {
+  mainTabsExternalDropHighlight.value = false
+  pathBarInsertHint.value = null
+  if (!isDragging.value && dropPreview.value.targetId === MAIN_TABS_PANE_APPEND_SENTINEL) {
+    dropPreview.value = { targetId: null, mode: null, splitEdge: null }
+  }
+}
+
+function onPathBarInsertHintBus(hint: unknown) {
+  if (
+    hint &&
+    typeof hint === 'object' &&
+    'tabBarAnchorTabId' in hint &&
+    'tabBarInsertMode' in hint
+  ) {
+    const m = (hint as PathBarInsertHint).tabBarInsertMode
+    if (m === 'before' || m === 'after') {
+      pathBarInsertHint.value = hint as PathBarInsertHint
+      return
+    }
+  }
+  pathBarInsertHint.value = null
+}
 
 // Tab 右键菜单
 const tabContextMenuVisible = ref(false)
@@ -589,6 +824,7 @@ const canMoveToOtherWindow = (tab: WorkspaceTab | null): boolean => {
 
 const openTabContextMenu = async (e: MouseEvent, tab: WorkspaceTab) => {
   if (isLockedEffective.value) return
+  if (tab.id === WORKBENCH_SYNTHETIC_ID) return
   if (tab._isClosing) return
   focusDocPickerOpen.value = false
   tabContextMenuVisible.value = true
@@ -694,6 +930,7 @@ const handleContextMenuAction = async (action: string) => {
       if (fromIdx > 0) {
         const [tabItem] = workspace.tabs.splice(fromIdx, 1)
         workspace.tabs.splice(fromIdx - 1, 0, tabItem)
+        workspace.refreshDocumentLayout()
         nextTick(() => workspace.activateTab(tab.id))
       }
       break
@@ -703,6 +940,7 @@ const handleContextMenuAction = async (action: string) => {
       if (fromIdx >= 0 && fromIdx < workspace.tabs.length - 1) {
         const [tabItem] = workspace.tabs.splice(fromIdx, 1)
         workspace.tabs.splice(fromIdx + 1, 0, tabItem)
+        workspace.refreshDocumentLayout()
         nextTick(() => workspace.activateTab(tab.id))
       }
       break
@@ -925,37 +1163,77 @@ const handleNewTabClick = () => {
   workspace.openNewDocumentTab()
 }
 
-// 合并文档Tab和系统Tab、工具Tab，过滤掉空白页Tab；demo 模式用静态示例
+// 除空白页外的全部 Tab（专注下拉、滚轮切换等）
 const allTabs = computed(() => {
   if (props.mode === 'demo') return DEMO_TABS.value
   return workspace.tabs.filter((tab) => !(tab.kind === 'system' && tab.route === '/dummy'))
 })
 
+/**
+ * 经典：顶栏展示全部标签。
+ * 工作区：满足「工作台」条件时，布局内成员不出现在顶栏，末尾追加合成「工作台」；其余为顶栏独立 Tab（placement top 等）。
+ */
+const mainBarTabs = computed((): WorkspaceTab[] => {
+  if (props.mode === 'demo') return DEMO_TABS.value
+  if (editorChromeLayout.value === 'classic') {
+    return allTabs.value.filter((tab) => !tab._isInitialPlaceholder)
+  }
+  const root = workspace.workspaceLayoutRoot.value
+  const inLayout = collectTabIdsInLayout(root)
+  const qualifies = layoutQualifiesForWorkbenchMainTab(root)
+  const out: WorkspaceTab[] = []
+  for (const tab of workspace.tabs) {
+    if (tab._isInitialPlaceholder) continue
+    if (qualifies && inLayout.has(tab.id)) continue
+    out.push(tab)
+  }
+  if (qualifies && inLayout.size > 0) {
+    out.push(workbenchSyntheticTab.value)
+  }
+  return out
+})
+
 // 计算Tab数量，用于CSS变量
-const tabCount = computed(() => allTabs.value.length)
+const tabCount = computed(() => mainBarTabs.value.length)
 
 // 使用标签页动画 composable - GPU 加速 FLIP 动画
 const { triggerNewTabAnimation, triggerCloseTabAnimation, cancelAnimations } =
   useTabAnimation(tabsListRef)
 
 const currentActiveId = computed({
-  get: () => (props.mode === 'demo' ? 'demo-1' : workspace.activeTabId.value),
+  get: () => {
+    if (props.mode === 'demo') return 'demo-1'
+    if (
+      editorChromeLayout.value === 'workspace' &&
+      layoutQualifiesForWorkbenchMainTab(workspace.workspaceLayoutRoot.value)
+    ) {
+      const aid = workspace.activeTabId.value
+      const set = collectTabIdsInLayout(workspace.workspaceLayoutRoot.value)
+      if (aid && set.has(aid)) return WORKBENCH_SYNTHETIC_ID
+    }
+    return workspace.activeTabId.value
+  },
   set: (value: string) => {
     if (isLockedEffective.value) return
     if (props.mode === 'demo') return
+    if (value === WORKBENCH_SYNTHETIC_ID) {
+      const set = collectTabIdsInLayout(workspace.workspaceLayoutRoot.value)
+      const cur = workspace.activeTabId.value
+      if (cur && set.has(cur)) return
+      const first = workspace.tabs.find((x) => set.has(x.id))
+      if (first) workspace.activateTab(first.id)
+      return
+    }
     if (value !== workspace.activeTabId.value) {
       workspace.activateTab(value)
-      // 如果Tab有route，切换路由（仅对系统Tab和工具Tab）
       const tab = allTabs.value.find((t) => t.id === value)
       if (tab && (tab.kind === 'system' || tab.kind === 'tool') && tab.route) {
-        // 使用nextTick确保在DOM更新后立即跳转
         nextTick(() => {
           if (tab.route && tab.route !== route.path) {
             router.push(tab.route)
           }
         })
       }
-      // 文档Tab不需要路由切换，视图由lastView控制
     }
   }
 })
@@ -1094,15 +1372,12 @@ const syncFocusDocListHighlight = () => {
 }
 
 const canCloseTab = (tab: WorkspaceTab): boolean => {
-  // 所有Tab都可以关闭，包括最后一个Tab
-  // 关闭最后一个Tab后会显示Dummy组件
+  if (tab.id === WORKBENCH_SYNTHETIC_ID) return true
   return workspace.canRemoveTab(tab.id)
 }
 
 const canDragTab = (tab: WorkspaceTab): boolean => {
-  // 所有Tab都可以拖拽来改变顺序（在本窗口内）
-  // 但系统Tab和工具Tab不允许拖拽到其他窗口
-  // 正在关闭的Tab不允许拖拽
+  if (tab.id === WORKBENCH_SYNTHETIC_ID) return false
   return !isLockedEffective.value && !tab._isClosing
 }
 
@@ -1115,6 +1390,14 @@ const canDragToOtherWindow = (_tab: WorkspaceTab): boolean => {
 const handleTabClickActivate = (tab: WorkspaceTab) => {
   if (isLockedEffective.value) return
   if (tab._isClosing) return
+  if (tab.id === WORKBENCH_SYNTHETIC_ID) {
+    const set = collectTabIdsInLayout(workspace.workspaceLayoutRoot.value)
+    const cur = workspace.activeTabId.value
+    if (cur && set.has(cur)) return
+    const first = workspace.tabs.find((x) => set.has(x.id))
+    if (first) workspace.activateTab(first.id)
+    return
+  }
   if (tab.id === workspace.activeTabId.value) return
 
   workspace.activateTab(tab.id)
@@ -1129,6 +1412,16 @@ const handleTabClickActivate = (tab: WorkspaceTab) => {
 const handleFocusDocRowClick = (tab: WorkspaceTab) => {
   handleTabClickActivate(tab)
   closeFocusDocPicker()
+}
+
+function activateDocumentFromOpenList(tab: WorkspaceTab): void {
+  openDocsPopoverOpen.value = false
+  handleTabClickActivate(tab)
+}
+
+function handleCloseTabFromOpenDocsPopover(tabId: string): void {
+  if (isLockedEffective.value) return
+  void handleCloseTab(tabId)
 }
 
 /** 下拉面板内整行按下态（挂在 focus-doc-picker-panel 的行上，mouseup 任意处释放） */
@@ -1223,6 +1516,7 @@ const onFocusDocListKeydown = (e: KeyboardEvent) => {
 // 在 mousedown 时预加载拖拽缩略图，但不切换 tab（避免拖拽时切换）
 const handleTabMouseDown = async (event: MouseEvent, tab: WorkspaceTab) => {
   if (isLockedEffective.value) return
+  if (tab.id === WORKBENCH_SYNTHETIC_ID) return
   if (tab._isClosing) return
   // 如果点在关闭按钮上，不处理（让关闭按钮处理）
   const target = event.target as HTMLElement
@@ -1248,6 +1542,7 @@ const handleTabItemAuxClick = (event: MouseEvent, tab: WorkspaceTab) => {
   if (event.button !== 1) return
   event.preventDefault()
   if (isLockedEffective.value) return
+  if (tab.id === WORKBENCH_SYNTHETIC_ID) return
   if (tab._isClosing) return
   handleCloseTab(tab.id)
 }
@@ -1257,6 +1552,11 @@ const closingTabIds = new Set<string>()
 
 // 自定义关闭Tab处理函数 - 先检查确认，再播放动画，最后真正移除
 const handleCloseTab = async (tabId: string) => {
+  if (tabId === WORKBENCH_SYNTHETIC_ID) {
+    workspace.dissolveWorkbenchLayout()
+    return
+  }
+
   // 防止重复关闭
   if (closingTabIds.has(tabId)) return
 
@@ -1281,6 +1581,7 @@ const handleCloseTab = async (tabId: string) => {
 }
 
 const handleTabLabelDblclick = (tab: WorkspaceTab) => {
+  if (tab.id === WORKBENCH_SYNTHETIC_ID) return
   if (tab.preview) {
     workspace.pinTab(tab.id)
   }
@@ -1335,8 +1636,9 @@ type DropMode = 'before' | 'after'
 
 // 检查拖拽位置是否合法（固定标签页约束）
 const isDropPositionValid = (dragTabId: string, targetTabId: string, mode: DropMode): boolean => {
-  const dragTab = allTabs.value.find((t) => t.id === dragTabId)
-  const targetTab = allTabs.value.find((t) => t.id === targetTabId)
+  const dragTab = workspace.tabs.find((t) => t.id === dragTabId)
+  const resolvedTargetId = resolveWorkbenchMainBarTargetId(targetTabId)
+  const targetTab = workspace.tabs.find((t) => t.id === resolvedTargetId)
   if (!dragTab || !targetTab) return true
 
   // 固定标签页只能在固定区域内移动
@@ -1347,15 +1649,24 @@ const isDropPositionValid = (dragTabId: string, targetTabId: string, mode: DropM
   return true
 }
 
+const isSplitDropValid = (dragTabId: string, targetTabId: string): boolean => {
+  const dragTab = workspace.tabs.find((t) => t.id === dragTabId)
+  const resolvedTargetId = resolveWorkbenchMainBarTargetId(targetTabId)
+  const targetTab = workspace.tabs.find((t) => t.id === resolvedTargetId)
+  if (!dragTab || !targetTab) return false
+  if (dragTab.pinned !== targetTab.pinned) return false
+  return true
+}
+
 // 归一化：同一缝隙只显示一条高亮线
 const normalizeDropPreview = (
   targetId: string,
   mode: DropMode
 ): { targetId: string; mode: DropMode } => {
   if (mode === 'after') return { targetId, mode }
-  const idx = allTabs.value.findIndex((t) => t.id === targetId)
+  const idx = workspace.tabs.findIndex((t) => t.id === targetId)
   if (idx <= 0) return { targetId, mode }
-  const prevTab = allTabs.value[idx - 1]
+  const prevTab = workspace.tabs[idx - 1]
   return { targetId: prevTab.id, mode: 'after' }
 }
 
@@ -1371,27 +1682,71 @@ const handleDragStart = async (id: string, event: DragEvent) => {
     return
   }
 
+  setTabDragSourceSurface('main')
+  dndLog('dragstart', 'main-tab', { tabId: id, title: tab.title || tab.subtitle || '' })
   handleTabDragStart(tab, event)
 }
 
 const handleDragOver = (targetId: string, event: DragEvent) => {
   if (isLockedEffective.value) return
 
-  // 获取当前拖拽的 Tab
-  const tab = allTabs.value.find((t) => t.id === targetId)
+  const dt = event.dataTransfer
+  const types = dt?.types ?? []
+  if (shouldTreatAsExternalWorkspacePathDrag(dt)) {
+    event.preventDefault()
+    if (dt) dt.dropEffect = 'copy'
+    mainTabsExternalDropHighlight.value = true
+    return
+  }
+
+  if (types.includes(TAB_DRAG_MIME_TYPE) && tabDragSourceSurface.value === 'pane' && draggingId.value) {
+    event.preventDefault()
+    if (dt) dt.dropEffect = 'move'
+    mainTabsExternalDropHighlight.value = true
+    dropPreview.value = {
+      targetId: MAIN_TABS_PANE_APPEND_SENTINEL,
+      mode: 'after',
+      splitEdge: null
+    }
+    return
+  }
+
+  const resolvedId = resolveWorkbenchMainBarTargetId(targetId)
+  const tab = workspace.tabs.find((t) => t.id === resolvedId)
   if (!tab) return
 
   // 使用 useTabDrag 处理拖拽经过
   handleTabDragOver(tab, event)
 
+  if (targetId === WORKBENCH_SYNTHETIC_ID) {
+    const labelEl = event.currentTarget as HTMLElement
+    const tabItemEl = findTabItemElement(labelEl)
+    const mode = tabItemEl ? computeDropMode(event, tabItemEl) : dropPreview.value.mode
+    dropPreview.value = {
+      targetId: WORKBENCH_SYNTHETIC_ID,
+      mode,
+      splitEdge: null
+    }
+  }
+
   // 验证拖拽位置是否合法（固定标签页约束）
-  if (dropPreview.value.targetId && dropPreview.value.mode && draggingId.value) {
-    if (
-      !isDropPositionValid(draggingId.value, dropPreview.value.targetId, dropPreview.value.mode)
-    ) {
-      // 位置不合法，清除预览
-      dropPreview.value = { targetId: null, mode: null }
-      return
+  if (
+    dropPreview.value.targetId &&
+    dropPreview.value.targetId !== MAIN_TABS_PANE_APPEND_SENTINEL &&
+    draggingId.value
+  ) {
+    if (dropPreview.value.splitEdge) {
+      if (!isSplitDropValid(draggingId.value, dropPreview.value.targetId)) {
+        dropPreview.value = { targetId: null, mode: null, splitEdge: null }
+        return
+      }
+    } else if (dropPreview.value.mode) {
+      if (
+        !isDropPositionValid(draggingId.value, dropPreview.value.targetId, dropPreview.value.mode)
+      ) {
+        dropPreview.value = { targetId: null, mode: null, splitEdge: null }
+        return
+      }
     }
   }
 
@@ -1415,21 +1770,59 @@ const handleDragLeave = () => {
 const handleDrop = async (targetId: string, event: DragEvent) => {
   if (isLockedEffective.value) return
 
-  const tab = allTabs.value.find((t) => t.id === targetId)
-  if (!tab) return
-
-  // 验证拖拽位置是否合法（固定标签页约束）
-  if (draggingId.value && dropPreview.value.targetId && dropPreview.value.mode) {
-    if (
-      !isDropPositionValid(draggingId.value, dropPreview.value.targetId, dropPreview.value.mode)
-    ) {
-      // 位置不合法，取消投放
-      return
+  const pathFromDrop = readWorkspacePathFromDataTransfer(event.dataTransfer)
+  if (pathFromDrop) {
+    dndLog('drop', 'main-tab-item', { path: pathFromDrop, anchorTargetId: targetId })
+    event.preventDefault()
+    event.stopPropagation()
+    clearMainTabsExternalDropUi()
+    const resolvedBarId = resolveWorkbenchMainBarTargetId(targetId)
+    const payload: {
+      path: string
+      workspacePlacement: 'top'
+      tabBarAnchorTabId?: string
+      tabBarInsertMode?: 'before' | 'after'
+    } = { path: pathFromDrop, workspacePlacement: 'top' }
+    const anchorTab = workspace.tabs.find((t) => t.id === resolvedBarId)
+    if (anchorTab) {
+      const labelEl = event.currentTarget as HTMLElement
+      const tabItemEl = findTabItemElement(labelEl)
+      if (tabItemEl) {
+        payload.tabBarAnchorTabId = resolvedBarId
+        payload.tabBarInsertMode = computeDropMode(event, tabItemEl)
+      }
     }
+    eventBus.emit('workspace-open-document', payload)
+    return
   }
 
-  // 使用 useTabDrag 处理投放
-  await handleTabDrop(tab, event)
+  const resolvedId = resolveWorkbenchMainBarTargetId(targetId)
+  const tab = workspace.tabs.find((t) => t.id === resolvedId)
+  if (!tab) return
+
+  if (
+    draggingId.value &&
+    dropPreview.value.targetId &&
+    dropPreview.value.targetId !== MAIN_TABS_PANE_APPEND_SENTINEL
+  ) {
+    if (dropPreview.value.splitEdge) {
+      if (!isSplitDropValid(draggingId.value, dropPreview.value.targetId)) {
+        return
+      }
+    } else if (dropPreview.value.mode) {
+      if (
+        !isDropPositionValid(draggingId.value, dropPreview.value.targetId, dropPreview.value.mode)
+      ) {
+        return
+      }
+    }
+    // 仅有 targetId、无 mode/split（少见）仍交给 handleTabDrop，避免误拦工作台合成 Tab 等路径
+  }
+
+  // 使用 useTabDrag 处理投放（传入原始 targetId 以识别「工作台」合成 Tab）
+  await handleTabDrop(tab, event, targetId)
+  mainTabsExternalDropHighlight.value = false
+  pathBarInsertHint.value = null
 
   // 重新激活当前 Tab
   nextTick(() => {
@@ -1441,32 +1834,16 @@ const handleDrop = async (targetId: string, event: DragEvent) => {
 }
 
 const handleDragEnd = async (event: DragEvent) => {
-  // Issue 2: 安全区 - 如果有有效的 dropPreview，先执行移动
-  const preview = dropPreview.value
-  if (preview.targetId && preview.mode && draggingId.value) {
-    const fromId = draggingId.value
-    const toId = preview.targetId
-    const mode = preview.mode
-
-    const fromIndex = workspace.tabs.findIndex((t) => t.id === fromId)
-    const toIndex = workspace.tabs.findIndex((t) => t.id === toId)
-
-    if (fromIndex !== -1 && toIndex !== -1 && fromId !== toId) {
-      let insertIndex = toIndex
-      if (mode === 'after') {
-        insertIndex = toIndex + 1
-      }
-      if (fromIndex < insertIndex) {
-        insertIndex -= 1
-      }
-      insertIndex = Math.max(0, Math.min(insertIndex, workspace.tabs.length))
-
-      if (fromIndex !== insertIndex) {
-        const [tab] = workspace.tabs.splice(fromIndex, 1)
-        workspace.tabs.splice(insertIndex, 0, tab)
-      }
-    }
-  }
+  clearMainTabsExternalDropUi()
+  snapshotEditorPaneDropHighlightBeforeConsume()
+  await consumeEditorContentDropIfNeeded(workspace)
+  const previewSnap = { ...dropPreview.value }
+  dndLog('dragend', 'main-tab', {
+    draggingId: draggingId.value,
+    dropPreview: previewSnap
+  })
+  snapshotDragEndDropHighlightFromPreview(previewSnap)
+  await consumeTabDropPreviewIfNeeded(workspace, previewSnap, draggingId.value)
 
   await handleTabDragEnd(event)
   cleanupDragImage()
@@ -1602,6 +1979,11 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
       workspace.tabs.push(tab)
     }
 
+    const p = tabTransferData.tab?.workspacePlacement
+    if (p === 'top' || p === 'workbench') {
+      tab.workspacePlacement = p
+    }
+
     // 恢复文档内容（包括新文档和未保存的文档）
     if ((tab.kind === 'file' || tab.kind === 'new') && document) {
       try {
@@ -1653,6 +2035,7 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
     // 激活Tab
     await nextTick()
     workspace.activateTab(tab.id)
+    workspace.refreshDocumentLayout()
 
     // 转移文件所有权到新窗口的 tab
     if (tab.path && (tab.kind === 'file' || tab.kind === 'new')) {
@@ -1701,6 +2084,7 @@ const removeTabAfterDrag = async (tabId: string, windowId: number) => {
         workspace.activateTab(nextTab.id)
       }
     }
+    workspace.refreshDocumentLayout()
 
     // 检查窗口是否可以关闭
     if (messageBridge.getIpc()) {
@@ -1715,11 +2099,90 @@ const removeTabAfterDrag = async (tabId: string, windowId: number) => {
   }
 }
 
+function handleTabsListDragOverCombined(event: DragEvent): void {
+  const dt = event.dataTransfer
+  if (!dt) return
+  const types = dt.types ?? []
+  if (shouldTreatAsExternalWorkspacePathDrag(dt)) {
+    event.preventDefault()
+    dt.dropEffect = 'copy'
+    mainTabsExternalDropHighlight.value = true
+    return
+  }
+  if (types.includes(TAB_DRAG_MIME_TYPE) && tabDragSourceSurface.value === 'pane' && isDragging.value) {
+    event.preventDefault()
+    dt.dropEffect = 'move'
+    mainTabsExternalDropHighlight.value = true
+    dropPreview.value = {
+      targetId: MAIN_TABS_PANE_APPEND_SENTINEL,
+      mode: 'after',
+      splitEdge: null
+    }
+    return
+  }
+  handleWrapperDragOver(event)
+}
+
+function handleTabsListDragLeave(event: DragEvent): void {
+  const rel = event.relatedTarget as Node | null
+  if (rel && tabsListRef.value?.contains(rel)) return
+  if (shouldTreatAsExternalWorkspacePathDrag(event.dataTransfer)) {
+    clearMainTabsExternalDropUi()
+  }
+}
+
+async function handleTabsListDrop(event: DragEvent): Promise<void> {
+  const path = readWorkspacePathFromDataTransfer(event.dataTransfer)
+  if (path) {
+    dndLog('drop', 'main-tabs-list', { path, kind: 'workspace-path' })
+    event.preventDefault()
+    event.stopPropagation()
+    const insertFromPointer = pathBarInsertHint.value
+    clearMainTabsExternalDropUi()
+    const list = mainBarTabs.value
+    const last = list[list.length - 1]
+    const payload =
+      insertFromPointer && list.some((t) => t.id === insertFromPointer.tabBarAnchorTabId)
+        ? {
+            path,
+            workspacePlacement: 'top' as const,
+            tabBarAnchorTabId: insertFromPointer.tabBarAnchorTabId,
+            tabBarInsertMode: insertFromPointer.tabBarInsertMode
+          }
+        : last
+          ? {
+              path,
+              workspacePlacement: 'top' as const,
+              tabBarAnchorTabId: last.id,
+              tabBarInsertMode: 'after' as const
+            }
+          : { path, workspacePlacement: 'top' as const }
+    eventBus.emit('workspace-open-document', payload)
+    return
+  }
+
+  const fromId = event.dataTransfer?.getData(TAB_DRAG_MIME_TYPE) || draggingId.value
+  if (
+    fromId &&
+    tabDragSourceSurface.value === 'pane' &&
+    dropPreview.value.targetId === MAIN_TABS_PANE_APPEND_SENTINEL
+  ) {
+    dndLog('drop', 'main-tabs-list', { fromId, kind: 'pane-to-main-append' })
+    event.preventDefault()
+    event.stopPropagation()
+    const paneInsertHint = pathBarInsertHint.value
+    clearMainTabsExternalDropUi()
+    await promotePaneTabToMainBarWithInsertHint(workspace, fromId, paneInsertHint)
+    dropPreview.value = { targetId: null, mode: null, splitEdge: null }
+  }
+}
+
 // Issue 5 & 6: 处理 wrapper 的 dragover - 在首 tab 左侧（交通灯/外侧 Logo 区）与末 tab 右侧（窗口按钮 / Mac 尾部区）显示指示器
 const handleWrapperDragOver = (event: DragEvent) => {
   if (isLockedEffective.value) return
+  if (dropPreview.value.targetId === MAIN_TABS_PANE_APPEND_SENTINEL) return
   if (!isDragging.value || !draggingId.value) return
-  if (allTabs.value.length === 0) return
+  if (isFocusMode.value ? allTabs.value.length === 0 : mainBarTabs.value.length === 0) return
 
   const wrapperRect = tabsWrapperRef.value?.getBoundingClientRect()
   if (!wrapperRect) return
@@ -1749,14 +2212,14 @@ const handleWrapperDragOver = (event: DragEvent) => {
       firstTabId &&
       firstTabId !== draggingId.value
     ) {
-      dropPreview.value = { targetId: firstTabId, mode: 'before' }
+      dropPreview.value = { targetId: firstTabId, mode: 'before', splitEdge: null }
     } else if (
       event.clientX > zoneRect.right - 28 &&
       event.clientX <= tabAreaRight + 20 &&
       lastTabId &&
       lastTabId !== draggingId.value
     ) {
-      dropPreview.value = { targetId: lastTabId, mode: 'after' }
+      dropPreview.value = { targetId: lastTabId, mode: 'after', splitEdge: null }
     }
     return
   }
@@ -1768,17 +2231,17 @@ const handleWrapperDragOver = (event: DragEvent) => {
   const lastTabRect = tabItems[tabItems.length - 1].getBoundingClientRect()
 
   if (event.clientX < firstTabRect.left && event.clientX >= tabAreaLeft - 20) {
-    const firstTabId = allTabs.value[0]?.id
+    const firstTabId = mainBarTabs.value[0]?.id
     if (firstTabId && firstTabId !== draggingId.value) {
-      dropPreview.value = { targetId: firstTabId, mode: 'before' }
+      dropPreview.value = { targetId: firstTabId, mode: 'before', splitEdge: null }
     }
     return
   }
 
   if (event.clientX > lastTabRect.right && event.clientX <= tabAreaRight + 20) {
-    const lastTabId = allTabs.value[allTabs.value.length - 1]?.id
+    const lastTabId = mainBarTabs.value[mainBarTabs.value.length - 1]?.id
     if (lastTabId && lastTabId !== draggingId.value) {
-      dropPreview.value = { targetId: lastTabId, mode: 'after' }
+      dropPreview.value = { targetId: lastTabId, mode: 'after', splitEdge: null }
     }
     return
   }
@@ -1868,6 +2331,12 @@ onMounted(async () => {
 
   // Tab 右键菜单：点击外部关闭
   document.addEventListener('click', handleTabContextMenuClickOutside)
+
+  eventBus.on('main-tabs-external-drop-ui-reset', clearMainTabsExternalDropUi)
+  eventBus.on('main-tabs-path-bar-insert-hint', onPathBarInsertHintBus)
+  eventBus.on('main-tabs-external-drop-ui-highlight', (active: unknown) => {
+    mainTabsExternalDropHighlight.value = Boolean(active)
+  })
 
   // 初始化标签页溢出检测
   nextTick(() => {
@@ -2098,6 +2567,10 @@ onUnmounted(() => {
 
   document.removeEventListener('click', handleTabContextMenuClickOutside)
 
+  eventBus.off('main-tabs-external-drop-ui-reset', clearMainTabsExternalDropUi)
+  eventBus.off('main-tabs-path-bar-insert-hint', onPathBarInsertHintBus)
+  eventBus.off('main-tabs-external-drop-ui-highlight')
+
   window.removeEventListener('scroll', onFocusDocPickerScrollOrResize, true)
   window.removeEventListener('resize', onFocusDocPickerScrollOrResize)
 
@@ -2137,6 +2610,11 @@ onUnmounted(() => {
 
 <style scoped>
 /* MainTabs 无条件始终在最顶层，GlobalMessageBox 渲染于其内 */
+.tabs-list.is-main-tabs-external-drop-target {
+  box-shadow: inset 0 0 0 2px hsl(var(--primary) / 0.55);
+  border-radius: 4px;
+}
+
 .main-tabs-wrapper {
   display: flex;
   align-items: stretch;
@@ -2176,6 +2654,13 @@ onUnmounted(() => {
 .main-tabs-wrapper .tab-item,
 .main-tabs-wrapper .focus-doc-picker-trigger {
   -webkit-app-region: no-drag !important;
+  position: relative;
+  z-index: 10 !important;
+}
+
+/* sash 必须为 drag 才能拖窗；其上的 HTML5 drop 由全局 capture 处理 */
+.main-tabs-wrapper .tabs-list-window-drag-sash {
+  -webkit-app-region: drag !important;
   position: relative;
   z-index: 10 !important;
 }
@@ -2243,7 +2728,7 @@ onUnmounted(() => {
   padding-left: 4px;
 }
 
-/* Tab 区域：占满 spacer/window-controls 之间的空间 */
+/* Tab 区域：占满 spacer/window-controls 之间的整块都可拖窗（子项 tab / 按钮仍为 no-drag） */
 .tab-region {
   flex: 1;
   min-width: 0;
@@ -2252,19 +2737,21 @@ onUnmounted(() => {
   height: 34px;
   max-height: 34px;
   overflow: hidden;
+  -webkit-app-region: drag;
 }
 
-/* 可滚动的 Tab 视口 —— 始终允许水平滚动，不再切换 overflow 模式 */
+/* 可滚动的 Tab 视口 —— 与 tab-region 一致铺满可拖窗区域 */
 .tabs-viewport {
   flex: 1;
   min-width: 0;
   height: 34px;
   max-height: 34px;
+  display: flex;
+  align-items: stretch;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--el-border-color-darker, rgba(0, 0, 0, 0.2)) transparent;
-  /* 标签未铺满时，视口内空白区可拖动窗口（专注模式无 Logo 时尤其需要） */
   -webkit-app-region: drag;
 }
 
@@ -2296,8 +2783,9 @@ onUnmounted(() => {
 }
 
 .focus-doc-slot {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 100%;
   display: flex;
   align-items: center;
 }
@@ -2320,8 +2808,14 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-.focus-doc-picker-trigger:hover {
+.focus-doc-picker-trigger:hover:not(:disabled) {
   background-color: v-bind('tabItemHoverBackgroundColor');
+}
+
+.focus-doc-picker-trigger:disabled,
+.focus-doc-picker-trigger.is-locked {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .focus-doc-picker-trigger.is-open {
@@ -2506,14 +3000,47 @@ onUnmounted(() => {
   outline-offset: -2px;
 }
 
-/* Tab 列表容器 —— 统一模式，让 flex + min-width 自然产生溢出 */
+/*
+ * 列表容器 no-drag，保证 .tab-item 上 HTML5 drop 正常。
+ * sash 为 drag（见上条规则）；在 sash 上投放 path/窗格 Tab 走 document capture + isPointOverMainTabsStrip 兜底。
+ */
 .tabs-list {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: nowrap;
+  align-self: stretch;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
   height: 34px;
   margin: 0;
   padding: 0;
   background-color: v-bind('tabsContainerBackgroundColor');
+  -webkit-app-region: no-drag;
+}
+
+.tabs-list-window-drag-sash {
+  flex: 1 1 auto;
+  min-width: 8px;
+  width: 0;
+  align-self: stretch;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  /* 与 .main-tabs-wrapper .tabs-list-window-drag-sash 的 drag 一致，避免仅依赖父级选择器 */
+  -webkit-app-region: drag;
+}
+
+.tabs-strip-window-drag-nub {
+  flex: 0 0 6px;
+  min-width: 6px;
+  align-self: stretch;
+  -webkit-app-region: drag;
+  box-sizing: border-box;
+}
+
+.tabs-list-window-drag-sash--focus {
+  min-height: 34px;
+  flex: 1 1 auto;
 }
 
 /* 单个 Tab 项 —— 统一 flex 规则：未溢出时等分，溢出时自然滚动 */
@@ -2594,6 +3121,120 @@ onUnmounted(() => {
   width: 3px;
   background-color: var(--el-color-primary);
   z-index: 10;
+}
+
+.tab-item.drop-split-left {
+  box-shadow: inset 3px 0 0 var(--el-color-primary);
+}
+
+.tab-item.drop-split-right {
+  box-shadow: inset -3px 0 0 var(--el-color-primary);
+}
+
+.tab-item.drop-split-top {
+  box-shadow: inset 0 3px 0 var(--el-color-primary);
+}
+
+.tab-item.drop-split-bottom {
+  box-shadow: inset 0 -3px 0 var(--el-color-primary);
+}
+
+/* 普通模式「文档」触发器：与专注模式同结构，限制最大宽度避免挤占 + / 专注按钮 */
+.open-docs-trigger-slot {
+  min-width: 0;
+  max-width: min(260px, 42vw);
+  flex-shrink: 1;
+  display: flex;
+  align-items: center;
+  margin-left: 4px;
+  box-sizing: border-box;
+}
+
+.open-docs-trigger-slot .focus-doc-picker-trigger {
+  width: 100%;
+  min-width: 0;
+}
+
+.open-docs-popover__header {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.open-docs-popover__empty {
+  padding: 16px 12px;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+}
+
+.open-docs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px 6px 12px;
+  text-align: left;
+  font-size: 13px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: hsl(var(--foreground));
+  box-sizing: border-box;
+}
+
+.open-docs-row__icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.open-docs-row__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  border-radius: 4px;
+  cursor: pointer;
+  color: inherit;
+  -webkit-app-region: no-drag;
+}
+
+.open-docs-row__close:hover {
+  background: hsl(var(--muted) / 0.55);
+}
+
+.open-docs-row__close .el-icon {
+  font-size: 14px;
+}
+
+.open-docs-row:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+
+.open-docs-row.is-active {
+  background: hsl(var(--muted) / 0.65);
+}
+
+.open-docs-row__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open-docs-row__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  flex-shrink: 0;
 }
 
 .main-tab-label {

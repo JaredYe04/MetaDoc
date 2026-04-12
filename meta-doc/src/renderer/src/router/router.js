@@ -92,6 +92,12 @@ const routes = [
     meta: { requiresLayout: true }
   },
   {
+    path: '/workshop-market',
+    name: 'WorkshopMarket',
+    component: () => import('../views/WorkshopMarketView.vue'),
+    meta: { requiresLayout: true }
+  },
+  {
     path: '/user-feedback',
     name: 'UserFeedback',
     component: () => import('../views/UserFeedbackView.vue'),

@@ -177,6 +177,11 @@ import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { TitleIndex } from '../utils/title-index'
 import { normalizeMarkdownLeadingArtifacts } from '../utils/md-utils'
 import { buildOutlineSectionLineRanges } from '../utils/outline-section-lines'
+import {
+  openMarkdownWorkspaceLink,
+  shouldDelegateMarkdownWorkspaceLink,
+  parseMarkdownLinkHref
+} from '../utils/markdown-workspace-link'
 
 const MARKDOWN_LAYOUT = {
   editorMinWidth: 700,
@@ -557,6 +562,64 @@ function bindVditorOutlineHostClickCapture() {
   }
 
   host.addEventListener('click', vditorOutlineHostCaptureHandler, true)
+}
+
+function teardownVditorMarkdownWorkspaceLinkHandler() {
+  const inst = vditor.value as {
+    _mdWorkspaceLinkEl?: HTMLElement
+    _mdWorkspaceLinkHandler?: (e: MouseEvent) => void
+  } | null
+  if (inst?._mdWorkspaceLinkEl && inst._mdWorkspaceLinkHandler) {
+    inst._mdWorkspaceLinkEl.removeEventListener('click', inst._mdWorkspaceLinkHandler, true)
+  }
+  if (vditor.value) {
+    const v = vditor.value as {
+      _mdWorkspaceLinkEl?: HTMLElement
+      _mdWorkspaceLinkHandler?: (e: MouseEvent) => void
+    }
+    v._mdWorkspaceLinkEl = undefined
+    v._mdWorkspaceLinkHandler = undefined
+  }
+}
+
+function setupVditorMarkdownWorkspaceLinkHandler() {
+  teardownVditorMarkdownWorkspaceLinkHandler()
+  const editorElement = vditor.value?.vditor?.element as HTMLElement | undefined
+  if (!editorElement) return
+
+  const handler = (e: MouseEvent) => {
+    if (activeTabIdRef.value !== props.tabId) return
+    if (e.button !== 0) return
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    const target = e.target as HTMLElement | null
+    if (!target?.closest) return
+    if (target.closest('.vditor-toolbar')) return
+    const anchor = target.closest('a') as HTMLAnchorElement | null
+    if (!anchor || !editorElement.contains(anchor)) return
+    const hrefAttr = anchor.getAttribute('href')
+    if (!hrefAttr?.trim()) return
+    if (!shouldDelegateMarkdownWorkspaceLink(hrefAttr)) return
+    const { pathPart } = parseMarkdownLinkHref(hrefAttr)
+    if (!pathPart) return
+
+    e.preventDefault()
+    e.stopPropagation()
+
+    void openMarkdownWorkspaceLink({
+      rawHref: hrefAttr,
+      linkBase: currentLinkBase.value,
+      tabs: workspace.tabs,
+      activateTab: workspace.activateTab,
+      pinTab: workspace.pinTab,
+      updateDocumentLastView: workspace.updateDocumentLastView
+    })
+  }
+
+  editorElement.addEventListener('click', handler, true)
+  ;(vditor.value as { _mdWorkspaceLinkEl?: HTMLElement; _mdWorkspaceLinkHandler?: typeof handler })
+    ._mdWorkspaceLinkEl = editorElement
+  ;(vditor.value as { _mdWorkspaceLinkEl?: HTMLElement; _mdWorkspaceLinkHandler?: typeof handler })
+    ._mdWorkspaceLinkHandler = handler
 }
 
 function refreshVditorOutlineHostClickCapture() {
@@ -3268,6 +3331,7 @@ async function runMarkdownVditorInit() {
           }
           flushOutlineSync()
           bindTitleMenu()
+          setupVditorMarkdownWorkspaceLinkHandler()
 
           // 监听模式切换事件
           if (vditor.value?.vditor?.element) {
@@ -3650,6 +3714,7 @@ onBeforeUnmount(() => {
   const instance = vditor.value
   if (instance && (instance as any).element) {
     try {
+      teardownVditorMarkdownWorkspaceLinkHandler()
       // 清理大纲Observer
       if ((instance as any)._outlineObserver) {
         ;(instance as any)._outlineObserver.disconnect()

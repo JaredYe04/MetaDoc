@@ -433,6 +433,7 @@ import { ai_task_status } from '../utils/consts'
 // === Demo Mode Props ===
 const props = defineProps<{
   mode?: string
+  tabId?: string
 }>()
 const isDemo = computed(() => props.mode === 'demo')
 import { ElLoading } from 'element-plus'
@@ -479,6 +480,7 @@ import {
 } from '../utils/agent-composer-send-queue'
 import { cloneDeep } from 'lodash'
 import { useWorkspace, detectDocumentFormat } from '../stores/workspace'
+import { useScopedOrActiveDocument } from '../composables/useActiveDocument'
 import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
 import { useAgentManageUiStore } from '../stores/agent-manage-ui-store'
 import {
@@ -540,7 +542,10 @@ dayjs.extend(relativeTime)
 
 const { t } = useI18n()
 const workspace = useWorkspace()
-const { activeDocument, activeTabId, activeTab, removeTab, moveTab, activateTab } = workspace
+const { removeTab, moveTab, activateTab } = workspace
+const { activeDocument, activeTab, effectiveTabId: activeTabId } = useScopedOrActiveDocument(
+  () => props.tabId
+)
 const agentStore = useAgentWorkspaceStore()
 const agentManageUi = useAgentManageUiStore()
 /** Agent 全页已就绪（init 完成）后再消费「能力管理 → AI 草稿」，避免抢在 load 之前建会话 */

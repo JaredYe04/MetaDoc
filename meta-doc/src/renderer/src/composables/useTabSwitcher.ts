@@ -1,5 +1,6 @@
 import { ref, computed, reactive } from 'vue'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
+import { findGroupContainingTab } from '../stores/workspace-layout'
 import { createRendererLogger } from '../utils/logger'
 import messageBridge from '../bridge/message-bridge'
 
@@ -70,7 +71,22 @@ function cleanupWindowListeners(): void {
 export function useTabSwitcher() {
   const workspace = useWorkspace()
 
-  const orderedTabs = computed(() => workspace.tabs as WorkspaceTab[])
+  /** 当前为文档 Tab 且所在 pane 内有多页时，Ctrl+Tab 仅在 pane 内循环；否则为全局顺序 */
+  const orderedTabs = computed((): WorkspaceTab[] => {
+    const list = workspace.tabs as WorkspaceTab[]
+    const activeId = workspace.activeTabId.value
+    if (!activeId) return list
+    const activeTab = list.find((t) => t.id === activeId)
+    if (!activeTab || activeTab.kind === 'tool' || activeTab.kind === 'system') {
+      return list
+    }
+    const group = findGroupContainingTab(workspace.workspaceLayoutRoot.value, activeId)
+    if (group && group.tabIds.length > 1) {
+      const byId = new Map(list.map((t) => [t.id, t]))
+      return group.tabIds.map((id) => byId.get(id)).filter(Boolean) as WorkspaceTab[]
+    }
+    return list
+  })
 
   function setupWindowListeners(): void {
     cleanupWindowListeners()

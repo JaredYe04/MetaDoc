@@ -90,7 +90,11 @@
               v-show="activeTab === 'workspace'"
               class="sidebar-workspace-panel sidebar-workspace-panel--focus"
             >
-              <WorkspaceExplorer v-if="showWorkspaceExplorer" ref="workspaceExplorerRef" layout-variant="focus" />
+              <WorkspaceExplorer
+                v-if="showWorkspaceExplorer"
+                ref="workspaceExplorerRef"
+                layout-variant="focus"
+              />
             </div>
             <div v-show="activeTab === 'outline' && showOutlineTab" class="sidebar-outline-panel">
               <DocumentOutlineSearchPanel />
@@ -99,7 +103,10 @@
                 id="metadoc-vditor-outline-host"
                 class="focus-vditor-outline-host"
               />
-              <FocusLatexOutlinePanel v-if="outlineHostKind === 'tex'" class="focus-latex-outline-host" />
+              <FocusLatexOutlinePanel
+                v-if="outlineHostKind === 'tex'"
+                class="focus-latex-outline-host"
+              />
             </div>
             <MetaInfoPanel
               v-if="showMetaInfoTab && activeDocument"
@@ -161,6 +168,7 @@ type WorkspaceExplorerExposed = {
   addWorkspaceFolder: () => Promise<void>
   closeAllWorkspaceFolders: () => Promise<void>
   openWorkspaceReplace: () => Promise<void>
+  openWorkspaceFromPath: (folderPath: string) => Promise<void>
 }
 
 const showWorkspaceExplorer = ref(false)
@@ -230,10 +238,8 @@ const currentOutlineJson = computed(() => {
   if (!doc)
     return JSON.stringify({ path: 'dummy', title: '', text: '', title_level: 0, children: [] })
   try {
-    const useTex =
-      isTexLikeFormat(doc.format) || (pathLooksTex(doc.path) && !pathLooksMd(doc.path))
-    const useMd =
-      isMdLikeFormat(doc.format) || (pathLooksMd(doc.path) && !pathLooksTex(doc.path))
+    const useTex = isTexLikeFormat(doc.format) || (pathLooksTex(doc.path) && !pathLooksMd(doc.path))
+    const useMd = isMdLikeFormat(doc.format) || (pathLooksMd(doc.path) && !pathLooksTex(doc.path))
     if (useTex && !useMd) {
       const outline = extractOutlineTreeFromLatex(doc.tex || '', false)
       return JSON.stringify(outline)
@@ -386,6 +392,30 @@ const handleWorkspaceInvokeCloseAllFolders = () =>
 const handleWorkspaceInvokeOpenWorkspace = () =>
   invokeWorkspaceExplorerAction('openWorkspaceReplace')
 
+const handleOpenRecentWorkspace = (payload: unknown) => {
+  const p =
+    typeof payload === 'string'
+      ? payload
+      : payload && typeof payload === 'object' && 'path' in payload
+        ? String((payload as { path: unknown }).path)
+        : ''
+  if (!p) return
+  handleFocusWorkspaceSidebar({ expand: true })
+  const run = (): boolean => {
+    const ex = workspaceExplorerRef.value as WorkspaceExplorerExposed | null
+    if (!ex || typeof ex.openWorkspaceFromPath !== 'function') return false
+    void ex.openWorkspaceFromPath(p)
+    return true
+  }
+  if (run()) return
+  void nextTick(() => {
+    if (run()) return
+    void nextTick(() => {
+      run()
+    })
+  })
+}
+
 const handleToggleWorkspaceExplorer = () => {
   showWorkspaceExplorer.value = !showWorkspaceExplorer.value
   void setSetting('workspaceExplorerVisible', showWorkspaceExplorer.value)
@@ -426,6 +456,7 @@ onMounted(async () => {
   eventBus.on('workspace-invoke-add-folder', handleWorkspaceInvokeAddFolder)
   eventBus.on('workspace-invoke-close-all-folders', handleWorkspaceInvokeCloseAllFolders)
   eventBus.on('workspace-invoke-open-workspace', handleWorkspaceInvokeOpenWorkspace)
+  eventBus.on('open-recent-workspace', handleOpenRecentWorkspace)
   eventBus.on('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   window.addEventListener('resize', updateWindowWidth)
   const ipc = messageBridge.getIpc()
@@ -441,6 +472,7 @@ onBeforeUnmount(() => {
   eventBus.off('workspace-invoke-add-folder', handleWorkspaceInvokeAddFolder)
   eventBus.off('workspace-invoke-close-all-folders', handleWorkspaceInvokeCloseAllFolders)
   eventBus.off('workspace-invoke-open-workspace', handleWorkspaceInvokeOpenWorkspace)
+  eventBus.off('open-recent-workspace', handleOpenRecentWorkspace)
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   window.removeEventListener('resize', updateWindowWidth)
   const ipc = messageBridge.getIpc()

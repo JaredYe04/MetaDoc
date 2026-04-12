@@ -139,32 +139,32 @@
 
         <UISubMenu
           :icon="Clock"
-          :title="$t('leftMenu.recentFiles')"
+          :title="$t('leftMenu.recent')"
           trigger="hover"
           :level="2"
-          @open="refreshRecentDocs"
+          @open="refreshRecentOpens"
         >
           <template #title>
-            <span>{{ $t('leftMenu.recentFiles') }}</span>
+            <span>{{ $t('leftMenu.recent') }}</span>
           </template>
           <UISubMenuItem :is-title="true" :disabled="true">
             <template #icon>
               <Clock class="w-4 h-4" />
             </template>
-            {{ $t('leftMenu.recentFilesTooltip') }}
+            {{ $t('leftMenu.recentTooltip') }}
           </UISubMenuItem>
           <UISubMenuItem
-            v-for="item in recentDocs.slice(0, 10)"
-            :key="item"
-            :icon="FileText"
-            :hint="item"
+            v-for="entry in recentOpens.slice(0, 15)"
+            :key="`${entry.kind}:${entry.path}`"
+            :icon="Clock"
+            :hint="entry.path"
             @click="
               askSave(() => {
-                openRecentDoc(item)
+                openRecentItem(entry)
               })
             "
           >
-            {{ basename(item) }}
+            {{ basename(entry.path) }}
           </UISubMenuItem>
         </UISubMenu>
 
@@ -582,32 +582,32 @@
 
         <UISubMenu
           :icon="Clock"
-          :title="$t('leftMenu.recentFiles')"
+          :title="$t('leftMenu.recent')"
           trigger="hover"
           :level="2"
-          @open="refreshRecentDocs"
+          @open="refreshRecentOpens"
         >
           <template #title>
-            <span>{{ $t('leftMenu.recentFiles') }}</span>
+            <span>{{ $t('leftMenu.recent') }}</span>
           </template>
           <UISubMenuItem :is-title="true" :disabled="true">
             <template #icon>
               <Clock class="w-4 h-4" />
             </template>
-            {{ $t('leftMenu.recentFilesTooltip') }}
+            {{ $t('leftMenu.recentTooltip') }}
           </UISubMenuItem>
           <UISubMenuItem
-            v-for="item in recentDocs.slice(0, 10)"
-            :key="item"
-            :icon="FileText"
-            :hint="item"
+            v-for="entry in recentOpens.slice(0, 15)"
+            :key="`${entry.kind}:${entry.path}`"
+            :icon="Clock"
+            :hint="entry.path"
             @click="
               askSave(() => {
-                openRecentDoc(item)
+                openRecentItem(entry)
               })
             "
           >
-            {{ basename(item) }}
+            {{ basename(entry.path) }}
           </UISubMenuItem>
         </UISubMenu>
 
@@ -951,10 +951,10 @@
 </template>
 
 <script lang="ts" setup>
-import { getRecentDocs, getSetting } from '../utils/settings'
+import { getRecentOpens, getSetting } from '../utils/settings'
 import { basename, extname } from '../utils/path-utils'
 import { formatRegistry } from '../utils/format-registry'
-import { computed, onMounted, ref, provide, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, provide, watch } from 'vue'
 import UIMenu from './ui/UIMenu.vue'
 import UIMenuItem from './ui/UIMenuItem.vue'
 import UISubMenu from './ui/UISubMenu.vue'
@@ -1005,7 +1005,7 @@ import { createAiTask, ai_types } from '../utils/ai_tasks'
 import { generateTemplateTitleDescriptionPrompt } from '../utils/prompts'
 import { useFocusMode } from '../composables/useFocusMode'
 import FocusModeTabBarMenus from './FocusModeTabBarMenus.vue'
-import { FOCUS_LEFT_MENU_API_KEY } from './focus-mode-left-menu-api'
+import { FOCUS_LEFT_MENU_API_KEY, type RecentOpenEntry } from './focus-mode-left-menu-api'
 
 const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 const { isFocusMode } = useFocusMode()
@@ -1015,7 +1015,7 @@ const emitMenu = (name: string, ...args: any[]) => {
   eventBus.emit(name, args.length === 1 ? args[0] : args.length > 1 ? args : undefined)
 }
 
-const recentDocs = ref([])
+const recentOpens = ref<RecentOpenEntry[]>([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
 const showMenuConfigDialog = ref(false)
@@ -1236,9 +1236,11 @@ const isMenuItemVisible = (menuId: string) => {
 
 // 获取菜单项的顺序（用于渲染，分为 top 和 bottom）
 const getMenuOrder = () => {
-  // 根据配置的顺序排列
+  // 根据配置的顺序排列（注意：[] 在 JS 中为 truthy，必须用 length 判断，否则首屏 order 为空时只剩 migrate 插入的 view）
+  const savedOrder = menuConfigState.value.order
+  const fallbackOrder = menuConfigItems.value.map((item) => item.id)
   const order = migrateLeftMenuOrder(
-    menuConfigState.value.order || menuConfigItems.value.map((item) => item.id)
+    savedOrder && savedOrder.length > 0 ? savedOrder : fallbackOrder
   )
   const visibleIds = order.filter((id) => {
     const item = menuConfigState.value.items.find((i) => i.id === id)
@@ -1488,17 +1490,34 @@ watch(
   { immediate: true }
 )
 
+const onRecentOpensChanged = () => {
+  void refreshRecentOpens()
+}
+
 onMounted(async () => {
-  await refreshRecentDocs()
+  // 先加载菜单配置，避免 order 初始为 [] 时首屏/IPC 卡住导致只剩「视图」等异常
+  await loadMenuConfig()
+  eventBus.on('recent-opens-changed', onRecentOpensChanged)
+  await refreshRecentOpens()
   // 检查是否为开发环境
   isDev.value = await isDevEnvironment()
-  // 加载菜单配置
-  await loadMenuConfig()
   // 初始化所有侧边栏 CSS 变量
   syncSidebarCssVariables()
 })
-const refreshRecentDocs = async () => {
-  recentDocs.value = await getRecentDocs()
+
+onBeforeUnmount(() => {
+  eventBus.off('recent-opens-changed', onRecentOpensChanged)
+})
+const refreshRecentOpens = async () => {
+  recentOpens.value = (await getRecentOpens()) as RecentOpenEntry[]
+}
+
+const openRecentItem = (entry: RecentOpenEntry) => {
+  if (entry.kind === 'folder') {
+    eventBus.emit('open-recent-workspace', { path: entry.path })
+    return
+  }
+  openRecentDoc(entry.path)
 }
 
 // 打开最近文档：与 GlobalHome / 工作区树一致，使用 workspace-open-document，关闭后再从最近文档打开可正常打开
@@ -1680,8 +1699,9 @@ provide(FOCUS_LEFT_MENU_API_KEY, {
   exportOptionLabel,
   openExportAsTemplateDialog,
   canExportAsTemplate,
-  refreshRecentDocs,
-  recentDocs,
+  refreshRecentOpens,
+  recentOpens,
+  openRecentItem,
   openRecentDoc,
   askSave,
   basename,

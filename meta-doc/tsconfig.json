@@ -17,7 +17,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@renderer/*": ["src/renderer/src/*"]
+      "@common/*": ["src/common/*"],
+      "@renderer/*": ["src/renderer/src/*"],
+      "@logos/*": ["../logos/*"]
     },
     "types": ["vite/client", "electron", "node"],
     "allowJs": true,

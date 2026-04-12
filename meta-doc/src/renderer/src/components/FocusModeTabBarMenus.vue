@@ -27,8 +27,12 @@
           </template>
           {{ api.t('leftMenu.fileTooltip') }}
         </UISubMenuItem>
-        <UISubMenuItem :icon="FilePlus" @click="onItem(api.newDoc)">{{ api.t('leftMenu.new') }}</UISubMenuItem>
-        <UISubMenuItem :icon="FolderOpen" @click="onItem(api.openDoc)">{{ api.t('leftMenu.open') }}</UISubMenuItem>
+        <UISubMenuItem :icon="FilePlus" @click="onItem(api.newDoc)">{{
+          api.t('leftMenu.new')
+        }}</UISubMenuItem>
+        <UISubMenuItem :icon="FolderOpen" @click="onItem(api.openDoc)">{{
+          api.t('leftMenu.open')
+        }}</UISubMenuItem>
         <UISubMenuItem :icon="Home" @click="onItem(api.openGlobalHome)">
           {{ api.t('leftMenu.home', '主页') }}
         </UISubMenuItem>
@@ -58,7 +62,9 @@
             {{ api.t('leftMenu.closeWorkspace') }}
           </UISubMenuItem>
         </UISubMenu>
-        <UISubMenuItem :icon="FolderCheck" @click="onItem(api.saveAll)">{{ api.t('leftMenu.saveAll') }}</UISubMenuItem>
+        <UISubMenuItem :icon="FolderCheck" @click="onItem(api.saveAll)">{{
+          api.t('leftMenu.saveAll')
+        }}</UISubMenuItem>
         <UISubMenuItem
           :icon="FolderCheck"
           :disabled="!isDocumentTab"
@@ -107,29 +113,29 @@
         </UISubMenuItem>
         <UISubMenu
           :icon="Clock"
-          :title="api.t('leftMenu.recentFiles')"
+          :title="api.t('leftMenu.recent')"
           trigger="hover"
           :level="2"
           popup-class="focus-toolbar-submenu-popup"
-          @open="api.refreshRecentDocs()"
+          @open="api.refreshRecentOpens()"
         >
           <template #title>
-            <span>{{ api.t('leftMenu.recentFiles') }}</span>
+            <span>{{ api.t('leftMenu.recent') }}</span>
           </template>
           <UISubMenuItem :is-title="true" :disabled="true">
             <template #icon>
               <Clock class="w-4 h-4" />
             </template>
-            {{ api.t('leftMenu.recentFilesTooltip') }}
+            {{ api.t('leftMenu.recentTooltip') }}
           </UISubMenuItem>
           <UISubMenuItem
-            v-for="item in recentDocsList"
-            :key="item"
-            :icon="FileText"
-            :hint="item"
-            @click="onItem(() => api.askSave(() => api.openRecentDoc(item)))"
+            v-for="entry in recentOpensList"
+            :key="`${entry.kind}:${entry.path}`"
+            :icon="Clock"
+            :hint="entry.path"
+            @click="onItem(() => api.askSave(() => api.openRecentItem(entry)))"
           >
-            {{ api.basename(item) }}
+            {{ api.basename(entry.path) }}
           </UISubMenuItem>
         </UISubMenu>
         <UISubMenuItem :icon="Settings" @click="onItem(() => api.emitMenu('setting'))">
@@ -177,7 +183,10 @@
         <UISubMenuItem :icon="Pencil" @click="onItem(() => api.emitMenu('fomula-recognition'))">
           {{ api.t('leftMenu.handwritingFormulaRecognition') }}
         </UISubMenuItem>
-        <UISubMenuItem :icon="ImageIcon" @click="onItem(() => api.emitMenu('smart-drawing-assistant'))">
+        <UISubMenuItem
+          :icon="ImageIcon"
+          @click="onItem(() => api.emitMenu('smart-drawing-assistant'))"
+        >
           {{ api.t('leftMenu.smartDrawingAssistant') }}
         </UISubMenuItem>
         <UISubMenuItem :icon="BarChart3" @click="onItem(() => api.emitMenu('data-analysis'))">
@@ -254,7 +263,7 @@ const { activeTab } = useActiveDocument()
 const isDocumentTab = computed(() => api.isDocumentTab.value)
 const canExportAsTemplate = computed(() => api.canExportAsTemplate.value)
 const exportOptionsList = computed(() => api.exportOptions.value)
-const recentDocsList = computed(() => api.recentDocs.value.slice(0, 10))
+const recentOpensList = computed(() => api.recentOpens.value.slice(0, 15))
 
 const toolbarMenuRef = ref<InstanceType<typeof UIMenu> | null>(null)
 

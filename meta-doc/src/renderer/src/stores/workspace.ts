@@ -27,6 +27,23 @@ import {
 } from '../constants/document'
 import { isElectronEnv } from '../utils/event-bus'
 import { extractTitleFromContent, sanitizeTitleForFilename } from '../utils/title-extractor'
+import {
+  createEmptyGroup,
+  collapseLayoutToSingleGroup,
+  collectTabIdsInLayout,
+  findGroupContainingTab,
+  reconcileDocumentLayout,
+  setGroupActiveTab,
+  splitTabOutFromTarget,
+  moveTabBetweenGroups,
+  insertTabIntoGroupFromOutside,
+  reorderTabInGroup,
+  type LayoutNode,
+  type LayoutTabGroup,
+  type SplitEdge
+} from './workspace-layout'
+import { getEditorChromeLayoutSync, setEditorChromeLayoutValue } from './editor-chrome-layout-state'
+import { setSetting } from '../utils/settings.js'
 
 export type WorkspaceTabKind = 'new' | 'file' | 'tool' | 'system'
 // WorkspaceTabFormat 现在支持动态格式，但为了向后兼容，保留 'md' | 'tex' 作为基础类型
@@ -65,6 +82,11 @@ export interface WorkspaceTab {
   _isNewTab?: boolean
   /** 标记为正在关闭的标签页，用于退场动画 */
   _isClosing?: boolean
+  /**
+   * 工作区模式：顶栏大 Tab（top）不参与分屏树；拖入分屏/合并后为 workbench。
+   * 未设置时视为 workbench，与升级前「全部进布局树」行为一致。
+   */
+  workspacePlacement?: 'top' | 'workbench'
 }
 
 export type DocumentView = 'home' | 'outline' | 'editor' | 'visualize' | 'agent' | 'proofread'
@@ -103,6 +125,263 @@ const UNTITLED_TITLE = '未命名文档'
 
 export const tabs = reactive<WorkspaceTab[]>([])
 export const activeTabId = ref<string>('')
+
+/** 工作区分屏布局根（与 tabs 对齐；工作区模式下可含文档/工具/系统页等） */
+export const workspaceLayoutRoot = ref<LayoutNode>(createEmptyGroup())
+
+function isTabEligibleForWorkspaceLayoutTree(tab: WorkspaceTab): boolean {
+  if (tab._isInitialPlaceholder) return false
+  // /dummy 可作为分屏空窗格占位（PaneTabBody → DummyView）；仍不可作为 Tab 拖拽源（见 useTabDrag）
+  return true
+}
+
+/**
+ * 参与 workspaceLayoutRoot 的 Tab（供经典单组 / 工作区分屏 reconcile）。
+ * 经典模式：file/new 默认 workspacePlacement=top，但必须仍进入折叠单组，否则 TabContentRenderer
+ * 走 WorkspaceSplitRoot 时 layout 为空，Editor / Home 等路由内容整块不显示。
+ * 工作区模式：placement=top 仅顶栏，不进分屏树。
+ */
+function tabParticipatesInDocumentLayoutTree(tab: WorkspaceTab): boolean {
+  if (!isTabEligibleForWorkspaceLayoutTree(tab)) return false
+  if (getEditorChromeLayoutSync() === 'classic') return true
+  if (tab.workspacePlacement === 'top') return false
+  return true
+}
+
+/** 任意分屏路径前调用：经典模式下第二次 refresh 会把 split 压平，必须先进入 workspace */
+export function promoteClassicToWorkspaceLayoutIfNeeded(): void {
+  if (getEditorChromeLayoutSync() !== 'classic') return
+  setEditorChromeLayoutValue('workspace')
+  void setSetting('editorChromeLayout', 'workspace')
+}
+
+function refreshDocumentLayout(): void {
+  const layoutTabs = tabs
+    .map((t, orderIndex) => ({ tab: t, orderIndex }))
+    .filter(({ tab }) => tabParticipatesInDocumentLayoutTree(tab))
+    .map(({ tab, orderIndex }) => ({ id: tab.id, orderIndex }))
+
+  if (getEditorChromeLayoutSync() === 'classic') {
+    if (layoutTabs.length === 0) {
+      workspaceLayoutRoot.value = createEmptyGroup()
+    } else {
+      workspaceLayoutRoot.value = collapseLayoutToSingleGroup(layoutTabs, activeTabId.value)
+    }
+    return
+  }
+
+  workspaceLayoutRoot.value = reconcileDocumentLayout(
+    workspaceLayoutRoot.value,
+    layoutTabs,
+    activeTabId.value
+  )
+  maybeExitWorkspaceWhenAtMostOneWorkbenchTab()
+}
+
+/** 工作区内布局树里至多剩 1 个 Tab 时退回经典顶栏（拖出、关闭等导致） */
+function maybeExitWorkspaceWhenAtMostOneWorkbenchTab(): void {
+  if (getEditorChromeLayoutSync() !== 'workspace') return
+  const ids = collectTabIdsInLayout(workspaceLayoutRoot.value)
+  if (ids.size > 1) return
+  for (const id of ids) {
+    const tab = tabs.find((x) => x.id === id)
+    if (tab) tab.workspacePlacement = 'top'
+  }
+  setEditorChromeLayoutValue('classic')
+  void setSetting('editorChromeLayout', 'classic')
+  refreshDocumentLayout()
+}
+
+function markTabsAsWorkbench(...tabIds: string[]): void {
+  for (const id of tabIds) {
+    const t = tabs.find((x) => x.id === id)
+    if (t && isTabEligibleForWorkspaceLayoutTree(t)) {
+      t.workspacePlacement = 'workbench'
+    }
+  }
+}
+
+/** 从工作台分屏树提升到顶栏独立 Tab（仅改 placement，由 reconcile 移出布局树） */
+function promoteTabFromLayoutToTop(tabId: string): boolean {
+  const t = tabs.find((x) => x.id === tabId)
+  if (!t || !isTabEligibleForWorkspaceLayoutTree(t)) return false
+  t.workspacePlacement = 'top'
+  refreshDocumentLayout()
+  return true
+}
+
+function applyWorkspaceSplitFromDrag(
+  draggedTabId: string,
+  targetTabId: string,
+  edge: SplitEdge
+): boolean {
+  promoteClassicToWorkspaceLayoutIfNeeded()
+  markTabsAsWorkbench(draggedTabId, targetTabId)
+  refreshDocumentLayout()
+
+  const next = splitTabOutFromTarget(workspaceLayoutRoot.value, draggedTabId, targetTabId, edge)
+  if (!next) return false
+  workspaceLayoutRoot.value = next
+  refreshDocumentLayout()
+  eventBus.emit('view-menu-collapse-changed', true)
+  return true
+}
+
+/** 自分屏邻格：文档 / 系统 / 工具均可（排除 /dummy），与分屏树资格一致 */
+function isNeighborTabCandidateForSelfSplit(tab: WorkspaceTab, primaryTabId: string): boolean {
+  if (tab.id === primaryTabId) return false
+  if (!isTabEligibleForWorkspaceLayoutTree(tab)) return false
+  if (tab.kind === 'system' && tab.route === '/dummy') return false
+  return true
+}
+
+/** 同组内优先其他 Tab；否则顶栏顺序相邻；再否则任意合格 Tab；无则创建 /dummy */
+function pickNeighborDocumentTabForSelfSplit(primaryTabId: string): string | null {
+  const g = findGroupContainingTab(workspaceLayoutRoot.value, primaryTabId)
+  if (g) {
+    const other = g.tabIds.find((id) => id !== primaryTabId)
+    if (other) return other
+  }
+  const idx = tabs.findIndex((t) => t.id === primaryTabId)
+  for (const i of [idx - 1, idx + 1]) {
+    if (i < 0 || i >= tabs.length) continue
+    const t = tabs[i]
+    if (isNeighborTabCandidateForSelfSplit(t, primaryTabId)) return t.id
+  }
+  for (const t of tabs) {
+    if (isNeighborTabCandidateForSelfSplit(t, primaryTabId)) return t.id
+  }
+  return null
+}
+
+/** 为分屏占位创建或复用空白 Tab，不切换当前激活项 */
+function ensureDummyTabForWorkbenchSplitPane(): string {
+  const existing = tabs.find((t) => t.kind === 'system' && t.route === '/dummy')
+  if (existing) {
+    existing.workspacePlacement = 'workbench'
+    return existing.id
+  }
+  const id = generateTabId()
+  const tab = reactive<WorkspaceTab>({
+    id,
+    kind: 'system',
+    title: '空白',
+    subtitle: '',
+    path: '',
+    format: 'md',
+    dirty: false,
+    readonly: true,
+    route: '/dummy',
+    workspacePlacement: 'workbench'
+  })
+  tabs.push(tab)
+  return id
+}
+
+/**
+ * 将当前文档拖到自身视图内分屏：一侧保留该 Tab，另一侧填「同组/相邻」文档或 DummyView
+ */
+function applySelfDocumentSplitFromDrag(primaryTabId: string, edge: SplitEdge): boolean {
+  const primary = tabs.find((t) => t.id === primaryTabId)
+  if (!primary || (primary.kind !== 'file' && primary.kind !== 'new')) return false
+
+  promoteClassicToWorkspaceLayoutIfNeeded()
+  markTabsAsWorkbench(primaryTabId)
+  refreshDocumentLayout()
+
+  let fillId = pickNeighborDocumentTabForSelfSplit(primaryTabId)
+  if (fillId) {
+    markTabsAsWorkbench(fillId)
+  } else {
+    fillId = ensureDummyTabForWorkbenchSplitPane()
+  }
+  refreshDocumentLayout()
+
+  if (!fillId || fillId === primaryTabId) return false
+
+  const next = splitTabOutFromTarget(workspaceLayoutRoot.value, primaryTabId, fillId, edge)
+  if (!next) return false
+  workspaceLayoutRoot.value = next
+  refreshDocumentLayout()
+  activateTab(primaryTabId)
+  eventBus.emit('view-menu-collapse-changed', true)
+  return true
+}
+
+function applyMoveTabToLayoutGroup(
+  tabId: string,
+  targetGroupId: string,
+  insertBeforeTabId: string | null
+): boolean {
+  const ok = moveTabBetweenGroups(
+    workspaceLayoutRoot.value,
+    tabId,
+    targetGroupId,
+    insertBeforeTabId
+  )
+  if (ok) {
+    markTabsAsWorkbench(tabId)
+    refreshDocumentLayout()
+  }
+  return ok
+}
+
+/** 关闭顶栏「工作台」时：成员全部回到顶栏独立 Tab，并压平布局 */
+function dissolveWorkbenchLayout(): void {
+  const ids = collectTabIdsInLayout(workspaceLayoutRoot.value)
+  for (const id of ids) {
+    const t = tabs.find((x) => x.id === id)
+    if (t) t.workspacePlacement = 'top'
+  }
+  refreshDocumentLayout()
+}
+
+function applyReorderTabInLayoutGroup(tabId: string, beforeTabId: string | null): boolean {
+  const ok = reorderTabInGroup(workspaceLayoutRoot.value, tabId, beforeTabId)
+  if (ok) refreshDocumentLayout()
+  return ok
+}
+
+function computeInsertBeforeTabIdForPaneBar(
+  g: LayoutTabGroup,
+  toId: string,
+  mode: 'before' | 'after'
+): string | null {
+  const idx = g.tabIds.indexOf(toId)
+  if (idx < 0) return null
+  if (mode === 'before') return toId
+  return g.tabIds[idx + 1] ?? null
+}
+
+/** 拖到子 panel 的 tab 条上（before/after）：并入该组，允许多 Tab 叠在同一格 */
+function applyWorkspacePaneTabBarDrop(
+  fromId: string,
+  toId: string,
+  mode: 'before' | 'after'
+): boolean {
+  const root = workspaceLayoutRoot.value
+  const targetGroup = findGroupContainingTab(root, toId)
+  if (!targetGroup) return false
+
+  const fromGroup = findGroupContainingTab(root, fromId)
+  const beforeId = computeInsertBeforeTabIdForPaneBar(targetGroup, toId, mode)
+
+  if (fromGroup === targetGroup) {
+    return applyReorderTabInLayoutGroup(fromId, beforeId)
+  }
+
+  if (fromGroup) {
+    markTabsAsWorkbench(fromId)
+    const ok = moveTabBetweenGroups(root, fromId, targetGroup.id, beforeId)
+    if (ok) refreshDocumentLayout()
+    return ok
+  }
+
+  markTabsAsWorkbench(fromId)
+  const ok = insertTabIntoGroupFromOutside(root, fromId, targetGroup.id, beforeId)
+  if (ok) refreshDocumentLayout()
+  return ok
+}
 
 // 最近关闭的标签页栈（用于 Ctrl+Shift+T 恢复）
 const MAX_RECENTLY_CLOSED = 20
@@ -198,6 +477,7 @@ function unlockUI(): void {
 }
 
 ensureInitialTab()
+refreshDocumentLayout()
 
 /**
  * 确保一个标签页的文档存在
@@ -449,6 +729,12 @@ function addDocumentTab(
     _isNewTab: true // 标记为新标签页，用于动画
   })
 
+  if (overrides.workspacePlacement !== undefined) {
+    tab.workspacePlacement = overrides.workspacePlacement
+  } else if (tab.kind === 'file' || tab.kind === 'new') {
+    tab.workspacePlacement = 'top'
+  }
+
   // 如果指定了 insertAfterActive，在当前 active tab 后插入
   if (options.insertAfterActive && activeTabId.value) {
     const activeIndex = tabs.findIndex((t) => t.id === activeTabId.value)
@@ -461,6 +747,7 @@ function addDocumentTab(
     tabs.push(tab)
   }
 
+  refreshDocumentLayout()
   return tab
 }
 
@@ -555,6 +842,7 @@ function removeTab(id: string): void {
     if (!tabs.length) {
       const dummyTab = openSystemTab('/dummy', '空白')
       activeTabId.value = dummyTab.id
+      refreshDocumentLayout()
       return
     }
 
@@ -565,6 +853,7 @@ function removeTab(id: string): void {
         activateTab(fallback.id)
       }
     }
+    refreshDocumentLayout()
   } finally {
     // 确保清理正在删除的标记
     removingTabIds.delete(id)
@@ -606,6 +895,7 @@ function reopenLastClosedTab(): WorkspaceTab | null {
   }
 
   activateTab(newId)
+  refreshDocumentLayout()
   return restoredTab
 }
 
@@ -653,6 +943,10 @@ function activateTab(id: string): void {
   }
 
   activeTabId.value = id
+  const activated = tabs.find((tab) => tab.id === id)
+  if (activated && (activated.kind === 'file' || activated.kind === 'new')) {
+    setGroupActiveTab(workspaceLayoutRoot.value, id)
+  }
   refreshActiveTabMetadata()
 }
 
@@ -838,6 +1132,7 @@ function togglePinTab(tabId: string): void {
       tabs.splice(firstUnpinnedIdx, 0, tab)
     }
   }
+  refreshDocumentLayout()
 }
 
 /**
@@ -1484,6 +1779,7 @@ function moveTab(tabId: string, targetId: string): void {
   if (fromIndex === -1 || toIndex === -1) return
   const [tab] = tabs.splice(fromIndex, 1)
   tabs.splice(toIndex, 0, tab as WorkspaceTab)
+  refreshDocumentLayout()
 }
 
 async function saveDocument(tabId: string, options?: { saveAs?: boolean }): Promise<boolean> {
@@ -1940,7 +2236,8 @@ function openToolTab(toolType: ToolTabType): WorkspaceTab {
     dirty: false,
     readonly: true,
     toolType,
-    route: TOOL_TAB_ROUTES[toolType]
+    route: TOOL_TAB_ROUTES[toolType],
+    workspacePlacement: 'top'
   })
 
   tabs.push(tab)
@@ -1973,7 +2270,8 @@ function openSystemTab(route: string, title: string): WorkspaceTab {
     format: 'md',
     dirty: false,
     readonly: true,
-    route
+    route,
+    workspacePlacement: 'top'
   })
 
   tabs.push(tab)
@@ -1996,6 +2294,15 @@ export function useWorkspace() {
     tabs,
     activeTabId,
     activeTab,
+    workspaceLayoutRoot,
+    refreshDocumentLayout,
+    dissolveWorkbenchLayout,
+    applyWorkspaceSplitFromDrag,
+    applySelfDocumentSplitFromDrag,
+    applyMoveTabToLayoutGroup,
+    applyReorderTabInLayoutGroup,
+    applyWorkspacePaneTabBarDrop,
+    promoteTabFromLayoutToTop,
     documents,
     activeDocument,
     uiLocked,

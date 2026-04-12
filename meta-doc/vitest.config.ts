@@ -16,6 +16,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve('src/renderer/src'),
+      '@common': resolve('src/common'),
       '@renderer': resolve('src/renderer/src'),
       'monaco-editor': resolve('src/renderer/src/utils/__mocks__/monaco-editor-stub.js')
     }

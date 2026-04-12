@@ -6,8 +6,10 @@ export default defineConfig({
   base: './',
   resolve: {
     alias: {
+      '@common': resolve('src/common'),
       '@renderer': resolve('src/renderer/src'),
-      '@': resolve('src/renderer/src')
+      '@': resolve('src/renderer/src'),
+      '@logos': resolve('../logos')
     }
   },
   plugins: [vue()],

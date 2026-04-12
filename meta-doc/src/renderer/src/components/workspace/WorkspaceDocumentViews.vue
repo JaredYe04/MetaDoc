@@ -70,7 +70,12 @@ watch(
     class="document-content-area"
     :class="{ 'document-content-area--workspace-embedded': !useNestedEditor }"
   >
-    <Home v-if="shouldRenderView('home')" v-show="isViewVisible('home')" :key="`home-${tabId}`" />
+    <Home
+      v-if="shouldRenderView('home')"
+      v-show="isViewVisible('home')"
+      :key="`home-${tabId}`"
+      :tab-id="tabId"
+    />
     <template v-if="shouldRenderView('editor')">
       <Editor
         v-if="useNestedEditor"
@@ -91,21 +96,25 @@ watch(
       v-if="shouldRenderView('outline')"
       v-show="isViewVisible('outline')"
       :key="`outline-${tabId}`"
+      :tab-id="tabId"
     />
     <Visualize
       v-if="shouldRenderView('visualize')"
       v-show="isViewVisible('visualize')"
       :key="`visualize-${tabId}`"
+      :tab-id="tabId"
     />
     <AgentView
       v-if="shouldRenderView('agent')"
       v-show="isViewVisible('agent')"
       :key="`agent-${tabId}`"
+      :tab-id="tabId"
     />
     <ProofreadView
       v-if="shouldRenderView('proofread')"
       v-show="isViewVisible('proofread')"
       :key="`proofread-${tabId}`"
+      :tab-id="tabId"
     />
   </div>
 </template>

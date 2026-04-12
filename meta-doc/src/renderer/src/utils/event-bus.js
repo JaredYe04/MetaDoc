@@ -829,6 +829,10 @@ eventBus.on('export', async (payload) => {
     })
     const result = await messageBridge.invoke('perform-export-to-path', payloadPrepared, targetPath)
 
+    if (result.success && String(format).toLowerCase() === 'pdf') {
+      void import('../services/steam-client').then((m) => m.tryUnlockExportPdfAchievement())
+    }
+
     if (!result.success && !result.error) {
       if (payloadPrepared.requestId) {
         try {

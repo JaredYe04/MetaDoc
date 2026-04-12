@@ -33,6 +33,11 @@ export function setFocusModePersisted(value: boolean) {
   void setSetting(FOCUS_MODE_SETTING_KEY, value)
 }
 
+/** document 级拖放等非 setup 处读取当前是否专注模式 */
+export function getFocusModeActive(): boolean {
+  return isFocusMode.value
+}
+
 export function useFocusMode() {
   const toggleFocusMode = () => {
     setFocusModePersisted(!isFocusMode.value)

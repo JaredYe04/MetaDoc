@@ -154,32 +154,32 @@
           </div>
         </div>
 
-        <div v-if="recentDocs.length > 0" class="recent-section">
+        <div v-if="recentOpens.length > 0" class="recent-section">
           <div class="recent-header">
             <h3 class="recent-title">
-              <FileText class="h-4 w-4" />
-              {{ $t('home.recentDocuments') || '最近文档' }}
+              <Clock class="h-4 w-4" />
+              {{ $t('home.recent') }}
             </h3>
           </div>
           <div class="recent-docs-container">
             <ElScrollbar class="recent-docs-scrollbar">
               <div class="recent-docs-grid">
                 <div
-                  v-for="(docPath, index) in recentDocs.slice(0, RECENT_DOCS_MAX)"
-                  :key="docPath"
+                  v-for="(entry, index) in recentOpens.slice(0, RECENT_MAX)"
+                  :key="`${entry.kind}:${entry.path}`"
                   class="recent-doc-card"
                   :style="{ animationDelay: `${index * 0.03}s` }"
-                  @click="openRecentDoc(docPath)"
+                  @click="openRecentItem(entry)"
                 >
                   <div class="doc-card-indicator"></div>
                   <span class="doc-card-name">
-                    {{ getFileName(docPath) }}
+                    {{ getFileName(entry.path) }}
                   </span>
                   <Button
                     variant="ghost"
                     size="icon"
                     class="doc-card-delete-btn h-6 w-6 rounded-full"
-                    @click.stop="removeRecentDoc(docPath)"
+                    @click.stop="removeRecentItem(entry.path)"
                   >
                     <X class="h-3 w-3" />
                   </Button>
@@ -227,10 +227,10 @@ import {
 } from '../utils/agent-framework/reference-processor'
 import type { Reference } from '../types/agent-framework'
 import { notifyError, notifySuccess, notifyWarning } from '../utils/notify'
-import { getRecentDocs, removeRecentDoc as removeRecentDocFromStorage } from '../utils/settings'
+import { getRecentOpens, removeRecentOpen as removeRecentOpenFromStorage } from '../utils/settings'
 import {
-  FileText,
   FolderOpen,
+  Clock,
   FilePlus,
   BookOpen,
   ChevronRight,
@@ -246,14 +246,16 @@ import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
 import { useAgentManageUiStore } from '../stores/agent-manage-ui-store'
 import { storeToRefs } from 'pinia'
 import UserProfileDialog from '../components/manual/UserProfileDialog.vue'
+import type { RecentOpenEntry } from '../components/focus-mode-left-menu-api'
 
 const PROMPT_KEYS = Array.from({ length: 100 }, (_, i) => `p${String(i + 1).padStart(2, '0')}`)
 const VISIBLE_PROMPT_SLOTS = 7
 
 type PromptSlot = { uid: string; key: string; animKey: number }
 
-/** 主页最近文档列表最多展示条数 */
-const RECENT_DOCS_MAX = 20
+/** 主页统一「最近」列表最多展示条数 */
+const RECENT_MAX = 20
+
 const { t, tm, locale } = useI18n()
 
 /** 主页 Agent 输入框 placeholder：从 i18n 多条里随机一条 */
@@ -283,7 +285,7 @@ const homepageBackgroundColor = computed(() => {
   return mixColors(baseBackground, '#fafafa', 0.5)
 })
 
-const recentDocs = ref<string[]>([])
+const recentOpens = ref<RecentOpenEntry[]>([])
 const showManualHighlight = ref(false)
 const profileDialogRef = ref<InstanceType<typeof UserProfileDialog> | null>(null)
 
@@ -386,7 +388,12 @@ watch(homeComposerInput, () => {
 })
 
 function onHomeComposerKeydown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && snapshotBeforeChip.value !== null) {
+  if (
+    (e.ctrlKey || e.metaKey) &&
+    e.key === 'z' &&
+    !e.shiftKey &&
+    snapshotBeforeChip.value !== null
+  ) {
     e.preventDefault()
     restoringComposerUndo = true
     homeComposerInput.value = snapshotBeforeChip.value
@@ -605,46 +612,54 @@ const getFileName = (filePath: string): string => {
   }
 }
 
-const openRecentDoc = (filePath: string) => {
-  const fileExt = extname(filePath)
+const logger = createRendererLogger('GlobalHome')
+
+const loadRecentOpens = async () => {
+  try {
+    recentOpens.value = (await getRecentOpens()) as RecentOpenEntry[]
+  } catch (error) {
+    logger.warn('加载最近列表失败', error)
+    recentOpens.value = []
+  }
+}
+
+const openRecentItem = (entry: RecentOpenEntry) => {
+  if (entry.kind === 'folder') {
+    eventBus.emit('open-recent-workspace', { path: entry.path })
+    return
+  }
+  const fileExt = extname(entry.path)
   const formatId = formatRegistry.getFormatByExtension(fileExt) || 'txt'
   eventBus.emit('workspace-open-document', {
-    path: filePath,
+    path: entry.path,
     format: formatId,
     content: '',
     preview: false
   })
 }
 
-const removeRecentDoc = async (filePath: string) => {
+const removeRecentItem = async (path: string) => {
   try {
-    await removeRecentDocFromStorage(filePath)
-    await loadRecentDocs()
-    logger.debug('删除最近文档成功', { filePath })
+    await removeRecentOpenFromStorage(path)
+    await loadRecentOpens()
+    logger.debug('删除最近项成功', { path })
   } catch (error) {
-    logger.warn('删除最近文档失败', error)
-  }
-}
-
-const logger = createRendererLogger('GlobalHome')
-
-const loadRecentDocs = async () => {
-  try {
-    recentDocs.value = await getRecentDocs()
-  } catch (error) {
-    logger.warn('加载最近文档失败', error)
-    recentDocs.value = []
+    logger.warn('删除最近项失败', error)
   }
 }
 
 const handleDocOpenSuccess = () => {
-  loadRecentDocs()
+  loadRecentOpens()
 }
 
 const handleDocOpen = () => {
   setTimeout(() => {
-    loadRecentDocs()
+    loadRecentOpens()
   }, 100)
+}
+
+const handleRecentOpensChanged = () => {
+  loadRecentOpens()
 }
 
 watch(locale, () => {
@@ -656,7 +671,7 @@ onMounted(async () => {
   initPromptSlots()
   promptSlots.value.forEach((_, i) => scheduleSlotRotation(i))
 
-  loadRecentDocs()
+  loadRecentOpens()
   const completed = await hasCompletedProfile()
   if (!completed) {
     showManualHighlight.value = true
@@ -664,12 +679,14 @@ onMounted(async () => {
 
   eventBus.on('open-doc-success', handleDocOpenSuccess)
   eventBus.on('open-doc', handleDocOpen)
+  eventBus.on('recent-opens-changed', handleRecentOpensChanged)
 })
 
 onBeforeUnmount(() => {
   clearSlotTimers()
   eventBus.off('open-doc-success', handleDocOpenSuccess)
   eventBus.off('open-doc', handleDocOpen)
+  eventBus.off('recent-opens-changed', handleRecentOpensChanged)
 })
 </script>
 
@@ -935,9 +952,7 @@ onBeforeUnmount(() => {
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid
-    v-bind(
-      'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"'
-    );
+    v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"');
   background: v-bind(
     'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.55)"'
   );

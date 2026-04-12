@@ -439,6 +439,22 @@ interface RemoveRecentWorkspaceData {
   path: string
 }
 
+type RecentOpenKind = 'file' | 'folder'
+
+interface RecentOpenItem {
+  path: string
+  kind: RecentOpenKind
+}
+
+interface UpdateRecentOpenData {
+  path: string
+  kind: RecentOpenKind
+}
+
+interface RemoveRecentOpenData {
+  path: string
+}
+
 interface CutWordsData {
   text: string
 }
@@ -2743,6 +2759,27 @@ function bindSettingHandlers(): void {
     }
   )
 
+  ipcBridge.registerHandle(
+    'update-recent-open',
+    async (event: IpcMainInvokeEvent, data: UpdateRecentOpenData): Promise<void> => {
+      return await updateRecentOpen(data)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'get-recent-opens',
+    async (event: IpcMainInvokeEvent): Promise<RecentOpenItem[]> => {
+      return await getRecentOpens()
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'remove-recent-open',
+    async (event: IpcMainInvokeEvent, data: RemoveRecentOpenData): Promise<void> => {
+      return await removeRecentOpen(data)
+    }
+  )
+
   // 获取环境变量（仅限安全的环境变量，不暴露敏感信息）
   ipcBridge.registerHandle(
     'get-env',
@@ -4609,24 +4646,113 @@ export const refreshMainWindowTitle = (): void => {
   updateWindowTitle(lastDocumentTitle)
 }
 
+const RECENT_OPENS_KEY = 'recent-opens'
+
+function parseRecentOpensJson(raw: string | null | undefined): RecentOpenItem[] {
+  if (!raw) return []
+  try {
+    const a = JSON.parse(raw) as unknown
+    if (!Array.isArray(a)) return []
+    return a.filter(
+      (x): x is RecentOpenItem =>
+        Boolean(x) &&
+        typeof x === 'object' &&
+        typeof (x as RecentOpenItem).path === 'string' &&
+        ((x as RecentOpenItem).kind === 'file' || (x as RecentOpenItem).kind === 'folder')
+    )
+  } catch {
+    return []
+  }
+}
+
+/** 读取「最近」统一列表；若为空则从 recent-docs / recent-workspaces 交错迁移一次（与 web-main-calls 一致） */
+function loadRecentOpensRaw(): RecentOpenItem[] {
+  let items = parseRecentOpensJson(store.get(RECENT_OPENS_KEY) as string | null)
+  if (items.length > 0) return items
+
+  let docs: string[] = []
+  let ws: string[] = []
+  try {
+    const d = store.get('recent-docs') as string | null
+    const parsed = d ? JSON.parse(d) : []
+    docs = Array.isArray(parsed) ? parsed.filter((p: unknown) => typeof p === 'string') : []
+  } catch {
+    docs = []
+  }
+  try {
+    const w = store.get('recent-workspaces') as string | null
+    const parsed = w ? JSON.parse(w) : []
+    ws = Array.isArray(parsed) ? parsed.filter((p: unknown) => typeof p === 'string') : []
+  } catch {
+    ws = []
+  }
+  if (docs.length === 0 && ws.length === 0) return []
+
+  const seen = new Set<string>()
+  const out: RecentOpenItem[] = []
+  const add = (path: string, kind: RecentOpenKind) => {
+    if (!path || seen.has(path)) return
+    seen.add(path)
+    out.push({ path, kind })
+  }
+  const max = Math.max(docs.length, ws.length)
+  for (let i = 0; i < max; i++) {
+    if (i < docs.length) add(docs[i], 'file')
+    if (i < ws.length) add(ws[i], 'folder')
+  }
+  const trimmed = out.slice(0, 50)
+  store.set(RECENT_OPENS_KEY, JSON.stringify(trimmed))
+  store.set('recent-docs', JSON.stringify([]))
+  store.set('recent-workspaces', JSON.stringify([]))
+  return trimmed
+}
+
+const updateRecentOpen = async (data: UpdateRecentOpenData): Promise<void> => {
+  let items = loadRecentOpensRaw()
+  items = items.filter((e) => e.path !== data.path)
+  items.unshift({ path: data.path, kind: data.kind })
+  if (items.length > 50) items = items.slice(0, 50)
+  store.set(RECENT_OPENS_KEY, JSON.stringify(items))
+}
+
+const removeRecentOpen = async (data: RemoveRecentOpenData): Promise<void> => {
+  let items = loadRecentOpensRaw()
+  items = items.filter((e) => e.path !== data.path)
+  store.set(RECENT_OPENS_KEY, JSON.stringify(items))
+}
+
+const getRecentOpens = async (): Promise<RecentOpenItem[]> => {
+  const raw = loadRecentOpensRaw()
+  const result: RecentOpenItem[] = []
+  for (const e of raw) {
+    if (e.kind === 'file') {
+      try {
+        if (fs.existsSync(e.path) && fs.statSync(e.path).isFile()) {
+          result.push(e)
+        }
+      } catch {
+        // ignore invalid entries
+      }
+    } else {
+      try {
+        if (fs.existsSync(e.path) && fs.statSync(e.path).isDirectory()) {
+          result.push(e)
+        }
+      } catch {
+        // ignore invalid entries
+      }
+    }
+  }
+  return result
+}
+
 /**
- * 更新最近文档
+ * 更新最近文档（写入统一 recent-opens）
  */
 const updateRecentDocs = async (data: UpdateRecentDocsData): Promise<void> => {
-  const json = store.get('recent-docs') as string | null
-  let recentDocs: string[] = json ? JSON.parse(json) : []
-
-  // 移除重复项并添加到前面
-  recentDocs = recentDocs.filter((item) => item !== data.path)
-  recentDocs.unshift(data.path)
-
-  if (recentDocs.length > 50) {
-    recentDocs.pop()
-  }
-
-  store.set('recent-docs', JSON.stringify(recentDocs))
-
-  if (recentDocs.length === 1) {
+  await updateRecentOpen({ path: data.path, kind: 'file' })
+  const items = parseRecentOpensJson(store.get(RECENT_OPENS_KEY) as string | null)
+  if (items.filter((e) => e.kind === 'file').length === 1) {
     const { tryUnlockFirstDocAchievement } = await import('./steam/steam-achievement')
     tryUnlockFirstDocAchievement()
   }
@@ -4636,64 +4762,28 @@ const updateRecentDocs = async (data: UpdateRecentDocsData): Promise<void> => {
  * 删除最近文档
  */
 const removeRecentDoc = async (data: RemoveRecentDocData): Promise<void> => {
-  const json = store.get('recent-docs') as string | null
-  let recentDocs: string[] = json ? JSON.parse(json) : []
-
-  // 从列表中移除指定路径
-  recentDocs = recentDocs.filter((item) => item !== data.path)
-
-  store.set('recent-docs', JSON.stringify(recentDocs))
+  await removeRecentOpen({ path: data.path })
 }
 
 /**
- * 获取最近文档
+ * 获取最近文档路径（仅文件且存在）
  */
 const getRecentDocs = async (): Promise<string[]> => {
-  const json = store.get('recent-docs') as string | null
-  let recentDocs: string[] = json ? JSON.parse(json) : []
-  const result: string[] = []
-
-  for (const filePath of recentDocs) {
-    if (fs.existsSync(filePath)) {
-      result.push(filePath)
-    }
-  }
-
-  return result
+  const opens = await getRecentOpens()
+  return opens.filter((e) => e.kind === 'file').map((e) => e.path)
 }
 
 const updateRecentWorkspaces = async (data: UpdateRecentWorkspacesData): Promise<void> => {
-  const json = store.get('recent-workspaces') as string | null
-  let recent: string[] = json ? JSON.parse(json) : []
-  recent = recent.filter((item) => item !== data.path)
-  recent.unshift(data.path)
-  if (recent.length > 50) {
-    recent.pop()
-  }
-  store.set('recent-workspaces', JSON.stringify(recent))
+  await updateRecentOpen({ path: data.path, kind: 'folder' })
 }
 
 const removeRecentWorkspace = async (data: RemoveRecentWorkspaceData): Promise<void> => {
-  const json = store.get('recent-workspaces') as string | null
-  let recent: string[] = json ? JSON.parse(json) : []
-  recent = recent.filter((item) => item !== data.path)
-  store.set('recent-workspaces', JSON.stringify(recent))
+  await removeRecentOpen({ path: data.path })
 }
 
 const getRecentWorkspaces = async (): Promise<string[]> => {
-  const json = store.get('recent-workspaces') as string | null
-  let recent: string[] = json ? JSON.parse(json) : []
-  const result: string[] = []
-  for (const folderPath of recent) {
-    try {
-      if (fs.existsSync(folderPath) && fs.statSync(folderPath).isDirectory()) {
-        result.push(folderPath)
-      }
-    } catch {
-      // ignore invalid entries
-    }
-  }
-  return result
+  const opens = await getRecentOpens()
+  return opens.filter((e) => e.kind === 'folder').map((e) => e.path)
 }
 
 // ============ 设置存储（单例见 app-store.ts） ============

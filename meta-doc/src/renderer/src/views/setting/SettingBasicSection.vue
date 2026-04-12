@@ -230,6 +230,10 @@
         </Select>
       </FormField>
 
+      <div class="font-settings-group">
+        <FileAssociationSettingsBlock :mode="props.mode" />
+      </div>
+
       <!-- 字体设置分组 -->
       <div class="font-settings-group">
         <h4 class="font-group-title">{{ t('setting.fontUi', '界面字体') }}</h4>
@@ -524,6 +528,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui
 import { FontSelect } from '@renderer/components/ui/font-select'
 import { preloadFonts } from '@renderer/services/font-service'
 import FontDebugPanel from '@renderer/components/FontDebugPanel.vue'
+import FileAssociationSettingsBlock from '@renderer/components/settings/FileAssociationSettingsBlock.vue'
 import { useAgentWorkspaceStore } from '../../stores/agent-workspace-store'
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 

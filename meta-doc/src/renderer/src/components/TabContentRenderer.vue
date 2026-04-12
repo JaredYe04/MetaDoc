@@ -1,26 +1,22 @@
 <template>
   <div class="tab-content-wrapper">
     <router-view v-if="tabs.length === 0" key="router-fallback" />
-    <!-- 实体内层：KeepAlive 无 DOM 根，用 div 承接 flex，子树根节点用 > * 铺满宽（避免 :deep 选不中 / GlobalHome 被 overflow 裁没） -->
     <div v-else class="tab-content-inner">
-      <div class="tab-active-pane-root">
-        <keep-alive :max="48">
-          <Editor
-            v-if="isDocumentTab && activeWorkspaceTab"
-            :key="`editor-${activeWorkspaceTab.id}`"
-            :tab-id="activeWorkspaceTab.id"
-          />
-          <component
-            v-else-if="activeMappedComponent && activeWorkspaceTab"
-            :is="activeMappedComponent"
-            :key="`${activeWorkspaceTab.kind}-${activeWorkspaceTab.route}-${activeWorkspaceTab.id}`"
-          />
-          <router-view
-            v-else-if="useRouterFallback && activeWorkspaceTab"
-            :key="`router-${activeWorkspaceTab.id}`"
-          />
-        </keep-alive>
+      <!-- 经典：工具/系统全宽；工作区：top 独立文档 / 工具 / 系统 单 Pane，workbench 成员走分屏树 -->
+      <div
+        v-if="useSinglePaneBody"
+        class="tab-active-pane-root"
+        data-editor-pane-drop-root
+        :data-layout-group-id="singlePaneDropGroupId || undefined"
+      >
+        <EditorPaneDropOverlay :pane-key="singlePaneDropPaneKey" />
+        <PaneTabBody
+          v-if="activeWorkspaceTab"
+          :key="`single-${activeWorkspaceTab.id}`"
+          :tab-id="activeWorkspaceTab.id"
+        />
       </div>
+      <WorkspaceSplitRoot v-else class="tab-split-root" />
     </div>
   </div>
 </template>
@@ -28,11 +24,14 @@
 <script setup lang="ts">
 import { computed, watch, onMounted, nextTick } from 'vue'
 import { useWorkspace } from '../stores/workspace'
-import { getTabComponent } from '../config/tab-content-config'
-import Editor from '../views/Editor.vue'
+import { getEditorChromeLayoutSync } from '../stores/editor-chrome-layout-state'
+import { collectTabIdsInLayout, findGroupContainingTab } from '../stores/workspace-layout'
+import PaneTabBody from './PaneTabBody.vue'
+import WorkspaceSplitRoot from './WorkspaceSplitRoot.vue'
+import EditorPaneDropOverlay from './EditorPaneDropOverlay.vue'
 
 const workspace = useWorkspace()
-const { tabs, activeTabId } = workspace
+const { tabs, activeTabId, workspaceLayoutRoot } = workspace
 
 const activeWorkspaceTab = computed(() => {
   const id = activeTabId.value
@@ -40,22 +39,32 @@ const activeWorkspaceTab = computed(() => {
   return tabs.find((t) => t.id === id) ?? null
 })
 
-const isDocumentTab = computed(() => {
-  const t = activeWorkspaceTab.value
-  return !!t && (t.kind === 'file' || t.kind === 'new')
+const singlePaneDropGroupId = computed(() => {
+  const id = activeTabId.value
+  if (!id) return null as string | null
+  return findGroupContainingTab(workspaceLayoutRoot.value, id)?.id ?? null
 })
 
-const activeMappedComponent = computed(() => {
-  const t = activeWorkspaceTab.value
-  if (!t || (t.kind !== 'system' && t.kind !== 'tool')) return null
-  if (!t.route) return null
-  return getTabComponent(t.kind, t.route)
-})
+const singlePaneDropPaneKey = computed(() => singlePaneDropGroupId.value ?? '__single_pane__')
 
-const useRouterFallback = computed(() => {
+/** 单 PaneTabBody：经典下文档走分屏根下的单组；工作区下 top 文档/工具/系统单栏，workbench 走 SplitRoot */
+const useSinglePaneBody = computed(() => {
   const t = activeWorkspaceTab.value
-  if (!t || (t.kind !== 'system' && t.kind !== 'tool')) return false
-  return !!t.route && !activeMappedComponent.value
+  if (!t) return true
+  if (getEditorChromeLayoutSync() === 'classic') {
+    if (t.kind === 'tool' || t.kind === 'system') return true
+    return false
+  }
+  // workspace：在分屏树内的系统/工具页（如工作台里的主页）必须与文档格一起走 SplitRoot，不能单 Pane 盖住整个工作台
+  if (t.kind === 'tool' || t.kind === 'system') {
+    const inWorkbenchTree = collectTabIdsInLayout(workspaceLayoutRoot.value).has(t.id)
+    if (inWorkbenchTree) return false
+    return true
+  }
+  if (t.kind === 'file' || t.kind === 'new') {
+    return t.workspacePlacement === 'top'
+  }
+  return false
 })
 
 const ensureActiveTab = () => {
@@ -91,6 +100,7 @@ onMounted(() => {
 }
 
 .tab-active-pane-root {
+  position: relative;
   flex: 1 1 0%;
   min-height: 0;
   min-width: 0;
@@ -99,10 +109,6 @@ onMounted(() => {
   flex-direction: column;
 }
 
-/*
- * scoped 下「> *」会带本组件 data-v，匹配不到子组件根节点 → 高度链断、GlobalHome 白屏。
- * 用 :deep 穿透到 Editor / GlobalHome 等根元素；勿加 overflow:hidden，避免裁掉主页 ScrollArea/背景。
- */
 .tab-active-pane-root > :deep(*) {
   flex: 1 1 0%;
   min-height: 0;
@@ -110,5 +116,13 @@ onMounted(() => {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+.tab-split-root {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 </style>

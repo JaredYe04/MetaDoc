@@ -78,21 +78,45 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { useEditorChromeLayout } from '../composables/useEditorChromeLayout'
+import { getEditorChromeLayoutSync } from '../stores/editor-chrome-layout-state'
 import eventBus from '../utils/event-bus'
 import { mixColors, themeState } from '../utils/themes'
-import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace, type DocumentView } from '../stores/workspace'
+import { isLayoutSplit } from '../stores/workspace-layout'
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import ViewMenuItem from './ViewMenuItem.vue'
 import { IMAGE_EXTENSIONS } from '../utils/file-display-utils'
 import { extname } from '../utils/path-utils'
 
-const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
+const props = withDefaults(
+  defineProps<{ mode?: 'normal' | 'demo'; contextTabId?: string | null }>(),
+  { mode: 'normal', contextTabId: null }
+)
 
 const { t } = useI18n()
-const { activeDocument } = useActiveDocument()
 const workspace = useWorkspace()
+const { editorChromeLayout } = useEditorChromeLayout()
+
+const scopedDocument = computed(() => {
+  if (!props.contextTabId) return null
+  try {
+    return workspace.ensureDocument(props.contextTabId)
+  } catch {
+    return null
+  }
+})
+
+const activeDocument = computed(() =>
+  props.contextTabId ? scopedDocument.value : workspace.activeDocument.value
+)
+
+const contextTab = computed(() =>
+  props.contextTabId
+    ? (workspace.tabs.find((t) => t.id === props.contextTabId) ?? null)
+    : workspace.activeTab.value
+)
 const isLocked = computed(() => props.mode === 'demo' || workspace.uiLocked?.value === true)
 
 // 判断是否为纯文本格式
@@ -102,7 +126,7 @@ const isPlainTextFormat = computed(() => {
 
 // 判断是否为 PDF 预览 tab（仅此类 tab 只显示主页和编辑器）
 const isPdfPreviewTab = computed(() => {
-  const tab = workspace.activeTab.value
+  const tab = contextTab.value
   if (!tab || tab.kind !== 'file') return false
   const path = (tab.path || activeDocument.value?.path || '').toLowerCase()
   const format = (tab.format || activeDocument.value?.format || '').toLowerCase()
@@ -111,7 +135,7 @@ const isPdfPreviewTab = computed(() => {
 
 // 判断是否为图片 tab（仅显示主页，不显示编辑器）
 const isImageTab = computed(() => {
-  const tab = workspace.activeTab.value
+  const tab = contextTab.value
   if (!tab || tab.kind !== 'file') return false
   const path = tab.path || activeDocument.value?.path || ''
   if (!path) return false
@@ -121,6 +145,43 @@ const isImageTab = computed(() => {
 
 // 折叠状态 - 默认折叠
 const isCollapsed = ref(false)
+
+function shouldAutoCollapseForWorkbench(): boolean {
+  if (getEditorChromeLayoutSync() === 'workspace') return true
+  if (props.contextTabId && contextTab.value?.workspacePlacement === 'workbench') return true
+  return false
+}
+
+watch(
+  () => ({
+    layout: editorChromeLayout.value,
+    placement: contextTab.value?.workspacePlacement,
+    ctx: props.contextTabId
+  }),
+  (cur, prev) => {
+    if (props.mode === 'demo') return
+    const now = shouldAutoCollapseForWorkbench()
+    const was = prev
+      ? prev.layout === 'workspace' || (!!prev.ctx && prev.placement === 'workbench')
+      : false
+    if (now && !was) {
+      isCollapsed.value = true
+      eventBus.emit('view-menu-collapse-changed', true)
+    }
+  }
+)
+
+// 已处于 workspace 时再拖出分屏：layout 模式未变，需根据布局树出现 split 再折一次
+watch(
+  () => isLayoutSplit(workspace.workspaceLayoutRoot.value),
+  (hasSplit, hadSplit) => {
+    if (props.mode === 'demo') return
+    if (!hasSplit || hadSplit) return
+    if (!shouldAutoCollapseForWorkbench()) return
+    isCollapsed.value = true
+    eventBus.emit('view-menu-collapse-changed', true)
+  }
+)
 
 // 切换折叠状态
 const toggleCollapse = () => {
@@ -145,9 +206,12 @@ const handleViewMenuCollapseSync = (payload: unknown) => {
 }
 eventBus.on('view-menu-collapse-sync', handleViewMenuCollapseSync)
 
-// 组件挂载时请求同步状态
+// 挂载时：设置已读与顶栏一致；异步载入 editorChromeLayout 后仍依赖 watch
 onMounted(() => {
   if (props.mode === 'demo') return
+  if (shouldAutoCollapseForWorkbench()) {
+    isCollapsed.value = true
+  }
   eventBus.emit('view-menu-collapse-request')
 })
 
@@ -183,39 +247,39 @@ const handleSelect = (key: string): void => {
 
   // 如果点击的是"主页"，且当前文档是新文档且尚未选择格式，切换到 GlobalHome 标签页
   if (key === 'home') {
-    const activeTab = workspace.activeTab.value
+    const tab = contextTab.value
     const doc = activeDocument.value
 
     // 检查是否是新文档且尚未选择格式
-    if (activeTab?.kind === 'new') {
+    if (tab?.kind === 'new') {
       // 切换到 GlobalHome 标签页（如果不存在则创建）
       workspace.openSystemTab('/global-home', t('headMenu.home', '主页'))
       return
     }
   }
 
-  // 切换文档视图，不改变路由
-  const activeTabId = workspace.activeTabId.value
-  const activeTab = workspace.activeTab.value
-  if (activeTabId && (activeTab?.kind === 'file' || activeTab?.kind === 'new')) {
+  // 切换文档视图，不改变路由（分屏内为 contextTabId 对应文档）
+  const targetTabId = props.contextTabId || workspace.activeTabId.value
+  const tab = contextTab.value
+  if (targetTabId && (tab?.kind === 'file' || tab?.kind === 'new')) {
     // 检查是否是PDF格式的tab（无论是预览模式还是正式打开）
-    const path = (activeTab.path || activeDocument.value?.path || '').toLowerCase()
+    const path = (tab.path || activeDocument.value?.path || '').toLowerCase()
     const isPdfTab =
       path.endsWith('.pdf') &&
-      (activeTab.format || activeDocument.value?.format || '').toLowerCase() === 'pdf'
+      (tab.format || activeDocument.value?.format || '').toLowerCase() === 'pdf'
 
     // 如果是PDF tab且切换到非Home视图，需要转换为MD
     if (isPdfTab && key !== 'home') {
       // PDF tab（临时或正式）：转为 PDF→MD 的正式新文件 tab
-      eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: activeTabId })
+      eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: targetTabId })
       return
     }
 
     // 其他预览tab的处理
-    if (activeTab.preview && key !== 'home') {
-      workspace.pinTab(activeTabId)
+    if (tab.preview && key !== 'home') {
+      workspace.pinTab(targetTabId)
     }
-    workspace.updateDocumentLastView(activeTabId, key as DocumentView)
+    workspace.updateDocumentLastView(targetTabId, key as DocumentView)
   }
 }
 

@@ -36,6 +36,7 @@
     <Tabs v-model="activeTab" class="about-tabs">
       <TabsList class="about-tabs-list">
         <TabsTrigger value="updates">{{ $t('setting.about.updateSettings') }}</TabsTrigger>
+        <TabsTrigger value="steam">{{ $t('setting.about.steamTab') }}</TabsTrigger>
         <TabsTrigger value="licenses">{{ $t('setting.about.openSourceLicenses') }}</TabsTrigger>
         <TabsTrigger value="assets">{{ $t('setting.about.thirdPartyAssets') }}</TabsTrigger>
       </TabsList>
@@ -132,6 +133,47 @@
         </div>
       </TabsContent>
 
+      <TabsContent value="steam" class="about-tabs-content">
+        <div class="steam-section space-y-4 max-w-xl">
+          <div class="text-sm space-y-1">
+            <div>
+              <span class="text-muted-foreground">{{ $t('setting.about.steamStatus') }}:</span>
+              {{ steamInitialized ? $t('setting.about.steamInitialized') : $t('setting.about.steamNotInitialized') }}
+            </div>
+            <div v-if="steamReason" class="text-muted-foreground break-all">{{ steamReason }}</div>
+          </div>
+          <div v-if="steamUser" class="text-sm space-y-1">
+            <div>{{ $t('setting.about.steamUser') }}</div>
+            <div>
+              <span class="text-muted-foreground">{{ $t('setting.about.steamUserName') }}:</span>
+              {{ steamUser.name }}
+            </div>
+            <div>
+              <span class="text-muted-foreground">{{ $t('setting.about.steamUserId') }}:</span>
+              {{ steamUser.id }}
+            </div>
+          </div>
+          <p class="text-sm text-muted-foreground">{{ $t('setting.about.steamHint') }}</p>
+          <div class="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" :disabled="steamSyncing" @click="steamPullSettings">
+              {{ $t('setting.about.steamSyncSettingsPull') }}
+            </Button>
+            <Button size="sm" variant="outline" :disabled="steamSyncing" @click="steamPushSettings">
+              {{ $t('setting.about.steamSyncSettingsPush') }}
+            </Button>
+            <Button size="sm" variant="outline" :disabled="steamSyncing" @click="steamPullHistory">
+              {{ $t('setting.about.steamSyncHistoryPull') }}
+            </Button>
+            <Button size="sm" variant="outline" :disabled="steamSyncing" @click="steamPushHistory">
+              {{ $t('setting.about.steamSyncHistoryPush') }}
+            </Button>
+          </div>
+          <div>
+            <Button size="sm" @click="openWorkshopMarket">{{ $t('setting.about.steamOpenWorkshop') }}</Button>
+          </div>
+        </div>
+      </TabsContent>
+
       <TabsContent value="licenses" class="about-tabs-content">
         <div class="licenses-section">
           <ScrollArea class="h-[400px]">
@@ -154,6 +196,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Button } from '@renderer/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
@@ -174,6 +217,15 @@ import { Switch } from '@renderer/components/ui/switch'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Divider } from '@renderer/components/ui/separator'
 import LogoIcon from '../../components/LogoIcon.vue'
+import { notifyError, notifySuccess } from '../../utils/notify'
+import {
+  getSteamStatus,
+  getSteamUser,
+  steamSyncPullHistory,
+  steamSyncPullSettings,
+  steamSyncPushHistory,
+  steamSyncPushSettings
+} from '../../services/steam-client'
 
 // Logo 固定配色，不随亮/暗主题变化
 const bgColor = FIXED_LOGO_COLORS.bgColor
@@ -187,7 +239,91 @@ const props = defineProps<{
 const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
+const router = useRouter()
 const workspace = useWorkspace()
+
+const steamInitialized = ref(false)
+const steamReason = ref('')
+const steamUser = ref<{ id: string; name: string; level: number } | null>(null)
+const steamSyncing = ref(false)
+
+async function loadSteamPanel() {
+  const st = await getSteamStatus()
+  if (st.success && st.data) {
+    steamInitialized.value = Boolean(st.data.initialized)
+    steamReason.value = st.data.reason || ''
+  } else {
+    steamInitialized.value = false
+    steamReason.value = st.success ? '' : st.error
+  }
+  const u = await getSteamUser()
+  if (u.success && u.data) {
+    steamUser.value = u.data
+  } else {
+    steamUser.value = null
+  }
+}
+
+async function steamPullSettings() {
+  steamSyncing.value = true
+  try {
+    const r = await steamSyncPullSettings()
+    if (r.success) {
+      notifySuccess(t('setting.about.steamSyncDone'))
+      await loadSettings()
+    } else {
+      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    }
+  } finally {
+    steamSyncing.value = false
+  }
+}
+
+async function steamPushSettings() {
+  steamSyncing.value = true
+  try {
+    const r = await steamSyncPushSettings()
+    if (r.success) {
+      notifySuccess(t('setting.about.steamSyncDone'))
+    } else {
+      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    }
+  } finally {
+    steamSyncing.value = false
+  }
+}
+
+async function steamPullHistory() {
+  steamSyncing.value = true
+  try {
+    const r = await steamSyncPullHistory()
+    if (r.success) {
+      notifySuccess(t('setting.about.steamSyncDone'))
+    } else {
+      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    }
+  } finally {
+    steamSyncing.value = false
+  }
+}
+
+async function steamPushHistory() {
+  steamSyncing.value = true
+  try {
+    const r = await steamSyncPushHistory()
+    if (r.success) {
+      notifySuccess(t('setting.about.steamSyncDone'))
+    } else {
+      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    }
+  } finally {
+    steamSyncing.value = false
+  }
+}
+
+function openWorkshopMarket() {
+  router.push('/workshop-market')
+}
 
 function openFeedbackTab() {
   workspace.openSystemTab(
@@ -399,7 +535,7 @@ onMounted(async () => {
     return
   }
 
-  await Promise.all([loadVersionInfo(), loadSettings(), loadLicenseAndAssets()])
+  await Promise.all([loadVersionInfo(), loadSettings(), loadLicenseAndAssets(), loadSteamPanel()])
 
   // 监听自动下载完成事件
   messageBridge.on('update-downloaded', handleUpdateDownloaded)

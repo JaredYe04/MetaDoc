@@ -108,8 +108,8 @@ const pdfUrlForHome = computed(() => {
   return encodeFilePathToUrl(currentFilePath.value)
 })
 
-const renderableContent = computed(
-  () => (activeDocument.value?.format === 'txt' ? (activeDocument.value?.markdown ?? '') : '')
+const renderableContent = computed(() =>
+  activeDocument.value?.format === 'txt' ? (activeDocument.value?.markdown ?? '') : ''
 )
 
 const renderableSvgDataUrl = computed(() => svgContentToDataUrl(renderableContent.value))
@@ -119,8 +119,8 @@ const renderableFileUrl = computed(() => {
   return encodeFilePathToUrl(currentFilePath.value)
 })
 
-const plainTextContent = computed(
-  () => (activeDocument.value?.format === 'txt' ? (activeDocument.value?.markdown ?? '') : '')
+const plainTextContent = computed(() =>
+  activeDocument.value?.format === 'txt' ? (activeDocument.value?.markdown ?? '') : ''
 )
 
 const previewMarkdown = ref('')
@@ -157,7 +157,9 @@ function joinPath(baseDir: string, target: string): string {
 }
 
 function resolveRelativePath(baseDir: string, targetPath: string): string {
-  const direct = isAbsolutePath(targetPath) ? normalizeFsPath(targetPath) : joinPath(baseDir, targetPath)
+  const direct = isAbsolutePath(targetPath)
+    ? normalizeFsPath(targetPath)
+    : joinPath(baseDir, targetPath)
   const segments = direct.split('/')
   const stack: string[] = []
   for (const segment of segments) {
@@ -183,7 +185,9 @@ async function readFileContent(filePath: string): Promise<string | null> {
   }
 }
 
-async function readTexWithFallbackExtensions(pathWithoutExt: string): Promise<{ path: string; content: string } | null> {
+async function readTexWithFallbackExtensions(
+  pathWithoutExt: string
+): Promise<{ path: string; content: string } | null> {
   const candidates = pathWithoutExt.toLowerCase().endsWith('.tex')
     ? [pathWithoutExt]
     : [pathWithoutExt, `${pathWithoutExt}.tex`]
@@ -238,7 +242,12 @@ async function expandLatexInputs(
     }
 
     visited.add(normalizedResolvedPath)
-    const expanded = await expandLatexInputs(fileData.content, normalizedResolvedPath, visited, depth + 1)
+    const expanded = await expandLatexInputs(
+      fileData.content,
+      normalizedResolvedPath,
+      visited,
+      depth + 1
+    )
     output += expanded
   }
 
@@ -247,40 +256,84 @@ async function expandLatexInputs(
 }
 
 let previewRenderToken = 0
+let texPreviewDebounceTimer: ReturnType<typeof setTimeout> | null = null
+const TEX_HOME_PREVIEW_DEBOUNCE_MS = 250
+
+/** 主页 Markdown 预览区：与当前文档内存一致（含未保存的 md / tex），与 activeDocument 编辑状态同步 */
+async function buildPreviewMarkdownForActiveDocument(token: number, tabId: string): Promise<void> {
+  if (activeTab.value?.id !== tabId) return
+  const doc = activeDocument.value
+  if (!doc) {
+    previewMarkdown.value = ''
+    isLatexPreviewLoading.value = false
+    return
+  }
+
+  if (doc.format !== 'tex') {
+    isLatexPreviewLoading.value = false
+    previewMarkdown.value = doc.markdown ?? ''
+    return
+  }
+
+  isLatexPreviewLoading.value = true
+  const rawTex = doc.tex ?? ''
+  const texPath = currentFilePath.value
+  let texForPreview = rawTex
+
+  try {
+    if (rawTex && texPath && messageBridge.getIpc()?.invoke) {
+      const visited = new Set<string>([normalizeFsPath(texPath)])
+      texForPreview = await expandLatexInputs(rawTex, texPath, visited)
+    }
+    if (token !== previewRenderToken || activeTab.value?.id !== tabId) return
+    previewMarkdown.value = convertLatexToMarkdown(texForPreview)
+  } finally {
+    if (token === previewRenderToken && activeTab.value?.id === tabId) {
+      isLatexPreviewLoading.value = false
+    }
+  }
+}
 
 watch(
-  [activeDocument, currentFilePath],
-  async () => {
-    const token = ++previewRenderToken
+  () => [
+    activeTab.value?.id ?? '',
+    currentFilePath.value,
+    activeDocument.value?.format ?? '',
+    activeDocument.value?.markdown ?? '',
+    activeDocument.value?.tex ?? ''
+  ],
+  () => {
     const doc = activeDocument.value
     if (!doc) {
+      if (texPreviewDebounceTimer) {
+        clearTimeout(texPreviewDebounceTimer)
+        texPreviewDebounceTimer = null
+      }
       previewMarkdown.value = ''
+      isLatexPreviewLoading.value = false
       return
     }
 
     if (doc.format !== 'tex') {
+      if (texPreviewDebounceTimer) {
+        clearTimeout(texPreviewDebounceTimer)
+        texPreviewDebounceTimer = null
+      }
       isLatexPreviewLoading.value = false
       previewMarkdown.value = doc.markdown ?? ''
       return
     }
 
-    isLatexPreviewLoading.value = true
-    const rawTex = doc.tex ?? ''
-    const texPath = currentFilePath.value
-    let texForPreview = rawTex
-
-    try {
-      if (rawTex && texPath && messageBridge.getIpc()?.invoke) {
-        const visited = new Set<string>([normalizeFsPath(texPath)])
-        texForPreview = await expandLatexInputs(rawTex, texPath, visited)
-      }
-      if (token !== previewRenderToken) return
-      previewMarkdown.value = convertLatexToMarkdown(texForPreview)
-    } finally {
-      if (token === previewRenderToken) {
-        isLatexPreviewLoading.value = false
-      }
+    if (texPreviewDebounceTimer) {
+      clearTimeout(texPreviewDebounceTimer)
     }
+    isLatexPreviewLoading.value = true
+    const scheduledToken = ++previewRenderToken
+    const tabIdForJob = activeTab.value?.id ?? ''
+    texPreviewDebounceTimer = setTimeout(() => {
+      texPreviewDebounceTimer = null
+      void buildPreviewMarkdownForActiveDocument(scheduledToken, tabIdForJob)
+    }, TEX_HOME_PREVIEW_DEBOUNCE_MS)
   },
   { immediate: true }
 )
@@ -323,6 +376,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (texPreviewDebounceTimer) {
+    clearTimeout(texPreviewDebounceTimer)
+    texPreviewDebounceTimer = null
+  }
   eventBus.off('sync-editor-theme')
 })
 </script>

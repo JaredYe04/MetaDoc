@@ -45,7 +45,7 @@
         :open-system-tab="openSystemTab"
       />
       <!-- PDF：底部提供转为 Markdown 编辑（全局，非仅专注模式） -->
-      <div v-if="isPdfTab" class="home-pdf-convert-bar">
+      <div v-if="isPdfTab" class="home-pdf-convert-bar" :style="pdfConvertBarStyle">
         <span class="home-pdf-convert-hint">{{ $t('focusMode.pdfPreviewHint') }}</span>
         <button type="button" class="home-pdf-convert-btn" @click="handleFocusPdfConvert">
           {{ $t('focusMode.convertToMarkdown') }}
@@ -59,7 +59,8 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
-import { themeState } from '../utils/themes'
+import { settings } from '../utils/settings'
+import { themeState, mixColors, lightTheme, darkTheme } from '../utils/themes'
 import { convertLatexToMarkdown } from '../utils/latex-utils'
 import { svgContentToDataUrl } from '../utils/file-display-utils'
 import messageBridge from '../bridge/message-bridge'
@@ -342,6 +343,26 @@ const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd || themeState.currentTheme.background,
   borderColor: themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
 }))
+
+/** 自定义主题色 / 系统强调色主题下，底栏与侧栏等一致：75% 灰 + 25% themeColor（mixColors 的 weight 为灰色占比） */
+const pdfConvertBarUsesThemedMix = computed(() => {
+  if (settings.globalTheme === 'custom') return true
+  if (settings.globalTheme === 'sync-color') {
+    return themeState.currentTheme !== lightTheme && themeState.currentTheme !== darkTheme
+  }
+  return false
+})
+
+const pdfConvertBarStyle = computed(() => {
+  if (!pdfConvertBarUsesThemedMix.value) return {}
+  const themeColor = themeState.currentTheme.themeColor || '#808080'
+  const isDark = themeState.currentTheme.type === 'dark'
+  return {
+    background: isDark
+      ? mixColors(themeColor, '#2a2a2a', 0.75)
+      : mixColors(themeColor, '#ebebeb', 0.75)
+  }
+})
 
 const plainTextAdapterRef = ref<InstanceType<typeof HomePlainTextAdapter> | null>(null)
 

@@ -3127,7 +3127,15 @@
     "workspaceGrep": "工作区搜索",
     "view": "视图",
     "viewTooltip": "侧栏显示与布局",
-    "viewSidebarAgent": "Agent"
+    "viewSidebarAgent": "Agent",
+    "steamTrayTooltip": "Steam",
+    "steamTrayLevel": "等级",
+    "steamTrayAchievements": "本游戏成就",
+    "steamOpenProfileOverlay": "在 Steam 叠加层中打开个人资料",
+    "steamOpenAchievementsOverlay": "在 Steam 叠加层中打开成就",
+    "steamAchFirstDoc": "首篇文档",
+    "steamAchAi100": "AI 对话 100 次",
+    "steamAchExportPdf": "导出 PDF"
   },
   "llm-adapter": {
     "failed": "配置失败",
@@ -4069,7 +4077,7 @@
       "steamUser": "Steam 用户",
       "steamUserId": "Steam ID",
       "steamUserName": "显示名称",
-      "steamHint": "请通过 Steam 客户端启动本应用，并在开发目录放置 steam_appid.txt（可参考 steam_appid.txt.example）。",
+      "steamHint": "开发时可直接 pnpm dev：在项目根放置 steam_appid.txt（见 steam_appid.txt.example），本机登录 Steam 客户端即可。若状态为 greenworks_not_loaded，请在 meta-doc 目录执行 pnpm run greenworks:rebuild（或完整 pnpm install）以针对当前 Electron 编译 greenworks。",
       "steamSyncSettingsPull": "从云端拉取设置",
       "steamSyncSettingsPush": "将设置推送到云端",
       "steamSyncHistoryPull": "从云端拉取用量统计",

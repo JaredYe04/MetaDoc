@@ -26,8 +26,11 @@
     "build:only": "node scripts/copy-env.js && npm run generate-skeleton-tips && electron-vite build",
     "temp-build": "electron-vite build",
     "build:sequential": "npm run prebuild && node scripts/build-sequential.js",
-    "postinstall": "node scripts/postinstall-electron.js && (electron-builder install-app-deps || echo \"Warning: Some native dependencies (e.g. canvas) may need manual setup\") && npm run rebuild-native",
+    "postinstall": "node scripts/postinstall-electron.js && (electron-builder install-app-deps || echo \"Warning: Some native dependencies (e.g. canvas) may need manual setup\") && npm run rebuild-native && node scripts/ensure-greenworks-installed.mjs && node scripts/prepare-steamworks-sdk.mjs && node scripts/rebuild-greenworks-if-present.mjs",
     "rebuild-native": "electron-rebuild -f -w better-sqlite3,node-pty --only better-sqlite3,node-pty",
+    "greenworks:setup": "node scripts/greenworks-setup.mjs",
+    "greenworks:prepare": "node scripts/prepare-steamworks-sdk.mjs",
+    "greenworks:rebuild": "node scripts/prepare-steamworks-sdk.mjs && node scripts/rebuild-greenworks-if-present.mjs --require",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build:only && electron-builder --win",
     "temp-build:win": "npm run temp-build && electron-builder --win",
@@ -206,6 +209,9 @@
     "xmldom": "^0.6.0",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"
+  },
+  "optionalDependencies": {
+    "greenworks": "github:greenheartgames/greenworks"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-methods": "^7.18.6",

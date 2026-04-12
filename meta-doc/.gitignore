@@ -2,6 +2,13 @@ node_modules
 dist
 out
 
+# Steam 本地调试 AppID（勿提交真实发行 ID）
+steam_appid.txt
+
+# 可选：本机解压的 SDK 目录（不提交）；随仓库提交的 zip 见 third-party/steamworks-sdk/
+steamworks_sdk/
+.steamworks/
+
 # Debug 页「批量导出验收」产出（样例在 debug-export/fixtures，可提交）
 debug-export/output/
 .DS_Store

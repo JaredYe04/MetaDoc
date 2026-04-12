@@ -347,6 +347,51 @@ export function webMainCalls() {
     return { mode, accentColor: undefined }
   })
 
+  localIpcMain.handle('get-runtime-platform', async () => {
+    if (typeof navigator === 'undefined') return 'web'
+    const ua = navigator.userAgent || ''
+    if (/Windows/i.test(ua)) return 'win32'
+    if (/Macintosh|Mac OS X/i.test(ua)) return 'darwin'
+    if (/Linux/i.test(ua)) return 'linux'
+    return 'web'
+  })
+
+  localIpcMain.handle('open-system-file-association-settings', async () => ({
+    ok: false,
+    error: 'web_unsupported'
+  }))
+
+  localIpcMain.handle('get-file-association-context', async () => {
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
+    let platform = 'web'
+    if (/Windows/i.test(ua)) platform = 'win32'
+    else if (/Macintosh|Mac OS X/i.test(ua)) platform = 'darwin'
+    else if (/Linux/i.test(ua)) platform = 'linux'
+    return {
+      platform,
+      isPackaged: false,
+      execPath: '',
+      name: 'MetaDoc',
+      steamLikely: false
+    }
+  })
+
+  localIpcMain.handle('windows-write-user-file-associations', async () => ({
+    ok: false,
+    error: 'not_packaged'
+  }))
+
+  localIpcMain.handle('refresh-shell-file-metadata', async () => ({
+    ok: false,
+    error: 'not_packaged',
+    platform: 'web'
+  }))
+
+  localIpcMain.handle('open-file-association-sample', async () => ({
+    ok: false,
+    error: 'web_unsupported'
+  }))
+
   // 获取系统字体列表（Web 环境下返回默认字体列表）
   localIpcMain.handle('get-system-fonts', async (event, data) => {
     // Web 环境下无法获取系统字体，返回默认字体列表
@@ -480,6 +525,15 @@ export function webMainCalls() {
     data: { initialized: false, available: false, reason: 'web' }
   }))
   localIpcMain.handle('steam:user:get', async () => steamWeb)
+  localIpcMain.handle('steam:user:avatar', async () => ({
+    success: true,
+    data: { avatarUrl: null }
+  }))
+  localIpcMain.handle('steam:achievement:list-local', async () => ({
+    success: true,
+    data: { items: [] }
+  }))
+  localIpcMain.handle('steam:overlay:to-user', async () => steamWeb)
   localIpcMain.handle('steam:cloud:save', async () => steamWeb)
   localIpcMain.handle('steam:cloud:read', async () => steamWeb)
   localIpcMain.handle('steam:achievement:unlock', async () => steamWeb)

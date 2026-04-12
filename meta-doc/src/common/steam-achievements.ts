@@ -1,6 +1,6 @@
-/** Steam 成就 API 名（须与 Steamworks 后台配置一致） */
-export const STEAM_ACHIEVEMENT_IDS = {
-  FIRST_DOC: 'FIRST_DOC',
-  AI_100: 'AI_100',
-  EXPORT_PDF: 'EXPORT_PDF'
-} as const
+/** @file 兼容入口：成就定义已迁至 steam-achievement-registry */
+export {
+  STEAM_ACHIEVEMENTS,
+  STEAM_ACHIEVEMENT_API_NAMES,
+  type SteamAchievementDef
+} from './steam-achievement-registry'

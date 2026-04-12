@@ -390,6 +390,9 @@ async function runTest() {
     if (r.ok) {
       testCheckStatus.value = 'success'
       testCheckTooltip.value = t('onboarding.llm.testOk')
+      void import('../../services/steam-client').then((m) =>
+        m.tryUnlockSteamAchievementByApi('ACH_LLM_TEST_OK')
+      )
     } else {
       const msg = (r.message || '').trim()
       const isGenericEmpty = msg === t('onboarding.llm.testFail') || !msg

@@ -278,9 +278,10 @@ GOOGLE_API_KEY=your_api_key
 
 - [项目设计报告](docs/智能体产品设计报告.md)
 - [Agent框架文档](meta-doc/src/renderer/src/utils/agent-framework/README.md)
-- [RAG知识库文档](meta-doc/docs/RAG_KNOWLEDGE_BASE.md)
-- [导出系统文档](meta-doc/docs/EXPORT_ADAPTER_REFACTOR.md)
-- [重构总结](meta-doc/docs/REFACTOR_SUMMARY.md)
+- [内部文档索引](meta-doc/docs/README.md)
+- [RAG知识库文档](meta-doc/docs/ai/RAG_KNOWLEDGE_BASE.md)
+- [导出系统文档](meta-doc/docs/export/EXPORT_ADAPTER_REFACTOR.md)
+- [重构总结](meta-doc/docs/refactoring/REFACTOR_SUMMARY.md)
 
 ## 🤝 贡献指南
 

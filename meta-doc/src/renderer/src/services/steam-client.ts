@@ -1,4 +1,3 @@
-import { STEAM_ACHIEVEMENT_IDS } from '@common/steam-achievements'
 import messageBridge from '../bridge/message-bridge'
 
 export type SteamStatusPayload = {
@@ -11,6 +10,15 @@ export type SteamUserPayload = {
   id: string
   name: string
   level: number
+}
+
+export type SteamProfileSummaryPayload = {
+  user: SteamUserPayload
+  avatarUrl: string | null
+  level: number
+  secondsPlayed: number
+  aiRequests: number
+  charsTyped: number
 }
 
 type SteamInvokeResult<T = unknown> =
@@ -39,6 +47,12 @@ export async function getSteamAvatar(): Promise<
   return invokeSteam<{ avatarUrl: string | null }>('steam:user:avatar')
 }
 
+export async function getSteamProfileSummary(): Promise<
+  SteamInvokeResult<SteamProfileSummaryPayload>
+> {
+  return invokeSteam<SteamProfileSummaryPayload>('steam:profile-summary')
+}
+
 export type SteamLocalAchievementRow = { id: string; achieved: boolean }
 
 export async function listLocalSteamAchievements(): Promise<
@@ -57,45 +71,9 @@ export async function unlockSteamAchievement(apiName: string): Promise<SteamInvo
   return invokeSteam('steam:achievement:unlock', apiName)
 }
 
-export async function tryUnlockAi100Achievement(totalRequests: number): Promise<void> {
-  if (totalRequests < 100) {
-    return
-  }
-  const key = 'steamAchUnlocked_AI_100_local'
-  try {
-    if (localStorage.getItem(key) === '1') {
-      return
-    }
-  } catch {
-    /* ignore */
-  }
-  const r = await unlockSteamAchievement(STEAM_ACHIEVEMENT_IDS.AI_100)
-  if (r.success) {
-    try {
-      localStorage.setItem(key, '1')
-    } catch {
-      /* ignore */
-    }
-  }
-}
-
-export async function tryUnlockExportPdfAchievement(): Promise<void> {
-  const key = 'steamAchUnlocked_EXPORT_PDF_local'
-  try {
-    if (localStorage.getItem(key) === '1') {
-      return
-    }
-  } catch {
-    /* ignore */
-  }
-  const r = await unlockSteamAchievement(STEAM_ACHIEVEMENT_IDS.EXPORT_PDF)
-  if (r.success) {
-    try {
-      localStorage.setItem(key, '1')
-    } catch {
-      /* ignore */
-    }
-  }
+/** 主进程去重后解锁（适合渲染进程埋点） */
+export async function tryUnlockSteamAchievementByApi(apiName: string): Promise<SteamInvokeResult> {
+  return invokeSteam('steam:achievement:try-unlock', apiName)
 }
 
 export async function steamSyncPullSettings(): Promise<SteamInvokeResult<{ applied: boolean }>> {
@@ -126,5 +104,3 @@ export async function downloadWorkshopItem(
 ): Promise<SteamInvokeResult> {
   return invokeSteam('steam:workshop:download', { publishedFileId, targetDir })
 }
-
-export { STEAM_ACHIEVEMENT_IDS }

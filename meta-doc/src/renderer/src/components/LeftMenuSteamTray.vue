@@ -47,28 +47,27 @@
             </div>
           </div>
 
-          <div class="mt-3 text-xs font-medium text-muted-foreground">
-            {{ t('leftMenu.steamTrayAchievements', '本游戏成就') }}
+          <div class="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-2 text-sm">
+            <div class="flex justify-between gap-2">
+              <span class="text-muted-foreground">{{ t('leftMenu.steamStatPlaytime', '累计使用时长') }}</span>
+              <span class="font-medium tabular-nums">{{ playtimeLabel }}</span>
+            </div>
+            <div class="flex justify-between gap-2">
+              <span class="text-muted-foreground">{{ t('leftMenu.steamStatAiRequests', 'AI 调用次数') }}</span>
+              <span class="font-medium tabular-nums">{{ summary?.aiRequests ?? 0 }}</span>
+            </div>
+            <div class="flex justify-between gap-2">
+              <span class="text-muted-foreground">{{ t('leftMenu.steamStatChars', '累计输入字符') }}</span>
+              <span class="font-medium tabular-nums">{{ summary?.charsTyped ?? 0 }}</span>
+            </div>
           </div>
-          <ul class="mt-1.5 space-y-1 max-h-40 overflow-y-auto text-sm">
-            <li
-              v-for="row in achievementRows"
-              :key="row.id"
-              class="flex items-center justify-between gap-2 py-0.5"
-            >
-              <span class="truncate">{{ achievementLabel(row.id) }}</span>
-              <span :class="row.achieved ? 'text-emerald-600' : 'text-muted-foreground'">
-                {{ row.achieved ? '✓' : '—' }}
-              </span>
-            </li>
-          </ul>
 
           <div class="mt-3 flex flex-col gap-2">
             <Button variant="outline" size="sm" class="w-full" @click="openProfileOverlay">
-              {{ t('leftMenu.steamOpenProfileOverlay', '在 Steam 中查看资料…') }}
+              {{ t('leftMenu.steamOpenProfileOverlay', '打开个人资料') }}
             </Button>
             <Button variant="outline" size="sm" class="w-full" @click="openAchievementsOverlay">
-              {{ t('leftMenu.steamOpenAchievementsOverlay', '在 Steam 中查看成就…') }}
+              {{ t('leftMenu.steamOpenAchievementsOverlay', '查看成就') }}
             </Button>
           </div>
         </PopoverContent>
@@ -78,22 +77,20 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { PopoverRoot, PopoverTrigger, PopoverPortal } from 'reka-ui'
 import { PopoverContent } from '@renderer/components/ui/popover'
 import { Button } from '@renderer/components/ui/button'
 import {
-  getSteamAvatar,
+  getSteamProfileSummary,
   getSteamStatus,
-  getSteamUser,
-  listLocalSteamAchievements,
   openSteamOverlayToUser,
-  type SteamLocalAchievementRow,
+  type SteamProfileSummaryPayload,
   type SteamUserPayload
 } from '../services/steam-client'
 
-const props = defineProps<{
+defineProps<{
   collapsed: boolean
 }>()
 
@@ -102,21 +99,32 @@ const { t } = useI18n()
 const steamReady = ref(false)
 const user = ref<SteamUserPayload | null>(null)
 const avatarUrl = ref<string | null>(null)
-const achievementRows = ref<SteamLocalAchievementRow[]>([])
+const summary = ref<Pick<
+  SteamProfileSummaryPayload,
+  'secondsPlayed' | 'aiRequests' | 'charsTyped'
+> | null>(null)
 const open = ref(false)
 
-const ACH_LABEL_KEYS: Record<string, string> = {
-  FIRST_DOC: 'leftMenu.steamAchFirstDoc',
-  AI_100: 'leftMenu.steamAchAi100',
-  EXPORT_PDF: 'leftMenu.steamAchExportPdf'
-}
+const playtimeLabel = computed(() => formatPlaytime(t, summary.value?.secondsPlayed ?? 0))
 
-function achievementLabel(id: string) {
-  const key = ACH_LABEL_KEYS[id]
-  if (key) {
-    return t(key, id)
+function formatPlaytime(
+  tr: (key: string, params?: Record<string, string | number>) => string,
+  seconds: number
+): string {
+  const s = Math.max(0, Math.floor(seconds))
+  const days = Math.floor(s / 86400)
+  if (days >= 1) {
+    return tr('leftMenu.steamPlaytimeDays', { n: days })
   }
-  return id
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  if (h > 0) {
+    return tr('leftMenu.steamPlaytimeHoursMinutes', { h, m })
+  }
+  if (m > 0) {
+    return tr('leftMenu.steamPlaytimeMinutes', { m })
+  }
+  return tr('leftMenu.steamPlaytimeSeconds', { s })
 }
 
 async function refreshSteamState() {
@@ -125,30 +133,36 @@ async function refreshSteamState() {
     steamReady.value = false
     user.value = null
     avatarUrl.value = null
-    achievementRows.value = []
+    summary.value = null
     return
   }
-  const u = await getSteamUser()
-  if (!u.success || !u.data) {
+  const r = await getSteamProfileSummary()
+  if (!r.success || !r.data) {
     steamReady.value = false
+    summary.value = null
     return
   }
   steamReady.value = true
-  user.value = u.data
-}
-
-async function loadAvatar() {
-  const r = await getSteamAvatar()
-  if (r.success && r.data?.avatarUrl) {
-    avatarUrl.value = r.data.avatarUrl
-  } else {
-    avatarUrl.value = null
+  user.value = r.data.user
+  avatarUrl.value = r.data.avatarUrl
+  summary.value = {
+    secondsPlayed: r.data.secondsPlayed,
+    aiRequests: r.data.aiRequests,
+    charsTyped: r.data.charsTyped
   }
 }
 
-async function loadAchievements() {
-  const r = await listLocalSteamAchievements()
-  achievementRows.value = r.success && r.data?.items ? r.data.items : []
+async function loadProfileSummaryOnly() {
+  const r = await getSteamProfileSummary()
+  if (r.success && r.data) {
+    user.value = r.data.user
+    avatarUrl.value = r.data.avatarUrl
+    summary.value = {
+      secondsPlayed: r.data.secondsPlayed,
+      aiRequests: r.data.aiRequests,
+      charsTyped: r.data.charsTyped
+    }
+  }
 }
 
 async function openProfileOverlay() {
@@ -161,16 +175,12 @@ async function openAchievementsOverlay() {
 
 watch(open, (v) => {
   if (v) {
-    void loadAchievements()
+    void loadProfileSummaryOnly()
   }
 })
 
 onMounted(() => {
-  void refreshSteamState().then(() => {
-    if (steamReady.value) {
-      void loadAvatar()
-    }
-  })
+  void refreshSteamState()
 })
 </script>
 

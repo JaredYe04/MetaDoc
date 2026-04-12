@@ -24,9 +24,20 @@ export function getSteamUserInfo(gw: GreenworksApi): SteamUserInfo | null {
         : typeof sid.getScreenName === 'function'
           ? String(sid.getScreenName())
           : ''
+    // greenworks GetSteamId 在返回对象上挂 level（数字）；部分路径上为 getSteamLevel()
+    const sidAny = sid as {
+      level?: number
+      getLevel?: () => number
+      getSteamLevel?: () => number
+    }
     let level = 0
-    if (typeof sid.getLevel === 'function') {
-      const l = sid.getLevel()
+    if (typeof sidAny.level === 'number' && Number.isFinite(sidAny.level)) {
+      level = sidAny.level
+    } else if (typeof sidAny.getSteamLevel === 'function') {
+      const l = sidAny.getSteamLevel()
+      level = typeof l === 'number' ? l : 0
+    } else if (typeof sidAny.getLevel === 'function') {
+      const l = sidAny.getLevel()
       level = typeof l === 'number' ? l : 0
     }
     if (!id) {

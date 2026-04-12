@@ -119,6 +119,12 @@ export async function recordLlmRequest(usage, model = null, type = null) {
 
     await saveStatistics(stats)
 
+    try {
+      await messageBridge.invoke('steam:stats:report', { aiRequestsTotal: stats.totalRequests })
+    } catch {
+      /* Steam 未初始化或非 Steam 版时忽略 */
+    }
+
     getLogger().debug('已记录 LLM 请求统计:', requestRecord)
   } catch (error) {
     getLogger().error('记录 LLM 请求失败:', error)

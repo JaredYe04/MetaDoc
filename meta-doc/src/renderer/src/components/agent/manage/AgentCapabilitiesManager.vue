@@ -1011,6 +1011,9 @@ async function submitRuleForm() {
     toast.success(t('agent.manage.capabilities.saveOk'))
     ruleDialogOpen.value = false
     await loadRules()
+    void import('../../../services/steam-client').then((m) =>
+      m.tryUnlockSteamAchievementByApi('ACH_FIRST_AGENT_RULE')
+    )
   } else {
     toast.error(res?.message || t('agent.manage.capabilities.saveFailed'))
   }

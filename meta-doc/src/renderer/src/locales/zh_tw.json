@@ -14,6 +14,9 @@
       "emptyTitle": "暫無標題可複製",
       "copyFailed": "複製失敗",
       "noRangeToDelete": "無法定位該段落範圍，已取消刪除"
+    },
+    "workspaceLink": {
+      "needsSavedDoc": "請先儲存目前文件，再跟隨相對路徑連結"
     }
   },
   "aIService": {
@@ -2528,7 +2531,9 @@
       "technicalTutorial": "技術教學",
       "userGuide": "使用指南",
       "weeklyReport": "週報"
-    }
+    },
+    "recent": "最近",
+    "recentWorkspaces": "最近工作區"
   },
   "knowledgeBase": {
     "add": "新增",
@@ -3063,7 +3068,22 @@
     "workspaceGrep": "工作區搜尋",
     "view": "檢視",
     "viewTooltip": "側欄顯示",
-    "viewSidebarAgent": "Agent"
+    "viewSidebarAgent": "Agent",
+    "recent": "最近",
+    "recentTooltip": "最近開啟的位置",
+    "recentWorkspaces": "最近工作區",
+    "recentWorkspacesTooltip": "最近開啟的工作區資料夾",
+    "steamOpenAchievementsOverlay": "查看成就",
+    "steamOpenProfileOverlay": "開啟個人資料",
+    "steamPlaytimeDays": "{n} 天",
+    "steamPlaytimeHoursMinutes": "{h} 小時 {m} 分",
+    "steamPlaytimeMinutes": "{m} 分鐘",
+    "steamPlaytimeSeconds": "{s} 秒",
+    "steamStatAiRequests": "AI 呼叫次數",
+    "steamStatChars": "累計輸入字元",
+    "steamStatPlaytime": "累計使用時長",
+    "steamTrayLevel": "等級",
+    "steamTrayTooltip": "Steam"
   },
   "llm-adapter": {
     "failed": "配置失敗",
@@ -3277,7 +3297,14 @@
     "unsavedIndicator": "未儲存",
     "untitled": "未命名",
     "userManual": "使用者手冊",
-    "version": "版本 {version}"
+    "version": "版本 {version}",
+    "openDocumentsTitle": "文件",
+    "openDocumentsTooltip": "已開啟的文件",
+    "switchToClassicLayout": "切換至經典標籤列",
+    "switchToWorkspaceLayout": "切換至分割工作區版面",
+    "workbenchTab": "工作台",
+    "workbenchTabNumbered": "工作台{n}",
+    "workbenchTabWithSessionCount": "工作台（{count} 個工作階段）"
   },
   "messageBox": {
     "cancel": "取消",
@@ -3930,7 +3957,22 @@
       "downloading": "下載中",
       "installAndRestart": "安裝並重新啟動",
       "downloadError": "下載失敗",
-      "loadFailed": "載入失敗"
+      "loadFailed": "載入失敗",
+      "steamHint": "開發時可直接 pnpm dev：在專案根目錄放置 steam_appid.txt（參見 steam_appid.txt.example），本機登入 Steam 用戶端即可。若狀態為 greenworks_not_loaded，請在 meta-doc 目錄執行 pnpm run greenworks:rebuild（或完整 pnpm install）以針對當前 Electron 編譯 greenworks。",
+      "steamInitialized": "已連接 Steam",
+      "steamNotInitialized": "未連接 Steam",
+      "steamOpenWorkshop": "開啟模板市集",
+      "steamStatus": "Steam 狀態",
+      "steamSyncDone": "同步完成",
+      "steamSyncFailed": "同步失敗",
+      "steamSyncHistoryPull": "從雲端拉取用量統計",
+      "steamSyncHistoryPush": "將用量統計推送到雲端",
+      "steamSyncSettingsPull": "從雲端拉取設定",
+      "steamSyncSettingsPush": "將設定推送到雲端",
+      "steamTab": "Steam",
+      "steamUser": "Steam 用戶",
+      "steamUserId": "Steam ID",
+      "steamUserName": "顯示名稱"
     },
     "allChangesSaved": "所有變更已儲存",
     "apiBaseUrl": "API BaseURL",
@@ -3958,7 +4000,7 @@
       "description": "管理全域快捷鍵方案。可選擇預設方案（Windows/Linux/macOS）或建立、匯入自訂方案。",
       "scheme": "按鍵方案",
       "selectScheme": "選擇方案",
-      "newScheme": "新建方案",
+      "newScheme": "新增方案",
       "importScheme": "匯入方案",
       "exportScheme": "匯出方案",
       "deleteScheme": "刪除方案",
@@ -4044,8 +4086,8 @@
     "referenceAutoPrune14d": "14 天前",
     "referenceAutoPrune30d": "30 天前",
     "referenceAutoPrune90d": "90 天前",
-    "referenceAutoPrune180d": "半年（180 天）前",
-    "referenceAutoPrune365d": "一年（365 天）前",
+    "referenceAutoPrune180d": "半年前（180 天）",
+    "referenceAutoPrune365d": "一年前（365 天）",
     "clearAgentAttachmentsDir": "清空附件目錄",
     "clearAgentAttachmentsConfirm": "確定要清空目前工作區下 Agent 附件目錄嗎？此操作將刪除 .metadoc/attachments 中的全部檔案，且無法復原。",
     "clearAgentAttachmentsSuccess": "工作區附件目錄已清空",
@@ -4637,10 +4679,22 @@
     "defaultConfigBuiltinFree": "免費模型（內建）",
     "llmApiErrorDialog": "LLM 報錯彈窗",
     "llmApiErrorDialogHint": "當 LLM API 呼叫失敗時，彈出對話方塊展示目前配置並引導查看手冊。",
-    "resetFirstRunWizard": "重置首次使用向导",
-    "resetFirstRunWizardButton": "下次启动时重新运行",
-    "resetFirstRunWizardHint": "将在下次启动时再次显示全屏入门向导，并会重新询问 Markdown 默认编辑模式。",
-    "resetFirstRunWizardScheduled": "已设置：下次启动时将显示首次使用向导"
+    "resetFirstRunWizard": "重設首次使用精靈",
+    "resetFirstRunWizardButton": "下次啟動時重新執行",
+    "resetFirstRunWizardHint": "將於下次啟動時再次顯示全螢幕入門精靈，並會重新詢問 Markdown 預設編輯模式。",
+    "resetFirstRunWizardScheduled": "已設定：下次啟動時將顯示首次使用精靈",
+    "fileAssociation": {
+      "electronOnly": "僅桌面版可用。",
+      "openSampleFail": "無法開啟",
+      "openSampleOk": "已開啟",
+      "openSettingsFail": "無法開啟",
+      "openSettingsLinuxManual": "請在系統的「預設應用程式」中設定。",
+      "openSettingsOk": "已開啟",
+      "openSystemSettings": "系統預設應用程式設定",
+      "pickMd": "預設用MetaDoc開啟Markdown(.md)",
+      "pickTex": "預設用MetaDoc開啟LaTeX(.tex)",
+      "sectionTitle": "設定預設開啟方式"
+    }
   },
   "settingBasicSection": {
     "failedSize": "取得目錄大小失敗",
@@ -5000,7 +5054,7 @@
         "intermediate": "熟練使用LaTeX，了解數學公式、表格、圖片插入等常用功能",
         "advanced": "精通LaTeX，熟悉宏包使用、自訂命令、參考文獻管理等進階特性"
       },
-      "agentLevel": "AI Agent了解程度",
+      "agentLevel": "AI Agent 了解程度",
       "agentLevels": {
         "none": "完全不了解",
         "heard": "聽說過但不了解",
@@ -5008,7 +5062,7 @@
         "used": "使用過",
         "proficient": "熟練使用"
       },
-      "knowsAgent": "是否了解AI Agent",
+      "knowsAgent": "是否了解 AI Agent",
       "usedWysiwygMarkdown": "是否使用過WYSIWYG Markdown編輯器",
       "usedWysiwygMarkdownHint": "如Typora、Mark Text、Zettlr等所見即所得編輯器",
       "usedLatexEditor": "是否使用過LaTeX編輯器",
@@ -5354,7 +5408,7 @@
   "onboarding": {
     "back": "上一步",
     "next": "下一步",
-    "finish": "完成入门",
+    "finish": "完成入門",
     "stepProgress": "第 {current} / {total} 步",
     "language": {
       "title": "選擇介面語言",
@@ -5385,52 +5439,95 @@
       }
     },
     "welcome": {
-      "title": "欢迎使用 MetaDoc",
+      "title": "歡迎使用 MetaDoc",
       "body": "接下来将引导您完成语言、布局、主题与 AI 等基础设置，帮助您快速上手。"
     },
     "layout": {
-      "title": "界面布局",
-      "subtitle": "请选择更适合您使用习惯的布局，可随时在顶栏切换。",
+      "title": "介面佈局",
+      "subtitle": "請選擇更適合您使用習慣的佈局，可隨時在頂欄切換。",
       "workstation": {
-        "title": "工作站布局",
+        "title": "工作站佈局",
         "badge": "完整模式",
-        "desc": "默认布局，侧栏与完整功能入口齐全，适合多面板与复杂工作流。"
+        "desc": "預設佈局，側欄與完整功能入口齊全，適合多面板與複雜工作流。"
       },
       "focus": {
-        "title": "专注布局",
+        "title": "專注佈局",
         "badge": "極簡模式",
-        "desc": "轻量界面，突出编辑区域，适合当作纯编辑器专注写作。"
+        "desc": "輕量介面，突出編輯區域，適合當作純編輯器專注寫作。"
       }
     },
     "theme": {
-      "title": "主题",
-      "subtitle": "默认推荐「跟随系统」。下方可随时点选切换，也可稍后在设置中细调。"
+      "title": "主題",
+      "subtitle": "預設推薦「跟隨系統」。下方可隨時點選切換，也可稍後在設定中細調。"
     },
     "llm": {
       "title": "LLM API 配置",
-      "subtitle": "可选：添加您自己的第三方 API，以使用完整 AI 能力。",
-      "builtinHint": "应用内置了额度极少的免费 API，仅适合体验；完整功能请自行配置兼容 OpenAI 的第三方服务。",
-      "thirdPartyHint": "填写后建议先点「测试连接」，再保存并启用。",
-      "skipLater": "稍后设置",
-      "testConnection": "测试连接",
-      "saveAndUse": "保存并使用",
-      "fillBeforeTest": "请先填写名称与必填项后再测试。",
-      "fillBeforeSave": "请先填写完整后再保存。",
-      "testOk": "连接测试成功",
-      "testFail": "连接失败，请检查地址、密钥与模型名。",
-      "saveOk": "配置已保存并切换为当前",
-      "saveFail": "保存失败",
+      "subtitle": "可選：新增您自己的第三方 API，以使用完整 AI 能力。",
+      "builtinHint": "應用內建了額度極少的免費 API，僅適合體驗；完整功能請自行配置相容 OpenAI 的第三方服務。",
+      "thirdPartyHint": "填寫後建議先點「測試連線」，再儲存並啟用。",
+      "skipLater": "稍後設定",
+      "testConnection": "測試連線",
+      "saveAndUse": "儲存並使用",
+      "fillBeforeTest": "請先填寫名稱與必填項後再測試。",
+      "fillBeforeSave": "請先填寫完整後再儲存。",
+      "testOk": "連線測試成功",
+      "testFail": "連線失敗，請檢查地址、金鑰與模型名稱。",
+      "saveOk": "配置已儲存並切換為當前",
+      "saveFail": "儲存失敗",
       "configNamePlaceholder": "例如：我的 OpenAI"
     },
     "profile": {
       "title": "使用偏好",
-      "subtitle": "帮助我们推荐更合适的手册与学习路径。",
-      "continueToEditor": "继续：选择编辑模式"
+      "subtitle": "幫助我們推薦更合適的手冊與學習路徑。",
+      "continueToEditor": "繼續：選擇編輯模式"
     },
     "editorMode": {
-      "title": "默认 Markdown 编辑模式",
-      "subtitle": "选择一种默认模式，打开 Markdown 时将直接使用。",
-      "settingsHint": "之后可在「设置 → 基础 → 默认编辑器模式」中随时修改。"
+      "title": "預設 Markdown 編輯模式",
+      "subtitle": "選擇一種預設模式，開啟 Markdown 時將直接使用。",
+      "settingsHint": "之後可在「設定 → 基礎 → 預設編輯器模式」中隨時修改。"
+    },
+    "fileAssociation": {
+      "title": "設定預設開啟方式"
     }
+  },
+  "workshop": {
+    "description": "檢視目前 Steam 帳號已訂閱的 Workshop 項目，並下載至本機目錄。上傳與標籤需在 Steamworks 後台設定完成後，使用主程序 API。",
+    "download": "下載到資料夾",
+    "downloadDone": "已開始下載",
+    "downloadFailed": "下載失敗",
+    "downloading": "下載中…",
+    "empty": "暫無訂閱項目，或 Steam 未初始化。",
+    "loading": "載入中…",
+    "pickFolder": "選擇下載目錄",
+    "refresh": "重新整理清單",
+    "title": "創意工坊 / 範本市場"
+  },
+  "steamAch": {
+    "ACH_DOCX_LATEX_EXPORT_DESC": "首次從 Markdown 匯出 DOCX。",
+    "ACH_DOCX_LATEX_EXPORT_NAME": "公式文件",
+    "ACH_FIRST_AGENT_CHAT_DESC": "首次在 Agent 中傳送對話訊息。",
+    "ACH_FIRST_AGENT_CHAT_NAME": "Agent 初聊",
+    "ACH_FIRST_AGENT_RULE_DESC": "首次建立 Agent 動態規則。",
+    "ACH_FIRST_AGENT_RULE_NAME": "首條規則",
+    "ACH_FIRST_AGENT_SKILL_DESC": "首次建立或儲存 Agent 技能。",
+    "ACH_FIRST_AGENT_SKILL_NAME": "首個技能",
+    "ACH_FIRST_AIGC_DESC": "首次使用 AIGC 檢測並完成分析。",
+    "ACH_FIRST_AIGC_NAME": "內容鑑別",
+    "ACH_FIRST_MD_DESC": "首次將 Markdown 文件加入最近使用。",
+    "ACH_FIRST_MD_NAME": "第一篇 Markdown",
+    "ACH_FIRST_TEX_DESC": "首次將 TeX 文件加入最近使用。",
+    "ACH_FIRST_TEX_NAME": "第一篇 TeX",
+    "ACH_LLM_TEST_OK_DESC": "在入門或設定中成功通過 LLM 連線測試。",
+    "ACH_LLM_TEST_OK_NAME": "連線就緒",
+    "ACH_MANUAL_TRACK_DONE_DESC": "在使用者手冊中完成推薦學習路徑。",
+    "ACH_MANUAL_TRACK_DONE_NAME": "手冊達人",
+    "ACH_MD_EXPORT_PDF_DESC": "首次從 Markdown 匯出 PDF。",
+    "ACH_MD_EXPORT_PDF_NAME": "MD 匯出 PDF",
+    "ACH_META_WELCOME_DESC": "首次啟動應用程式。",
+    "ACH_META_WELCOME_NAME": "歡迎使用 MetaDoc",
+    "ACH_ONBOARDING_DONE_DESC": "完成首次使用精靈。",
+    "ACH_ONBOARDING_DONE_NAME": "入門完成",
+    "ACH_TEX_COMPILE_PDF_DESC": "首次將 TeX 編譯為 PDF。",
+    "ACH_TEX_COMPILE_PDF_NAME": "TeX 成書"
   }
 }

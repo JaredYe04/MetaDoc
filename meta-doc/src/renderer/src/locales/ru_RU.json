@@ -14,6 +14,9 @@
       "emptyTitle": "Нет заголовка для копирования",
       "copyFailed": "Не удалось скопировать",
       "noRangeToDelete": "Не удалось найти раздел; удаление отменено"
+    },
+    "workspaceLink": {
+      "needsSavedDoc": "Пожалуйста, сначала сохраните текущий документ, прежде чем переходить по относительной ссылке"
     }
   },
   "aIService": {
@@ -1119,27 +1122,39 @@
       },
       "create_dynamic_rule": {
         "description:": "Вставить динамическое правило агента в базу данных приложения (записать в системную подсказку), не заменять файлами рабочей области",
-        "name:": "Создать динамическое правило"
+        "name:": "Создать динамическое правило",
+        "description": "Вставить динамическое правило агента в базу данных приложения (записать в системную подсказку), не заменять файлами рабочей области",
+        "name": "Создать динамическое правило"
       },
       "create_workspace_skill": {
         "description:": "Записать в .metadoc/skills/<директория>/SKILL.md и немедленно добавить в базу данных с embedding",
-        "name:": "Создать навык рабочей области"
+        "name:": "Создать навык рабочей области",
+        "description": "Записать в .metadoc/skills/<каталог>/SKILL.md и немедленно добавить в базу данных с embedding",
+        "name": "Создать навык рабочей области"
       },
       "load_skill": {
         "description:": "Загрузить полный текст SKILL.md активированного навыка по skillId",
-        "name:": "Загрузить навык"
+        "name:": "Загрузить навык",
+        "description": "Загрузить полный текст SKILL.md активированного навыка по skillId",
+        "name": "Загрузить навык"
       },
       "search_skill": {
         "description:": "Векторный поиск по активированным навыкам в .metadoc/skills рабочей области, возвращает только сводку",
-        "name:": "Поиск навыков"
+        "name:": "Поиск навыков",
+        "description": "Векторный поиск по активированным навыкам в .metadoc/skills рабочей области, возвращает только сводку",
+        "name": "Поиск навыков"
       },
       "sync_workspace_skills": {
         "description:": "Сканировать .metadoc/skills в каждой рабочей области и обновить SQLite и векторы (активные навыки)",
-        "name:": "Синхронизировать индекс навыков рабочей области"
+        "name:": "Синхронизировать индекс навыков рабочей области",
+        "description": "Сканировать .metadoc/skills каждой рабочей области и обновить SQLite и векторы (активные навыки)",
+        "name": "Синхронизировать индекс навыков рабочей области"
       },
       "update_dynamic_rule": {
         "description:": "Обновить заголовок, текст или приоритет существующего динамического правила по ruleId",
-        "name:": "Обновить динамическое правило"
+        "name:": "Обновить динамическое правило",
+        "description": "Обновить заголовок, текст или приоритет существующего динамического правила по ruleId",
+        "name": "Обновить динамическое правило"
       }
     },
     "jsonExplorer": {
@@ -2498,7 +2513,9 @@
       "technicalTutorial": "Техническое руководство",
       "userGuide": "Руководство пользователя",
       "weeklyReport": "Еженедельный отчёт"
-    }
+    },
+    "recent": "Недавние",
+    "recentWorkspaces": "Недавние рабочие пространства"
   },
   "knowledgeBase": {
     "add": "Добавить",
@@ -3033,7 +3050,22 @@
     "viewSidebarAgent": "Агент",
     "addFolderToWorkspace": "Добавить папку в рабочую область",
     "closeWorkspace": "Закрыть текущую рабочую область",
-    "openWorkspace": "Открыть рабочую область"
+    "openWorkspace": "Открыть рабочую область",
+    "recent": "Недавние",
+    "recentTooltip": "Недавно открытые места",
+    "recentWorkspaces": "Недавние рабочие пространства",
+    "recentWorkspacesTooltip": "Недавно открытые папки рабочих пространств",
+    "steamOpenAchievementsOverlay": "Посмотреть достижения",
+    "steamOpenProfileOverlay": "Открыть профиль",
+    "steamPlaytimeDays": "{n} д.",
+    "steamPlaytimeHoursMinutes": "{h} ч. {m} мин.",
+    "steamPlaytimeMinutes": "{m} мин.",
+    "steamPlaytimeSeconds": "{s} сек.",
+    "steamStatAiRequests": "Количество обращений к ИИ",
+    "steamStatChars": "Всего введено символов",
+    "steamStatPlaytime": "Общее время использования",
+    "steamTrayLevel": "Уровень",
+    "steamTrayTooltip": "Steam"
   },
   "llm-adapter": {
     "failed": "Ошибка конфигурации",
@@ -3247,7 +3279,14 @@
     "unsavedIndicator": "Не сохранено",
     "untitled": "Без названия",
     "userManual": "Руководство пользователя",
-    "version": "Версия {version}"
+    "version": "Версия {version}",
+    "openDocumentsTitle": "Документы",
+    "openDocumentsTooltip": "Открытые документы",
+    "switchToClassicLayout": "Переключиться на классическую панель вкладок",
+    "switchToWorkspaceLayout": "Переключиться на макет рабочей области с разделением экрана",
+    "workbenchTab": "Рабочая область",
+    "workbenchTabNumbered": "Рабочая область {n}",
+    "workbenchTabWithSessionCount": "Рабочая область ({count} сессий)"
   },
   "messageBox": {
     "cancel": "Отмена",
@@ -3900,7 +3939,22 @@
       "downloading": "Загрузка",
       "installAndRestart": "Установить и перезапустить",
       "downloadError": "Ошибка загрузки",
-      "loadFailed": "Ошибка загрузки"
+      "loadFailed": "Ошибка загрузки",
+      "steamHint": "Для разработки можно использовать pnpm dev: поместите steam_appid.txt в корень проекта (см. steam_appid.txt.example) и войдите в клиент Steam на локальной машине. Если статус greenworks_not_loaded, выполните pnpm run greenworks:rebuild (или полный pnpm install) в каталоге meta-doc для компиляции greenworks под текущую версию Electron.",
+      "steamInitialized": "Steam подключен",
+      "steamNotInitialized": "Steam не подключен",
+      "steamOpenWorkshop": "Открыть мастерскую шаблонов",
+      "steamStatus": "Статус Steam",
+      "steamSyncDone": "Синхронизация завершена",
+      "steamSyncFailed": "Синхронизация не удалась",
+      "steamSyncHistoryPull": "Загрузить статистику использования из облака",
+      "steamSyncHistoryPush": "Отправить статистику использования в облако",
+      "steamSyncSettingsPull": "Загрузить настройки из облака",
+      "steamSyncSettingsPush": "Отправить настройки в облако",
+      "steamTab": "Steam",
+      "steamUser": "Пользователь Steam",
+      "steamUserId": "Steam ID",
+      "steamUserName": "Отображаемое имя"
     },
     "allChangesSaved": "Все изменения сохранены",
     "apiBaseUrl": "Базовый URL API",
@@ -4610,7 +4664,19 @@
     "resetFirstRunWizard": "Reset first-run onboarding",
     "resetFirstRunWizardButton": "Run again on next launch",
     "resetFirstRunWizardHint": "Shows the full-screen onboarding on next launch and will ask again for the default Markdown editor mode.",
-    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch"
+    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch",
+    "fileAssociation": {
+      "electronOnly": "Доступно только в настольной версии.",
+      "openSampleFail": "Не удалось открыть",
+      "openSampleOk": "Открыто",
+      "openSettingsFail": "Не удалось открыть",
+      "openSettingsLinuxManual": "Пожалуйста, настройте в системных «Приложениях по умолчанию».",
+      "openSettingsOk": "Открыто",
+      "openSystemSettings": "Настройки приложений по умолчанию в системе",
+      "pickMd": "Открывать Markdown (.md) в MetaDoc по умолчанию",
+      "pickTex": "Открывать LaTeX (.tex) в MetaDoc по умолчанию",
+      "sectionTitle": "Настройка способа открытия по умолчанию"
+    }
   },
   "settingBasicSection": {
     "failedSize": "Не удалось получить размер каталога",
@@ -5031,7 +5097,8 @@
     "exportPureMarkdown": "Экспорт чистого Markdown",
     "markdown": {
       "advanced": {
-        "title": "Расширенные возможности Markdown"
+        "title": "Расширенные возможности Markdown",
+        "content": "# Расширенные возможности Markdown"
       },
       "basic": {
         "content": "# Основы синтаксиса Markdown",
@@ -5399,6 +5466,49 @@
       "title": "Default Markdown editor mode",
       "subtitle": "This mode is used when you open Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
+    },
+    "fileAssociation": {
+      "title": "Установить способ открытия по умолчанию"
     }
+  },
+  "workshop": {
+    "description": "Просмотр подписок Steam Workshop для текущей учетной записи Steam и их загрузка в локальную папку. Для загрузки и управления тегами используйте API основного процесса после настройки в Steamworks.",
+    "download": "Загрузить в папку",
+    "downloadDone": "Загрузка начата",
+    "downloadFailed": "Ошибка загрузки",
+    "downloading": "Загрузка…",
+    "empty": "Нет подписок или Steam не инициализирован.",
+    "loading": "Загрузка…",
+    "pickFolder": "Выберите папку для загрузки",
+    "refresh": "Обновить список",
+    "title": "Мастерская / Маркет шаблонов"
+  },
+  "steamAch": {
+    "ACH_DOCX_LATEX_EXPORT_DESC": "Впервые экспортировали DOCX из Markdown.",
+    "ACH_DOCX_LATEX_EXPORT_NAME": "Формульный документ",
+    "ACH_FIRST_AGENT_CHAT_DESC": "Впервые отправили сообщение в чате Agent.",
+    "ACH_FIRST_AGENT_CHAT_NAME": "Первый разговор с Agent",
+    "ACH_FIRST_AGENT_RULE_DESC": "Впервые создали динамическое правило для Agent.",
+    "ACH_FIRST_AGENT_RULE_NAME": "Первое правило",
+    "ACH_FIRST_AGENT_SKILL_DESC": "Впервые создали или сохранили навык для Agent.",
+    "ACH_FIRST_AGENT_SKILL_NAME": "Первый навык",
+    "ACH_FIRST_AIGC_DESC": "Впервые использовали AIGC для обнаружения и завершения анализа.",
+    "ACH_FIRST_AIGC_NAME": "Идентификация контента",
+    "ACH_FIRST_MD_DESC": "Впервые добавили документ Markdown в недавние.",
+    "ACH_FIRST_MD_NAME": "Первый Markdown",
+    "ACH_FIRST_TEX_DESC": "Впервые добавили документ TeX в недавние.",
+    "ACH_FIRST_TEX_NAME": "Первый TeX",
+    "ACH_LLM_TEST_OK_DESC": "Успешно прошли тест подключения LLM в руководстве или настройках.",
+    "ACH_LLM_TEST_OK_NAME": "Подключение готово",
+    "ACH_MANUAL_TRACK_DONE_DESC": "Завершили рекомендуемый учебный путь в руководстве пользователя.",
+    "ACH_MANUAL_TRACK_DONE_NAME": "Мастер руководства",
+    "ACH_MD_EXPORT_PDF_DESC": "Впервые экспортировали PDF из Markdown.",
+    "ACH_MD_EXPORT_PDF_NAME": "Экспорт MD в PDF",
+    "ACH_META_WELCOME_DESC": "Впервые запустили приложение.",
+    "ACH_META_WELCOME_NAME": "Добро пожаловать в MetaDoc",
+    "ACH_ONBOARDING_DONE_DESC": "Завершили мастер первого запуска.",
+    "ACH_ONBOARDING_DONE_NAME": "Введение завершено",
+    "ACH_TEX_COMPILE_PDF_DESC": "Впервые скомпилировали TeX в PDF.",
+    "ACH_TEX_COMPILE_PDF_NAME": "TeX в книгу"
   }
 }

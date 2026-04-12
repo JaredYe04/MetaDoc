@@ -362,12 +362,14 @@ import {
   registerOutlineSidebarSearchAdapter,
   unregisterOutlineSidebarSearchAdapter
 } from '../composables/outline-sidebar-search-adapter'
+import { useTypingMeter } from '../composables/useTypingMeter'
 import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config'
 import { createAiTask, ai_types, cancelAiTask } from '../utils/ai_tasks'
 import { getPromptByKey } from '../utils/prompts'
 
 const { t } = useI18n()
+const { reportCharDelta: reportSteamTexChars } = useTypingMeter()
 const logger = createRendererLogger('LaTeXEditor', {
   windowTypeProvider: () => getWindowType()
 })
@@ -4176,6 +4178,14 @@ const initEditor = () => {
         // 更新textBuffer以保持一致性
         textBuffer = monacoEditor.getValue()
         return
+      }
+
+      let insertedChars = 0
+      for (const ch of event.changes) {
+        if (ch.text) insertedChars += ch.text.length
+      }
+      if (insertedChars > 0) {
+        reportSteamTexChars(insertedChars)
       }
 
       // 直接从编辑器获取完整文本，避免手动对 model 进行操作

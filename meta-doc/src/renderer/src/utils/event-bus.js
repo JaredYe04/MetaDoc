@@ -829,8 +829,18 @@ eventBus.on('export', async (payload) => {
     })
     const result = await messageBridge.invoke('perform-export-to-path', payloadPrepared, targetPath)
 
-    if (result.success && String(format).toLowerCase() === 'pdf') {
-      void import('../services/steam-client').then((m) => m.tryUnlockExportPdfAchievement())
+    if (result.success) {
+      const fmt = String(format).toLowerCase()
+      const srcFmt = doc.format
+      void import('../services/steam-client').then((m) => {
+        if (fmt === 'pdf') {
+          if (srcFmt === 'md') void m.tryUnlockSteamAchievementByApi('ACH_MD_EXPORT_PDF')
+          if (srcFmt === 'tex') void m.tryUnlockSteamAchievementByApi('ACH_TEX_COMPILE_PDF')
+        }
+        if (fmt === 'docx' && srcFmt === 'md') {
+          void m.tryUnlockSteamAchievementByApi('ACH_DOCX_LATEX_EXPORT')
+        }
+      })
     }
 
     if (!result.success && !result.error) {

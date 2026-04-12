@@ -383,6 +383,9 @@ async function completeWizard() {
   } catch (e) {
     console.warn('[FirstRunWizard] post-complete navigation failed', e)
   }
+  void import('../../services/steam-client').then((m) =>
+    m.tryUnlockSteamAchievementByApi('ACH_ONBOARDING_DONE')
+  )
   emit('completed')
 }
 

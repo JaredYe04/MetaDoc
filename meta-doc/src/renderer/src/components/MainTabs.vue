@@ -298,7 +298,7 @@
         </div>
         <PopoverContent
           id="main-tabs-open-docs-popover"
-          class="open-docs-popover z-[100005] w-[min(360px,80vw)] border bg-popover p-0 text-popover-foreground shadow-md"
+          class="open-docs-popover z-[300010] w-[min(360px,80vw)] border bg-popover p-0 text-popover-foreground shadow-md"
           align="end"
           side="bottom"
           :side-offset="6"
@@ -536,7 +536,7 @@
         </button>
       </div>
     </transition>
-    <!-- 全局 MessageBox：Teleport 到 body，z-index 高于 Dialog(10000)，低于 MainTabs(100003)；点击遮罩不关闭 -->
+    <!-- 全局 MessageBox：Teleport 到 body，z-index 高于 Dialog(10000)，低于顶栏浮动层(300000)；点击遮罩不关闭 -->
     <Teleport to="body">
       <GlobalMessageBox />
     </Teleport>
@@ -2628,6 +2628,8 @@ onUnmounted(() => {
   position: relative;
   box-sizing: border-box;
   z-index: 99999;
+  /* 与 Main.vue .top-header-floating 一致：避免 body 在模态下 pointer-events:none 经 el-header 等中间层影响顶栏 */
+  pointer-events: auto !important;
 }
 
 .main-tabs-wrapper.is-focus-mode .tabs-viewport.tabs-viewport--focus-mode {

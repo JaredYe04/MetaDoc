@@ -57,7 +57,7 @@ function getIcon(type: ToastType) {
 </script>
 
 <style scoped>
-/* 顶层：z-index 100002，与 GlobalMessageBox 同级，低于 MainTabs 100003 */
+/* 顶层：z-index 100002，与 GlobalMessageBox 同级，低于顶栏浮动层 300000 */
 .global-toast-container {
   position: fixed;
   top: 48px;

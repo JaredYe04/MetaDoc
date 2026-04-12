@@ -64,6 +64,81 @@
         <div ref="tokenUsageChartRef" class="chart" style="width: 100%; height: 300px"></div>
       </div>
     </div>
+
+    <!-- 清空确认：使用 AlertDialog(z-11000) 而非 GlobalMessageBox，避免叠在统计 Dialog(10000) 下无法点击 -->
+    <AlertDialog v-model:open="clearFirstDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{{ $t('llmStatistics.clearConfirmTitle') }}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {{ $t('llmStatistics.clearConfirm') }}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{{ $t('llmStatistics.cancel') }}</AlertDialogCancel>
+          <AlertDialogAction @click="onClearFirstConfirm">
+            {{ $t('llmStatistics.confirm') }}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    <AlertDialog v-model:open="clearSecondDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{{ $t('llmStatistics.clearConfirmTitle') }}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {{ $t('llmStatistics.clearConfirmAgain') }}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{{ $t('llmStatistics.cancel') }}</AlertDialogCancel>
+          <AlertDialogAction
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            @click="onClearSecondConfirm"
+          >
+            {{ $t('llmStatistics.confirm') }}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- 导出格式：AlertDialog(z-11000)，避免叠在统计 Dialog / GlobalMessageBox 下 -->
+    <AlertDialog v-model:open="exportDialogOpen">
+      <AlertDialogContent class="sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{{ $t('llmStatistics.exportFormatTitle') }}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {{ $t('llmStatistics.exportFormatMessage') }}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <RadioGroup v-model="selectedExportFormat" class="grid gap-3 py-2">
+          <div class="flex items-center gap-2">
+            <RadioGroupItem id="llm-export-json" value="json" />
+            <Label for="llm-export-json" class="cursor-pointer font-normal">{{
+              $t('llmStatistics.formatJson')
+            }}</Label>
+          </div>
+          <div class="flex items-center gap-2">
+            <RadioGroupItem id="llm-export-csv" value="csv" />
+            <Label for="llm-export-csv" class="cursor-pointer font-normal">{{
+              $t('llmStatistics.formatCsv')
+            }}</Label>
+          </div>
+          <div class="flex items-center gap-2">
+            <RadioGroupItem id="llm-export-xlsx" value="xlsx" />
+            <Label for="llm-export-xlsx" class="cursor-pointer font-normal">{{
+              $t('llmStatistics.formatXlsx')
+            }}</Label>
+          </div>
+        </RadioGroup>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{{ $t('llmStatistics.cancel') }}</AlertDialogCancel>
+          <AlertDialogAction @click="onExportDialogConfirm">
+            {{ $t('llmStatistics.confirm') }}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
@@ -71,14 +146,9 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
-import {
-  getStatistics,
-  exportStatistics,
-  clearStatistics
-} from '../utils/llm-statistics-service.js'
+import { getStatistics, clearStatistics } from '../utils/llm-statistics-service.js'
 import * as echarts from 'echarts'
 import { toast } from '@renderer/utils/toast'
-import { messageBox } from '@renderer/utils/messageBox'
 import { createRendererLogger } from '../utils/logger'
 import * as XLSX from 'xlsx'
 import messageBridge from '../bridge/message-bridge'
@@ -91,6 +161,18 @@ import {
   SelectItem
 } from '@renderer/components/ui/select'
 import { DatePicker } from '@renderer/components/ui/date-picker'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@renderer/components/ui/alert-dialog-shadcn'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { Label } from '@renderer/components/ui/label'
 
 // Demo mode support
 const props = defineProps<{ isDemo?: boolean }>()
@@ -107,6 +189,11 @@ const statistics = ref({
   totalCompletionTokens: 0,
   totalTokens: 0
 })
+
+const clearFirstDialogOpen = ref(false)
+const clearSecondDialogOpen = ref(false)
+const exportDialogOpen = ref(false)
+const selectedExportFormat = ref<'json' | 'csv' | 'xlsx'>('json')
 
 const requestCountChartRef = ref<HTMLElement | null>(null)
 const tokenUsageChartRef = ref<HTMLElement | null>(null)
@@ -629,126 +716,115 @@ function convertToXLSX(data: any): ArrayBuffer {
   return XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
 }
 
-// 导出统计（暴露给父组件使用）
-async function handleExport() {
-  // Demo mode: simulate export
-  if (props.isDemo) {
-    toast.success('Demo mode: Statistics exported (simulated)')
+async function executeExportWithFormat(format: 'json' | 'csv' | 'xlsx') {
+  let startDate: Date | undefined = undefined
+  let endDate: Date | undefined = undefined
+
+  if (dateRange.value && dateRange.value[0] && dateRange.value[1]) {
+    startDate = new Date(dateRange.value[0])
+    endDate = new Date(dateRange.value[1])
+  }
+
+  const stats = await getStatistics(startDate, endDate)
+  const dateStr = dateRange.value
+    ? `${dateRange.value[0].split(' ')[0]}_${dateRange.value[1].split(' ')[0]}`
+    : 'all'
+
+  let filters: Array<{ name: string; extensions: string[] }> = []
+  let defaultFileName = ''
+  let fileContent: string | ArrayBuffer = ''
+
+  switch (format) {
+    case 'json':
+      filters = [{ name: 'JSON Files', extensions: ['json'] }]
+      defaultFileName = `llm-statistics-${dateStr}.json`
+      fileContent = JSON.stringify(stats, null, 2)
+      break
+    case 'csv':
+      filters = [{ name: 'CSV Files', extensions: ['csv'] }]
+      defaultFileName = `llm-statistics-${dateStr}.csv`
+      fileContent = convertToCSV(stats)
+      break
+    case 'xlsx':
+      filters = [{ name: 'Excel Files', extensions: ['xlsx'] }]
+      defaultFileName = `llm-statistics-${dateStr}.xlsx`
+      fileContent = convertToXLSX(stats)
+      break
+    default:
+      throw new Error('不支持的导出格式')
+  }
+
+  const dialogResult = await messageBridge.invoke('save-file-dialog', {
+    defaultName: defaultFileName,
+    filters: filters
+  })
+
+  if (dialogResult.canceled || !dialogResult.filePath) {
     return
   }
 
-  try {
-    // 显示格式选择对话框
-    const formatOptions = [
-      { label: t('llmStatistics.formatJson'), value: 'json' },
-      { label: t('llmStatistics.formatCsv'), value: 'csv' },
-      { label: t('llmStatistics.formatXlsx'), value: 'xlsx' }
-    ]
-
-    // 使用 messageBox.prompt 让用户选择格式
-    const formatChoice = await messageBox.prompt(
-      `${t('llmStatistics.exportFormatMessage')}\n\n1. ${formatOptions[0].label}\n2. ${formatOptions[1].label}\n3. ${formatOptions[2].label}`,
-      t('llmStatistics.exportFormatTitle'),
-      {
-        confirmButtonText: t('llmStatistics.confirm'),
-        cancelButtonText: t('llmStatistics.cancel'),
-        inputValue: '',
-        inputValidator: (val) => /^[1-3]$/.test(val.trim()) || t('llmStatistics.exportFormatInvalid')
-      }
-    ).catch(() => null)
-
-    if (!formatChoice || !formatChoice.value) {
-      return // 用户取消
+  if (format === 'xlsx') {
+    const buffer = fileContent as ArrayBuffer
+    const uint8Array = new Uint8Array(buffer)
+    let binary = ''
+    const chunkSize = 8192
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, i + chunkSize)
+      binary += String.fromCharCode.apply(null, Array.from(chunk) as any)
     }
-
-    const choice = parseInt(formatChoice.value.trim())
-    if (choice < 1 || choice > 3) {
-      toast.warning(t('llmStatistics.exportFormatInvalid'))
-      return
-    }
-
-    const format = formatOptions[choice - 1].value
-
-    // 执行导出
-    let startDate: Date | undefined = undefined
-    let endDate: Date | undefined = undefined
-
-    if (dateRange.value && dateRange.value[0] && dateRange.value[1]) {
-      startDate = new Date(dateRange.value[0])
-      endDate = new Date(dateRange.value[1])
-    }
-
-    const stats = await getStatistics(startDate, endDate)
-    const dateStr = dateRange.value
-      ? `${dateRange.value[0].split(' ')[0]}_${dateRange.value[1].split(' ')[0]}`
-      : 'all'
-
-    // 根据格式确定文件扩展名和过滤器
-    let filters: Array<{ name: string; extensions: string[] }> = []
-    let defaultFileName = ''
-    let fileContent: string | ArrayBuffer = ''
-
-    switch (format) {
-      case 'json':
-        filters = [{ name: 'JSON Files', extensions: ['json'] }]
-        defaultFileName = `llm-statistics-${dateStr}.json`
-        fileContent = JSON.stringify(stats, null, 2)
-        break
-      case 'csv':
-        filters = [{ name: 'CSV Files', extensions: ['csv'] }]
-        defaultFileName = `llm-statistics-${dateStr}.csv`
-        fileContent = convertToCSV(stats)
-        break
-      case 'xlsx':
-        filters = [{ name: 'Excel Files', extensions: ['xlsx'] }]
-        defaultFileName = `llm-statistics-${dateStr}.xlsx`
-        fileContent = convertToXLSX(stats)
-        break
-      default:
-        throw new Error('不支持的导出格式')
-    }
-
-    const dialogResult = await messageBridge.invoke('save-file-dialog', {
-      defaultName: defaultFileName,
-      filters: filters
+    const base64 = btoa(binary)
+    await messageBridge.invoke('write-file-content', {
+      filePath: dialogResult.filePath,
+      content: base64,
+      encoding: 'base64'
     })
+  } else {
+    await messageBridge.invoke('write-file-content', {
+      filePath: dialogResult.filePath,
+      content: fileContent as string,
+      encoding: 'utf8'
+    })
+  }
 
-    if (dialogResult.canceled || !dialogResult.filePath) {
-      return // 用户取消
-    }
+  toast.success(t('llmStatistics.exportSuccess'))
+}
 
-    // 写入文件
-    if (format === 'xlsx') {
-      // XLSX 是二进制文件，需要特殊处理
-      const buffer = fileContent as ArrayBuffer
-      const uint8Array = new Uint8Array(buffer)
-      // 使用更安全的方式将 ArrayBuffer 转换为 base64
-      let binary = ''
-      const chunkSize = 8192 // 分块处理，避免堆栈溢出
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.subarray(i, i + chunkSize)
-        binary += String.fromCharCode.apply(null, Array.from(chunk) as any)
-      }
-      const base64 = btoa(binary)
-      await messageBridge.invoke('write-file-content', {
-        filePath: dialogResult.filePath,
-        content: base64,
-        encoding: 'base64'
-      })
-    } else {
-      await messageBridge.invoke('write-file-content', {
-        filePath: dialogResult.filePath,
-        content: fileContent as string,
-        encoding: 'utf8'
-      })
-    }
-
-    toast.success(t('llmStatistics.exportSuccess'))
+async function onExportDialogConfirm() {
+  try {
+    await executeExportWithFormat(selectedExportFormat.value)
   } catch (error: any) {
     if (error !== 'cancel' && error !== 'close') {
       logger.error('导出统计数据失败:', error)
       toast.error(t('llmStatistics.exportFailed'))
     }
+  }
+}
+
+// 导出统计（暴露给父组件使用）
+async function handleExport() {
+  if (props.isDemo) {
+    toast.success('Demo mode: Statistics exported (simulated)')
+    return
+  }
+
+  selectedExportFormat.value = 'json'
+  exportDialogOpen.value = true
+}
+
+function onClearFirstConfirm() {
+  nextTick(() => {
+    clearSecondDialogOpen.value = true
+  })
+}
+
+async function onClearSecondConfirm() {
+  try {
+    await clearStatistics()
+    await loadStatistics()
+    toast.success(t('llmStatistics.clearSuccess'))
+  } catch (error) {
+    logger.error('清空统计数据失败:', error)
+    toast.error(t('llmStatistics.clearFailed'))
   }
 }
 
@@ -770,36 +846,7 @@ async function handleClear() {
     return
   }
 
-  try {
-    await messageBox.confirm(
-      t('llmStatistics.clearConfirm'),
-      t('llmStatistics.clearConfirmTitle'),
-      {
-        confirmButtonText: t('llmStatistics.confirm'),
-        cancelButtonText: t('llmStatistics.cancel'),
-        type: 'warning'
-      }
-    )
-
-    await messageBox.confirm(
-      t('llmStatistics.clearConfirmAgain'),
-      t('llmStatistics.clearConfirmTitle'),
-      {
-        confirmButtonText: t('llmStatistics.confirm'),
-        cancelButtonText: t('llmStatistics.cancel'),
-        type: 'warning'
-      }
-    )
-
-    await clearStatistics()
-    await loadStatistics()
-    toast.success(t('llmStatistics.clearSuccess'))
-  } catch (error) {
-    if (error !== 'cancel') {
-      logger.error('清空统计数据失败:', error)
-      toast.error(t('llmStatistics.clearFailed'))
-    }
-  }
+  clearFirstDialogOpen.value = true
 }
 
 // 暴露方法给父组件

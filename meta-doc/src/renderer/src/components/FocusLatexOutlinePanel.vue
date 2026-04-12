@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../utils/themes'
@@ -47,6 +47,7 @@ import {
   registeredMonacoEditorIdRef
 } from '../composables/outline-sidebar-search-adapter'
 import { useWorkspace } from '../stores/workspace'
+import { VIEW_MENU_DOCUMENT_TAB_ID } from './view-menu-context'
 import type { TextEditorAdapter } from '../editor/text-editor-types'
 import type { SectionInfo } from './section-optimizer/types'
 import type { MaterialBasketItem } from '../../../types'
@@ -63,14 +64,32 @@ const { t } = useI18n()
 const workspace = useWorkspace()
 const { activeDocument } = storeToRefs(workspace)
 
+const viewMenuDocumentTabId = inject(
+  VIEW_MENU_DOCUMENT_TAB_ID,
+  computed(() => null as string | null)
+)
+const effectiveTabId = computed(() => viewMenuDocumentTabId.value)
+
+const effectiveDocument = computed(() => {
+  const tid = effectiveTabId.value
+  if (tid) {
+    try {
+      return workspace.ensureDocument(tid)
+    } catch {
+      return null
+    }
+  }
+  return activeDocument.value
+})
+
 const adapter = computed(() => outlineSidebarSearchAdapterRef.value)
-/** 优先用当前注册的 Monaco 全文：避免未写入 workspace.doc.tex 时侧栏仍为空；与 activeTabId 对齐避免 doc.tabId 竞态 */
+/** 分屏时与 ViewMenu 绑定的 Tab 对齐；否则与全局 active 对齐 */
 const texSource = computed(() => {
-  const doc = activeDocument.value
-  const activeId = workspace.activeTabId.value
+  const doc = effectiveDocument.value
+  const wantId = effectiveTabId.value ?? workspace.activeTabId.value
   const regId = outlineSidebarAdapterTabIdRef.value
   const ad = adapter.value
-  if (ad?.kind === 'monaco' && regId && activeId && regId === activeId) {
+  if (ad?.kind === 'monaco' && regId && wantId && regId === wantId) {
     try {
       const full = (ad as TextEditorAdapter).getFullText()
       if (typeof full === 'string') return full

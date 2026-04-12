@@ -3,6 +3,9 @@ import type { ExportFormat } from '../../../types'
 
 export type ExportOptionItem = { labelKey?: string; label?: string; format: string }
 
+/** 统一「最近」项（文件或工作区文件夹） */
+export type RecentOpenEntry = { path: string; kind: 'file' | 'folder' }
+
 /** LeftMenu 向 FocusModeTabBarMenus 注入的 API（Teleport 后仍属同一组件树，inject 有效） */
 export interface FocusModeLeftMenuApi {
   demoMode: () => boolean
@@ -22,8 +25,10 @@ export interface FocusModeLeftMenuApi {
   exportOptionLabel: (option: ExportOptionItem) => string
   openExportAsTemplateDialog: () => void
   canExportAsTemplate: ComputedRef<boolean>
-  refreshRecentDocs: () => Promise<void>
-  recentDocs: Ref<string[]>
+  refreshRecentOpens: () => Promise<void>
+  recentOpens: Ref<RecentOpenEntry[]>
+  openRecentItem: (entry: RecentOpenEntry) => void
+  /** 仅打开文件路径（供扩展；主入口为 openRecentItem） */
   openRecentDoc: (path: string) => void
   askSave: (cb: () => void) => void
   basename: (p: string) => string

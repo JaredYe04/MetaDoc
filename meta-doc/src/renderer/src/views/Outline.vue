@@ -979,7 +979,7 @@
 
       <!-- 素材篮：右上角浮动面板，不超出 .container 范围 -->
       <MaterialBasketPanel
-        v-if="activeTabId && !isDemo"
+        v-if="effectiveTabId && !isDemo"
         ref="materialBasketPanelRef"
         :basket="materialBasketList"
         :expanded="materialBasketExpanded"
@@ -1072,6 +1072,8 @@ import { notifyError, notifyInfo } from '@renderer/utils/notify'
 // Demo mode support
 const props = defineProps<{
   mode?: string
+  /** 工作区分屏：固定为该 Tab 的大纲与文档上下文 */
+  tabId?: string
 }>()
 const isDemo = computed(() => props.mode === 'demo')
 
@@ -1212,7 +1214,6 @@ const logger = createRendererLogger('Outline', {
 })
 const workspace = useWorkspace()
 const {
-  activeTabId,
   activateTab,
   ensureDocument,
   removeTab,
@@ -1222,6 +1223,8 @@ const {
   updateDocumentMeta,
   withAutoOutlineSyncSuppressed
 } = workspace
+
+const effectiveTabId = computed(() => props.tabId ?? workspace.activeTabId.value)
 
 const cloneOutline = (outline?: DocumentOutlineNode): DocumentOutlineNode =>
   JSON.parse(JSON.stringify(outline ?? DEFAULT_OUTLINE_TREE))
@@ -1289,9 +1292,9 @@ const OUTLINE_MANUAL_DEMO_TREE: DocumentOutlineNode = {
 }
 
 const activeDocument = computed(() => {
-  if (!activeTabId.value) return null
+  if (!effectiveTabId.value) return null
   try {
-    return ensureDocument(activeTabId.value)
+    return ensureDocument(effectiveTabId.value)
   } catch (error) {
     logger.warn('获取当前文档失败', error)
     return null
@@ -1368,7 +1371,7 @@ function basketItemToOutlineNode(item: MaterialBasketItem): DocumentOutlineNode 
 }
 
 function commitMaterialBasket(items: MaterialBasketItem[]) {
-  const tabId = activeTabId.value
+  const tabId = effectiveTabId.value
   if (!tabId) return
   updateDocumentMeta(tabId, (meta) => {
     meta.materialBasket = JSON.parse(JSON.stringify(items))
@@ -1517,7 +1520,7 @@ let suppressDocumentSync = false
 let commitOutlineTimer: NodeJS.Timeout | null = null
 
 const commitOutline = async (outline?: DocumentOutlineNode) => {
-  const tabId = activeTabId.value
+  const tabId = effectiveTabId.value
   if (!tabId) return
   const snapshot = cloneOutline(outline ?? treeData.value)
   outlineCommittedFromOutlineView = true

@@ -14,6 +14,9 @@
       "emptyTitle": "No title to copy",
       "copyFailed": "Copy failed",
       "noRangeToDelete": "Could not locate this section; delete cancelled"
+    },
+    "workspaceLink": {
+      "needsSavedDoc": "Save the document before following relative links"
     }
   },
   "editorModeFirstTime": {
@@ -56,7 +59,10 @@
     },
     "welcome": {
       "title": "Welcome to MetaDoc",
-      "body": "We’ll walk you through language, layout, theme, and AI basics so you can get comfortable quickly."
+      "body": "We’ll walk you through language, file associations, layout, theme, and AI basics so you can get comfortable quickly."
+    },
+    "fileAssociation": {
+      "title": "Set default apps"
     },
     "layout": {
       "title": "Layout",
@@ -199,8 +205,12 @@
     "closeWorkspace": "Close Workspace",
     "workspaceSubmenu": "Workspace",
     "workspaceSubmenuTooltip": "Open or manage workspace folders",
+    "recent": "Recent",
+    "recentTooltip": "Recently opened locations",
     "recentFiles": "Recent Files",
     "recentFilesTooltip": "Recent Files",
+    "recentWorkspaces": "Recent Workspaces",
+    "recentWorkspacesTooltip": "Recently opened workspace folders",
     "save": "Save",
     "saveAll": "Save All",
     "saveAllAndExit": "Save All and Exit",
@@ -314,6 +324,13 @@
     "yesterday": "Yesterday"
   },
   "mainTabs": {
+    "openDocumentsTooltip": "Open documents",
+    "openDocumentsTitle": "Documents",
+    "switchToWorkspaceLayout": "Switch to split workspace layout",
+    "switchToClassicLayout": "Switch to classic tab bar",
+    "workbenchTab": "Workbench",
+    "workbenchTabNumbered": "Workbench {n}",
+    "workbenchTabWithSessionCount": "Workbench ({count} sessions)",
     "contextMenu": {
       "openTab": "Open",
       "pinTab": "Pin Tab",
@@ -728,7 +745,9 @@
   "home": {
     "metaDoc": "MetaDoc Intelligent Word Processor",
     "subtitle": "Modern Document Editing & Authoring Tool",
+    "recent": "Recent",
     "recentDocuments": "Recent Documents",
+    "recentWorkspaces": "Recent Workspaces",
     "tooltip": {
       "quickStart": "Quick Start: Quickly generate a document",
       "newDoc": "Create a new document",
@@ -1354,7 +1373,22 @@
       "thirdPartyAssets": "Third-party Assets",
       "aboutUs": "About Us",
       "content": "Content about MetaDoc team and mission",
-      "loadFailed": "Failed to load"
+      "loadFailed": "Failed to load",
+      "steamTab": "Steam",
+      "steamStatus": "Steam status",
+      "steamInitialized": "Connected to Steam",
+      "steamNotInitialized": "Not connected to Steam",
+      "steamUser": "Steam user",
+      "steamUserId": "Steam ID",
+      "steamUserName": "Display name",
+      "steamHint": "Launch the app from the Steam client and add steam_appid.txt in the dev folder (see steam_appid.txt.example).",
+      "steamSyncSettingsPull": "Pull settings from cloud",
+      "steamSyncSettingsPush": "Push settings to cloud",
+      "steamSyncHistoryPull": "Pull usage stats from cloud",
+      "steamSyncHistoryPush": "Push usage stats to cloud",
+      "steamOpenWorkshop": "Open template market",
+      "steamSyncDone": "Sync finished",
+      "steamSyncFailed": "Sync failed"
     },
     "microphoneTest": "Microphone Test",
     "microphoneHint": "Check if the microphone can record properly.",
@@ -1811,6 +1845,18 @@
     },
     "autoOpenHomeOnStartup": "Open home automatically on startup",
     "externalFileOpenMode": "External file opening method",
+    "fileAssociation": {
+      "sectionTitle": "Set default apps",
+      "pickMd": "Open Markdown (.md) with MetaDoc by default",
+      "pickTex": "Open LaTeX (.tex) with MetaDoc by default",
+      "openSystemSettings": "System default app settings",
+      "openSampleOk": "Opened",
+      "openSampleFail": "Could not open",
+      "openSettingsOk": "Opened",
+      "openSettingsFail": "Could not open",
+      "openSettingsLinuxManual": "Set default apps in your system settings.",
+      "electronOnly": "Desktop app only."
+    },
     "fontEditorChinese": "Editor font (Chinese)",
     "fontUi": "Interface Font",
     "fontEditorWestern": "Editor font (Western)",
@@ -4458,7 +4504,7 @@
       },
       "multiTab": {
         "title": "Multi-tab Operations",
-        "content": "# Multi-tab Operations\n\nMetaDoc supports browser-like multi-tab management.\n\n## Basic Operations\n\n- **New Tab**: Click the `+` button on the right side of the tab bar\n- **Switch Tabs**: Click tabs or use `Ctrl+Tab`\n- **Close Tab**: Click `×` on tabs or use `Ctrl+W`\n- **Restore Closed Tab**: Use `Ctrl+Shift+T`\n\n## Tab Management\n\n```mermaid\ngraph LR\nA[New Document] --> B[Open Document]\nB --> C[Edit Document]\nC --> D[Save Document]\nD --> E[Close Tab]\n```\n\n## Pin Tabs\n\nRight-click a tab and select \"Pin Tab\". Pinned tabs always appear on the left and cannot be closed.\n\n## Tab Dragging\n\n- Drag tabs to reorder\n- Drag tabs out of window to create new window\n- Drag tabs to other windows to merge"
+        "content": "# Multi-tab Operations\n\nDocument tabs can be split in the editor area; the top bar keeps tools and system entries, and the document list (document icon) switches open files.\n\n## Basic Operations\n\n- **New document**: Click the `+` button\n- **Switch documents**: Use per-pane tab strips or the top-bar document list; `Ctrl+Tab` cycles within the current pane when it has multiple tabs\n- **Switch tools**: Use top-bar tool/system tabs\n- **Close**: `×` on a strip or list item, or `Ctrl+W`\n- **Reopen closed**: `Ctrl+Shift+T`\n\n## Tab Management\n\n```mermaid\ngraph LR\nA[New Document] --> B[Open Document]\nB --> C[Edit Document]\nC --> D[Save Document]\nD --> E[Close Tab]\n```\n\n## Pin Tabs\n\nRight-click a tab and select \"Pin Tab\".\n\n## Dragging and splits\n\n- Drag on pane strips or bar tabs: center region reorders; edges split left/right/up/down\n- Drag out to detach; drag into another window to merge"
       },
       "multiWindow": {
         "title": "Multi-window Operations",
@@ -5219,6 +5265,18 @@
       "summary": "Summary",
       "details": "Details"
     }
+  },
+  "workshop": {
+    "title": "Workshop / Template market",
+    "description": "List Steam Workshop items subscribed by the current account and download them to a local folder.",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "empty": "No subscribed items, or Steam is not initialized.",
+    "download": "Download to folder",
+    "downloading": "Downloading…",
+    "pickFolder": "Choose download folder",
+    "downloadDone": "Download started",
+    "downloadFailed": "Download failed"
   },
   "notification": {
     "clearAll": "Clear All",

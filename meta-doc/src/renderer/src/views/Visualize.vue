@@ -106,7 +106,7 @@ import WordCloudDetail from '../components/WordCloudDetail.vue'
 import { getSetting } from '../utils/settings'
 import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls'
-import { useWorkspace } from '../stores/workspace'
+import { useScopedOrActiveDocument } from '../composables/useActiveDocument'
 import { useI18n } from 'vue-i18n'
 
 if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
@@ -143,8 +143,7 @@ const visualizeChartTheme = computed<VisualizeChartThemeSlice>(() => ({
   type: themeState.currentTheme.type as VisualizeChartThemeSlice['type'],
   textColor2: themeState.currentTheme.textColor2
 }))
-const workspace = useWorkspace()
-const { tabs, activeTabId, activeDocument, activateTab, removeTab } = workspace
+const { activeDocument, effectiveTabId } = useScopedOrActiveDocument(() => props.tabId)
 
 // 主 Panel 样式
 const mainPanelStyle = computed(() => ({
@@ -190,8 +189,6 @@ const refreshAll = async () => {
     words.value = []
     return
   }
-  // 多 tab 时只刷新当前激活 tab 的实例，避免用错文档数据、画错 DOM
-  if (props.tabId != null && activeTabId.value !== props.tabId) return
   if (!getRoot()) return
   // 等待 DOM 布局完成后再测量容器尺寸，避免图表 init 时拿到 0 尺寸
   await nextTick()
@@ -234,7 +231,7 @@ const scheduleRefresh = debounce(() => {
 }, 300)
 
 watch(
-  () => activeTabId.value,
+  () => effectiveTabId.value,
   () => {
     scheduleRefresh()
   }

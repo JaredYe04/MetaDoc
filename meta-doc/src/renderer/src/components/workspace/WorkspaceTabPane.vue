@@ -1,30 +1,36 @@
 <template>
-  <Home
-    v-if="showWorkspaceHomePreview"
-    :key="`workspace-home-${tab.id}`"
-    class="workspace-tab-pane workspace-tab-pane--home-preview"
-  />
-  <WorkspaceDocumentViews
-    v-else-if="useDocumentMultiViewShell"
-    :key="`multiview-${tab.id}`"
-    :tab-id="tab.id"
-    :use-nested-editor="false"
-    class="workspace-tab-pane workspace-tab-pane--multiview"
+  <div
+    class="workspace-tab-pane-host"
+    @pointerdown.capture="onPreviewTabPointerDown"
   >
-    <template #editor>
-      <component
-        :is="editorComponent"
-        :tab-id="tab.id"
-        :active="active"
-        :editor-dom-id="editorDomId"
-        class="workspace-tab-pane"
-      />
-    </template>
-  </WorkspaceDocumentViews>
+    <Home
+      v-if="showWorkspaceHomePreview"
+      :key="`workspace-home-${tab.id}`"
+      class="workspace-tab-pane workspace-tab-pane--home-preview"
+    />
+    <WorkspaceDocumentViews
+      v-else-if="useDocumentMultiViewShell"
+      :key="`multiview-${tab.id}`"
+      :tab-id="tab.id"
+      :use-nested-editor="false"
+      class="workspace-tab-pane workspace-tab-pane--multiview"
+    >
+      <template #editor>
+        <component
+          :is="editorComponent"
+          :tab-id="tab.id"
+          :active="active"
+          :editor-dom-id="editorDomId"
+          class="workspace-tab-pane"
+        />
+      </template>
+    </WorkspaceDocumentViews>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useWorkspace } from '../../stores/workspace'
 import MarkdownEditor from '../../views/MarkdownEditor.vue'
 import LaTeXEditor from '../../views/LaTeXEditor.vue'
 import PlainTextEditor from '../../views/PlainTextEditor.vue'
@@ -38,6 +44,7 @@ import { IMAGE_EXTENSIONS, RENDERABLE_TEXT_EXTENSIONS } from '../../utils/file-d
 import { extname } from '../../utils/path-utils'
 
 const { isFocusMode } = useFocusMode()
+const workspace = useWorkspace()
 
 const props = withDefaults(
   defineProps<{
@@ -92,9 +99,26 @@ const editorDomId = computed(() => {
   if (format === 'txt') return `plaintext-editor-${props.tab.id}`
   return `vditor-${props.tab.id}`
 })
+
+/** 资源树单击打开的预览 Tab：在内容区任意按下指针即升为正式 Tab */
+function onPreviewTabPointerDown() {
+  if (props.tab.preview) {
+    workspace.pinTab(props.tab.id)
+  }
+}
 </script>
 
 <style scoped>
+.workspace-tab-pane-host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .workspace-tab-pane {
   display: flex;
   flex-direction: column;

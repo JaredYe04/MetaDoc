@@ -4,7 +4,7 @@
       ref="viewSidebarResizableRef"
       v-if="hasVisibleMenus"
       direction="vertical"
-      storage-key="view-menu-sidebar"
+      :storage-key="resizableStorageKey"
       :initial-sidebar-size="sidebarSize"
       :min-size="200"
       :max-size="maxSidebarSize"
@@ -129,10 +129,7 @@
           <div class="sidebar-content">
             <AgentViewCompact v-if="activeTab === 'agent' && showAgentInSidebar" />
             <!-- 工作区：用 v-show 保持挂载，避免切到其他 Tab 时 ref 丢失导致菜单/快捷键无法调用 -->
-            <div
-              v-show="activeTab === 'workspace'"
-              class="sidebar-workspace-panel"
-            >
+            <div v-show="activeTab === 'workspace'" class="sidebar-workspace-panel">
               <WorkspaceExplorer v-if="showWorkspaceExplorer" ref="workspaceExplorerRef" />
             </div>
             <div v-show="activeTab === 'grep'" class="sidebar-grep-panel">
@@ -170,7 +167,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, provide } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { mixColors, themeState } from '../utils/themes'
 import ResizableContainer from './base/ResizableContainer.vue'
@@ -189,9 +186,25 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui
 import { ListTree } from 'lucide-vue-next'
 import DocumentOutlineSearchPanel from './DocumentOutlineSearchPanel.vue'
 import FocusLatexOutlinePanel from './FocusLatexOutlinePanel.vue'
+import { VIEW_MENU_DOCUMENT_TAB_ID } from './view-menu-context'
+
+const props = withDefaults(
+  defineProps<{
+    /** 分屏工作区：侧栏绑定指定文档 Tab，而非全局 active */
+    contextTabId?: string | null
+    /** Resizable 持久化键，每窗格实例须唯一 */
+    storageKey?: string
+  }>(),
+  { contextTabId: null, storageKey: undefined }
+)
 
 const { t } = useI18n()
 const workspace = useWorkspace()
+
+const resizableStorageKey = computed(() => props.storageKey ?? 'view-menu-sidebar')
+
+const scopedDocumentTabId = computed(() => props.contextTabId ?? null)
+provide(VIEW_MENU_DOCUMENT_TAB_ID, scopedDocumentTabId)
 
 const viewSidebarResizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null)
 const workspaceExplorerRef = ref<InstanceType<typeof WorkspaceExplorer> | null>(null)
@@ -202,6 +215,7 @@ type WorkspaceExplorerExposed = {
   addWorkspaceFolder: () => Promise<void>
   closeAllWorkspaceFolders: () => Promise<void>
   openWorkspaceReplace: () => Promise<void>
+  openWorkspaceFromPath: (folderPath: string) => Promise<void>
 }
 
 type WorkspaceGrepPanelExposed = {
@@ -219,8 +233,18 @@ const activeTab = ref<'agent' | 'workspace' | 'outline' | 'grep' | 'meta'>('work
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1200)
 const maxSidebarSize = computed(() => Math.max(400, Math.floor((windowWidth.value * 2) / 3)))
 
-// 获取当前活动的文档
-const activeDocument = computed(() => workspace.activeDocument.value)
+// 全局壳：跟随窗口 active；分屏壳：跟随 contextTabId
+const activeDocument = computed(() => {
+  const tid = props.contextTabId
+  if (tid) {
+    try {
+      return workspace.ensureDocument(tid)
+    } catch {
+      return null
+    }
+  }
+  return workspace.activeDocument.value
+})
 
 /** 右侧紧凑 Agent 与全页 Agent 可同时显示，由用户用「侧栏 Agent」开关控制 */
 const showAgentInSidebar = computed(() => agentSidebarPanelEnabled.value)
@@ -289,10 +313,8 @@ const currentOutlineJson = computed(() => {
     return JSON.stringify({ path: 'dummy', title: '', text: '', title_level: 0, children: [] })
 
   try {
-    const useTex =
-      isTexLikeFormat(doc.format) || (pathLooksTex(doc.path) && !pathLooksMd(doc.path))
-    const useMd =
-      isMdLikeFormat(doc.format) || (pathLooksMd(doc.path) && !pathLooksTex(doc.path))
+    const useTex = isTexLikeFormat(doc.format) || (pathLooksTex(doc.path) && !pathLooksMd(doc.path))
+    const useMd = isMdLikeFormat(doc.format) || (pathLooksMd(doc.path) && !pathLooksTex(doc.path))
     if (useTex && !useMd) {
       const outline = extractOutlineTreeFromLatex(doc.tex || '', false)
       return JSON.stringify(outline)
@@ -593,6 +615,30 @@ const handleWorkspaceInvokeOpenWorkspace = () => {
   invokeWorkspaceExplorerAction('openWorkspaceReplace')
 }
 
+const handleOpenRecentWorkspace = (payload: unknown) => {
+  const p =
+    typeof payload === 'string'
+      ? payload
+      : payload && typeof payload === 'object' && 'path' in payload
+        ? String((payload as { path: unknown }).path)
+        : ''
+  if (!p) return
+  handleFocusWorkspaceSidebar({ expand: true })
+  const run = (): boolean => {
+    const ex = workspaceExplorerRef.value as WorkspaceExplorerExposed | null
+    if (!ex || typeof ex.openWorkspaceFromPath !== 'function') return false
+    void ex.openWorkspaceFromPath(p)
+    return true
+  }
+  if (run()) return
+  void nextTick(() => {
+    if (run()) return
+    void nextTick(() => {
+      run()
+    })
+  })
+}
+
 onMounted(async () => {
   await loadSavedState()
   eventBus.on('focus-workspace-sidebar', handleFocusWorkspaceSidebar)
@@ -602,6 +648,7 @@ onMounted(async () => {
   eventBus.on('workspace-invoke-add-folder', handleWorkspaceInvokeAddFolder)
   eventBus.on('workspace-invoke-close-all-folders', handleWorkspaceInvokeCloseAllFolders)
   eventBus.on('workspace-invoke-open-workspace', handleWorkspaceInvokeOpenWorkspace)
+  eventBus.on('open-recent-workspace', handleOpenRecentWorkspace)
   eventBus.on('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.on('toggle-workspace-grep', handleToggleWorkspaceGrep)
   eventBus.on('toggle-agent-sidebar-panel', handleToggleAgentSidebarPanel)
@@ -622,6 +669,7 @@ onBeforeUnmount(() => {
   eventBus.off('workspace-invoke-add-folder', handleWorkspaceInvokeAddFolder)
   eventBus.off('workspace-invoke-close-all-folders', handleWorkspaceInvokeCloseAllFolders)
   eventBus.off('workspace-invoke-open-workspace', handleWorkspaceInvokeOpenWorkspace)
+  eventBus.off('open-recent-workspace', handleOpenRecentWorkspace)
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.off('toggle-workspace-grep', handleToggleWorkspaceGrep)
   eventBus.off('toggle-agent-sidebar-panel', handleToggleAgentSidebarPanel)

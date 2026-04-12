@@ -173,7 +173,7 @@ import { themeState, mixColors } from '../utils/themes'
 import WorkspaceTreeNode from './WorkspaceTreeNode.vue'
 import ContextMenu from './ContextMenu.vue'
 import type { ContextMenuItem } from './contextMenus/types'
-import { dirname, basename, extname, join, relative } from '../utils/path-utils'
+import { dirname, basename, extname, join, relative, isAbsolute } from '../utils/path-utils'
 import * as treeLogic from '../utils/workspace-tree-logic'
 
 const normalizePathForCompare = treeLogic.normalizePathForCompare
@@ -188,6 +188,7 @@ import { URIUtils, type URI } from '../utils/workspace/fs-models'
 import { RefreshService } from '../utils/workspace/refresh-service'
 import logoPath from '../assets/logo.svg'
 import messageBridge from '../bridge/message-bridge'
+import { updateRecentOpen } from '../utils/settings.js'
 import { getExportOptions } from '../services/export-manager'
 import { getExportSourceFormatForPath } from '../services/export-document-resolver'
 
@@ -222,34 +223,18 @@ function isMdOrTexFormat(f: string | undefined): boolean {
   return ['md', 'markdown', 'mdx', 'tex', 'latex', 'ltx'].includes(x)
 }
 
-/** 与 ViewMenuContainer「非专注下仅 LaTeX 显示大纲 Tab」一致 */
-function isLatexOutlineEligible(format: string | undefined, path: string): boolean {
-  const f = (format || '').toLowerCase()
-  if (f === 'tex' || f === 'latex' || f === 'ltx') return true
-  const x = (path || '').toLowerCase()
-  const pathTex = x.endsWith('.tex') || x.endsWith('.latex') || x.endsWith('.ltx')
-  const pathMd = x.endsWith('.md') || x.endsWith('.markdown') || x.endsWith('.mdx')
-  return pathTex && !pathMd
-}
-
 /**
- * 从工作区切换/打开文档后，将侧栏切到「文档大纲」：
- * 专注模式：Markdown / LaTeX 均适用；普通模式：仅 LaTeX（无编辑器内原生大纲）。
+ * 从工作区切换/打开文档后，将侧栏切到「文档大纲」。
+ * 仅在专注模式（layout-variant="focus"）下自动切换；普通模式保持当前侧栏 Tab。
  */
 function emitDocumentOutlineSidebarAfterNavigation() {
-  if (props.layoutVariant === 'focus') {
-    eventBus.emit('focus-document-outline-sidebar')
-    return
-  }
-  const doc = workspace.activeDocument.value
-  if (!doc) return
-  if (isLatexOutlineEligible(doc.format, doc.path || '')) {
-    eventBus.emit('focus-document-outline-sidebar')
-  }
+  if (props.layoutVariant !== 'focus') return
+  eventBus.emit('focus-document-outline-sidebar')
 }
 
 /** 文档在 Main 中完成激活/加载后再切大纲，避免 showOutlineTab 仍为 false 而丢事件 */
 function handleOpenDocSuccessFocusOutline(payload: unknown) {
+  if (props.layoutVariant !== 'focus') return
   const p = payload as { tabId?: string; path?: string }
   const tabId = p.tabId
   if (!tabId) return
@@ -257,11 +242,7 @@ function handleOpenDocSuccessFocusOutline(payload: unknown) {
   const doc = ensureDocument(tabId)
   const path = (typeof p.path === 'string' ? p.path : '') || tab?.path || doc.path || ''
   const fmt = tab?.format ?? doc.format
-  if (props.layoutVariant === 'focus') {
-    if (!isMdOrTexFormat(fmt) && !isMdOrTexPath(path)) return
-  } else if (!isLatexOutlineEligible(fmt, path)) {
-    return
-  }
+  if (!isMdOrTexFormat(fmt) && !isMdOrTexPath(path)) return
   void nextTick(() => {
     void nextTick(() => {
       void nextTick(() => {
@@ -861,6 +842,16 @@ function emitFocusWorkspaceSidebar() {
   eventBus.emit('focus-workspace-sidebar', { expand: true })
 }
 
+function persistRecentWorkspace(folderPath: string) {
+  void (async () => {
+    try {
+      await updateRecentOpen(folderPath, 'folder')
+    } finally {
+      eventBus.emit('recent-opens-changed')
+    }
+  })()
+}
+
 // 添加工作文件夹
 const addWorkspaceFolder = async () => {
   const ipcRenderer = getIpcRenderer()
@@ -906,6 +897,7 @@ const addWorkspaceFolder = async () => {
 
       // 保存工作文件夹列表
       saveWorkspaceFolders()
+      persistRecentWorkspace(newFolder)
       emitFocusWorkspaceSidebar()
     }
   } catch (err) {
@@ -935,6 +927,7 @@ const addWorkspaceFolderFromPath = async (folderPath: string) => {
     workspaceFolders.value.push(normalizedFolderPath)
     startDirectoryWatcher(normalizedFolderPath)
     saveWorkspaceFolders()
+    persistRecentWorkspace(normalizedFolderPath)
     emitFocusWorkspaceSidebar()
   } finally {
     autoWorkspaceAddInFlight.value = false
@@ -1003,10 +996,70 @@ const openWorkspaceReplace = async () => {
     workspaceFolders.value.push(newFolder)
     startDirectoryWatcher(newFolder)
     saveWorkspaceFolders()
+    persistRecentWorkspace(normalizePathForCompare(newFolder))
     emitFocusWorkspaceSidebar()
   } catch (err) {
     logger.error('打开工作区（替换）失败:', err)
     error.value = err instanceof Error ? err.message : String(err)
+  }
+}
+
+/** 用已知文件夹路径打开（替换）工作区：最近工作区 / eventBus */
+const openWorkspaceFromPath = async (folderPath: string) => {
+  if (!folderPath) return
+  const ipcRenderer = getIpcRenderer()
+  if (!ipcRenderer) {
+    error.value = t('workspaceExplorer.ipcNotAvailable')
+    return
+  }
+
+  const normalized = normalizePathForCompare(folderPath)
+  if (!normalized) return
+
+  if (
+    workspaceFolders.value.length === 1 &&
+    normalizePathForCompare(workspaceFolders.value[0]!) === normalized
+  ) {
+    emitFocusWorkspaceSidebar()
+    return
+  }
+
+  try {
+    await ensureMetadocInWorkspaceRoot(normalized)
+
+    const folders = [...workspaceFolders.value]
+    for (const p of folders) {
+      await removeWorkspaceFolder(p, { skipWorkspaceFocus: true })
+    }
+
+    await createWorkspaceRootNode(normalized)
+    workspaceFolders.value.push(normalized)
+    startDirectoryWatcher(normalized)
+    saveWorkspaceFolders()
+    persistRecentWorkspace(normalized)
+    emitFocusWorkspaceSidebar()
+  } catch (err) {
+    logger.error('从路径打开工作区失败:', err)
+    error.value = err instanceof Error ? err.message : String(err)
+  }
+}
+
+const handleEnsureWorkspaceForFile = async (payload: unknown) => {
+  if (!payload || typeof payload !== 'object' || !('path' in payload)) return
+  const filePath = String((payload as { path: unknown }).path || '')
+  if (!filePath || !isAbsolute(filePath) || workspaceFolders.value.length > 0) return
+
+  const tryAdd = async () => {
+    if (!hasLoadedWorkspaceFolders.value) return
+    const parent = dirname(filePath)
+    if (!parent) return
+    await addWorkspaceFolderFromPath(normalizePathForCompare(parent))
+  }
+
+  await tryAdd()
+  if (workspaceFolders.value.length === 0) {
+    await nextTick()
+    await tryAdd()
   }
 }
 
@@ -1287,6 +1340,7 @@ const refreshDirectoryNode = async (directoryPath: string) => {
     currentExpanded.clear()
     savedExpandedPaths.forEach((path) => currentExpanded.add(path))
     restoreScrollPosition(scrollPosition)
+    treeVersion.value++
   } catch (err) {
     if (isPathNotExistError(err)) {
       logger.debug('刷新时发现目录已被外部删除，从树中移除', { directoryPath })
@@ -1585,9 +1639,7 @@ const handleDirectoryChange = async (payload: unknown) => {
 
   // 增量更新未找到父节点（例如父目录未展开），则刷新该父目录以同步
   const norm = normalizePathForCompare(effectiveParent)
-  const isWorkspaceRoot = workspaceFolders.value.some(
-    (f) => normalizePathForCompare(f) === norm
-  )
+  const isWorkspaceRoot = workspaceFolders.value.some((f) => normalizePathForCompare(f) === norm)
   try {
     if (isWorkspaceRoot) {
       const folder = workspaceFolders.value.find((f) => normalizePathForCompare(f) === norm)
@@ -1595,7 +1647,9 @@ const handleDirectoryChange = async (payload: unknown) => {
     } else {
       await refreshDirectoryNode(effectiveParent)
     }
-    nextTick(() => { treeVersion.value++ })
+    nextTick(() => {
+      treeVersion.value++
+    })
   } catch (err) {
     logger.warn('目录变化回退刷新失败', { effectiveParent, error: err })
   }
@@ -1611,24 +1665,28 @@ onMounted(async () => {
   // 目录变化由 ViewMenuContainer 收 IPC 后 eventBus 转发，此处只订阅 eventBus（否则 v-if 未挂载时收不到）
   eventBus.on('directory-changed', handleDirectoryChange)
   eventBus.on('open-doc-success', handleOpenDocSuccessFocusOutline)
+  eventBus.on('ensure-workspace-for-file', handleEnsureWorkspaceForFile)
 })
 
 watch(
-  () =>
-    workspace.tabs
+  () => ({
+    loaded: hasLoadedWorkspaceFolders.value,
+    filePaths: workspace.tabs
       .filter((tab) => tab.kind === 'file' && !!tab.path)
-      .map((tab) => tab.path as string),
-  async (filePaths) => {
-    if (!hasLoadedWorkspaceFolders.value) return
+      .map((tab) => tab.path as string)
+  }),
+  async ({ loaded, filePaths }) => {
+    if (!loaded) return
     if (workspaceFolders.value.length > 0) return
     if (!filePaths.length) return
 
     const firstPath = filePaths[0]
+    if (!firstPath || !isAbsolute(firstPath)) return
     const folderPath = dirname(firstPath)
     if (!folderPath) return
 
     try {
-      await addWorkspaceFolderFromPath(folderPath)
+      await addWorkspaceFolderFromPath(normalizePathForCompare(folderPath))
     } catch (err) {
       logger.warn('根据首个打开文档自动添加工作区失败', { folderPath, error: err })
     }
@@ -1646,6 +1704,7 @@ onBeforeUnmount(() => {
   eventBus.off('toggle-workspace-explorer', handleToggleWorkspaceExplorer)
   eventBus.off('directory-changed', handleDirectoryChange)
   eventBus.off('open-doc-success', handleOpenDocSuccessFocusOutline)
+  eventBus.off('ensure-workspace-for-file', handleEnsureWorkspaceForFile)
 
   // 清理 Worker
   cleanupWorker()
@@ -2044,7 +2103,7 @@ const handlePaste = async (targetPathParam: string | null) => {
         const srcPath = URIUtils.uriToPath(srcUri)
         const parentPath = dirname(srcPath)
         const n = nodeMap.get(normalizePathForCompare(srcPath))
-        const isDir = n ? (n.type === 'directory' || n.type === 'workspaceRoot') : false
+        const isDir = n ? n.type === 'directory' || n.type === 'workspaceRoot' : false
         applyFsEventToTree({
           directoryPath: parentPath,
           parentPath,
@@ -2295,7 +2354,9 @@ const handleRenameConfirm = async () => {
       const oldPath = renameTargetPath.value
       const parentPath = dirname(oldPath)
       const oldNode = nodeMap.get(normalizePathForCompare(oldPath))
-      const isDir = oldNode ? (oldNode.type === 'directory' || oldNode.type === 'workspaceRoot') : false
+      const isDir = oldNode
+        ? oldNode.type === 'directory' || oldNode.type === 'workspaceRoot'
+        : false
       applyFsEventToTree({
         directoryPath: parentPath,
         parentPath,
@@ -2358,10 +2419,10 @@ const handleCreatingComplete = async (name: string) => {
       await handleOpenFile(filePath)
     } else {
       const folderName = name.trim()
-      const dirPath = await ipcRenderer.invoke('create-directory', {
+      const dirPath = (await ipcRenderer.invoke('create-directory', {
         parentPath: pending.parentPath,
         folderName
-      }) as string
+      })) as string
       // 增量添加节点，不整目录刷新
       treeLogic.addNodeToTree(nodeMap, pending.parentPath, dirPath, 'directory')
       nextTick(() => {
@@ -2402,13 +2463,12 @@ const handleDragStart = (event: { node: FileNode; event: DragEvent }) => {
 
   const { node } = event
 
-  // 收集要拖拽的 URI（选中的项，如果没有选中则拖拽当前节点）
+  // 从已选项批量拖，或从当前行拖起：若当前节点不在选区中则只拖这一行（不必先点选）
   const urisToDrag: URI[] = []
-  if (selectedPaths.value.size > 0) {
-    // 批量拖拽选中的项
+  const inSelection = selectedPaths.value.has(node.path)
+  if (selectedPaths.value.size > 0 && inSelection) {
     urisToDrag.push(...Array.from(selectedPaths.value).map((path) => URIUtils.pathToURI(path)))
   } else if (!node.isWorkspaceRoot) {
-    // 单个拖拽
     urisToDrag.push(URIUtils.pathToURI(node.path))
   }
 
@@ -2420,9 +2480,10 @@ const handleDragStart = (event: { node: FileNode; event: DragEvent }) => {
   // 保存拖拽的 URI
   draggingURIs.value = urisToDrag
 
-  // 设置拖拽数据
+  // 设置拖拽数据（须与子节点 WorkspaceTreeNode 的 copy 语义一致）
+  // 若此处设为仅 'move'，会覆盖子节点 effectAllowed='copyMove'，顶栏/编辑区用 dropEffect='copy' 时浏览器拒绝 drop，表现为只有高亮、松手无反应。
   if (event.event.dataTransfer) {
-    event.event.dataTransfer.effectAllowed = 'move'
+    event.event.dataTransfer.effectAllowed = 'copyMove'
     event.event.dataTransfer.setData('application/json', JSON.stringify(urisToDrag))
   }
 
@@ -2755,21 +2816,36 @@ const performMoveOperation = async (sourceURIs: URI[], targetDirURI: URI) => {
       operations.updateSelection(result.createdURIs)
     }
 
-    // 刷新目标目录
-    const targetPath = URIUtils.uriToPath(targetDirURI)
-    await refreshDirectoryNode(targetPath)
+    const targetPath = normalizePathForCompare(URIUtils.uriToPath(targetDirURI))
 
-    // 刷新源目录（如果源和目标不在同一目录）
     const sourceDirs = new Set<string>()
     for (const sourceURI of sourceURIs) {
-      const sourcePath = URIUtils.uriToPath(sourceURI)
-      sourceDirs.add(dirname(sourcePath))
+      sourceDirs.add(normalizePathForCompare(dirname(URIUtils.uriToPath(sourceURI))))
     }
 
-    for (const sourceDir of sourceDirs) {
-      if (sourceDir !== targetPath) {
-        await refreshDirectoryNode(sourceDir)
+    // 合并源目录与目标目录后按「路径深度升序」刷新（先祖先后后代）。
+    // loadSubDirectory(父) 会 unregister 并替换子节点对象；若先刷子再刷父，父刷新后子变成未懒加载的空壳，
+    // 表现成「文件夹空了，折叠再展开才好」。移入子文件夹时相反：先刷父再刷子即可由第二次刷新填满子树。
+    const refreshPathsUnique: string[] = []
+    const refreshSeen = new Set<string>()
+    for (const d of sourceDirs) {
+      if (d && !refreshSeen.has(d)) {
+        refreshSeen.add(d)
+        refreshPathsUnique.push(d)
       }
+    }
+    if (targetPath && !refreshSeen.has(targetPath)) {
+      refreshPathsUnique.push(targetPath)
+    }
+
+    const pathDepthForSort = (p: string) =>
+      normalizePathForCompare(p)
+        .split('/')
+        .filter(Boolean).length
+    refreshPathsUnique.sort((a, b) => pathDepthForSort(a) - pathDepthForSort(b))
+
+    for (const dir of refreshPathsUnique) {
+      await refreshDirectoryNode(dir)
     }
 
     eventBus.emit('show-success', { message: `已移动 ${sourceURIs.length} 项` })
@@ -2905,7 +2981,8 @@ const handleSelectAll = async () => {
 defineExpose({
   addWorkspaceFolder,
   closeAllWorkspaceFolders,
-  openWorkspaceReplace
+  openWorkspaceReplace,
+  openWorkspaceFromPath
 })
 </script>
 

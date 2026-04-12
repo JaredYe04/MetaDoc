@@ -2,7 +2,7 @@
   <div class="homepage">
     <!-- 如果文档格式未选择，显示格式选择界面 -->
     <div v-if="needsFormatSelection" class="format-selection-container">
-      <NewDocumentWorkspace v-if="activeTabId" :tab-id="activeTabId" :active="true" />
+      <NewDocumentWorkspace v-if="effectiveTabId" :tab-id="effectiveTabId" :active="true" />
     </div>
 
     <!-- 如果已选择格式，显示文档预览 -->
@@ -73,10 +73,13 @@ import {
 } from './home/adapters'
 import { useHomeDocumentPreview } from './home/useHomeDocumentPreview'
 
+const props = withDefaults(defineProps<{ tabId?: string }>(), { tabId: undefined })
+
 const {
   activeDocument,
   activeTab,
   workspace,
+  effectiveTabId,
   currentFilePath,
   metaTitle,
   metaAuthor,
@@ -95,13 +98,17 @@ const {
   encodeFilePathToUrl,
   loadFileStats,
   isImageFormat
-} = useHomeDocumentPreview({ windowTypeProvider: () => getWindowType() })
+} = useHomeDocumentPreview({
+  windowTypeProvider: () => getWindowType(),
+  tabId: () => props.tabId
+})
 
-const { activeTabId, openSystemTab } = workspace
+const { openSystemTab } = workspace
 
 const handleFocusPdfConvert = () => {
-  if (activeTabId.value) {
-    eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: activeTabId.value })
+  const id = effectiveTabId.value
+  if (id) {
+    eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: id })
   }
 }
 

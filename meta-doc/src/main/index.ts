@@ -18,10 +18,11 @@ import {
   refreshMainWindowTitle,
   openDoc,
   findWindowWithToolTab,
-  globalTabRegistry
+  globalTabRegistry,
+  killAllTerminalSpawnProcesses
 } from './main-calls'
 import { registerMainProcessIpc } from './ipc/main-process-ipc'
-import { registerDragManagerIPC } from './drag-manager'
+import { registerDragManagerIPC, cleanupDragManager } from './drag-manager'
 import { initWindowPool, destroyWindowPool } from './window-pool'
 import { startFileRegistry, stopFileRegistry } from './file-registry'
 import {
@@ -35,6 +36,7 @@ import {
   registerExternalOpenHandler,
   registerFocusRequestHandler,
   runExpressServer,
+  shutdownExpressServer,
   refreshKnowledgeItems
 } from './express-server'
 import { initLogger, shutdownLogger, createMainLogger } from './logger'
@@ -45,10 +47,14 @@ import {
   preloadAuxiliaryWindows,
   openAuxiliaryWindow,
   refreshAuxiliaryWindowTitles,
-  dispatchLanguageToAuxWindows
+  dispatchLanguageToAuxWindows,
+  shutdownAuxiliaryWindowsForAppQuit
 } from './window-manager'
 import { ensureInitialized } from './database/knowledge-db'
 import { mark as startupProfileMark, getTimelineForRenderer } from './startup-profile'
+import { initSteam, shutdownSteam } from './steam/steam-state'
+import { registerShellMetadataOnLaunch } from './system-integration/register-shell-metadata'
+import { killAllPtys } from './utils/terminal-pty-service'
 
 const url = require('url')
 const path = require('path')
@@ -738,6 +744,15 @@ app.whenReady().then(async () => {
     return
   }
 
+  initSteam()
+
+  // 打包版：向系统注册应用名、图标与 .md/.tex 类型信息（不写默认打开方式），便于「打开方式」中选到 MetaDoc
+  setImmediate(() => {
+    void registerShellMetadataOnLaunch().catch((err) =>
+      logger.warn('registerShellMetadataOnLaunch failed', err)
+    )
+  })
+
   // Express 先启动，再创建窗口并加载骨架页，窗口尽早显示；后续加载在骨架屏展示期间进行
   startupProfileMark('run_express_server_called')
   runExpressServer()
@@ -798,6 +813,12 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isAppQuitting = true
+  shutdownExpressServer()
+  killAllPtys()
+  killAllTerminalSpawnProcesses()
+  cleanupDragManager()
+  shutdownAuxiliaryWindowsForAppQuit()
+  shutdownSteam()
   shutdownLogger()
   destroyWindowPool()
   stopFileRegistry()

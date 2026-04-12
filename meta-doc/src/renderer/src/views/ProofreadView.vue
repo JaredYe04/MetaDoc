@@ -177,6 +177,10 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'normal'
+  },
+  tabId: {
+    type: String,
+    default: undefined
   }
 })
 const isDemo = computed(() => props.mode === 'demo')
@@ -185,7 +189,7 @@ import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import { Alert, AlertTitle } from '@renderer/components/ui/alert'
 import { Badge } from '@renderer/components/ui/badge'
 import { CheckCircle2, AlertTriangle } from 'lucide-vue-next'
-import { useActiveDocument } from '../composables/useActiveDocument'
+import { useScopedOrActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
 import { proofreadToolCallback } from '../utils/agent-tools/proofread-tool'
 import type { ProofreadResult, ProofreadError } from '../utils/agent-tools/proofread-tool'
@@ -201,8 +205,8 @@ if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
 }
 
 const { t } = useI18n()
-const { activeDocument } = useActiveDocument()
 const workspace = useWorkspace()
+const { activeDocument } = useScopedOrActiveDocument(() => props.tabId as string | undefined)
 
 // 主题样式
 const pageStyle = computed(() => ({

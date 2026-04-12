@@ -3,9 +3,8 @@
  * 格式检测、文件统计、URL 编码等
  */
 
-import { ref, computed, watch } from 'vue'
-import { useActiveDocument } from '../../composables/useActiveDocument'
-import { useWorkspace } from '../../stores/workspace'
+import { ref, computed, watch, type MaybeRefOrGetter } from 'vue'
+import { useScopedOrActiveDocument } from '../../composables/useActiveDocument'
 import messageBridge from '../../bridge/message-bridge'
 import { createRendererLogger } from '../../utils/logger'
 import { formatRegistry } from '../../utils/format-registry'
@@ -17,13 +16,17 @@ import {
 } from '../../utils/file-display-utils'
 import type { getWindowType } from '../../utils/event-bus'
 
-export function useHomeDocumentPreview(options?: { windowTypeProvider?: () => string }) {
+export function useHomeDocumentPreview(options?: {
+  windowTypeProvider?: () => string
+  tabId?: MaybeRefOrGetter<string | undefined>
+}) {
   const logger = createRendererLogger('Home', {
     windowTypeProvider: options?.windowTypeProvider ?? (() => '')
   })
 
-  const { activeDocument, activeTab } = useActiveDocument()
-  const workspace = useWorkspace()
+  const { activeDocument, activeTab, workspace, effectiveTabId } = useScopedOrActiveDocument(
+    options?.tabId
+  )
 
   const currentFilePath = computed(() => activeDocument.value?.path ?? '')
   const metaTitle = computed(() => activeDocument.value?.meta?.title ?? '')
@@ -153,6 +156,7 @@ export function useHomeDocumentPreview(options?: { windowTypeProvider?: () => st
     logger,
     activeDocument,
     activeTab,
+    effectiveTabId,
     workspace,
     currentFilePath,
     metaTitle,

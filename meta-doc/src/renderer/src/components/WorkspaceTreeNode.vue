@@ -149,6 +149,12 @@ import { themeState, mixColors } from '../utils/themes'
 import { formatRegistry } from '../utils/format-registry'
 import { extname } from '../utils/path-utils'
 import { isDocumentSidecarMetaFileName } from '../utils/workspace-tree-logic'
+import {
+  WORKSPACE_FILE_PATH_DRAG_MIME,
+  beginWorkspaceTreePathDragSession,
+  endWorkspaceTreePathDragSession,
+  dndLog
+} from '../composables/useTabDrag'
 
 const { t } = useI18n()
 
@@ -296,14 +302,10 @@ const isFocused = computed(() => {
   return props.focusedPath === props.node.path
 })
 
-// 是否可以拖拽（只有选中的节点才能拖拽）
+// 文件与普通文件夹可直接拖（不必先选中）；工作区根节点不可拖
 const canDrag = computed(() => {
-  // 工作文件夹根节点不可拖拽
-  if (props.node.isWorkspaceRoot) {
-    return false
-  }
-  // 只有选中的节点才能拖拽
-  return isSelected.value
+  if (props.node.isWorkspaceRoot) return false
+  return props.node.type === 'file' || props.node.type === 'directory'
 })
 
 // 是否是拖拽目标（用于高亮显示）
@@ -495,17 +497,24 @@ const dragTargetColor = computed(() =>
 
 // 处理拖拽开始
 const handleDragStart = (event: DragEvent) => {
-  // 只有选中的节点才能拖拽
   if (!canDrag.value) {
     event.preventDefault()
     return
   }
 
-  // 设置拖拽数据
+  // 设置拖拽数据（自定义 MIME 供顶栏/编辑区与树内移动区分）
   if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move'
+    // copy 与顶栏/编辑区 dropEffect 一致；move 会导致与 copy 组合不合法、松手无法 drop
+    event.dataTransfer.effectAllowed = 'copyMove'
     event.dataTransfer.setData('text/plain', props.node.path)
+    event.dataTransfer.setData(WORKSPACE_FILE_PATH_DRAG_MIME, props.node.path)
   }
+  beginWorkspaceTreePathDragSession(props.node.path)
+  dndLog('dragstart', 'tree-node', {
+    path: props.node.path,
+    type: props.node.type,
+    name: props.node.name
+  })
 
   emit('drag-start', { node: props.node, event })
 }
@@ -566,6 +575,8 @@ const handleChildrenDrop = (event: DragEvent) => {
 
 // 处理拖拽结束
 const handleDragEnd = (event: DragEvent) => {
+  dndLog('dragend', 'tree-node', { path: props.node.path, type: props.node.type })
+  endWorkspaceTreePathDragSession()
   emit('drag-end', event)
 }
 </script>

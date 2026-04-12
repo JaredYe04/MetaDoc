@@ -46,6 +46,19 @@ export async function removeRecentDoc(filePath) {
   return await messageBridge.invoke('remove-recent-doc', { path: filePath })
 }
 
+/** 统一「最近」列表项：文件或工作区文件夹 */
+export async function getRecentOpens() {
+  return await messageBridge.invoke('get-recent-opens')
+}
+
+export async function updateRecentOpen(path, kind) {
+  return await messageBridge.invoke('update-recent-open', { path, kind })
+}
+
+export async function removeRecentOpen(path) {
+  return await messageBridge.invoke('remove-recent-open', { path })
+}
+
 export async function getImagePath() {
   return await messageBridge.invoke('get-image-path')
 }

@@ -14,6 +14,9 @@
       "emptyTitle": "暂无标题可复制",
       "copyFailed": "复制失败",
       "noRangeToDelete": "无法定位该段落范围，删除已取消"
+    },
+    "workspaceLink": {
+      "needsSavedDoc": "请先保存当前文档后再跟随相对路径链接"
     }
   },
   "aIService": {
@@ -1894,7 +1897,10 @@
     },
     "welcome": {
       "title": "欢迎使用 MetaDoc",
-      "body": "接下来将引导您完成语言、布局、主题与 AI 等基础设置，帮助您快速上手。"
+      "body": "接下来将引导您完成语言、文件关联、布局、主题与 AI 等基础设置，帮助您快速上手。"
+    },
+    "fileAssociation": {
+      "title": "设置默认打开方式"
     },
     "layout": {
       "title": "界面布局",
@@ -2410,7 +2416,9 @@
     "quickStartTitle": "快速开始",
     "latexCode": "LaTeX 代码",
     "preview": "预览",
+    "recent": "最近",
     "recentDocuments": "最近文档",
+    "recentWorkspaces": "最近工作区",
     "subtitle": "现代文档编辑与创作工具",
     "suggestionLabel": "建议标签",
     "suggestionTagsTitle": "建议标签",
@@ -3096,8 +3104,12 @@
     "closeWorkspace": "关闭当前工作区",
     "workspaceSubmenu": "工作区",
     "workspaceSubmenuTooltip": "打开或管理工作区文件夹",
+    "recent": "最近",
+    "recentTooltip": "最近打开的位置",
     "recentFiles": "最近文件",
     "recentFilesTooltip": "最近文件",
+    "recentWorkspaces": "最近工作区",
+    "recentWorkspacesTooltip": "最近打开的工作区文件夹",
     "save": "保存",
     "saveAll": "保存全部",
     "saveAllAndExit": "保存全部并退出",
@@ -3208,6 +3220,18 @@
       "details": "详细数据"
     }
   },
+  "workshop": {
+    "title": "创意工坊 / 模板市场",
+    "description": "查看当前 Steam 账号已订阅的 Workshop 条目，并下载到本地目录。上传与标签需在 Steamworks 后台配置完成后使用主进程 API。",
+    "refresh": "刷新列表",
+    "loading": "加载中…",
+    "empty": "暂无订阅项，或 Steam 未初始化。",
+    "download": "下载到文件夹",
+    "downloading": "下载中…",
+    "pickFolder": "选择下载目录",
+    "downloadDone": "已开始下载",
+    "downloadFailed": "下载失败"
+  },
   "main": {
     "dialogs": {
       "openFileTitle": "打开文件",
@@ -3295,6 +3319,13 @@
     }
   },
   "mainTabs": {
+    "openDocumentsTooltip": "已打开的文档",
+    "openDocumentsTitle": "文档",
+    "switchToWorkspaceLayout": "切换到分屏工作区布局",
+    "switchToClassicLayout": "切换到经典标签栏",
+    "workbenchTab": "工作台",
+    "workbenchTabNumbered": "工作台{n}",
+    "workbenchTabWithSessionCount": "工作台（{count} 个会话）",
     "add": "添加",
     "close": "关闭",
     "closeTabTooltip": "关闭标签页",
@@ -4030,7 +4061,22 @@
       "downloading": "下载中",
       "installAndRestart": "安装并重启",
       "downloadError": "下载失败",
-      "loadFailed": "加载失败"
+      "loadFailed": "加载失败",
+      "steamTab": "Steam",
+      "steamStatus": "Steam 状态",
+      "steamInitialized": "已连接 Steam",
+      "steamNotInitialized": "未连接 Steam",
+      "steamUser": "Steam 用户",
+      "steamUserId": "Steam ID",
+      "steamUserName": "显示名称",
+      "steamHint": "请通过 Steam 客户端启动本应用，并在开发目录放置 steam_appid.txt（可参考 steam_appid.txt.example）。",
+      "steamSyncSettingsPull": "从云端拉取设置",
+      "steamSyncSettingsPush": "将设置推送到云端",
+      "steamSyncHistoryPull": "从云端拉取用量统计",
+      "steamSyncHistoryPush": "将用量统计推送到云端",
+      "steamOpenWorkshop": "打开模板市场",
+      "steamSyncDone": "同步完成",
+      "steamSyncFailed": "同步失败"
     },
     "allChangesSaved": "所有更改已保存",
     "apiBaseUrl": "API BaseURL",
@@ -4488,6 +4534,18 @@
     "exportFailed": "导出失败",
     "exportSuccess": "导出成功",
     "externalFileOpenMode": "外部文件打开方式",
+    "fileAssociation": {
+      "sectionTitle": "设置默认打开方式",
+      "pickMd": "默认用MetaDoc打开Markdown(.md)",
+      "pickTex": "默认用MetaDoc打开LaTeX(.tex)",
+      "openSystemSettings": "系统默认应用设置",
+      "openSampleOk": "已打开",
+      "openSampleFail": "无法打开",
+      "openSettingsOk": "已打开",
+      "openSettingsFail": "无法打开",
+      "openSettingsLinuxManual": "请在系统的「默认应用」中设置。",
+      "electronOnly": "仅桌面版可用。"
+    },
     "fontEditor": "编辑器字体",
     "fontEditorChinese": "编辑器中文字体",
     "fontEditorWestern": "编辑器西文字体",
@@ -4977,7 +5035,7 @@
       },
       "multiTab": {
         "title": "多标签页操作",
-        "content": "# 多标签页操作\n\nMetaDoc支持类似浏览器的多标签页管理。\n\n## 基本操作\n\n- **新建标签页**: 点击标签栏右侧的 `+` 按钮\n- **切换标签页**: 点击标签页或使用 `Ctrl+Tab`\n- **关闭标签页**: 点击标签页上的 `×` 或使用 `Ctrl+W`\n- **恢复关闭的标签页**: 使用 `Ctrl+Shift+T`\n\n## 标签页管理\n\n```mermaid\ngraph LR\nA[新建文档] --> B[打开文档]\nB --> C[编辑文档]\nC --> D[保存文档]\nD --> E[关闭标签页]\n```\n\n## 固定标签页\n\n右键标签页选择\"固定标签页\"，固定后的标签页会始终显示在左侧，且不可关闭。\n\n## 标签页拖拽\n\n- 拖拽标签页可以重新排序\n- 将标签页拖出窗口可以创建新窗口\n- 将标签页拖到其他窗口可以合并"
+        "content": "# 多标签页操作\n\n文档标签可在编辑区分屏显示；顶栏主要保留工具与系统入口，已打开文档可通过顶栏「文档」图标列表切换。\n\n## 基本操作\n\n- **新建文档**: 点击标签栏右侧的 `+` 按钮\n- **切换文档**: 点击分屏内标签条，或使用顶栏「文档」列表；`Ctrl+Tab` 在当前分屏含多页时优先在同一 pane 内循环\n- **切换工具页**: 点击顶栏对应工具/系统标签\n- **关闭标签页**: 分屏条或列表上的 `×`，或使用 `Ctrl+W`\n- **恢复关闭的标签页**: `Ctrl+Shift+T`\n\n## 标签页管理\n\n```mermaid\ngraph LR\nA[新建文档] --> B[打开文档]\nB --> C[编辑文档]\nC --> D[保存文档]\nD --> E[关闭标签页]\n```\n\n## 固定标签页\n\n右键标签页选择\"固定标签页\"。\n\n## 拖拽与分屏\n\n- 在分屏条或顶栏标签上拖拽：落在中部为排序，落在左/右/上/沿为分屏\n- 拖出窗口可建新窗口；拖到其他窗口可合并"
       },
       "multiWindow": {
         "title": "多窗口操作",

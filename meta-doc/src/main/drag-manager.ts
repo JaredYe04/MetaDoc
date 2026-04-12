@@ -332,6 +332,13 @@ export function registerDragManagerIPC(): void {
         /** 渲染进程同步记录的 Tab id，用于纠正异步 initSession 导致的 sessionId 与真实拖拽不符 */
         draggedTabId?: string
         tabBarBounds?: { x: number; y: number; width: number; height: number }
+        /** Shift+释放：光标仍在窗口内也分离到新窗口 */
+        forceDetach?: boolean
+        /**
+         * 释放前是否出现过有效投放高亮（before/after/分屏边）。
+         * 显式为 false 且光标仍在窗口内、会话未消费时，按「拖出」处理并分离新窗口（多 Tab）。
+         */
+        hadValidDropHighlight?: boolean
       }
     ): Promise<{ action: 'none' | 'detach'; newWindowId?: number; reason?: string }> => {
       const invokerWindowId = _event.sender.id
@@ -418,7 +425,20 @@ export function registerDragManagerIPC(): void {
         }
       }
 
-      if (isOutside) {
+      // 离开窗口外 / Shift+在窗口内 / 全程无有效投放高亮且在窗口内释放 → 分离（多 Tab 时）。否则未消费且曾高亮 → 取消。
+      const noHighlightInsideWindow =
+        payload.hadValidDropHighlight === false && !isOutside && payload.forceDetach !== true
+      const shouldDetach =
+        isOutside || payload.forceDetach === true || noHighlightInsideWindow
+      logger.info('[DnD] drag:end', {
+        tabId: session.tabId,
+        hadValidDropHighlight: payload.hadValidDropHighlight,
+        isOutside,
+        forceDetach: payload.forceDetach === true,
+        noHighlightInsideWindow,
+        shouldDetach
+      })
+      if (shouldDetach) {
         const sourceTabCount = session.tabData?.sourceTabCount ?? 1
         if (sourceTabCount <= 1) {
           cleanupSession(session.sessionId, 'single-tab-restriction')
@@ -466,60 +486,8 @@ export function registerDragManagerIPC(): void {
         }
       }
 
-      const tabBarBounds = payload.tabBarBounds
-      if (tabBarBounds) {
-        const isOverTabBar =
-          cursorPos.x >= tabBarBounds.x &&
-          cursorPos.x <= tabBarBounds.x + tabBarBounds.width &&
-          cursorPos.y >= tabBarBounds.y &&
-          cursorPos.y <= tabBarBounds.y + tabBarBounds.height
-
-        if (!isOverTabBar) {
-          const sourceTabCount = session.tabData?.sourceTabCount ?? 1
-          if (sourceTabCount > 1) {
-            try {
-              const sourceBounds = sourceWindow.getBounds()
-              const isMaximized = sourceWindow.isMaximized()
-              const width = isMaximized ? 1366 : sourceBounds.width
-              const height = isMaximized ? 768 : sourceBounds.height
-
-              const poolWindow = acquirePoolWindow({
-                tabData: session.tabData,
-                position: cursorPos,
-                width,
-                height,
-                focusMode: !!session.tabData?.sourceFocusMode
-              })
-
-              if (poolWindow) {
-                const newWindowId = getWindowId(poolWindow)
-                session.consumed = true
-                sourceWindow.webContents.send('remove-tab-from-drag', session.tabId)
-                cleanupSession(session.sessionId)
-                logger.info('Tab 分离到新窗口(窗口内,池):', session.tabId, '->', newWindowId)
-                return { action: 'detach', newWindowId }
-              }
-
-              cleanupSession(session.sessionId)
-              sourceWindow.webContents.send('drag:create-detached-window', {
-                tabData: session.tabData,
-                position: cursorPos,
-                width,
-                height,
-                focusMode: !!session.tabData?.sourceFocusMode
-              })
-
-              return { action: 'detach' }
-            } catch (error) {
-              logger.error('创建分离窗口失败:', error)
-              cleanupSession(session.sessionId, 'detach-error')
-              return { action: 'none', reason: '创建分离窗口失败' }
-            }
-          }
-        }
-      }
-
-      cleanupSession(session.sessionId, 'cancelled-in-tabbar')
+      // 光标仍在窗口内且 drop 未消费：视为取消拖拽，不分离
+      cleanupSession(session.sessionId, 'cancelled-in-window')
       return { action: 'none' }
     }
   )

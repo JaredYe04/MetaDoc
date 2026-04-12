@@ -35,8 +35,15 @@ import { Skeleton } from '@renderer/components/ui/skeleton'
 import { renderMarkdownPreview, local2fileProtocol, local2httpProtocol } from '../../../utils/md-utils'
 import { themeState } from '../../../utils/themes'
 import eventBus from '@renderer/utils/event-bus'
+import { useWorkspace } from '../../../stores/workspace'
+import {
+  openMarkdownWorkspaceLink,
+  shouldDelegateMarkdownWorkspaceLink,
+  parseMarkdownLinkHref
+} from '../../../utils/markdown-workspace-link'
 
 const { t } = useI18n()
+const workspace = useWorkspace()
 
 const props = defineProps<{
   markdown: string
@@ -51,6 +58,47 @@ const props = defineProps<{
 
 const previewContainerRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
+
+let previewWorkspaceLinkHandler: ((e: MouseEvent) => void) | null = null
+
+function detachPreviewWorkspaceLinkHandler() {
+  const el = previewContainerRef.value
+  if (el && previewWorkspaceLinkHandler) {
+    el.removeEventListener('click', previewWorkspaceLinkHandler, true)
+  }
+  previewWorkspaceLinkHandler = null
+}
+
+function attachPreviewWorkspaceLinkHandler() {
+  detachPreviewWorkspaceLinkHandler()
+  const el = previewContainerRef.value
+  if (!el) return
+  const handler = (e: MouseEvent) => {
+    if (e.button !== 0) return
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    const target = e.target as HTMLElement | null
+    if (!target?.closest) return
+    const anchor = target.closest('a') as HTMLAnchorElement | null
+    if (!anchor || !el.contains(anchor)) return
+    const hrefAttr = anchor.getAttribute('href')
+    if (!hrefAttr?.trim()) return
+    if (!shouldDelegateMarkdownWorkspaceLink(hrefAttr)) return
+    const { pathPart } = parseMarkdownLinkHref(hrefAttr)
+    if (!pathPart) return
+    e.preventDefault()
+    e.stopPropagation()
+    void openMarkdownWorkspaceLink({
+      rawHref: hrefAttr,
+      linkBase: props.linkBase,
+      tabs: workspace.tabs,
+      activateTab: workspace.activateTab,
+      pinTab: workspace.pinTab,
+      updateDocumentLastView: workspace.updateDocumentLastView
+    })
+  }
+  previewWorkspaceLinkHandler = handler
+  el.addEventListener('click', handler, true)
+}
 
 const zoomScale = ref(1)
 const previewZoomStyle = computed(() => ({
@@ -76,6 +124,7 @@ const renderPreview = async () => {
   let markdown = props.markdown
 
   if (!markdown || markdown.trim() === '') {
+    detachPreviewWorkspaceLinkHandler()
     const container = previewContainerRef.value as HTMLDivElement
     const primaryColor = themeState.currentTheme.primaryColor || '#6366f1'
     container.innerHTML = `
@@ -134,6 +183,7 @@ const renderPreview = async () => {
   }
 
   try {
+    detachPreviewWorkspaceLinkHandler()
     isRendering.value = true
     markdown = await local2httpProtocol(markdown, props.docPath)
     const processedMarkdown = await local2fileProtocol(markdown, props.docPath)
@@ -163,6 +213,7 @@ const renderPreview = async () => {
         renderMath: true,
         applyMermaidTheme: true
       })
+      attachPreviewWorkspaceLinkHandler()
       await nextTick()
       await new Promise((resolve) => requestAnimationFrame(resolve))
       await nextTick()
@@ -177,6 +228,7 @@ const renderPreview = async () => {
           renderMath: true,
           applyMermaidTheme: true
         })
+        attachPreviewWorkspaceLinkHandler()
         await nextTick()
         await new Promise((resolve) => setTimeout(resolve, 300))
         const checkContainer = previewContainerRef.value || finalContainer
@@ -252,6 +304,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  detachPreviewWorkspaceLinkHandler()
   if (handleZoomShortcut) {
     eventBus.off('zoom-shortcut', handleZoomShortcut as (payload?: unknown) => void)
     handleZoomShortcut = null

@@ -63,8 +63,14 @@
         <p class="frw-desc frw-welcome-text">{{ t('onboarding.welcome.body') }}</p>
       </div>
 
-      <!-- 3 布局 -->
-      <div v-else-if="currentStep === 2" class="frw-panel">
+      <!-- 3 系统文件关联 -->
+      <div v-else-if="currentStep === 2" class="frw-panel frw-file-assoc-panel">
+        <h2 class="frw-title">{{ t('onboarding.fileAssociation.title') }}</h2>
+        <FileAssociationSettingsBlock compact :show-title="false" />
+      </div>
+
+      <!-- 4 布局 -->
+      <div v-else-if="currentStep === 3" class="frw-panel">
         <h2 class="frw-title">{{ t('onboarding.layout.title') }}</h2>
         <p class="frw-desc">{{ t('onboarding.layout.subtitle') }}</p>
         <div class="frw-two-col">
@@ -113,8 +119,8 @@
         </div>
       </div>
 
-      <!-- 4 主题 -->
-      <div v-else-if="currentStep === 3" class="frw-panel frw-theme-panel">
+      <!-- 5 主题 -->
+      <div v-else-if="currentStep === 4" class="frw-panel frw-theme-panel">
         <h2 class="frw-title frw-panel-head">{{ t('onboarding.theme.title') }}</h2>
         <p class="frw-desc frw-panel-head">{{ t('onboarding.theme.subtitle') }}</p>
         <div class="frw-theme-embed">
@@ -122,8 +128,8 @@
         </div>
       </div>
 
-      <!-- 5 LLM -->
-      <div v-else-if="currentStep === 4" class="frw-panel frw-llm-panel">
+      <!-- 6 LLM -->
+      <div v-else-if="currentStep === 5" class="frw-panel frw-llm-panel">
         <h2 class="frw-title frw-panel-head">{{ t('onboarding.llm.title') }}</h2>
         <p class="frw-desc frw-panel-head">{{ t('onboarding.llm.subtitle') }}</p>
         <div class="frw-llm-scroll">
@@ -131,8 +137,8 @@
         </div>
       </div>
 
-      <!-- 6 问卷 + 编辑器模式 -->
-      <div v-else-if="currentStep === 5" class="frw-panel frw-final-panel">
+      <!-- 7 问卷 + 编辑器模式 -->
+      <div v-else-if="currentStep === 6" class="frw-panel frw-final-panel">
         <template v-if="finalPhase === 'profile'">
           <h2 class="frw-title frw-panel-head">{{ t('onboarding.profile.title') }}</h2>
           <p class="frw-desc frw-panel-head">{{ t('onboarding.profile.subtitle') }}</p>
@@ -168,7 +174,7 @@
         t('onboarding.back')
       }}</Button>
       <div class="frw-footer-spacer" />
-      <Button v-if="currentStep === 4" variant="ghost" @click="skipLlm">{{
+      <Button v-if="currentStep === 5" variant="ghost" @click="skipLlm">{{
         t('onboarding.llm.skipLater')
       }}</Button>
       <Button v-if="showPrimaryFooter" :disabled="primaryFooterDisabled" @click="onPrimaryFooter">
@@ -187,6 +193,7 @@ import SettingThemeSection from '../../views/setting/SettingThemeSection.vue'
 import OnboardingLlmPanel from './OnboardingLlmPanel.vue'
 import UserProfileWizardSteps from '../manual/UserProfileWizardSteps.vue'
 import EditorModePicker from '../editor/EditorModePicker.vue'
+import FileAssociationSettingsBlock from '../settings/FileAssociationSettingsBlock.vue'
 import { themeState, FIXED_LOGO_COLORS } from '../../utils/themes'
 import { useWorkspace } from '../../stores/workspace'
 import { setI18nLocale } from '../../i18n.js'
@@ -197,7 +204,7 @@ import { saveUserProfile } from '../../utils/user-profile'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile } from '../../stores/userManual'
 
-const STEP_COUNT = 6
+const STEP_COUNT = 7
 
 const emit = defineEmits<{
   completed: []
@@ -283,19 +290,19 @@ const languageOptions = [
 ]
 
 const showPrimaryFooter = computed(() => {
-  if (currentStep.value === 5 && finalPhase.value === 'profile') return false
+  if (currentStep.value === 6 && finalPhase.value === 'profile') return false
   return true
 })
 
 const primaryFooterLabel = computed(() => {
-  if (currentStep.value === 5 && finalPhase.value === 'editor') return t('onboarding.finish')
+  if (currentStep.value === 6 && finalPhase.value === 'editor') return t('onboarding.finish')
   return t('onboarding.next')
 })
 
-const primaryFooterDisabled = computed(() => currentStep.value === 4 && !llmOnboardingSaved.value)
+const primaryFooterDisabled = computed(() => currentStep.value === 5 && !llmOnboardingSaved.value)
 
 function onPrimaryFooter() {
-  if (currentStep.value === 5 && finalPhase.value === 'editor') {
+  if (currentStep.value === 6 && finalPhase.value === 'editor') {
     void completeWizard()
     return
   }
@@ -323,7 +330,7 @@ function onLlmSaved() {
 }
 
 function skipLlm() {
-  currentStep.value = 5
+  currentStep.value = 6
   finalPhase.value = 'profile'
   onEnterProfileStep()
 }
@@ -334,7 +341,7 @@ async function goNext() {
   }
   if (currentStep.value < STEP_COUNT - 1) {
     currentStep.value += 1
-    if (currentStep.value === 5) {
+    if (currentStep.value === 6) {
       finalPhase.value = 'profile'
       onEnterProfileStep()
     }
@@ -342,7 +349,7 @@ async function goNext() {
 }
 
 function goBack() {
-  if (currentStep.value === 5 && finalPhase.value === 'editor') {
+  if (currentStep.value === 6 && finalPhase.value === 'editor') {
     finalPhase.value = 'profile'
     return
   }
@@ -380,10 +387,10 @@ async function completeWizard() {
 }
 
 watch(currentStep, (s, prev) => {
-  if (s === 5 && finalPhase.value === 'profile') {
+  if (s === 6 && finalPhase.value === 'profile') {
     onEnterProfileStep()
   }
-  if (s === 4 && prev === 3) {
+  if (s === 5 && prev === 4) {
     llmOnboardingSaved.value = false
   }
 })

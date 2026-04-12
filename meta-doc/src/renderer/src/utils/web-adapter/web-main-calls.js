@@ -75,33 +75,97 @@ const cut_words = async (text) => {
   //   simple: true
   // });
 }
-const updateRecentDocs = async (data) => {
-  const json = store.get('recent-docs')
-  //如果没有recent-docs，初始化一个空数组
-  let recentDocs = json ? JSON.parse(json) : []
-  //模拟双向栈，最新打开的文档在最前面，如果超过50个，删除最后一个；最新的文档可能已经在最前面，需要删除后再插入
-  recentDocs = recentDocs.filter((item) => item !== data.path)
-  recentDocs.unshift(data.path)
-  if (recentDocs.length > 50) {
-    recentDocs.pop()
-  }
+const RECENT_OPENS_KEY = 'recent-opens'
 
-  store.set('recent-docs', JSON.stringify(recentDocs))
+function parseRecentOpensJson(raw) {
+  if (!raw) return []
+  try {
+    const a = JSON.parse(raw)
+    if (!Array.isArray(a)) return []
+    return a.filter(
+      (x) =>
+        x &&
+        typeof x === 'object' &&
+        typeof x.path === 'string' &&
+        (x.kind === 'file' || x.kind === 'folder')
+    )
+  } catch {
+    return []
+  }
 }
+
+function loadRecentOpensRaw() {
+  let items = parseRecentOpensJson(store.get(RECENT_OPENS_KEY))
+  if (items.length > 0) return items
+
+  let docs = []
+  let ws = []
+  try {
+    const d = store.get('recent-docs') ? JSON.parse(store.get('recent-docs')) : []
+    docs = Array.isArray(d) ? d.filter((p) => typeof p === 'string') : []
+  } catch {
+    docs = []
+  }
+  try {
+    const w = store.get('recent-workspaces') ? JSON.parse(store.get('recent-workspaces')) : []
+    ws = Array.isArray(w) ? w.filter((p) => typeof p === 'string') : []
+  } catch {
+    ws = []
+  }
+  if (docs.length === 0 && ws.length === 0) return []
+
+  const seen = new Set()
+  const out = []
+  const add = (path, kind) => {
+    if (!path || seen.has(path)) return
+    seen.add(path)
+    out.push({ path, kind })
+  }
+  const max = Math.max(docs.length, ws.length)
+  for (let i = 0; i < max; i++) {
+    if (i < docs.length) add(docs[i], 'file')
+    if (i < ws.length) add(ws[i], 'folder')
+  }
+  const trimmed = out.slice(0, 50)
+  store.set(RECENT_OPENS_KEY, JSON.stringify(trimmed))
+  store.set('recent-docs', JSON.stringify([]))
+  store.set('recent-workspaces', JSON.stringify([]))
+  return trimmed
+}
+
+const updateRecentOpen = async (data) => {
+  let items = loadRecentOpensRaw()
+  items = items.filter((e) => e.path !== data.path)
+  items.unshift({ path: data.path, kind: data.kind })
+  if (items.length > 50) items = items.slice(0, 50)
+  store.set(RECENT_OPENS_KEY, JSON.stringify(items))
+}
+
+const getRecentOpens = async () => loadRecentOpensRaw()
+
+const removeRecentOpen = async (data) => {
+  let items = loadRecentOpensRaw()
+  items = items.filter((e) => e.path !== data.path)
+  store.set(RECENT_OPENS_KEY, JSON.stringify(items))
+}
+
+const updateRecentDocs = async (data) => updateRecentOpen({ path: data.path, kind: 'file' })
 
 const getRecentDocs = async () => {
-  const json = store.get('recent-docs')
-  //要判断原有的文件路径是否存在，如果不存在，需要删除
-  let recentDocs = json ? JSON.parse(json) : []
-  let result = []
-  for (let i = 0; i < recentDocs.length; i++) {
-    const filePath = recentDocs[i]
-    // if (fs.existsSync(filePath)) {
-    //   result.push(filePath)
-    // }
-  }
-  return result
+  const opens = await getRecentOpens()
+  return opens.filter((e) => e.kind === 'file').map((e) => e.path)
 }
+
+const removeRecentDoc = async (data) => removeRecentOpen(data)
+
+const updateRecentWorkspaces = async (data) => updateRecentOpen({ path: data.path, kind: 'folder' })
+
+const getRecentWorkspaces = async () => {
+  const opens = await getRecentOpens()
+  return opens.filter((e) => e.kind === 'folder').map((e) => e.path)
+}
+
+const removeRecentWorkspace = async (data) => removeRecentOpen(data)
 
 function getSetting(key) {
   //如果没有设置，则设置为默认值
@@ -234,6 +298,27 @@ export function webMainCalls() {
   })
   localIpcMain.handle('get-recent-docs', async (event, data) => {
     return await getRecentDocs()
+  })
+  localIpcMain.handle('remove-recent-doc', async (event, data) => {
+    return await removeRecentDoc(data)
+  })
+  localIpcMain.handle('update-recent-open', async (event, data) => {
+    return await updateRecentOpen(data)
+  })
+  localIpcMain.handle('get-recent-opens', async (event, data) => {
+    return await getRecentOpens()
+  })
+  localIpcMain.handle('remove-recent-open', async (event, data) => {
+    return await removeRecentOpen(data)
+  })
+  localIpcMain.handle('update-recent-workspaces', async (event, data) => {
+    return await updateRecentWorkspaces(data)
+  })
+  localIpcMain.handle('get-recent-workspaces', async (event, data) => {
+    return await getRecentWorkspaces()
+  })
+  localIpcMain.handle('remove-recent-workspace', async (event, data) => {
+    return await removeRecentWorkspace(data)
   })
   localIpcMain.handle('cut-words', async (event, data) => {
     return await cut_words(data.text)
@@ -388,4 +473,34 @@ export function webMainCalls() {
       }
     }
   })
+
+  const steamWeb = { success: false, error: 'steam_unavailable_web' }
+  localIpcMain.handle('steam:get-status', async () => ({
+    success: true,
+    data: { initialized: false, available: false, reason: 'web' }
+  }))
+  localIpcMain.handle('steam:user:get', async () => steamWeb)
+  localIpcMain.handle('steam:cloud:save', async () => steamWeb)
+  localIpcMain.handle('steam:cloud:read', async () => steamWeb)
+  localIpcMain.handle('steam:achievement:unlock', async () => steamWeb)
+  localIpcMain.handle('steam:sync:push-settings', async () => steamWeb)
+  localIpcMain.handle('steam:sync:pull-settings', async () => ({
+    success: true,
+    data: { applied: false }
+  }))
+  localIpcMain.handle('steam:sync:push-history', async () => steamWeb)
+  localIpcMain.handle('steam:sync:pull-history', async () => ({
+    success: true,
+    data: { applied: false }
+  }))
+  localIpcMain.handle('steam:sync:meta', async () => ({
+    success: true,
+    data: { settingsRemoteUpdatedAt: 0, historyRemoteUpdatedAt: 0 }
+  }))
+  localIpcMain.handle('steam:workshop:publish', async () => steamWeb)
+  localIpcMain.handle('steam:workshop:download', async () => steamWeb)
+  localIpcMain.handle('steam:workshop:list-subscribed', async () => ({
+    success: true,
+    data: { items: [] }
+  }))
 }

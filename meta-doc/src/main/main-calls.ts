@@ -18,6 +18,7 @@ import {
   WebContents,
   screen
 } from 'electron'
+import { appStore as store } from './app-store'
 import { ipcBridge } from './bridge/ipc-bridge'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
@@ -427,6 +428,14 @@ interface UpdateRecentDocsData {
 }
 
 interface RemoveRecentDocData {
+  path: string
+}
+
+interface UpdateRecentWorkspacesData {
+  path: string
+}
+
+interface RemoveRecentWorkspaceData {
   path: string
 }
 
@@ -2713,6 +2722,27 @@ function bindSettingHandlers(): void {
     }
   )
 
+  ipcBridge.registerHandle(
+    'update-recent-workspaces',
+    async (event: IpcMainInvokeEvent, data: UpdateRecentWorkspacesData): Promise<void> => {
+      return await updateRecentWorkspaces(data)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'get-recent-workspaces',
+    async (event: IpcMainInvokeEvent): Promise<string[]> => {
+      return await getRecentWorkspaces()
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'remove-recent-workspace',
+    async (event: IpcMainInvokeEvent, data: RemoveRecentWorkspaceData): Promise<void> => {
+      return await removeRecentWorkspace(data)
+    }
+  )
+
   // 获取环境变量（仅限安全的环境变量，不暴露敏感信息）
   ipcBridge.registerHandle(
     'get-env',
@@ -3524,6 +3554,22 @@ const terminalCwds = new Map<string, string>()
 const terminalEncodings = new Map<string, string>()
 // Agent 单次调用的编码（invocationId -> encoding），用于强制 UTF-8 避免中文乱码，进程结束时清理
 const terminalInvocationEncodings = new Map<string, string>()
+
+/** 应用退出时终止 execute-terminal-command 拉起的所有子进程 */
+export function killAllTerminalSpawnProcesses(): void {
+  const logger = createMainLogger('TerminalCommand')
+  for (const [invocationId, child] of terminalProcesses.entries()) {
+    try {
+      if (!child.killed) {
+        child.kill('SIGTERM')
+      }
+    } catch (e) {
+      logger.debug(`终止终端子进程失败 ${invocationId}`, e as Error)
+    }
+  }
+  terminalProcesses.clear()
+  terminalInvocationEncodings.clear()
+}
 
 /**
  * 终端执行时实际使用的 Shell 配置（单一来源）。
@@ -4579,6 +4625,11 @@ const updateRecentDocs = async (data: UpdateRecentDocsData): Promise<void> => {
   }
 
   store.set('recent-docs', JSON.stringify(recentDocs))
+
+  if (recentDocs.length === 1) {
+    const { tryUnlockFirstDocAchievement } = await import('./steam/steam-achievement')
+    tryUnlockFirstDocAchievement()
+  }
 }
 
 /**
@@ -4611,10 +4662,41 @@ const getRecentDocs = async (): Promise<string[]> => {
   return result
 }
 
-// ============ 设置存储 ============
+const updateRecentWorkspaces = async (data: UpdateRecentWorkspacesData): Promise<void> => {
+  const json = store.get('recent-workspaces') as string | null
+  let recent: string[] = json ? JSON.parse(json) : []
+  recent = recent.filter((item) => item !== data.path)
+  recent.unshift(data.path)
+  if (recent.length > 50) {
+    recent.pop()
+  }
+  store.set('recent-workspaces', JSON.stringify(recent))
+}
 
-const Store = require('electron-store')
-const store = new Store()
+const removeRecentWorkspace = async (data: RemoveRecentWorkspaceData): Promise<void> => {
+  const json = store.get('recent-workspaces') as string | null
+  let recent: string[] = json ? JSON.parse(json) : []
+  recent = recent.filter((item) => item !== data.path)
+  store.set('recent-workspaces', JSON.stringify(recent))
+}
+
+const getRecentWorkspaces = async (): Promise<string[]> => {
+  const json = store.get('recent-workspaces') as string | null
+  let recent: string[] = json ? JSON.parse(json) : []
+  const result: string[] = []
+  for (const folderPath of recent) {
+    try {
+      if (fs.existsSync(folderPath) && fs.statSync(folderPath).isDirectory()) {
+        result.push(folderPath)
+      }
+    } catch {
+      // ignore invalid entries
+    }
+  }
+  return result
+}
+
+// ============ 设置存储（单例见 app-store.ts） ============
 
 function getSetting(key: string): any {
   return store.get(key)

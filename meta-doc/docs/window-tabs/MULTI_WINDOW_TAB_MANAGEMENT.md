@@ -537,7 +537,7 @@ ipcRenderer.invoke('check-window-can-close')
 
 ### 10. 测试用例
 
-参考 `docs/MULTI_WINDOW_TEST_CASES.md`，包含：
+参考 **`docs/window-tabs/MULTI_WINDOW_TEST_CASES.md`**（与本文同目录下的 `MULTI_WINDOW_TEST_CASES.md`），包含：
 
 - 文件打开场景（当前窗口/其他窗口）
 - Tab拖拽场景（窗口内/窗口外/窗口间）

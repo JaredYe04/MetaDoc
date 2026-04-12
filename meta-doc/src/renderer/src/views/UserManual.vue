@@ -213,6 +213,9 @@ watch(
     if (newProgress >= 100 && oldProgress < 100) {
       console.log('[UserManual] Progress reached 100%, triggering celebration!')
       showCelebration.value = true
+      void import('../services/steam-client').then((m) =>
+        m.tryUnlockSteamAchievementByApi('ACH_MANUAL_TRACK_DONE')
+      )
     }
   }
 )

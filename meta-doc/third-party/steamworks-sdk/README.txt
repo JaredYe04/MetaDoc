@@ -9,3 +9,7 @@ Steamworks SDK（随私有仓库提交）
 4. 更新 SDK 时替换同名 zip 并提交；下次安装依赖或运行 npm run greenworks:prepare 时会按文件变更自动重新解压。
 
 说明：解压缓存位于仓库根目录 .steamworks/（已 gitignore）；最终用户安装包内不包含本 zip（见 electron-builder 排除规则）。
+
+Steam 成就与统计的 API 名、VDF、图标、映射表与上传说明见仓库 meta-doc/third-party/steam-achievements/（含 STEAM_ACHIEVEMENTS_AND_STATS.md）；成就与 Stat 名称须与 Steamworks 配置及 src/common 下 steam-achievement-registry、steam-stats 常量一致后再上传本地化。
+
+成就多语言 VDF 由脚本生成：在 meta-doc 目录执行 pnpm generate-steam-loc-vdf；输出与映射表位于 third-party/steam-achievements/。

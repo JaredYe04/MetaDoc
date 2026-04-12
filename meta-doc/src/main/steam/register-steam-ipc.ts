@@ -1,18 +1,20 @@
 import type { IpcMainInvokeEvent } from 'electron'
 import { ipcBridge } from '../bridge/ipc-bridge'
 import { assertAllowedSteamCloudPath, readTextFromCloud, saveTextToCloud } from './steam-cloud'
-import { STEAM_ACHIEVEMENT_IDS } from '../../common/steam-achievements'
+import { STEAM_ACHIEVEMENT_API_NAMES } from '../../common/steam-achievement-registry'
 import { getSteamUserInfo } from './steam-user'
 import { unlockSteamAchievement } from './steam-achievement'
+import { tryUnlockSteamAchievement } from './steam-achievement-manager'
+import {
+  applySteamStatsReport,
+  flushSteamStatsToSteam,
+  getMergedSteamProfileStats
+} from './steam-stats-sync'
 import { resolveSteamProfileAvatarUrl } from './steam-avatar'
 import { getAchievementUnlocked } from './steam-achievement-query'
 import { activateGameOverlayToLocalUser } from './steam-overlay-action'
 import { ugcPublish, ugcDownloadItem, listSubscribedWorkshopItems } from './steam-workshop'
-import {
-  getSteamInitResult,
-  initSteam,
-  getGreenworksOrNull
-} from './steam-state'
+import { getSteamInitResult, initSteam, getGreenworksOrNull } from './steam-state'
 import {
   pullHistoryFromCloud,
   pullSettingsFromCloud,
@@ -65,6 +67,49 @@ export function registerSteamIpc(): void {
     return ok(user)
   })
 
+  ipcBridge.registerHandle('steam:profile-summary', async (): Promise<SteamResult> => {
+    const r = requireSteam()
+    if (!('gw' in r)) {
+      return r
+    }
+    const user = getSteamUserInfo(r.gw)
+    if (!user) {
+      return fail('steam_user_unavailable')
+    }
+    const avatarUrl = await resolveSteamProfileAvatarUrl(user.id)
+    const stats = getMergedSteamProfileStats(r.gw)
+    return ok({
+      user,
+      avatarUrl: avatarUrl ?? null,
+      level: user.level,
+      secondsPlayed: stats.secondsPlayed,
+      aiRequests: stats.aiRequests,
+      charsTyped: stats.charsTyped
+    })
+  })
+
+  ipcBridge.registerHandle(
+    'steam:stats:report',
+    (_e: IpcMainInvokeEvent, payload: unknown): SteamResult => {
+      initSteam()
+      const gw = getGreenworksOrNull()
+      const p = (payload && typeof payload === 'object' ? payload : {}) as {
+        sessionSecondsDelta?: number
+        charsDelta?: number
+        aiRequestsTotal?: number
+      }
+      applySteamStatsReport(gw, {
+        sessionSecondsDelta: p.sessionSecondsDelta,
+        charsDelta: p.charsDelta,
+        aiRequestsTotal: p.aiRequestsTotal
+      })
+      if (gw && typeof p.aiRequestsTotal === 'number') {
+        void flushSteamStatsToSteam(gw)
+      }
+      return ok()
+    }
+  )
+
   ipcBridge.registerHandle('steam:user:avatar', async (): Promise<SteamResult> => {
     const r = requireSteam()
     if (!('gw' in r)) {
@@ -83,7 +128,7 @@ export function registerSteamIpc(): void {
     if (!('gw' in r)) {
       return r
     }
-    const ids = Object.values(STEAM_ACHIEVEMENT_IDS) as string[]
+    const ids = [...STEAM_ACHIEVEMENT_API_NAMES]
     const items: { id: string; achieved: boolean }[] = []
     for (const id of ids) {
       const ar = await getAchievementUnlocked(r.gw, id)
@@ -158,6 +203,21 @@ export function registerSteamIpc(): void {
       }
       const ar = await unlockSteamAchievement(r.gw, apiName)
       return ar.success ? ok() : fail(ar.error)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'steam:achievement:try-unlock',
+    (_e: IpcMainInvokeEvent, apiName: string): SteamResult => {
+      const r = requireSteam()
+      if (!('gw' in r)) {
+        return r
+      }
+      if (!apiName || typeof apiName !== 'string') {
+        return fail('invalid_achievement_id')
+      }
+      tryUnlockSteamAchievement(r.gw, apiName)
+      return ok()
     }
   )
 

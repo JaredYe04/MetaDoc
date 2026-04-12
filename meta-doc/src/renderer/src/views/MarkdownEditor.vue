@@ -129,6 +129,7 @@ import 'vditor/dist/index.css'
 import '../assets/vditor-toolbar-metadoc-overrides.css'
 import { attachVditorToolbarCursorTooltip } from '../composables/useVditorToolbarCursorTooltip'
 import { useFocusMode } from '../composables/useFocusMode'
+import { useTypingMeter } from '../composables/useTypingMeter'
 import {
   registerOutlineSidebarSearchAdapter,
   unregisterOutlineSidebarSearchAdapter
@@ -302,6 +303,16 @@ const currentMarkdown = computed<string>({
   get: () => documentRef.value.markdown ?? '',
   set: (val) => workspace.updateDocumentMarkdown(props.tabId, val)
 })
+
+const { reportCharDelta: reportSteamCharDelta } = useTypingMeter()
+let steamStatPrevMdLen = 0
+watch(
+  () => props.tabId,
+  () => {
+    steamStatPrevMdLen = currentMarkdown.value.length
+  },
+  { immediate: true }
+)
 
 // 计算当前文档的 linkBase（使用公共函数）
 const currentLinkBase = computed(() => {
@@ -3262,6 +3273,10 @@ async function runMarkdownVditorInit() {
       value: normalizeMarkdownLeadingArtifacts(currentMarkdown.value ?? ''),
       input: async (value) => {
         markEditorInteraction()
+        if (value.length > steamStatPrevMdLen) {
+          reportSteamCharDelta(value.length - steamStatPrevMdLen)
+        }
+        steamStatPrevMdLen = value.length
         lastAppliedContent.value = value
         // currentMarkdown.value = value;
         // 不修改视图，保持当前视图状态

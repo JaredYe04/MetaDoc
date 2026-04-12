@@ -1596,6 +1596,9 @@ const handleAnalyze = async () => {
     // 计算总体分析
     const overall = await analyzeOverall(list, analyses)
     overallAnalysis.value = overall
+    void import('../services/steam-client').then((m) =>
+      m.tryUnlockSteamAchievementByApi('ACH_FIRST_AIGC')
+    )
 
     // 生成并追加总体报告
     overallReportBlock.value = buildOverallReportBlock(overall)

@@ -243,8 +243,6 @@ async function loadStatistics() {
 
     const data = await getStatistics(startDate, endDate)
     statistics.value = data as any
-    const tr = Number((data as { totalRequests?: number })?.totalRequests ?? 0)
-    void import('../services/steam-client').then((m) => m.tryUnlockAi100Achievement(tr))
     await nextTick()
     updateCharts()
   } catch (error) {

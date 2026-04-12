@@ -227,6 +227,9 @@ const createWorkspaceSkillCallback: ToolCallback = async (params, _signal, onUpd
       error: upsert?.message || '索引写入失败（文件已落盘，可稍后执行 sync_workspace_skills）'
     }
   }
+  void import('../../services/steam-client').then((m) =>
+    m.tryUnlockSteamAchievementByApi('ACH_FIRST_AGENT_SKILL')
+  )
   const out = { path: fullPath, skillIndexId: upsert.skillIndexId }
   return {
     status: 'succeeded',

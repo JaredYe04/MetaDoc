@@ -14,6 +14,9 @@
       "emptyTitle": "No hay título para copiar",
       "copyFailed": "Error al copiar",
       "noRangeToDelete": "No se pudo ubicar la sección; eliminación cancelada"
+    },
+    "workspaceLink": {
+      "needsSavedDoc": "Guarda el documento actual antes de seguir enlaces con rutas relativas"
     }
   },
   "aIService": {
@@ -1119,7 +1122,7 @@
         "name": "Lectura de archivos del espacio de trabajo"
       },
       "create_dynamic_rule": {
-        "description:": "Insertar una regla dinámica de Agent en la base de datos de la aplicación (escribir en el prompt del sistema), no usar archivos del espacio de trabajo en su lugar",
+        "description:": "Insertar reglas dinámicas del agente en la base de datos de la aplicación (escribir en el prompt del sistema), no usar archivos del espacio de trabajo en su lugar",
         "name:": "Crear regla dinámica"
       },
       "create_workspace_skill": {
@@ -1131,7 +1134,7 @@
         "name:": "Cargar habilidad"
       },
       "search_skill": {
-        "description:": "Realizar una búsqueda vectorial en las habilidades activadas bajo .metadoc/skills del espacio de trabajo, solo devolver resúmenes",
+        "description:": "Búsqueda vectorial en habilidades activadas bajo .metadoc/skills del espacio de trabajo, solo devuelve resúmenes",
         "name:": "Búsqueda de habilidades"
       },
       "sync_workspace_skills": {
@@ -1139,7 +1142,7 @@
         "name:": "Sincronizar índice de habilidades del espacio de trabajo"
       },
       "update_dynamic_rule": {
-        "description:": "Actualizar el título, cuerpo o prioridad de una regla dinámica existente por su ruleId",
+        "description:": "Actualizar título, contenido o prioridad de una regla dinámica existente por su ruleId",
         "name:": "Actualizar regla dinámica"
       }
     },
@@ -2486,7 +2489,9 @@
       "technicalTutorial": "Tutorial técnico",
       "userGuide": "Guía del usuario",
       "weeklyReport": "Informe semanal"
-    }
+    },
+    "recent": "Reciente",
+    "recentWorkspaces": "Espacios de trabajo recientes"
   },
   "knowledgeBase": {
     "add": "Añadir",
@@ -3021,7 +3026,22 @@
     "viewSidebarAgent": "Agente",
     "addFolderToWorkspace": "Añadir carpeta al área de trabajo",
     "closeWorkspace": "Cerrar el área de trabajo actual",
-    "openWorkspace": "Abrir área de trabajo"
+    "openWorkspace": "Abrir área de trabajo",
+    "recent": "Reciente",
+    "recentTooltip": "Ubicaciones abiertas recientemente",
+    "recentWorkspaces": "Espacios de trabajo recientes",
+    "recentWorkspacesTooltip": "Carpetas de espacios de trabajo abiertas recientemente",
+    "steamOpenAchievementsOverlay": "Ver logros",
+    "steamOpenProfileOverlay": "Abrir perfil",
+    "steamPlaytimeDays": "{n} días",
+    "steamPlaytimeHoursMinutes": "{h} horas {m} minutos",
+    "steamPlaytimeMinutes": "{m} minutos",
+    "steamPlaytimeSeconds": "{s} segundos",
+    "steamStatAiRequests": "Número de solicitudes de IA",
+    "steamStatChars": "Caracteres ingresados acumulados",
+    "steamStatPlaytime": "Tiempo de uso acumulado",
+    "steamTrayLevel": "Nivel",
+    "steamTrayTooltip": "Steam"
   },
   "llm-adapter": {
     "failed": "Configuración fallida",
@@ -3236,7 +3256,14 @@
     "untitled": "Sin título",
     "userManual": "Manual del usuario",
     "version": "Versión {version}",
-    "inválido": "Inválido"
+    "inválido": "Inválido",
+    "openDocumentsTitle": "Documentos",
+    "openDocumentsTooltip": "Documentos abiertos",
+    "switchToClassicLayout": "Cambiar a barra de pestañas clásica",
+    "switchToWorkspaceLayout": "Cambiar a diseño de área de trabajo dividida",
+    "workbenchTab": "Banco de trabajo",
+    "workbenchTabNumbered": "Banco de trabajo {n}",
+    "workbenchTabWithSessionCount": "Banco de trabajo ({count} sesiones)"
   },
   "messageBox": {
     "cancel": "Cancelar",
@@ -3889,7 +3916,22 @@
       "downloading": "Descargando",
       "installAndRestart": "Instalar y reiniciar",
       "downloadError": "Error de descarga",
-      "loadFailed": "Error de carga"
+      "loadFailed": "Error de carga",
+      "steamHint": "Para desarrollo, puedes ejecutar directamente pnpm dev: coloca steam_appid.txt en la raíz del proyecto (ver steam_appid.txt.example) e inicia sesión en el cliente Steam local. Si el estado es greenworks_not_loaded, ejecuta pnpm run greenworks:rebuild (o pnpm install completo) en el directorio meta-doc para compilar greenworks para la versión actual de Electron.",
+      "steamInitialized": "Conectado a Steam",
+      "steamNotInitialized": "No conectado a Steam",
+      "steamOpenWorkshop": "Abrir el Mercado de Plantillas",
+      "steamStatus": "Estado de Steam",
+      "steamSyncDone": "Sincronización completada",
+      "steamSyncFailed": "Error de sincronización",
+      "steamSyncHistoryPull": "Extraer estadísticas de uso desde la nube",
+      "steamSyncHistoryPush": "Enviar estadísticas de uso a la nube",
+      "steamSyncSettingsPull": "Extraer configuraciones desde la nube",
+      "steamSyncSettingsPush": "Enviar configuraciones a la nube",
+      "steamTab": "Steam",
+      "steamUser": "Usuario de Steam",
+      "steamUserId": "ID de Steam",
+      "steamUserName": "Nombre para mostrar"
     },
     "allChangesSaved": "Todos los cambios guardados",
     "apiBaseUrl": "URL base de la API",
@@ -4599,7 +4641,19 @@
     "resetFirstRunWizard": "Reset first-run onboarding",
     "resetFirstRunWizardButton": "Run again on next launch",
     "resetFirstRunWizardHint": "Shows the full-screen onboarding on next launch and will ask again for the default Markdown editor mode.",
-    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch"
+    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch",
+    "fileAssociation": {
+      "electronOnly": "Solo disponible en la versión de escritorio.",
+      "openSampleFail": "No se pudo abrir",
+      "openSampleOk": "Abierto",
+      "openSettingsFail": "No se pudo abrir",
+      "openSettingsLinuxManual": "Configúralo en \"Aplicaciones predeterminadas\" del sistema.",
+      "openSettingsOk": "Abierto",
+      "openSystemSettings": "Configuración de aplicaciones predeterminadas del sistema",
+      "pickMd": "Abrir Markdown (.md) con MetaDoc por defecto",
+      "pickTex": "Abrir LaTeX (.tex) con MetaDoc por defecto",
+      "sectionTitle": "Configurar el método de apertura predeterminado"
+    }
   },
   "settingBasicSection": {
     "failedSize": "Error al obtener el tamaño del directorio",
@@ -5401,6 +5455,49 @@
       "title": "Default Markdown editor mode",
       "subtitle": "This mode is used when you open Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
+    },
+    "fileAssociation": {
+      "title": "Establecer programa predeterminado para abrir archivos"
     }
+  },
+  "workshop": {
+    "description": "Consulta los elementos del Workshop a los que está suscrita tu cuenta de Steam actual y descárgalos al directorio local. La carga y las etiquetas requieren la configuración en el backend de Steamworks antes de usar la API del proceso principal.",
+    "download": "Descargar a carpeta",
+    "downloadDone": "Descarga iniciada",
+    "downloadFailed": "Error en la descarga",
+    "downloading": "Descargando…",
+    "empty": "No hay suscripciones o Steam no está inicializado.",
+    "loading": "Cargando…",
+    "pickFolder": "Seleccionar directorio de descarga",
+    "refresh": "Actualizar lista",
+    "title": "Taller de Steam / Mercado de plantillas"
+  },
+  "steamAch": {
+    "ACH_DOCX_LATEX_EXPORT_DESC": "Exportar DOCX desde Markdown por primera vez.",
+    "ACH_DOCX_LATEX_EXPORT_NAME": "Documento de fórmulas",
+    "ACH_FIRST_AGENT_CHAT_DESC": "Enviar un mensaje de chat en el Agent por primera vez.",
+    "ACH_FIRST_AGENT_CHAT_NAME": "Primer chat con Agent",
+    "ACH_FIRST_AGENT_RULE_DESC": "Crear una regla dinámica de Agent por primera vez.",
+    "ACH_FIRST_AGENT_RULE_NAME": "Primera regla",
+    "ACH_FIRST_AGENT_SKILL_DESC": "Crear o guardar una habilidad de Agent por primera vez.",
+    "ACH_FIRST_AGENT_SKILL_NAME": "Primera habilidad",
+    "ACH_FIRST_AIGC_DESC": "Usar AIGC para detectar y completar un análisis por primera vez.",
+    "ACH_FIRST_AIGC_NAME": "Detección de contenido",
+    "ACH_FIRST_MD_DESC": "Añadir un documento Markdown a los recientes por primera vez.",
+    "ACH_FIRST_MD_NAME": "Primer Markdown",
+    "ACH_FIRST_TEX_DESC": "Añadir un documento TeX a los recientes por primera vez.",
+    "ACH_FIRST_TEX_NAME": "Primer TeX",
+    "ACH_LLM_TEST_OK_DESC": "Pasar la prueba de conexión LLM en la configuración inicial o de ajustes.",
+    "ACH_LLM_TEST_OK_NAME": "Conexión lista",
+    "ACH_MANUAL_TRACK_DONE_DESC": "Completar la ruta de aprendizaje recomendada en el manual de usuario.",
+    "ACH_MANUAL_TRACK_DONE_NAME": "Experto en manuales",
+    "ACH_MD_EXPORT_PDF_DESC": "Exportar PDF desde Markdown por primera vez.",
+    "ACH_MD_EXPORT_PDF_NAME": "Exportar PDF desde MD",
+    "ACH_META_WELCOME_DESC": "Iniciar la aplicación por primera vez.",
+    "ACH_META_WELCOME_NAME": "Bienvenido a MetaDoc",
+    "ACH_ONBOARDING_DONE_DESC": "Completar el asistente de primer uso.",
+    "ACH_ONBOARDING_DONE_NAME": "Introducción completada",
+    "ACH_TEX_COMPILE_PDF_DESC": "Compilar TeX a PDF por primera vez.",
+    "ACH_TEX_COMPILE_PDF_NAME": "TeX a libro"
   }
 }

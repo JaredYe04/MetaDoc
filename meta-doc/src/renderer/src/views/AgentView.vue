@@ -481,6 +481,7 @@ import {
 import { cloneDeep } from 'lodash'
 import { useWorkspace, detectDocumentFormat } from '../stores/workspace'
 import { useScopedOrActiveDocument } from '../composables/useActiveDocument'
+import { useTypingMeter } from '../composables/useTypingMeter'
 import { useAgentWorkspaceStore } from '../stores/agent-workspace-store'
 import { useAgentManageUiStore } from '../stores/agent-manage-ui-store'
 import {
@@ -542,6 +543,7 @@ dayjs.extend(relativeTime)
 
 const { t } = useI18n()
 const workspace = useWorkspace()
+const { reportCharDelta: reportSteamTypingChars } = useTypingMeter()
 const { removeTab, moveTab, activateTab } = workspace
 const { activeDocument, activeTab, effectiveTabId: activeTabId } = useScopedOrActiveDocument(
   () => props.tabId
@@ -560,6 +562,14 @@ const {
   aiTaskHandles,
   workspaceRoot
 } = storeToRefs(agentStore)
+
+watch(composerInput, (nv, ov) => {
+  const n = (nv ?? '') as string
+  const o = (ov ?? '') as string
+  if (n.length > o.length) {
+    reportSteamTypingChars(n.length - o.length)
+  }
+})
 
 const {
   addGeneratingSession,
@@ -2079,6 +2089,11 @@ runComposerSendPipelineForSessionRef = async (
   liveSession.messages.push(message)
   liveSession.referenceStore = []
   touchSession(liveSession)
+  if (!isDemo.value) {
+    void import('../services/steam-client').then((m) =>
+      m.tryUnlockSteamAchievementByApi('ACH_FIRST_AGENT_CHAT')
+    )
+  }
 
   const shouldQueryKnowledgeBase = false
 

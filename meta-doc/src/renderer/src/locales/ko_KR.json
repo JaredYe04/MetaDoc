@@ -14,6 +14,9 @@
       "emptyTitle": "복사할 제목이 없습니다",
       "copyFailed": "복사 실패",
       "noRangeToDelete": "단락을 찾을 수 없어 삭제를 취소했습니다"
+    },
+    "workspaceLink": {
+      "needsSavedDoc": "상대 경로 링크를 따라가려면 현재 문서를 먼저 저장해 주세요."
     }
   },
   "selectionTranslate": {
@@ -153,7 +156,22 @@
     "welcome": "환영합니다",
     "addFolderToWorkspace": "작업 공간에 폴더 추가",
     "closeWorkspace": "현재 작업 공간 닫기",
-    "openWorkspace": "작업 공간 열기"
+    "openWorkspace": "작업 공간 열기",
+    "recent": "최근",
+    "recentTooltip": "최근에 연 위치",
+    "recentWorkspaces": "최근 작업 영역",
+    "recentWorkspacesTooltip": "최근에 연 작업 영역 폴더",
+    "steamOpenAchievementsOverlay": "업적 보기",
+    "steamOpenProfileOverlay": "프로필 열기",
+    "steamPlaytimeDays": "{n}일",
+    "steamPlaytimeHoursMinutes": "{h}시간 {m}분",
+    "steamPlaytimeMinutes": "{m}분",
+    "steamPlaytimeSeconds": "{s}초",
+    "steamStatAiRequests": "AI 호출 횟수",
+    "steamStatChars": "누적 입력 문자",
+    "steamStatPlaytime": "누적 사용 시간",
+    "steamTrayLevel": "레벨",
+    "steamTrayTooltip": "Steam"
   },
   "llmDialog": {
     "aiAssistant": "AI 어시스턴트",
@@ -219,7 +237,14 @@
     "minimize": "최소화하기",
     "text": "텍스트",
     "version": "버전 {version}",
-    "addTabFailed": "탭 추가 실패"
+    "addTabFailed": "탭 추가 실패",
+    "openDocumentsTitle": "문서",
+    "openDocumentsTooltip": "열린 문서",
+    "switchToClassicLayout": "클래식 탭 레이아웃으로 전환",
+    "switchToWorkspaceLayout": "분할 작업 공간 레이아웃으로 전환",
+    "workbenchTab": "작업대",
+    "workbenchTabNumbered": "작업대{n}",
+    "workbenchTabWithSessionCount": "작업대 ({count}개 세션)"
   },
   "common": {
     "confirm": "확인",
@@ -891,7 +916,9 @@
       "technicalTutorial": "기술 튜토리얼",
       "userGuide": "사용자 가이드",
       "weeklyReport": "주간 보고서"
-    }
+    },
+    "recent": "최근",
+    "recentWorkspaces": "최근 작업 공간"
   },
   "main": {
     "notification": {
@@ -1665,7 +1692,22 @@
       "thirdPartyAssets": "제3자 에셋",
       "aboutUs": "회사 소개",
       "content": "MetaDoc 팀과 미션에 대한 내용",
-      "loadFailed": "로드 실패"
+      "loadFailed": "로드 실패",
+      "steamHint": "개발 시 pnpm dev를 직접 실행할 수 있습니다: 프로젝트 루트에 steam_appid.txt를 배치하고(steam_appid.txt.example 참조), 로컬 Steam 클라이언트에 로그인하면 됩니다. 상태가 greenworks_not_loaded인 경우, meta-doc 디렉토리에서 pnpm run greenworks:rebuild(또는 전체 pnpm install)를 실행하여 현재 Electron용 greenworks를 컴파일하세요.",
+      "steamInitialized": "Steam 연결됨",
+      "steamNotInitialized": "Steam 연결되지 않음",
+      "steamOpenWorkshop": "템플릿 마켓 열기",
+      "steamStatus": "Steam 상태",
+      "steamSyncDone": "동기화 완료",
+      "steamSyncFailed": "동기화 실패",
+      "steamSyncHistoryPull": "사용 통계를 클라우드에서 가져오기",
+      "steamSyncHistoryPush": "사용 통계를 클라우드로 푸시",
+      "steamSyncSettingsPull": "설정을 클라우드에서 가져오기",
+      "steamSyncSettingsPush": "설정을 클라우드로 푸시",
+      "steamTab": "Steam",
+      "steamUser": "Steam 사용자",
+      "steamUserId": "Steam ID",
+      "steamUserName": "표시 이름"
     },
     "agentTerminalExecutionAllowed": "기본적으로 터미널 실행 허용",
     "agentTerminalExecutionAllowedHint": "켜면 Agent가 터미널 도구를 호출할 때 확인 없이 실행합니다. 끄면 실행 전에 매번 확인 대화상자가 표시됩니다.",
@@ -1956,7 +1998,19 @@
     "resetFirstRunWizard": "Reset first-run onboarding",
     "resetFirstRunWizardButton": "Run again on next launch",
     "resetFirstRunWizardHint": "Shows the full-screen onboarding on next launch and will ask again for the default Markdown editor mode.",
-    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch"
+    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch",
+    "fileAssociation": {
+      "electronOnly": "데스크톱 버전에서만 사용 가능합니다.",
+      "openSampleFail": "열 수 없음",
+      "openSampleOk": "열림",
+      "openSettingsFail": "열 수 없음",
+      "openSettingsLinuxManual": "시스템의 '기본 애플리케이션'에서 설정하세요.",
+      "openSettingsOk": "열림",
+      "openSystemSettings": "시스템 기본 애플리케이션 설정",
+      "pickMd": "Markdown(.md) 파일을 MetaDoc으로 기본 열기",
+      "pickTex": "LaTeX(.tex) 파일을 MetaDoc으로 기본 열기",
+      "sectionTitle": "기본 열기 방식 설정"
+    }
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -5620,16 +5674,16 @@
         "ru_RU": "Русский"
       },
       "welcome": {
-        "zh_CN": "欢迎使用 MetaDoc！",
-        "zh_TW": "歡迎使用 MetaDoc！",
-        "en_US": "Welcome to MetaDoc!",
-        "ja_JP": "MetaDoc へようこそ",
+        "zh_CN": "MetaDoc에 오신 것을 환영합니다!",
+        "zh_TW": "MetaDoc에 오신 것을 환영합니다!",
+        "en_US": "MetaDoc에 오신 것을 환영합니다!",
+        "ja_JP": "MetaDoc에 오신 것을 환영합니다!",
         "ko_KR": "MetaDoc에 오신 것을 환영합니다",
-        "fr_FR": "Bienvenue dans MetaDoc !",
-        "de_DE": "Willkommen bei MetaDoc!",
-        "es_ES": "¡Bienvenido a MetaDoc!",
-        "pt_BR": "Bem-vindo ao MetaDoc!",
-        "ru_RU": "Добро пожаловать в MetaDoc!"
+        "fr_FR": "MetaDoc에 오신 것을 환영합니다!",
+        "de_DE": "MetaDoc에 오신 것을 환영합니다!",
+        "es_ES": "MetaDoc에 오신 것을 환영합니다!",
+        "pt_BR": "MetaDoc에 오신 것을 환영합니다!",
+        "ru_RU": "MetaDoc에 오신 것을 환영합니다!"
       }
     },
     "welcome": {
@@ -5679,6 +5733,49 @@
       "title": "Default Markdown editor mode",
       "subtitle": "This mode is used when you open Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
+    },
+    "fileAssociation": {
+      "title": "기본 열기 방식 설정"
     }
+  },
+  "workshop": {
+    "description": "현재 Steam 계정이 구독 중인 Workshop 항목을 확인하고 로컬 디렉토리에 다운로드합니다. 업로드 및 태그 지정은 Steamworks 백엔드 설정 완료 후 메인 프로세스 API를 사용하세요.",
+    "download": "폴더에 다운로드",
+    "downloadDone": "다운로드 시작됨",
+    "downloadFailed": "다운로드 실패",
+    "downloading": "다운로드 중…",
+    "empty": "구독 항목이 없거나 Steam이 초기화되지 않았습니다.",
+    "loading": "로딩 중…",
+    "pickFolder": "다운로드 디렉토리 선택",
+    "refresh": "목록 새로고침",
+    "title": "창작마당 / 템플릿 마켓"
+  },
+  "steamAch": {
+    "ACH_DOCX_LATEX_EXPORT_DESC": "Markdown에서 DOCX로 처음 내보내기.",
+    "ACH_DOCX_LATEX_EXPORT_NAME": "수식 문서",
+    "ACH_FIRST_AGENT_CHAT_DESC": "Agent에서 처음으로 대화 메시지를 보냄.",
+    "ACH_FIRST_AGENT_CHAT_NAME": "Agent 첫 대화",
+    "ACH_FIRST_AGENT_RULE_DESC": "Agent 동적 규칙을 처음으로 생성함.",
+    "ACH_FIRST_AGENT_RULE_NAME": "첫 번째 규칙",
+    "ACH_FIRST_AGENT_SKILL_DESC": "Agent 스킬을 처음으로 생성하거나 저장함.",
+    "ACH_FIRST_AGENT_SKILL_NAME": "첫 번째 스킬",
+    "ACH_FIRST_AIGC_DESC": "AIGC를 처음 사용하여 감지 및 분석을 완료함.",
+    "ACH_FIRST_AIGC_NAME": "내용 감별",
+    "ACH_FIRST_MD_DESC": "Markdown 문서를 처음으로 최근 사용 항목에 추가함.",
+    "ACH_FIRST_MD_NAME": "첫 번째 Markdown",
+    "ACH_FIRST_TEX_DESC": "TeX 문서를 처음으로 최근 사용 항목에 추가함.",
+    "ACH_FIRST_TEX_NAME": "첫 번째 TeX",
+    "ACH_LLM_TEST_OK_DESC": "입문 또는 설정에서 LLM 연결 테스트를 성공적으로 통과함.",
+    "ACH_LLM_TEST_OK_NAME": "연결 준비 완료",
+    "ACH_MANUAL_TRACK_DONE_DESC": "사용자 매뉴얼에서 추천 학습 경로를 완료함.",
+    "ACH_MANUAL_TRACK_DONE_NAME": "매뉴얼 전문가",
+    "ACH_MD_EXPORT_PDF_DESC": "Markdown에서 PDF로 처음 내보내기.",
+    "ACH_MD_EXPORT_PDF_NAME": "MD에서 PDF 내보내기",
+    "ACH_META_WELCOME_DESC": "애플리케이션을 처음으로 실행함.",
+    "ACH_META_WELCOME_NAME": "MetaDoc에 오신 것을 환영합니다",
+    "ACH_ONBOARDING_DONE_DESC": "첫 사용자 가이드를 완료함.",
+    "ACH_ONBOARDING_DONE_NAME": "입문 완료",
+    "ACH_TEX_COMPILE_PDF_DESC": "TeX을 처음으로 PDF로 컴파일함.",
+    "ACH_TEX_COMPILE_PDF_NAME": "TeX 책 만들기"
   }
 }

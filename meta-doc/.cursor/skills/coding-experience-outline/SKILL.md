@@ -247,4 +247,4 @@ git push origin fix/branch-name -f
 
 **相关 Issue**: #25 (大纲), #21 (Tab 动画)  
 **相关 PR**: #26, #27  
-**文档**: docs/CODING_EXPERIENCE_OUTLINE_RENDER_FLASH.md
+**文档**: docs/outline/CODING_EXPERIENCE_OUTLINE_RENDER_FLASH.md

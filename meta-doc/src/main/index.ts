@@ -52,7 +52,7 @@ import {
 } from './window-manager'
 import { ensureInitialized } from './database/knowledge-db'
 import { mark as startupProfileMark, getTimelineForRenderer } from './startup-profile'
-import { initSteam, shutdownSteam } from './steam/steam-state'
+import { initSteam, shutdownSteam, getGreenworksOrNull } from './steam/steam-state'
 import { registerShellMetadataOnLaunch } from './system-integration/register-shell-metadata'
 import { killAllPtys } from './utils/terminal-pty-service'
 
@@ -746,6 +746,16 @@ app.whenReady().then(async () => {
 
   initSteam()
 
+  void import('./steam/steam-playtime-tracker').then(({ startSteamPlaytimeTracker }) => {
+    startSteamPlaytimeTracker(() => getGreenworksOrNull())
+  })
+  void import('./steam/steam-achievement-manager').then(({ tryUnlockSteamAchievement }) => {
+    const gw = getGreenworksOrNull()
+    if (gw) {
+      tryUnlockSteamAchievement(gw, 'ACH_META_WELCOME')
+    }
+  })
+
   // 打包版：向系统注册应用名、图标与 .md/.tex 类型信息（不写默认打开方式），便于「打开方式」中选到 MetaDoc
   setImmediate(() => {
     void registerShellMetadataOnLaunch().catch((err) =>
@@ -813,6 +823,15 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isAppQuitting = true
+  void import('./steam/steam-playtime-tracker').then(({ stopSteamPlaytimeTracker }) => {
+    stopSteamPlaytimeTracker()
+  })
+  const gwQuit = getGreenworksOrNull()
+  if (gwQuit) {
+    void import('./steam/steam-stats-sync').then(({ flushSteamStatsToSteam }) =>
+      flushSteamStatsToSteam(gwQuit)
+    )
+  }
   shutdownExpressServer()
   killAllPtys()
   killAllTerminalSpawnProcesses()

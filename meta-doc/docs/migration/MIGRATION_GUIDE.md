@@ -104,7 +104,7 @@
 
 ## 三、剩余工作
 
-当前「待迁移」文件与进度以 **`docs/MIGRATION_TODO_LIST.md`** 为准（按 P0～P3 分类，含完成状态）。渲染进程仍有少量文件直接使用 `ipcRenderer`，需逐步改为通过 `messageBridge` 调用。
+当前「待迁移」文件与进度以 **`docs/migration/MIGRATION_TODO_LIST.md`** 为准（按 P0～P3 分类，含完成状态）。渲染进程仍有少量文件直接使用 `ipcRenderer`，需逐步改为通过 `messageBridge` 调用。
 
 ---
 

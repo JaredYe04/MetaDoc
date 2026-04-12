@@ -4753,8 +4753,17 @@ const updateRecentDocs = async (data: UpdateRecentDocsData): Promise<void> => {
   await updateRecentOpen({ path: data.path, kind: 'file' })
   const items = parseRecentOpensJson(store.get(RECENT_OPENS_KEY) as string | null)
   if (items.filter((e) => e.kind === 'file').length === 1) {
-    const { tryUnlockFirstDocAchievement } = await import('./steam/steam-achievement')
-    tryUnlockFirstDocAchievement()
+    const { tryUnlockSteamAchievement } = await import('./steam/steam-achievement-manager')
+    const { getGreenworksOrNull } = await import('./steam/steam-state')
+    const gw = getGreenworksOrNull()
+    if (gw) {
+      const lower = (data.path || '').toLowerCase()
+      if (/\.(md|markdown|mdown)$/.test(lower)) {
+        tryUnlockSteamAchievement(gw, 'ACH_FIRST_MD')
+      } else if (/\.(tex|latex)$/.test(lower)) {
+        tryUnlockSteamAchievement(gw, 'ACH_FIRST_TEX')
+      }
+    }
   }
 }
 

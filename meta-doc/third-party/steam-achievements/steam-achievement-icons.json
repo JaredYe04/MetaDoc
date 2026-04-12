@@ -1,0 +1,85 @@
+{
+  "_readme": "成就缩略图生成配置。解锁：api 哈希 pastel 底 + *-black.svg + 黑字。锁定：lockedBackground 深黑底 + *-white.svg（或与 black 成对自动切换）+ 白字；应用图标锁定态会压成白色剪影。iconMax/iconMin/appIconSize 为基值，脚本内再 ×1.3。生成：pnpm generate-steam-achievement-icons",
+  "defaults": {
+    "canvasSize": 256,
+    "jpegQuality": 88,
+    "lockedBackground": "#101010",
+    "iconBase": "src/renderer/src/assets/icons",
+    "iconMarginTop": 22,
+    "iconMax": 160,
+    "iconMin": 76,
+    "labelAreaTop": 138,
+    "labelMaxWidth": 248,
+    "labelMaxHeight": 110,
+    "appIconSize": 152,
+    "appIconMarginTop": 20,
+    "appIconCandidates": ["build/icon.png", "resources/icon.png"]
+  },
+  "achievements": [
+    {
+      "api": "ACH_META_WELCOME",
+      "useAppIcon": true,
+      "label": "WELCOME"
+    },
+    {
+      "api": "ACH_ONBOARDING_DONE",
+      "icon": "home-black.svg",
+      "label": "ONBOARD"
+    },
+    {
+      "api": "ACH_LLM_TEST_OK",
+      "icon": "pen-ai-black.svg",
+      "label": "LLM READY"
+    },
+    {
+      "api": "ACH_MANUAL_TRACK_DONE",
+      "icon": "knowledge-black.svg",
+      "label": "MANUAL"
+    },
+    {
+      "api": "ACH_FIRST_MD",
+      "icon": "md-black.svg",
+      "label": "MARKDOWN"
+    },
+    {
+      "api": "ACH_FIRST_TEX",
+      "icon": "tex-black.svg",
+      "label": "TEX"
+    },
+    {
+      "api": "ACH_MD_EXPORT_PDF",
+      "icon": "md-doc-black.svg",
+      "label": "MD PDF"
+    },
+    {
+      "api": "ACH_DOCX_LATEX_EXPORT",
+      "icon": "base-doc-black.svg",
+      "label": "DOCX"
+    },
+    {
+      "api": "ACH_TEX_COMPILE_PDF",
+      "icon": "tex-doc-black.svg",
+      "label": "TEX PDF"
+    },
+    {
+      "api": "ACH_FIRST_AIGC",
+      "icon": "proofread-black.svg",
+      "label": "AIGC"
+    },
+    {
+      "api": "ACH_FIRST_AGENT_CHAT",
+      "icon": "agent-black.svg",
+      "label": "AGENT"
+    },
+    {
+      "api": "ACH_FIRST_AGENT_SKILL",
+      "icon": "write-black.svg",
+      "label": "SKILL"
+    },
+    {
+      "api": "ACH_FIRST_AGENT_RULE",
+      "icon": "multi-branch-black.svg",
+      "label": "RULE"
+    }
+  ]
+}

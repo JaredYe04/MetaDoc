@@ -21,6 +21,8 @@ MetaDoc i18n 键查询与批量写入（面向 Agent / CI）
      { "_byKey": { "proofread.noErrorsFound": { "en_us.json": "...", "ja_JP.json": "..." } } }
 
 默认仅允许写入在 zh_cn 中已存在的点路径（防拼写错误）；新增整条路径时用 --allow-new。
+
+Steam 成就文案（供 Partner 上传）使用扁平键：steamAch.ACH_*_NAME / steamAch.ACH_*_DESC；改完后在 meta-doc 根目录执行 pnpm generate-steam-loc-vdf，生成 third-party/steam-achievements/4359310_loc_all.vdf。
 """
 
 from __future__ import annotations

@@ -60,7 +60,7 @@
 - ❌ Downgrading rules from error to warn
 - ❌ Bypassing `DEMO_COVERAGE_POLICY.md`
 
-See: `docs/DEMO_MODE_COVERAGE_LINTING.md`
+See: `docs/dev/DEMO_MODE_COVERAGE_LINTING.md`
 
 ---
 
@@ -143,7 +143,7 @@ meta-doc/
 │   └── types/             # Shared TypeScript types
 ├── scripts/               # Build/release scripts
 ├── resources/             # Runtime assets
-├── docs/                  # Internal docs
+├── docs/                  # Internal docs (see docs/README.md for topic index)
 └── android/               # Capacitor Android
 ```
 

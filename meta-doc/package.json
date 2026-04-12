@@ -22,6 +22,8 @@
     "open-test": "concurrently \"electron-vite dev -- c:\\Users\\tange\\Documents\\软件工程概述和流程.md\" \"vite\"",
     "prebuild": "node scripts/copy-env.js",
     "generate-skeleton-tips": "node scripts/generate-skeleton-tips.mjs",
+    "generate-steam-loc-vdf": "node scripts/generate-steam-loc-vdf.mjs",
+    "generate-steam-achievement-icons": "node scripts/generate-steam-achievement-icons.mjs",
     "build": "npm run generate-skeleton-tips && electron-vite build",
     "build:only": "node scripts/copy-env.js && npm run generate-skeleton-tips && electron-vite build",
     "temp-build": "electron-vite build",

@@ -14,6 +14,9 @@
       "emptyTitle": "コピーできる見出しがありません",
       "copyFailed": "コピーに失敗しました",
       "noRangeToDelete": "段落を特定できませんでした。削除を中止しました"
+    },
+    "workspaceLink": {
+      "needsSavedDoc": "相対パスリンクを開く前に、現在のドキュメントを保存してください"
     }
   },
   "selectionTranslate": {
@@ -130,7 +133,22 @@
     "viewSidebarAgent": "Agent",
     "addFolderToWorkspace": "ワークスペースにフォルダを追加",
     "closeWorkspace": "現在のワークスペースを閉じる",
-    "openWorkspace": "ワークスペースを開く"
+    "openWorkspace": "ワークスペースを開く",
+    "recent": "最近",
+    "recentTooltip": "最近開いた場所",
+    "recentWorkspaces": "最近のワークスペース",
+    "recentWorkspacesTooltip": "最近開いたワークスペースフォルダ",
+    "steamOpenAchievementsOverlay": "実績を表示",
+    "steamOpenProfileOverlay": "プロフィールを開く",
+    "steamPlaytimeDays": "{n} 日",
+    "steamPlaytimeHoursMinutes": "{h} 時間 {m} 分",
+    "steamPlaytimeMinutes": "{m} 分",
+    "steamPlaytimeSeconds": "{s} 秒",
+    "steamStatAiRequests": "AI呼び出し回数",
+    "steamStatChars": "累計入力文字数",
+    "steamStatPlaytime": "累計使用時間",
+    "steamTrayLevel": "レベル",
+    "steamTrayTooltip": "Steam"
   },
   "llmDialog": {
     "aiAssistant": "AIアシスタント",
@@ -196,7 +214,14 @@
     "minimize": "最小化",
     "text": "テキスト",
     "version": "バージョン {version}",
-    "addTabFailed": "タブ追加失敗"
+    "addTabFailed": "タブ追加失敗",
+    "openDocumentsTitle": "ドキュメント",
+    "openDocumentsTooltip": "開いているドキュメント",
+    "switchToClassicLayout": "クラシックタブバーに切り替え",
+    "switchToWorkspaceLayout": "分割ワークスペースレイアウトに切り替え",
+    "workbenchTab": "ワークベンチ",
+    "workbenchTabNumbered": "ワークベンチ{n}",
+    "workbenchTabWithSessionCount": "ワークベンチ（{count} セッション）"
   },
   "common": {
     "confirm": "確認",
@@ -886,7 +911,9 @@
       "technicalTutorial": "技術チュートリアル",
       "userGuide": "ユーザーガイド",
       "weeklyReport": "週次レポート"
-    }
+    },
+    "recent": "最近",
+    "recentWorkspaces": "最近のワークスペース"
   },
   "main": {
     "notification": {
@@ -1663,7 +1690,22 @@
       "loadFailed": "読み込みに失敗しました",
       "title:": "MetaDocについて",
       "updateAvailable:": "新しいバージョンがあります",
-      "updateAvailableDesc:": "新しいバージョン {version} が見つかりました。ダウンロードして更新してください。"
+      "updateAvailableDesc:": "新しいバージョン {version} が見つかりました。ダウンロードして更新してください。",
+      "steamHint": "開発時は pnpm dev を直接実行できます：プロジェクトルートに steam_appid.txt を配置し（steam_appid.txt.example を参照）、ローカルで Steam クライアントにログインしてください。ステータスが greenworks_not_loaded の場合は、meta-doc ディレクトリで pnpm run greenworks:rebuild（または完全な pnpm install）を実行し、現在の Electron 用に greenworks を再コンパイルしてください。",
+      "steamInitialized": "Steam に接続済み",
+      "steamNotInitialized": "Steam 未接続",
+      "steamOpenWorkshop": "テンプレートマーケットを開く",
+      "steamStatus": "Steam ステータス",
+      "steamSyncDone": "同期完了",
+      "steamSyncFailed": "同期失敗",
+      "steamSyncHistoryPull": "使用統計をクラウドから取得",
+      "steamSyncHistoryPush": "使用統計をクラウドにプッシュ",
+      "steamSyncSettingsPull": "設定をクラウドから取得",
+      "steamSyncSettingsPush": "設定をクラウドにプッシュ",
+      "steamTab": "Steam",
+      "steamUser": "Steam ユーザー",
+      "steamUserId": "Steam ID",
+      "steamUserName": "表示名"
     },
     "agentTerminalExecutionAllowed": "デフォルトでターミナル実行を許可",
     "agentTerminalExecutionAllowedHint": "オンにすると、Agentがターミナルツールを呼び出した際に毎回確認せず実行します。オフにすると実行のたびに確認ダイアログが表示されます。",
@@ -1955,7 +1997,19 @@
     "resetFirstRunWizard": "Reset first-run onboarding",
     "resetFirstRunWizardButton": "Run again on next launch",
     "resetFirstRunWizardHint": "Shows the full-screen onboarding on next launch and will ask again for the default Markdown editor mode.",
-    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch"
+    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch",
+    "fileAssociation": {
+      "electronOnly": "デスクトップ版でのみ利用可能です。",
+      "openSampleFail": "開けません",
+      "openSampleOk": "開きました",
+      "openSettingsFail": "開けません",
+      "openSettingsLinuxManual": "システムの「デフォルトアプリ」で設定してください。",
+      "openSettingsOk": "開きました",
+      "openSystemSettings": "システムのデフォルトアプリ設定",
+      "pickMd": "Markdown(.md)をデフォルトでMetaDocで開く",
+      "pickTex": "LaTeX(.tex)をデフォルトでMetaDocで開く",
+      "sectionTitle": "デフォルトの開き方を設定"
+    }
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -5794,6 +5848,49 @@
       "title": "Default Markdown editor mode",
       "subtitle": "This mode is used when you open Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
+    },
+    "fileAssociation": {
+      "title": "デフォルトのアプリケーションを設定"
     }
+  },
+  "workshop": {
+    "description": "現在のSteamアカウントで購読中のワークショップアイテムを表示し、ローカルディレクトリにダウンロードします。アップロードとタグ付けは、Steamworksバックエンドで設定後、メインプロセスAPIを使用してください。",
+    "download": "フォルダにダウンロード",
+    "downloadDone": "ダウンロードを開始しました",
+    "downloadFailed": "ダウンロードに失敗しました",
+    "downloading": "ダウンロード中…",
+    "empty": "購読中のアイテムがありません、またはSteamが初期化されていません。",
+    "loading": "読み込み中…",
+    "pickFolder": "ダウンロードディレクトリを選択",
+    "refresh": "リストを更新",
+    "title": "ワークショップ / テンプレートマーケット"
+  },
+  "steamAch": {
+    "ACH_DOCX_LATEX_EXPORT_DESC": "MarkdownからDOCXへの初回エクスポート。",
+    "ACH_DOCX_LATEX_EXPORT_NAME": "数式ドキュメント",
+    "ACH_FIRST_AGENT_CHAT_DESC": "Agentで初めて会話メッセージを送信。",
+    "ACH_FIRST_AGENT_CHAT_NAME": "Agent初対話",
+    "ACH_FIRST_AGENT_RULE_DESC": "Agent動的ルールを初めて作成。",
+    "ACH_FIRST_AGENT_RULE_NAME": "最初のルール",
+    "ACH_FIRST_AGENT_SKILL_DESC": "Agentスキルを初めて作成または保存。",
+    "ACH_FIRST_AGENT_SKILL_NAME": "最初のスキル",
+    "ACH_FIRST_AIGC_DESC": "AIGCを使用して初めて検出と分析を完了。",
+    "ACH_FIRST_AIGC_NAME": "コンテンツ鑑別",
+    "ACH_FIRST_MD_DESC": "Markdownドキュメントを初めて最近使用したものに追加。",
+    "ACH_FIRST_MD_NAME": "初めてのMarkdown",
+    "ACH_FIRST_TEX_DESC": "TeXドキュメントを初めて最近使用したものに追加。",
+    "ACH_FIRST_TEX_NAME": "初めてのTeX",
+    "ACH_LLM_TEST_OK_DESC": "入門または設定でLLM接続テストに成功。",
+    "ACH_LLM_TEST_OK_NAME": "接続準備完了",
+    "ACH_MANUAL_TRACK_DONE_DESC": "ユーザーマニュアルで推奨学習パスを完了。",
+    "ACH_MANUAL_TRACK_DONE_NAME": "マニュアルマスター",
+    "ACH_MD_EXPORT_PDF_DESC": "MarkdownからPDFへの初回エクスポート。",
+    "ACH_MD_EXPORT_PDF_NAME": "MDからPDFへ",
+    "ACH_META_WELCOME_DESC": "アプリケーションを初めて起動。",
+    "ACH_META_WELCOME_NAME": "MetaDocへようこそ",
+    "ACH_ONBOARDING_DONE_DESC": "初回使用ガイドを完了。",
+    "ACH_ONBOARDING_DONE_NAME": "入門完了",
+    "ACH_TEX_COMPILE_PDF_DESC": "TeXをPDFに初めてコンパイル。",
+    "ACH_TEX_COMPILE_PDF_NAME": "TeXから書籍へ"
   }
 }

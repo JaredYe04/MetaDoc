@@ -36,7 +36,7 @@
 
 ### 4. 待办事项清单
 
-**`docs/MIGRATION_TODO_LIST.md`** - 迁移和待办事项
+**`docs/migration/MIGRATION_TODO_LIST.md`** - 迁移和待办事项
 
 - 当前待完成的任务
 - 文档完善优先级
@@ -107,7 +107,7 @@
 - **编写规范**：`manuals/WRITING_GUIDE.md`
 - **实现总结**：`manuals/IMPLEMENTATION_SUMMARY.md`
 - **文档索引**：`docs/USER_MANUAL_INDEX.md`
-- **待办清单**：`docs/MIGRATION_TODO_LIST.md`
+- **待办清单**：`docs/migration/MIGRATION_TODO_LIST.md`
 - **标杆文档**：`manuals/zh_CN/quick-start/guide.md`
 - **文档索引配置**：`manuals/index.json`
 - **组件注册**：`manuals/demo-registry-components.ts`

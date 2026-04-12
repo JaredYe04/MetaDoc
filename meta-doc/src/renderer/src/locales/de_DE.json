@@ -13,6 +13,9 @@
       "emptyTitle": "Kein Titel zum Kopieren",
       "copyFailed": "Kopieren fehlgeschlagen",
       "noRangeToDelete": "Abschnitt nicht gefunden; Löschen abgebrochen"
+    },
+    "workspaceLink": {
+      "needsSavedDoc": "Bitte speichern Sie das aktuelle Dokument, bevor Sie einem relativen Pfadlink folgen."
     }
   },
   "aiChat": {
@@ -675,7 +678,9 @@
       "technicalTutorial": "Technisches Tutorial",
       "userGuide": "Benutzerhandbuch",
       "weeklyReport": "Wochenbericht"
-    }
+    },
+    "recent": "Zuletzt",
+    "recentWorkspaces": "Letzte Arbeitsbereiche"
   },
   "mainTabs": {
     "contextMenu": {
@@ -712,7 +717,14 @@
     "minimize": "Minimieren",
     "text": "Text",
     "version": "Version {version}",
-    "addTabFailed": "Tab konnte nicht hinzugefügt werden"
+    "addTabFailed": "Tab konnte nicht hinzugefügt werden",
+    "openDocumentsTitle": "Dokumente",
+    "openDocumentsTooltip": "Geöffnete Dokumente",
+    "switchToClassicLayout": "Zur klassischen Tab-Leiste wechseln",
+    "switchToWorkspaceLayout": "Zur geteilten Arbeitsbereichsansicht wechseln",
+    "workbenchTab": "Arbeitsbereich",
+    "workbenchTabNumbered": "Arbeitsbereich {n}",
+    "workbenchTabWithSessionCount": "Arbeitsbereich ({count} Sitzungen)"
   },
   "lang": "Zh_CN",
   "leftMenu": {
@@ -807,7 +819,22 @@
     "workspaceGrep:": "Arbeitsbereich durchsuchen",
     "addFolderToWorkspace": "Ordner zum Arbeitsbereich hinzufügen",
     "closeWorkspace": "Aktuellen Arbeitsbereich schließen",
-    "openWorkspace": "Arbeitsbereich öffnen"
+    "openWorkspace": "Arbeitsbereich öffnen",
+    "recent": "Zuletzt",
+    "recentTooltip": "Zuletzt geöffnete Orte",
+    "recentWorkspaces": "Letzte Arbeitsbereiche",
+    "recentWorkspacesTooltip": "Zuletzt geöffnete Arbeitsbereichsordner",
+    "steamOpenAchievementsOverlay": "Achievements anzeigen",
+    "steamOpenProfileOverlay": "Profil öffnen",
+    "steamPlaytimeDays": "{n} Tage",
+    "steamPlaytimeHoursMinutes": "{h} Stunden {m} Minuten",
+    "steamPlaytimeMinutes": "{m} Minuten",
+    "steamPlaytimeSeconds": "{s} Sekunden",
+    "steamStatAiRequests": "KI-Aufrufe",
+    "steamStatChars": "Eingegebene Zeichen (gesamt)",
+    "steamStatPlaytime": "Nutzungsdauer (gesamt)",
+    "steamTrayLevel": "Level",
+    "steamTrayTooltip": "Steam"
   },
   "llmDialog": {
     "acceptTooltip": "Akzeptieren",
@@ -1614,7 +1641,22 @@
       "thirdPartyAssets": "Drittanbieter-Assets",
       "aboutUs": "Über uns",
       "content": "Inhalt über das MetaDoc-Team und die Mission",
-      "loadFailed": "Laden fehlgeschlagen"
+      "loadFailed": "Laden fehlgeschlagen",
+      "steamHint": "Für die Entwicklung kann direkt pnpm dev ausgeführt werden: Platziere steam_appid.txt im Projektstammverzeichnis (siehe steam_appid.txt.example) und melde dich im lokalen Steam-Client an. Wenn der Status greenworks_not_loaded ist, führe im meta-doc-Verzeichnis pnpm run greenworks:rebuild (oder eine vollständige pnpm install) aus, um greenworks für die aktuelle Electron-Version zu kompilieren.",
+      "steamInitialized": "Mit Steam verbunden",
+      "steamNotInitialized": "Nicht mit Steam verbunden",
+      "steamOpenWorkshop": "Vorlagen-Workshop öffnen",
+      "steamStatus": "Steam-Status",
+      "steamSyncDone": "Synchronisierung abgeschlossen",
+      "steamSyncFailed": "Synchronisierung fehlgeschlagen",
+      "steamSyncHistoryPull": "Nutzungsstatistiken aus der Cloud abrufen",
+      "steamSyncHistoryPush": "Nutzungsstatistiken in die Cloud hochladen",
+      "steamSyncSettingsPull": "Einstellungen aus der Cloud abrufen",
+      "steamSyncSettingsPush": "Einstellungen in die Cloud hochladen",
+      "steamTab": "Steam",
+      "steamUser": "Steam-Benutzer",
+      "steamUserId": "Steam-ID",
+      "steamUserName": "Anzeigename"
     },
     "agentTerminalExecutionAllowed": "Terminalausführung standardmäßig zulassen",
     "agentTerminalExecutionAllowedHint": "Wenn aktiviert, führt der Agent Terminalbefehle direkt aus, ohne Bestätigung. Wenn deaktiviert, wird vor jeder Ausführung eine Bestätigung angezeigt.",
@@ -1893,7 +1935,19 @@
     "resetFirstRunWizard": "Reset first-run onboarding",
     "resetFirstRunWizardButton": "Run again on next launch",
     "resetFirstRunWizardHint": "Shows the full-screen onboarding on next launch and will ask again for the default Markdown editor mode.",
-    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch"
+    "resetFirstRunWizardScheduled": "Scheduled: first-run onboarding will appear on next launch",
+    "fileAssociation": {
+      "electronOnly": "Nur in der Desktop-Version verfügbar.",
+      "openSampleFail": "Kann nicht geöffnet werden",
+      "openSampleOk": "Geöffnet",
+      "openSettingsFail": "Kann nicht geöffnet werden",
+      "openSettingsLinuxManual": "Bitte in den System-\"Standardanwendungen\" einstellen.",
+      "openSettingsOk": "Geöffnet",
+      "openSystemSettings": "Systemeinstellungen für Standardanwendungen",
+      "pickMd": "Markdown (.md) standardmäßig mit MetaDoc öffnen",
+      "pickTex": "LaTeX (.tex) standardmäßig mit MetaDoc öffnen",
+      "sectionTitle": "Standard-Öffnungsmethode einstellen"
+    }
   },
   "titleMenu": {
     "contextMarks": {
@@ -5774,6 +5828,49 @@
       "title": "Default Markdown editor mode",
       "subtitle": "This mode is used when you open Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
+    },
+    "fileAssociation": {
+      "title": "Standardanwendung zum Öffnen festlegen"
     }
+  },
+  "workshop": {
+    "description": "Zeigen Sie die aktuell von Ihrem Steam-Konto abonnierten Workshop-Einträge an und laden Sie sie in ein lokales Verzeichnis herunter. Hochladen und Tagging müssen nach der Konfiguration im Steamworks-Backend über die Hauptprozess-API erfolgen.",
+    "download": "In Ordner herunterladen",
+    "downloadDone": "Download gestartet",
+    "downloadFailed": "Download fehlgeschlagen",
+    "downloading": "Wird heruntergeladen…",
+    "empty": "Keine Abonnements vorhanden oder Steam nicht initialisiert.",
+    "loading": "Wird geladen…",
+    "pickFolder": "Download-Verzeichnis auswählen",
+    "refresh": "Liste aktualisieren",
+    "title": "Workshop / Vorlagenmarkt"
+  },
+  "steamAch": {
+    "ACH_DOCX_LATEX_EXPORT_DESC": "Erstmaliger Export von Markdown zu DOCX.",
+    "ACH_DOCX_LATEX_EXPORT_NAME": "Formeldokument",
+    "ACH_FIRST_AGENT_CHAT_DESC": "Erstmaliges Senden einer Chatnachricht im Agent.",
+    "ACH_FIRST_AGENT_CHAT_NAME": "Erstes Agent-Gespräch",
+    "ACH_FIRST_AGENT_RULE_DESC": "Erstmaliges Erstellen einer dynamischen Agent-Regel.",
+    "ACH_FIRST_AGENT_RULE_NAME": "Erste Regel",
+    "ACH_FIRST_AGENT_SKILL_DESC": "Erstmaliges Erstellen oder Speichern einer Agent-Fähigkeit.",
+    "ACH_FIRST_AGENT_SKILL_NAME": "Erste Fähigkeit",
+    "ACH_FIRST_AIGC_DESC": "Erstmalige Nutzung von AIGC zur Erkennung und vollständigen Analyse.",
+    "ACH_FIRST_AIGC_NAME": "Inhaltsprüfung",
+    "ACH_FIRST_MD_DESC": "Erstmaliges Hinzufügen eines Markdown-Dokuments zu den zuletzt verwendeten.",
+    "ACH_FIRST_MD_NAME": "Erstes Markdown",
+    "ACH_FIRST_TEX_DESC": "Erstmaliges Hinzufügen eines TeX-Dokuments zu den zuletzt verwendeten.",
+    "ACH_FIRST_TEX_NAME": "Erstes TeX",
+    "ACH_LLM_TEST_OK_DESC": "Erfolgreicher LLM-Verbindungstest im Einführungs- oder Einstellungsbereich.",
+    "ACH_LLM_TEST_OK_NAME": "Verbindung bereit",
+    "ACH_MANUAL_TRACK_DONE_DESC": "Abschluss des empfohlenen Lernpfads im Benutzerhandbuch.",
+    "ACH_MANUAL_TRACK_DONE_NAME": "Handbuch-Profi",
+    "ACH_MD_EXPORT_PDF_DESC": "Erstmaliger Export von Markdown zu PDF.",
+    "ACH_MD_EXPORT_PDF_NAME": "MD zu PDF exportiert",
+    "ACH_META_WELCOME_DESC": "Erstmaliges Starten der Anwendung.",
+    "ACH_META_WELCOME_NAME": "Willkommen bei MetaDoc",
+    "ACH_ONBOARDING_DONE_DESC": "Abschluss des Erstnutzungs-Assistenten.",
+    "ACH_ONBOARDING_DONE_NAME": "Einführung abgeschlossen",
+    "ACH_TEX_COMPILE_PDF_DESC": "Erstmaliges Kompilieren von TeX zu PDF.",
+    "ACH_TEX_COMPILE_PDF_NAME": "TeX zum Buch"
   }
 }

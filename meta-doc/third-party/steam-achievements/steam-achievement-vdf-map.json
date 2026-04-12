@@ -1,0 +1,70 @@
+{
+  "_readme": "按成就顺序维护，与 Steamworks 列表顺序一致。Partner 本地化 Token 为 ACH_*_NAME / ACH_*_DESC（与显示名称/描述列一致）。生成 VDF: pnpm generate-steam-loc-vdf",
+  "achievements": [
+    {
+      "apiName": "ACH_META_WELCOME",
+      "nameToken": "ACH_META_WELCOME_NAME",
+      "descToken": "ACH_META_WELCOME_DESC"
+    },
+    {
+      "apiName": "ACH_ONBOARDING_DONE",
+      "nameToken": "ACH_ONBOARDING_DONE_NAME",
+      "descToken": "ACH_ONBOARDING_DONE_DESC"
+    },
+    {
+      "apiName": "ACH_LLM_TEST_OK",
+      "nameToken": "ACH_LLM_TEST_OK_NAME",
+      "descToken": "ACH_LLM_TEST_OK_DESC"
+    },
+    {
+      "apiName": "ACH_MANUAL_TRACK_DONE",
+      "nameToken": "ACH_MANUAL_TRACK_DONE_NAME",
+      "descToken": "ACH_MANUAL_TRACK_DONE_DESC"
+    },
+    {
+      "apiName": "ACH_FIRST_MD",
+      "nameToken": "ACH_FIRST_MD_NAME",
+      "descToken": "ACH_FIRST_MD_DESC"
+    },
+    {
+      "apiName": "ACH_FIRST_TEX",
+      "nameToken": "ACH_FIRST_TEX_NAME",
+      "descToken": "ACH_FIRST_TEX_DESC"
+    },
+    {
+      "apiName": "ACH_MD_EXPORT_PDF",
+      "nameToken": "ACH_MD_EXPORT_PDF_NAME",
+      "descToken": "ACH_MD_EXPORT_PDF_DESC"
+    },
+    {
+      "apiName": "ACH_DOCX_LATEX_EXPORT",
+      "nameToken": "ACH_DOCX_LATEX_EXPORT_NAME",
+      "descToken": "ACH_DOCX_LATEX_EXPORT_DESC"
+    },
+    {
+      "apiName": "ACH_TEX_COMPILE_PDF",
+      "nameToken": "ACH_TEX_COMPILE_PDF_NAME",
+      "descToken": "ACH_TEX_COMPILE_PDF_DESC"
+    },
+    {
+      "apiName": "ACH_FIRST_AIGC",
+      "nameToken": "ACH_FIRST_AIGC_NAME",
+      "descToken": "ACH_FIRST_AIGC_DESC"
+    },
+    {
+      "apiName": "ACH_FIRST_AGENT_CHAT",
+      "nameToken": "ACH_FIRST_AGENT_CHAT_NAME",
+      "descToken": "ACH_FIRST_AGENT_CHAT_DESC"
+    },
+    {
+      "apiName": "ACH_FIRST_AGENT_SKILL",
+      "nameToken": "ACH_FIRST_AGENT_SKILL_NAME",
+      "descToken": "ACH_FIRST_AGENT_SKILL_DESC"
+    },
+    {
+      "apiName": "ACH_FIRST_AGENT_RULE",
+      "nameToken": "ACH_FIRST_AGENT_RULE_NAME",
+      "descToken": "ACH_FIRST_AGENT_RULE_DESC"
+    }
+  ]
+}

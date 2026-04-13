@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "displayName": "MetaDoc",
+  "appId": "com.byte-light.metadoc",
+  "windows": {
+    "executableBaseName": "meta-doc.exe",
+    "registeredApplicationsValueName": "MetaDoc",
+    "registeredApplicationsCapabilitiesPointer": "SOFTWARE\\ByteLight\\MetaDoc\\Capabilities",
+    "capabilitiesRegKey": "Software\\ByteLight\\MetaDoc\\Capabilities",
+    "vendorRegKey": "Software\\ByteLight\\MetaDoc"
+  },
+  "linux": {
+    "desktopFileBasename": "com.byte-light.metadoc",
+    "startupWmClass": "meta-doc",
+    "genericName": "Document Editor"
+  },
+  "associations": [
+    {
+      "extension": "md",
+      "progId": "MetaDoc.Markdown",
+      "typeName": "Markdown Document",
+      "description": "Markdown 文件",
+      "role": "Editor",
+      "mimeType": "text/markdown",
+      "shellNewItemName": "Markdown",
+      "icons": {
+        "windows": "md-icon.ico",
+        "mac": "md-icon.icns",
+        "linux": "md-icon.png"
+      }
+    },
+    {
+      "extension": "tex",
+      "progId": "MetaDoc.LaTeX",
+      "typeName": "LaTeX Document",
+      "description": "LaTeX 文件",
+      "role": "Editor",
+      "mimeType": "text/latex",
+      "shellNewItemName": "LaTeX",
+      "icons": {
+        "windows": "tex-icon.ico",
+        "mac": "tex-icon.icns",
+        "linux": "tex-icon.png"
+      }
+    }
+  ],
+  "legacyWindowsProgIds": [
+    "meta-doc.Markdown",
+    "meta-doc.LaTeX",
+    "com.electron.app.Markdown",
+    "com.electron.app.LaTeX",
+    "com.jaredye.meta-doc.Markdown",
+    "com.jaredye.meta-doc.LaTeX",
+    "com.jaredye.metadoc.Markdown",
+    "com.jaredye.metadoc.LaTeX",
+    "com.byte-light.metadoc.Markdown",
+    "com.byte-light.metadoc.LaTeX"
+  ]
+}

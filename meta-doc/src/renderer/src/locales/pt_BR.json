@@ -1,5 +1,11 @@
 {
   "lang": "pt_BR",
+  "windowsShell": {
+    "markdownDocument": "Documento Markdown",
+    "markdownNewMenu": "Markdown",
+    "latexDocument": "Documento LaTeX",
+    "latexNewMenu": "LaTeX"
+  },
   "markdownEditor": {
     "outlineMenu": {
       "optimizeSection": "Otimizar seção atual",

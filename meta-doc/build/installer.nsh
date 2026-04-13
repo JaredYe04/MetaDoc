@@ -27,6 +27,9 @@
   DeleteRegKey HKLM "Software\Classes\Applications\MetaDoc.exe"
   DeleteRegKey HKLM "Software\Classes\Applications\metadoc.exe"
   DeleteRegKey HKLM "Software\Classes\Applications\Meta-Doc.exe"
+  ; 曾写入 SupportedTypes 会导致「打开方式」里多一条仅 exe 图标的 MetaDoc，与 ProgID 重复；升级时先删子树
+  DeleteRegKey HKLM "Software\Classes\Applications\meta-doc.exe\SupportedTypes"
+  DeleteRegKey HKCU "Software\Classes\Applications\meta-doc.exe\SupportedTypes"
 
   ; 清理「默认应用」Capabilities / App Paths（与 customInstall 成对）
   DeleteRegKey HKLM "Software\ByteLight\MetaDoc"
@@ -75,9 +78,7 @@
   WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}" "FriendlyAppName" "${PRODUCT_NAME}"
   WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\DefaultIcon" "" "$4"
   WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\shell\open\command" "" '"$1" "%1"'
-  ; SupportedTypes：纳入 Open with 推荐列表，便于选「始终」而非仅一次
-  WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\SupportedTypes\.md" "" ""
-  WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\SupportedTypes\.tex" "" ""
+  ; 勿写 Applications\...\SupportedTypes：会与 MetaDoc.Markdown / .LaTeX ProgID 各多出一条同名「MetaDoc」且图标为 exe 默认图标
 
   ; App Paths：ShellExecute / 打开方式 解析 exe 全路径
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\App Paths\${PRODUCT_FILENAME}" "" "$1"
@@ -132,13 +133,26 @@
   WriteRegStr HKCR "MetaDoc.Markdown" "" "Markdown Document"
   WriteRegStr HKCR "MetaDoc.Markdown\DefaultIcon" "" "$2"
   WriteRegStr HKCR "MetaDoc.Markdown\shell\open\command" "" '"$1" "%1"'
+  ; 便于「打开方式」将 MetaDoc 列为可设为默认的程序（与 UserChoice/OpenWith 协同）
+  WriteRegStr HKCR ".md\OpenWithProgids\MetaDoc.Markdown" "" ""
   
   ; 注册 .tex 文件关联
   WriteRegStr HKCR ".tex" "" "MetaDoc.LaTeX"
   WriteRegStr HKCR "MetaDoc.LaTeX" "" "LaTeX Document"
   WriteRegStr HKCR "MetaDoc.LaTeX\DefaultIcon" "" "$3"
   WriteRegStr HKCR "MetaDoc.LaTeX\shell\open\command" "" '"$1" "%1"'
+  WriteRegStr HKCR ".tex\OpenWithProgids\MetaDoc.LaTeX" "" ""
+
+  ; 资源管理器「右键 → 新建」：空 Markdown / LaTeX 文件（ShellNew）
+  WriteRegStr HKCR ".md\ShellNew" "NullFile" ""
+  WriteRegStr HKCR ".md\ShellNew" "ItemName" "Markdown"
+  WriteRegStr HKCR ".tex\ShellNew" "NullFile" ""
+  WriteRegStr HKCR ".tex\ShellNew" "ItemName" "LaTeX"
   
+  ; 若 electron-builder 或其它步骤曾写入 SupportedTypes，再次移除以免双「MetaDoc」
+  ClearErrors
+  DeleteRegKey HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\SupportedTypes"
+
   ; 刷新 Shell 图标缓存，使文件关联图标立即生效
   System::Call 'shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
 !macroend

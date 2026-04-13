@@ -1,4 +1,10 @@
 {
+  "windowsShell": {
+    "markdownDocument": "Document Markdown",
+    "markdownNewMenu": "Markdown",
+    "latexDocument": "Document LaTeX",
+    "latexNewMenu": "LaTeX"
+  },
   "markdownEditor": {
     "outlineMenu": {
       "optimizeSection": "Optimiser la section actuelle",
@@ -1976,6 +1982,8 @@
       "electronOnly": "Disponible uniquement sur la version de bureau.",
       "openSampleFail": "Impossible d'ouvrir",
       "openSampleOk": "Ouvert",
+      "openSampleOkOpenAs": "La boîte de dialogue « Ouvrir avec » pour {ext} a été ouverte.",
+      "openSampleOkSystemPanel": "Les réglages des applications par défaut ont été ouverts. Associez {ext} à MetaDoc.",
       "openSettingsFail": "Impossible d'ouvrir",
       "openSettingsLinuxManual": "Veuillez configurer dans les « Applications par défaut » du système.",
       "openSettingsOk": "Ouvert",

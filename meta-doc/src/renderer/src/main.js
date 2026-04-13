@@ -43,7 +43,8 @@ import { initSelectionContextMenuHandler } from './utils/selection-context-menu-
 import { themeState, applyTheme, lightTheme, darkTheme } from './utils/themes.js'
 import { syncShadcnTheme } from './utils/shadcn-theme-bridge.js'
 import { initServiceStatusWatcher } from './utils/service-status'
-import { i18n, preloadInitialLocales } from './i18n.js'
+import messageBridge from './bridge/message-bridge'
+import { i18n, preloadInitialLocales, setI18nLocale } from './i18n.js'
 import { initializeAgentTools } from './utils/agent-tools'
 import { initializeWorkspaceBroadcastListeners } from './stores/workspace'
 import { registerAllAdapters } from './services/export-adapters'
@@ -92,9 +93,19 @@ app.use(router)
     console.error('Apply theme before mount failed:', e)
   }
   try {
-    await preloadInitialLocales()
+    const mainLang = await messageBridge.invoke('get-setting', { key: 'lang' })
+    if (mainLang && typeof mainLang === 'string') {
+      await setI18nLocale(mainLang)
+    } else {
+      await preloadInitialLocales()
+    }
   } catch (e) {
     console.error('Preload locale before mount failed:', e)
+    try {
+      await preloadInitialLocales()
+    } catch (e2) {
+      console.error('Fallback preloadInitialLocales failed:', e2)
+    }
   }
   app.use(i18n).mount('#app')
   __startupMark('after_mount')

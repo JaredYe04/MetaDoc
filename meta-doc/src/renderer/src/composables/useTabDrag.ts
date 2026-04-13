@@ -649,6 +649,7 @@ function ensureEditorDropZoneDragEndCleanup(): void {
     document.addEventListener('drop', globalPathDropHandler, true)
   }
 }
+
 /** 拖拽时全屏透明层：从第一帧就强制 cursor: move，从根本上不出现禁止光标 */
 let dragCursorOverlay: HTMLDivElement | null = null
 

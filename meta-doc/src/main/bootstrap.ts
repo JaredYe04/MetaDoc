@@ -7,9 +7,8 @@
 import path from 'path'
 import fs from 'fs'
 import http from 'http'
+import { isOpenableFilePath } from '../common/openable-file-extensions'
 import { getRuntimeServerHost, getRuntimeServerPort } from './runtime-server-config'
-
-const SUPPORTED_FILE_EXTENSIONS = new Set(['.md', '.json', '.txt', '.tex'])
 
 interface HttpRequestResult {
   ok: boolean
@@ -20,8 +19,7 @@ interface HttpRequestResult {
 function findSupportedFileArgument(args: string[]): string | null {
   for (const arg of args) {
     if (!arg || arg.startsWith('--')) continue
-    const ext = path.extname(arg).toLowerCase()
-    if (SUPPORTED_FILE_EXTENSIONS.has(ext) && fs.existsSync(arg)) {
+    if (isOpenableFilePath(arg) && fs.existsSync(arg)) {
       return path.resolve(arg)
     }
   }

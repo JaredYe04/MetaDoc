@@ -1,5 +1,11 @@
 {
   "lang": "ko_KR",
+  "windowsShell": {
+    "markdownDocument": "Markdown 문서",
+    "markdownNewMenu": "Markdown",
+    "latexDocument": "LaTeX 문서",
+    "latexNewMenu": "LaTeX"
+  },
   "markdownEditor": {
     "outlineMenu": {
       "optimizeSection": "현재 단락 최적화",

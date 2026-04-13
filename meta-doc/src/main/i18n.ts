@@ -1,26 +1,42 @@
-import { BrowserWindow } from 'electron'
-import Store from 'electron-store'
+import { app, BrowserWindow } from 'electron'
 
+import { appStore as store } from './app-store'
 import enUS from '../renderer/src/locales/en_us.json'
 import zhCN from '../renderer/src/locales/zh_cn.json'
+import zhTW from '../renderer/src/locales/zh_tw.json'
 import jaJP from '../renderer/src/locales/ja_JP.json'
 import koKR from '../renderer/src/locales/ko_KR.json'
 import deDE from '../renderer/src/locales/de_DE.json'
 import frFR from '../renderer/src/locales/fr_FR.json'
+import esES from '../renderer/src/locales/es_ES.json'
+import ptBR from '../renderer/src/locales/pt_BR.json'
+import ruRU from '../renderer/src/locales/ru_RU.json'
 
-type LocaleCode = 'en_US' | 'zh_CN' | 'ja_JP' | 'ko_KR' | 'de_DE' | 'fr_FR'
+type LocaleCode =
+  | 'en_US'
+  | 'zh_CN'
+  | 'zh_TW'
+  | 'ja_JP'
+  | 'ko_KR'
+  | 'de_DE'
+  | 'fr_FR'
+  | 'es_ES'
+  | 'pt_BR'
+  | 'ru_RU'
 
 type Messages = Record<string, any>
-
-const store = new Store()
 
 const LOCALE_MESSAGES: Record<LocaleCode, Messages> = {
   en_US: enUS,
   zh_CN: zhCN,
+  zh_TW: zhTW,
   ja_JP: jaJP,
   ko_KR: koKR,
   de_DE: deDE,
-  fr_FR: frFR
+  fr_FR: frFR,
+  es_ES: esES,
+  pt_BR: ptBR,
+  ru_RU: ruRU
 }
 
 const FALLBACK_LOCALE: LocaleCode = 'zh_CN'
@@ -84,6 +100,13 @@ export const setLocale = (locale: string, options: SetLocaleOptions = {}): void 
 
   if (notifyRenderer) {
     broadcastLanguage(normalized)
+  }
+
+  // 界面语言变更后刷新 HKCU 下 ProgID / ShellNew 显示名（与资源管理器「新建」菜单一致）
+  if (process.platform === 'win32' && app.isPackaged) {
+    void import('./system-integration/register-shell-metadata').then((m) => {
+      void m.queueWindowsUserFileAssociationsWrite()
+    })
   }
 }
 

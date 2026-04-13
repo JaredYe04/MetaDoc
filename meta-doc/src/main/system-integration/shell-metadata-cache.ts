@@ -5,27 +5,26 @@
 import { app } from 'electron'
 import fs from 'fs/promises'
 import path from 'path'
+import { getLocale } from '../i18n'
 
-export const REGISTRATION_SCHEMA_VERSION = 1
+export const REGISTRATION_SCHEMA_VERSION = 5
 
-export type ShellMetadataCacheRecord = {
+export type ShellMetadataFingerprint = {
   schema: number
+  /** 主进程当前界面语言，变更后需重写 Windows HKCU 下「新建」等显示名 */
+  uiLocale: string
   platform: NodeJS.Platform
   appVersion: string
   /** 可执行文件或 .app / AppImage 的稳定路径指纹 */
   fingerprint: string
+}
+
+export type ShellMetadataCacheRecord = ShellMetadataFingerprint & {
   updatedAt: number
 }
 
 function cacheFilePath(): string {
   return path.join(app.getPath('userData'), 'shell-metadata-registration.json')
-}
-
-export type ShellMetadataFingerprint = {
-  schema: number
-  platform: NodeJS.Platform
-  appVersion: string
-  fingerprint: string
 }
 
 export function buildShellMetadataFingerprint(): ShellMetadataFingerprint {
@@ -39,6 +38,7 @@ export function buildShellMetadataFingerprint(): ShellMetadataFingerprint {
   }
   return {
     schema: REGISTRATION_SCHEMA_VERSION,
+    uiLocale: getLocale(),
     platform,
     appVersion: app.getVersion(),
     fingerprint
@@ -52,6 +52,7 @@ export function fingerprintMatchesCache(
   if (!cached) return false
   return (
     cached.schema === fp.schema &&
+    cached.uiLocale === fp.uiLocale &&
     cached.platform === fp.platform &&
     cached.appVersion === fp.appVersion &&
     cached.fingerprint === fp.fingerprint
@@ -64,6 +65,7 @@ export async function readShellMetadataCache(): Promise<ShellMetadataCacheRecord
     const j = JSON.parse(raw) as ShellMetadataCacheRecord
     if (
       typeof j.schema === 'number' &&
+      typeof j.uiLocale === 'string' &&
       typeof j.platform === 'string' &&
       typeof j.appVersion === 'string' &&
       typeof j.fingerprint === 'string'

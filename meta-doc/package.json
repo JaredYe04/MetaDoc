@@ -71,24 +71,6 @@
     "startup-profile:build": "node scripts/startup-profile-collect.mjs --build",
     "export-harness": "node export-automation/run-export-harness.mjs"
   },
-  "fileAssociations": [
-    {
-      "ext": "md",
-      "name": "Markdown Document",
-      "description": "Markdown 文件",
-      "role": "Editor",
-      "mimeType": "text/markdown",
-      "icon": "build/md-icon.ico"
-    },
-    {
-      "ext": "tex",
-      "name": "LaTeX Document",
-      "description": "LaTeX 文件",
-      "role": "Editor",
-      "mimeType": "text/latex",
-      "icon": "build/tex-icon.ico"
-    }
-  ],
   "dependencies": {
     "@ai-sdk/google": "^3.0.43",
     "@ai-sdk/openai": "^3.0.41",

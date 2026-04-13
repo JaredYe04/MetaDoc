@@ -343,23 +343,47 @@
               <!-- Ollama 配置（编辑用） -->
               <template v-if="editDraft.selectedLlm === 'ollama' && editDraft.ollama">
                 <FormField name="apiBaseUrl" :label="t('setting.apiBaseUrl')">
-                  <Input v-model="editDraft.ollama.apiUrl" :placeholder="t('setting.ollamaApiUrl')" class="max-w-md" />
+                  <Input
+                    v-model="editDraft.ollama.apiUrl"
+                    :placeholder="t('setting.ollamaApiUrl')"
+                    class="max-w-md"
+                    @blur="onEditDialogApiBlur"
+                  />
                 </FormField>
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Autocomplete
-                    :model-value="editDraft.ollama.selectedModel"
-                    :fetch-suggestions="fetchOllamaSuggestions"
-                    :placeholder="t('setting.chooseModelPlaceholder')"
-                    value-key="value"
-                    input-class="w-[240px] max-w-full"
-                    @update:model-value="(v) => { editDraft.ollama.selectedModel = v }"
-                  />
+                  <Select
+                    :model-value="editDraft?.ollama?.selectedModel || undefined"
+                    :disabled="editDialogModelsLoading"
+                    @update:model-value="
+                      (v) => {
+                        if (editDraft?.ollama)
+                          editDraft.ollama.selectedModel = typeof v === 'string' ? v : ''
+                      }
+                    "
+                  >
+                    <SelectTrigger class="w-[280px] max-w-full">
+                      <SelectValue
+                        :placeholder="
+                          editDialogModelsLoading ? t('common.loading') : t('setting.chooseModelPlaceholder')
+                        "
+                      />
+                    </SelectTrigger>
+                    <SelectContent class="max-h-[280px]">
+                      <SelectItem
+                        v-for="opt in ollamaModelSelectOptions"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormField>
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
                       :checked="editDraft.ollama.enableMaxTokens"
-                      @update:checked="(val) => { editDraft.ollama.enableMaxTokens = val }"
+                      @update:checked="(val) => { if (editDraft?.ollama) editDraft.ollama.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
                       {{ editDraft.ollama.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
@@ -387,6 +411,7 @@
                     :placeholder="t('setting.openaiApiUrl')"
                     :disabled="editDialogIsBuiltinFree"
                     class="max-w-md"
+                    @blur="onEditDialogApiBlur"
                   />
                 </FormField>
                 <FormField name="apiKey" :label="t('setting.apiKey')">
@@ -395,6 +420,7 @@
                     type="password"
                     :placeholder="t('setting.apiKeyPlaceholder')"
                     class="max-w-md"
+                    @blur="onEditDialogApiBlur"
                     @copy.prevent="editDialogIsBuiltinFree && editDraft.openai?.apiKey === BUILTIN_FREE_OPENROUTER_API_KEY"
                   />
                   <p v-if="editDialogIsBuiltinFree" class="text-xs text-muted-foreground mt-1">
@@ -402,21 +428,39 @@
                   </p>
                 </FormField>
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Autocomplete
-                    :model-value="editDraft.openai.selectedModel"
-                    :fetch-suggestions="fetchOpenAISuggestions"
-                    :placeholder="t('setting.chooseModelPlaceholder')"
-                    value-key="value"
-                    input-class="w-[240px] max-w-full"
-                    :disabled="editDialogIsBuiltinFree"
-                    @update:model-value="(v) => { editDraft.openai.selectedModel = v }"
-                  />
+                  <Select
+                    :model-value="editDraft?.openai?.selectedModel || undefined"
+                    :disabled="editDialogIsBuiltinFree || editDialogModelsLoading"
+                    @update:model-value="
+                      (v) => {
+                        if (editDraft?.openai)
+                          editDraft.openai.selectedModel = typeof v === 'string' ? v : ''
+                      }
+                    "
+                  >
+                    <SelectTrigger class="w-[280px] max-w-full">
+                      <SelectValue
+                        :placeholder="
+                          editDialogModelsLoading ? t('common.loading') : t('setting.chooseModelPlaceholder')
+                        "
+                      />
+                    </SelectTrigger>
+                    <SelectContent class="max-h-[280px]">
+                      <SelectItem
+                        v-for="opt in openaiModelSelectOptions"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormField>
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
                       :checked="editDraft.openai.enableMaxTokens"
-                      @update:checked="(val) => { editDraft.openai.enableMaxTokens = val }"
+                      @update:checked="(val) => { if (editDraft?.openai) editDraft.openai.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
                       {{ editDraft.openai.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
@@ -444,23 +488,48 @@
                     type="password"
                     :placeholder="t('setting.apiKeyPlaceholder')"
                     class="max-w-md"
+                    @blur="onEditDialogApiBlur"
                   />
                 </FormField>
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Autocomplete
-                    :model-value="editDraft['openai-official'].selectedModel"
-                    :fetch-suggestions="fetchOpenAIOfficialSuggestions"
-                    :placeholder="t('setting.chooseModelPlaceholder')"
-                    value-key="value"
-                    input-class="w-[240px] max-w-full"
-                    @update:model-value="(v) => { editDraft['openai-official'].selectedModel = v }"
-                  />
+                  <Select
+                    :model-value="editDraft?.['openai-official']?.selectedModel || undefined"
+                    :disabled="editDialogModelsLoading"
+                    @update:model-value="
+                      (v) => {
+                        const d = editDraft?.['openai-official']
+                        if (d) d.selectedModel = typeof v === 'string' ? v : ''
+                      }
+                    "
+                  >
+                    <SelectTrigger class="w-[280px] max-w-full">
+                      <SelectValue
+                        :placeholder="
+                          editDialogModelsLoading ? t('common.loading') : t('setting.chooseModelPlaceholder')
+                        "
+                      />
+                    </SelectTrigger>
+                    <SelectContent class="max-h-[280px]">
+                      <SelectItem
+                        v-for="opt in openaiOfficialModelSelectOptions"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormField>
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
                       :checked="editDraft['openai-official'].enableMaxTokens"
-                      @update:checked="(val) => { editDraft['openai-official'].enableMaxTokens = val }"
+                      @update:checked="
+                        (val) => {
+                          const d = editDraft?.['openai-official']
+                          if (d) d.enableMaxTokens = val
+                        }
+                      "
                     />
                     <span class="text-sm text-muted-foreground">
                       {{ editDraft['openai-official'].enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
@@ -497,20 +566,34 @@
                   />
                 </FormField>
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Autocomplete
-                    :model-value="editDraft.deepseek.selectedModel"
-                    :fetch-suggestions="fetchDeepSeekSuggestions"
-                    :placeholder="t('setting.chooseModelPlaceholder')"
-                    value-key="value"
-                    input-class="w-[240px] max-w-full"
-                    @update:model-value="(v) => { editDraft.deepseek.selectedModel = v }"
-                  />
+                  <Select
+                    :model-value="editDraft?.deepseek?.selectedModel || undefined"
+                    @update:model-value="
+                      (v) => {
+                        if (editDraft?.deepseek)
+                          editDraft.deepseek.selectedModel = typeof v === 'string' ? v : ''
+                      }
+                    "
+                  >
+                    <SelectTrigger class="w-[280px] max-w-full">
+                      <SelectValue :placeholder="t('setting.chooseModelPlaceholder')" />
+                    </SelectTrigger>
+                    <SelectContent class="max-h-[280px]">
+                      <SelectItem
+                        v-for="opt in deepseekModelSelectOptions"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormField>
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
                       :checked="editDraft.deepseek.enableMaxTokens"
-                      @update:checked="(val) => { editDraft.deepseek.enableMaxTokens = val }"
+                      @update:checked="(val) => { if (editDraft?.deepseek) editDraft.deepseek.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
                       {{ editDraft.deepseek.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
@@ -538,23 +621,43 @@
                     type="password"
                     :placeholder="t('setting.geminiApiKeyPlaceholder')"
                     class="max-w-md"
+                    @blur="onEditDialogApiBlur"
                   />
                 </FormField>
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Autocomplete
-                    :model-value="editDraft.gemini.selectedModel"
-                    :fetch-suggestions="fetchGeminiSuggestions"
-                    :placeholder="t('setting.chooseModelPlaceholder')"
-                    value-key="value"
-                    input-class="w-[240px] max-w-full"
-                    @update:model-value="(v) => { editDraft.gemini.selectedModel = v }"
-                  />
+                  <Select
+                    :model-value="editDraft?.gemini?.selectedModel || undefined"
+                    :disabled="editDialogModelsLoading"
+                    @update:model-value="
+                      (v) => {
+                        if (editDraft?.gemini)
+                          editDraft.gemini.selectedModel = typeof v === 'string' ? v : ''
+                      }
+                    "
+                  >
+                    <SelectTrigger class="w-[280px] max-w-full">
+                      <SelectValue
+                        :placeholder="
+                          editDialogModelsLoading ? t('common.loading') : t('setting.chooseModelPlaceholder')
+                        "
+                      />
+                    </SelectTrigger>
+                    <SelectContent class="max-h-[280px]">
+                      <SelectItem
+                        v-for="opt in geminiModelSelectOptions"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormField>
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
                       :checked="editDraft.gemini.enableMaxTokens"
-                      @update:checked="(val) => { editDraft.gemini.enableMaxTokens = val }"
+                      @update:checked="(val) => { if (editDraft?.gemini) editDraft.gemini.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
                       {{ editDraft.gemini.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
@@ -593,20 +696,34 @@
                   />
                 </FormField>
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Autocomplete
-                    :model-value="editDraft.qwen.selectedModel"
-                    :fetch-suggestions="fetchQwenSuggestions"
-                    :placeholder="t('setting.chooseModelPlaceholder')"
-                    value-key="value"
-                    input-class="w-[240px] max-w-full"
-                    @update:model-value="(v) => { editDraft.qwen.selectedModel = v }"
-                  />
+                  <Select
+                    :model-value="editDraft?.qwen?.selectedModel || undefined"
+                    @update:model-value="
+                      (v) => {
+                        if (editDraft?.qwen)
+                          editDraft.qwen.selectedModel = typeof v === 'string' ? v : ''
+                      }
+                    "
+                  >
+                    <SelectTrigger class="w-[280px] max-w-full">
+                      <SelectValue :placeholder="t('setting.chooseModelPlaceholder')" />
+                    </SelectTrigger>
+                    <SelectContent class="max-h-[280px]">
+                      <SelectItem
+                        v-for="opt in qwenModelSelectOptions"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormField>
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
                       :checked="editDraft.qwen.enableMaxTokens"
-                      @update:checked="(val) => { editDraft.qwen.enableMaxTokens = val }"
+                      @update:checked="(val) => { if (editDraft?.qwen) editDraft.qwen.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
                       {{ editDraft.qwen.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
@@ -629,20 +746,39 @@
               <!-- MetaDoc 配置（编辑用） -->
               <template v-else-if="editDraft.selectedLlm === 'metadoc' && editDraft.metadoc">
                 <FormField name="chooseModel" :label="t('setting.chooseModel')">
-                  <Autocomplete
-                    :model-value="editDraft.metadoc.selectedModel"
-                    :fetch-suggestions="fetchMetaDocSuggestions"
-                    :placeholder="t('setting.chooseModelPlaceholder')"
-                    value-key="value"
-                    input-class="w-[240px] max-w-full"
-                    @update:model-value="(v) => { editDraft.metadoc.selectedModel = v }"
-                  />
+                  <Select
+                    :model-value="editDraft?.metadoc?.selectedModel || undefined"
+                    :disabled="editDialogModelsLoading"
+                    @update:model-value="
+                      (v) => {
+                        if (editDraft?.metadoc)
+                          editDraft.metadoc.selectedModel = typeof v === 'string' ? v : ''
+                      }
+                    "
+                  >
+                    <SelectTrigger class="w-[280px] max-w-full">
+                      <SelectValue
+                        :placeholder="
+                          editDialogModelsLoading ? t('common.loading') : t('setting.chooseModelPlaceholder')
+                        "
+                      />
+                    </SelectTrigger>
+                    <SelectContent class="max-h-[280px]">
+                      <SelectItem
+                        v-for="opt in metadocModelSelectOptions"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormField>
                 <FormField name="enableMaxTokens" :label="t('setting.enableMaxTokens')">
                   <div class="flex items-center gap-2">
                     <Switch
                       :checked="editDraft.metadoc.enableMaxTokens"
-                      @update:checked="(val) => { editDraft.metadoc.enableMaxTokens = val }"
+                      @update:checked="(val) => { if (editDraft?.metadoc) editDraft.metadoc.enableMaxTokens = val }"
                     />
                     <span class="text-sm text-muted-foreground">
                       {{ editDraft.metadoc.enableMaxTokens ? t('setting.enabled') : t('setting.disabled') }}
@@ -748,7 +884,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import axios from 'axios'
 import { useI18n } from 'vue-i18n'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
@@ -839,7 +975,6 @@ import {
   NumberFieldDecrement
 } from '@renderer/components/ui/number-field'
 import { Separator } from '@renderer/components/ui/separator'
-import Autocomplete from '@renderer/components/ui/autocomplete/Autocomplete.vue'
 
 // Element Plus 消息组件
 import { messageBox } from '@renderer/utils/messageBox'
@@ -878,6 +1013,23 @@ const openaiModels = ref<OpenAIModel[]>([])
 const openaiOfficialModels = ref<OpenAIModel[]>([])
 const geminiModels = ref<Array<{ name: string; displayName?: string }>>([])
 const metadocModels = ref<MetaDocModel[]>([])
+
+const DEEPSEEK_MODELS = [
+  { value: 'deepseek-chat', label: 'deepseek-chat' },
+  { value: 'deepseek-reasoner', label: 'deepseek-reasoner' }
+]
+const QWEN_MODELS = [
+  { value: 'qwen-turbo', label: 'qwen-turbo' },
+  { value: 'qwen-plus', label: 'qwen-plus' },
+  { value: 'qwen-max', label: 'qwen-max' },
+  { value: 'qwen-max-latest', label: 'qwen-max-latest' },
+  { value: 'qwen3-max', label: 'qwen3-max' },
+  { value: 'qwen3.5-plus', label: 'qwen3.5-plus' },
+  { value: 'qwen3.5-flash', label: 'qwen3.5-flash' },
+  { value: 'qwen3-coder-plus', label: 'qwen3-coder-plus' },
+  { value: 'qwq-plus', label: 'qwq-plus' }
+]
+
 const isDev = ref(false)
 const llmConfigs = ref<LlmConfigItem[]>([])
 const currentConfigId = ref<string>('')
@@ -948,6 +1100,70 @@ const editDraftLockType = computed(() => {
 })
 
 const editDraftLockNameAndDescription = computed(() => editDialogIsBuiltinFree.value)
+
+const editDialogModelsLoading = ref(false)
+
+function modelOptionsWithCurrent(
+  list: { value: string; label: string }[],
+  current: string | undefined
+): { value: string; label: string }[] {
+  const c = (current ?? '').trim()
+  if (!c || list.some((i) => i.value === c)) return list
+  return [{ value: c, label: c }, ...list]
+}
+
+const ollamaModelSelectOptions = computed(() => {
+  const d = editDraft.value?.ollama
+  if (!d) return []
+  const list = ollamaModels.value.map((m) => ({
+    value: m.model,
+    label: m.name || m.model
+  }))
+  return modelOptionsWithCurrent(list, d.selectedModel)
+})
+
+const openaiModelSelectOptions = computed(() => {
+  const d = editDraft.value?.openai
+  if (!d) return []
+  const list = openaiModels.value.map((m) => ({ value: m.id, label: m.id }))
+  return modelOptionsWithCurrent(list, d.selectedModel)
+})
+
+const openaiOfficialModelSelectOptions = computed(() => {
+  const d = editDraft.value?.['openai-official']
+  if (!d) return []
+  const list = openaiOfficialModels.value.map((m) => ({ value: m.id, label: m.id }))
+  return modelOptionsWithCurrent(list, d.selectedModel)
+})
+
+const deepseekModelSelectOptions = computed(() => {
+  const d = editDraft.value?.deepseek
+  if (!d) return []
+  return modelOptionsWithCurrent([...DEEPSEEK_MODELS], d.selectedModel)
+})
+
+const geminiModelSelectOptions = computed(() => {
+  const d = editDraft.value?.gemini
+  if (!d) return []
+  const list = geminiModels.value.map((m) => ({
+    value: m.name,
+    label: m.displayName || m.name
+  }))
+  return modelOptionsWithCurrent(list, d.selectedModel)
+})
+
+const qwenModelSelectOptions = computed(() => {
+  const d = editDraft.value?.qwen
+  if (!d) return []
+  return modelOptionsWithCurrent([...QWEN_MODELS], d.selectedModel)
+})
+
+const metadocModelSelectOptions = computed(() => {
+  const d = editDraft.value?.metadoc
+  if (!d) return []
+  const list = metadocModels.value.map((m) => ({ value: m.label, label: m.label }))
+  return modelOptionsWithCurrent(list, d.selectedModel)
+})
 
 const isCurrentConfigManual = computed(() => {
   const c = getCurrentConfig()
@@ -1308,6 +1524,7 @@ const openEditDialog = (config: LlmConfigItem) => {
   editDraft.value = buildEditDraftFromConfig(config)
   newConfigNameBlurred.value = false
   editDialogVisible.value = true
+  void nextTick(() => void refreshEditDialogModels())
 }
 
 const closeEditDialog = () => {
@@ -1327,6 +1544,7 @@ const handleResetConfigToPreset = async () => {
     loadConfigs()
     editDraft.value = buildEditDraftFromConfig(updated)
     notifySuccess(t('setting.resetConfigSuccess'))
+    void nextTick(() => void refreshEditDialogModels())
   }
 }
 
@@ -1362,6 +1580,7 @@ const onEditDraftTypeChange = () => {
   if (editDraft.value && defaults[type]) {
     ;(editDraft.value as any)[type] = defaults[type]
   }
+  void nextTick(() => void refreshEditDialogModels())
 }
 
 const saveEditDialog = async () => {
@@ -1611,12 +1830,12 @@ const fetchMetaDocModels = async () => {
   }
 }
 
-const fetchOllamaModels = async () => {
-  const apiUrl = settings.ollama.apiUrl
-  if (!apiUrl) return
+const fetchOllamaModels = async (apiUrl?: string) => {
+  const url = (apiUrl ?? settings.ollama.apiUrl)?.trim()
+  if (!url) return
 
   try {
-    const response = await axios.get(`${apiUrl}/tags`)
+    const response = await axios.get(`${url}/tags`)
     if (response.data && response.data.models) {
       ollamaModels.value = response.data.models
     } else {
@@ -1628,15 +1847,16 @@ const fetchOllamaModels = async () => {
   }
 }
 
-const fetchOpenAIModels = async () => {
-  const apiUrl = settings.openai.apiUrl
-  if (!apiUrl) return
+const fetchOpenAIModels = async (apiUrl?: string, apiKey?: string) => {
+  const u = (apiUrl ?? settings.openai.apiUrl)?.trim()
+  const k = (apiKey ?? settings.openai.apiKey) || ''
+  if (!u || !k) return
 
   try {
-    const response = await axios.get(`${apiUrl}/models`, {
+    const response = await axios.get(`${u}/models`, {
       headers: {
         Accept: 'application/json',
-        Authorization: `Bearer ${settings.openai.apiKey}`
+        Authorization: `Bearer ${k}`
       }
     })
 
@@ -1651,15 +1871,15 @@ const fetchOpenAIModels = async () => {
   }
 }
 
-const fetchOpenAIOfficialModels = async () => {
-  const apiKey = settings['openai-official'].apiKey
-  if (!apiKey) return
+const fetchOpenAIOfficialModels = async (apiKey?: string) => {
+  const k = (apiKey ?? settings['openai-official'].apiKey) || ''
+  if (!k) return
 
   try {
     const response = await axios.get('https://api.openai.com/v1/models', {
       headers: {
         Accept: 'application/json',
-        Authorization: `Bearer ${apiKey}`
+        Authorization: `Bearer ${k}`
       }
     })
 
@@ -1674,13 +1894,13 @@ const fetchOpenAIOfficialModels = async () => {
   }
 }
 
-const fetchGeminiModels = async () => {
-  const apiKey = settings.gemini.apiKey
-  if (!apiKey) return
+const fetchGeminiModels = async (apiKey?: string) => {
+  const k = (apiKey ?? settings.gemini.apiKey) || ''
+  if (!k) return
 
   try {
     const response = await axios.get('https://generativelanguage.googleapis.com/v1beta/models', {
-      params: { key: apiKey },
+      params: { key: k },
       headers: { Accept: 'application/json' }
     })
 
@@ -1700,69 +1920,45 @@ const fetchGeminiModels = async () => {
   }
 }
 
-// Autocomplete 建议：拉取后按 query 过滤，下拉随页面滚动
-const filterSuggestions = (list: { value: string; label?: string }[], query: string) => {
-  const q = query.trim().toLowerCase()
-  return q
-    ? list.filter(
-        (i) =>
-          (i.value && i.value.toLowerCase().includes(q)) ||
-          (i.label && i.label.toLowerCase().includes(q))
-      )
-    : list
-}
-const fetchOllamaSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
-  fetchOllamaModels().then(() => {
-    const list = ollamaModels.value.map((m) => ({ value: m.model, label: m.name }))
-    callback(filterSuggestions(list, query))
-  })
-}
-const fetchOpenAISuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
-  fetchOpenAIModels().then(() => {
-    const list = openaiModels.value.map((m) => ({ value: m.id, label: m.id }))
-    callback(filterSuggestions(list, query))
-  })
-}
-const fetchOpenAIOfficialSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
-  fetchOpenAIOfficialModels().then(() => {
-    const list = openaiOfficialModels.value.map((m) => ({ value: m.id, label: m.id }))
-    callback(filterSuggestions(list, query))
-  })
-}
-const DEEPSEEK_MODELS = [
-  { value: 'deepseek-chat', label: 'deepseek-chat' },
-  { value: 'deepseek-reasoner', label: 'deepseek-reasoner' }
-]
-const fetchDeepSeekSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
-  callback(filterSuggestions(DEEPSEEK_MODELS, query))
-}
-const fetchGeminiSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
-  fetchGeminiModels().then(() => {
-    const list = geminiModels.value.map((m) => ({ value: m.name, label: m.displayName || m.name }))
-    callback(filterSuggestions(list, query))
-  })
-}
-const fetchMetaDocSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
-  fetchMetaDocModels().then(() => {
-    const list = metadocModels.value.map((m) => ({ value: m.label, label: m.label }))
-    callback(filterSuggestions(list, query))
-  })
+const refreshEditDialogModels = async () => {
+  if (!editDialogVisible.value || !editDraft.value) return
+  const type = editDraft.value.selectedLlm
+  const needsRemote =
+    type === 'ollama' ||
+    type === 'openai' ||
+    type === 'openai-official' ||
+    type === 'gemini' ||
+    type === 'metadoc'
+  if (needsRemote) editDialogModelsLoading.value = true
+  try {
+    switch (type) {
+      case 'ollama':
+        await fetchOllamaModels(editDraft.value.ollama?.apiUrl)
+        break
+      case 'openai':
+        if (!editDialogIsBuiltinFree.value) {
+          await fetchOpenAIModels(editDraft.value.openai?.apiUrl, editDraft.value.openai?.apiKey)
+        }
+        break
+      case 'openai-official':
+        await fetchOpenAIOfficialModels(editDraft.value['openai-official']?.apiKey)
+        break
+      case 'gemini':
+        await fetchGeminiModels(editDraft.value.gemini?.apiKey)
+        break
+      case 'metadoc':
+        await fetchMetaDocModels()
+        break
+      default:
+        break
+    }
+  } finally {
+    editDialogModelsLoading.value = false
+  }
 }
 
-// 千问/百炼常用模型（阿里云 DashScope 兼容接口）
-const QWEN_MODELS = [
-  { value: 'qwen-turbo', label: 'qwen-turbo' },
-  { value: 'qwen-plus', label: 'qwen-plus' },
-  { value: 'qwen-max', label: 'qwen-max' },
-  { value: 'qwen-max-latest', label: 'qwen-max-latest' },
-  { value: 'qwen3-max', label: 'qwen3-max' },
-  { value: 'qwen3.5-plus', label: 'qwen3.5-plus' },
-  { value: 'qwen3.5-flash', label: 'qwen3.5-flash' },
-  { value: 'qwen3-coder-plus', label: 'qwen3-coder-plus' },
-  { value: 'qwq-plus', label: 'qwq-plus' }
-]
-const fetchQwenSuggestions = (query: string, callback: (r: { value: string; label?: string }[]) => void) => {
-  callback(filterSuggestions(QWEN_MODELS, query))
+const onEditDialogApiBlur = () => {
+  void refreshEditDialogModels()
 }
 
 const handleLlmToggle = (enabled: boolean) => {
@@ -1810,6 +2006,7 @@ const handleCreateConfig = async () => {
     editDraft.value = draft
     newConfigNameBlurred.value = false
     editDialogVisible.value = true
+    void nextTick(() => void refreshEditDialogModels())
   } catch (error) {
     logger.error('打开新建配置失败', error)
     notifyError(t('setting.configCreateFailed') || 'Failed to create configuration')

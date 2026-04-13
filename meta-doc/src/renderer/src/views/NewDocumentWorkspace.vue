@@ -425,21 +425,33 @@ function confirmTemplate(templateId?: string) {
   position: relative;
   display: flex;
   flex-direction: column;
-  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  border: none;
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
   background-color: v-bind('themeState.currentTheme.background');
+  min-height: 0;
+}
+
+/* 叠在整块内容（含 __actions 的毛玻璃层）之上，避免底角描边被盖住 */
+.template-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: inherit;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  transition: border-color 0.2s ease;
 }
 
 .template-card-delete-btn {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 2;
+  z-index: 10;
   opacity: 0;
   transition: opacity 0.05s ease;
   color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.3)"') !important;
@@ -452,13 +464,19 @@ function confirmTemplate(templateId?: string) {
 }
 
 .template-card:hover {
-  border-color: v-bind('themeState.currentTheme.primaryColor + "80"');
   box-shadow: 0 6px 18px v-bind('themeState.currentTheme.primaryColor + "15"');
 }
 
+.template-card:hover::before {
+  border-color: v-bind('themeState.currentTheme.primaryColor + "80"');
+}
+
 .template-card.active {
-  border-color: v-bind('themeState.currentTheme.primaryColor');
   box-shadow: 0 4px 16px v-bind('themeState.currentTheme.primaryColor + "18"');
+}
+
+.template-card.active::before {
+  border-color: v-bind('themeState.currentTheme.primaryColor');
 }
 
 .template-card__image {

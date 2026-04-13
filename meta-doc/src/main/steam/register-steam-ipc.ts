@@ -16,6 +16,10 @@ import { activateGameOverlayToLocalUser } from './steam-overlay-action'
 import { ugcPublish, ugcDownloadItem, listSubscribedWorkshopItems } from './steam-workshop'
 import { getSteamInitResult, initSteam, getGreenworksOrNull } from './steam-state'
 import {
+  getPendingSteamLocaleConflict,
+  resolveSteamLocaleConflictChoice
+} from './steam-startup-locale'
+import {
   pullHistoryFromCloud,
   pullSettingsFromCloud,
   pushHistoryToCloud,
@@ -307,4 +311,23 @@ export function registerSteamIpc(): void {
     const lr = await listSubscribedWorkshopItems(r.gw)
     return lr.success ? ok({ items: lr.items }) : fail(lr.error)
   })
+
+  ipcBridge.registerHandle('steam:startup-locale:get-pending', () => ({
+    pending: getPendingSteamLocaleConflict()
+  }))
+
+  ipcBridge.registerHandle(
+    'steam:startup-locale:choose',
+    (_e: IpcMainInvokeEvent, payload: unknown) => {
+      const loc =
+        payload &&
+        typeof payload === 'object' &&
+        payload !== null &&
+        'locale' in payload &&
+        typeof (payload as { locale: unknown }).locale === 'string'
+          ? (payload as { locale: string }).locale
+          : ''
+      return resolveSteamLocaleConflictChoice(loc)
+    }
+  )
 }

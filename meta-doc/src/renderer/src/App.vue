@@ -8,6 +8,13 @@
       }"
     >
       <FirstRunWizard v-if="firstRunWizardVisible" @completed="onFirstRunWizardCompleted" />
+      <SteamLocaleConflictDialog
+        v-if="steamLocaleConflict"
+        v-model:open="steamLocaleConflictOpen"
+        :steam-locale="steamLocaleConflict.steamLocale"
+        :app-locale="steamLocaleConflict.appLocale"
+        @resolved="onSteamLocaleConflictResolved"
+      />
       <!-- 布局仅在需要时显示 -->
       <Main v-if="requiresLayout" />
       <!-- 如果不需要布局，则直接渲染路由页面 -->
@@ -61,6 +68,8 @@ import './assets/hide-native-scrollbar.css'
 import NotificationStack from './components/NotificationStack.vue'
 import TerminalApprovalDialog from './components/global/TerminalApprovalDialog.vue'
 import FirstRunWizard from './components/onboarding/FirstRunWizard.vue'
+import SteamLocaleConflictDialog from './components/onboarding/SteamLocaleConflictDialog.vue'
+import messageBridge from './bridge/message-bridge'
 import { useNotificationStore } from './stores/notification'
 import { setNotificationStore } from './utils/notify'
 import { initNotificationLegacyAdapter } from './utils/notifications-legacy'
@@ -79,9 +88,15 @@ const globalShortcuts = useGlobalShortcuts({ workspace, t })
 const requiresLayout = computed(() => route.meta.requiresLayout !== false)
 const initialLoad = ref(true)
 const firstRunWizardVisible = ref(false)
+const steamLocaleConflict = ref<{ steamLocale: string; appLocale: string } | null>(null)
+const steamLocaleConflictOpen = ref(false)
 
 function onFirstRunWizardCompleted() {
   firstRunWizardVisible.value = false
+}
+
+function onSteamLocaleConflictResolved() {
+  steamLocaleConflict.value = null
 }
 
 /**
@@ -340,6 +355,22 @@ onMounted(async () => {
     const needWizard = await prepareFirstRunWizardOnStartup()
     if (needWizard) {
       firstRunWizardVisible.value = true
+    } else {
+      try {
+        const pr = await messageBridge.invoke('steam:startup-locale:get-pending')
+        if (
+          pr &&
+          typeof pr === 'object' &&
+          pr.pending &&
+          typeof pr.pending.steamLocale === 'string' &&
+          typeof pr.pending.appLocale === 'string'
+        ) {
+          steamLocaleConflict.value = pr.pending
+          steamLocaleConflictOpen.value = true
+        }
+      } catch (e) {
+        logger.debug('steam startup locale pending check skipped', e)
+      }
     }
   }
 

@@ -53,8 +53,10 @@ import {
 import { ensureInitialized } from './database/knowledge-db'
 import { mark as startupProfileMark, getTimelineForRenderer } from './startup-profile'
 import { initSteam, shutdownSteam, getGreenworksOrNull } from './steam/steam-state'
+import { applySteamLanguageOnStartup } from './steam/steam-startup-locale'
 import { registerShellMetadataOnLaunch } from './system-integration/register-shell-metadata'
 import { killAllPtys } from './utils/terminal-pty-service'
+import { isOpenableFilePath } from '../common/openable-file-extensions'
 
 const url = require('url')
 const path = require('path')
@@ -122,8 +124,6 @@ startupProfileMark('after_init_logger_i18n')
 const logger = createMainLogger('MainProcess')
 
 import { getRuntimeServerHost, getRuntimeServerPort } from './runtime-server-config'
-
-const SUPPORTED_FILE_EXTENSIONS = new Set(['.md', '.json', '.txt', '.tex'])
 
 const startupFileArgument = findSupportedFileArgument(process.argv)
 // 若由 bootstrap 已做过单实例检测，则不再发起请求，直接视为本实例为主实例
@@ -745,6 +745,7 @@ app.whenReady().then(async () => {
   }
 
   initSteam()
+  applySteamLanguageOnStartup()
 
   void import('./steam/steam-playtime-tracker').then(({ startSteamPlaytimeTracker }) => {
     startSteamPlaytimeTracker(() => getGreenworksOrNull())
@@ -763,14 +764,14 @@ app.whenReady().then(async () => {
     )
   })
 
-  // Express 先启动，再创建窗口并加载骨架页，窗口尽早显示；后续加载在骨架屏展示期间进行
+  // Express 先启动；IPC 须在 createWindow 之前注册，避免渲染进程首帧 invoke 时尚未 handle
   startupProfileMark('run_express_server_called')
   runExpressServer()
+  registerMainProcessIpc()
+  registerDragManagerIPC()
   startupProfileMark('create_window_called')
   createWindow()
 
-  registerMainProcessIpc()
-  registerDragManagerIPC()
   initWindowPool()
   startFileRegistry()
 
@@ -1122,8 +1123,7 @@ interface HttpRequestResult {
 function findSupportedFileArgument(args: string[]): string | null {
   for (const arg of args) {
     if (!arg || arg.startsWith('--')) continue
-    const ext = path.extname(arg).toLowerCase()
-    if (SUPPORTED_FILE_EXTENSIONS.has(ext) && fs.existsSync(arg)) {
+    if (isOpenableFilePath(arg) && fs.existsSync(arg)) {
       return path.resolve(arg)
     }
   }

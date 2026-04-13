@@ -16,6 +16,7 @@ import {
   readShellMetadataCache,
   writeShellMetadataCache
 } from './shell-metadata-cache'
+import { ensureUserNewDocumentTemplatesInstalled } from './ensure-new-document-templates'
 
 const logger = createMainLogger('ShellMetadata')
 
@@ -186,6 +187,12 @@ async function registerShellMetadataOnLaunchImpl(options?: {
     } catch (e) {
       logger.warn('writeShellMetadataCache failed', e)
     }
+  }
+
+  if (app.isPackaged && (process.platform === 'linux' || process.platform === 'darwin')) {
+    void ensureUserNewDocumentTemplatesInstalled().catch((e) =>
+      logger.warn('ensureUserNewDocumentTemplatesInstalled failed', e)
+    )
   }
 
   return result

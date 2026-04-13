@@ -1,4 +1,10 @@
 {
+  "windowsShell": {
+    "markdownDocument": "Markdown-Dokument",
+    "markdownNewMenu": "Markdown",
+    "latexDocument": "LaTeX-Dokument",
+    "latexNewMenu": "LaTeX"
+  },
   "markdownEditor": {
     "outlineMenu": {
       "optimizeSection": "Aktuellen Abschnitt optimieren",

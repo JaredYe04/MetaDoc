@@ -1,0 +1,29 @@
+# 由 scripts/generate-shell-bindings-artifacts.mjs 生成；编辑 src/common/shell-file-bindings.json 后重新运行 npm run prebuild
+mac:
+  fileAssociations:
+    - ext: md
+      name: "Markdown Document"
+      description: "Markdown 文件"
+      role: Editor
+      mimeType: "text/markdown"
+      icon: md-icon.icns
+    - ext: tex
+      name: "LaTeX Document"
+      description: "LaTeX 文件"
+      role: Editor
+      mimeType: "text/latex"
+      icon: tex-icon.icns
+linux:
+  fileAssociations:
+    - ext: md
+      name: "Markdown Document"
+      description: "Markdown 文件"
+      role: Editor
+      mimeType: "text/markdown"
+      icon: md-icon.png
+    - ext: tex
+      name: "LaTeX Document"
+      description: "LaTeX 文件"
+      role: Editor
+      mimeType: "text/latex"
+      icon: tex-icon.png

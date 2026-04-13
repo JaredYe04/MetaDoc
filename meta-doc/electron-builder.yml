@@ -1,3 +1,5 @@
+extends:
+  - ./build/electron-builder.file-associations.yml
 appId: com.byte-light.metadoc
 productName: MetaDoc
 directories:
@@ -15,7 +17,7 @@ files:
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,electron-vite.config.{js,ts,mjs,cjs},app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - 'resources/.env' # 允许 resources 目录下的 .env 文件被打包
   # 排除开发相关的 node_modules 目录和文件
@@ -63,27 +65,20 @@ asarUnpack:
   - node_modules/plantuml-encoder/**
   - node_modules/node-latex-compiler/**
   - node_modules/greenworks/**
+# 去掉 win.fileAssociations 后，builder 不再把关联图标拷到 resources；注册表 DefaultIcon 需真实路径。
+# 与 build/installer.nsh、user-file-associations-win 查找的 resources\*.ico 一致（npm run prebuild / copy-env 会保证 build 下存在）。
+extraResources:
+  - from: build/md-icon.ico
+    to: md-icon.ico
+  - from: build/tex-icon.ico
+    to: tex-icon.ico
 win:
   executableName: meta-doc
   # LaTeX 编译使用 node-latex-compiler，其临时目录在安装目录下（如 C:\Program Files\meta-doc\...），
   # 无管理员权限无法创建，故要求以管理员身份运行
   requestedExecutionLevel: requireAdministrator
   icon: icon.ico # 主应用程序图标（相对于 buildResources (build) 目录）
-  # Windows 文件关联配置
-  # 注意：图标路径应该是相对于 buildResources 目录的
-  fileAssociations:
-    - ext: md
-      name: Markdown Document
-      description: Markdown 文件
-      role: Editor
-      mimeType: text/markdown
-      icon: md-icon.ico # 相对于 buildResources (build) 目录
-    - ext: tex
-      name: LaTeX Document
-      description: LaTeX 文件
-      role: Editor
-      mimeType: text/latex
-      icon: tex-icon.ico # 相对于 buildResources (build) 目录
+  # Windows 关联清单：src/common/shell-file-bindings.json → build/installer-bindings.inc.nsh（勿在 win.fileAssociations 重复）
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -102,20 +97,7 @@ mac:
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  # macOS 文件关联配置
-  fileAssociations:
-    - ext: md
-      name: Markdown Document
-      description: Markdown 文件
-      role: Editor
-      mimeType: text/markdown
-      icon: md-icon.icns # 相对于 buildResources (build) 目录
-    - ext: tex
-      name: LaTeX Document
-      description: LaTeX 文件
-      role: Editor
-      mimeType: text/latex
-      icon: tex-icon.icns # 相对于 buildResources (build) 目录
+  # macOS 下 fileAssociations 由 extends 的生成文件提供（同源 shell-file-bindings.json）
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
@@ -127,20 +109,7 @@ linux:
     - deb
   maintainer: electronjs.org
   category: Utility
-  # Linux 文件关联配置
-  fileAssociations:
-    - ext: md
-      name: Markdown Document
-      description: Markdown 文件
-      role: Editor
-      mimeType: text/markdown
-      icon: md-icon.png # 相对于 buildResources (build) 目录
-    - ext: tex
-      name: LaTeX Document
-      description: LaTeX 文件
-      role: Editor
-      mimeType: text/latex
-      icon: tex-icon.png # 相对于 buildResources (build) 目录
+  # Linux 下 fileAssociations 由 extends 的生成文件提供（同源 shell-file-bindings.json）
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

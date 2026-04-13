@@ -1,5 +1,11 @@
 {
   "lang": "ja_JP",
+  "windowsShell": {
+    "markdownDocument": "Markdown ドキュメント",
+    "markdownNewMenu": "Markdown",
+    "latexDocument": "LaTeX ドキュメント",
+    "latexNewMenu": "LaTeX"
+  },
   "markdownEditor": {
     "outlineMenu": {
       "optimizeSection": "現在の段落を最適化",

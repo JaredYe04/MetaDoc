@@ -9,6 +9,7 @@ import path from 'path'
 import { execFile as execFileCb } from 'child_process'
 import { promisify } from 'util'
 import { createMainLogger } from '../logger'
+import { t } from '../i18n'
 
 const execFileAsync = promisify(execFileCb)
 
@@ -40,6 +41,14 @@ async function regEnsureKey(key: string): Promise<void> {
     await regAsync(['add', key, '/f'])
   } catch {
     // 已存在
+  }
+}
+
+async function regDeleteKeyIfExists(key: string): Promise<void> {
+  try {
+    await regAsync(['delete', key, '/f'])
+  } catch {
+    // 不存在或已删除
   }
 }
 
@@ -99,13 +108,19 @@ export async function writeWindowsCurrentUserFileAssociationsAsync(): Promise<{
   const progMdKey = `HKCU\\Software\\Classes\\${PROG_MD}`
   const progTexKey = `HKCU\\Software\\Classes\\${PROG_TEX}`
 
+  const mdTypeName = t('windowsShell.markdownDocument', 'Markdown Document')
+  const mdNewLabel = t('windowsShell.markdownNewMenu', 'Markdown')
+  const texTypeName = t('windowsShell.latexDocument', 'LaTeX Document')
+  const texNewLabel = t('windowsShell.latexNewMenu', 'LaTeX')
+
   try {
+    // 与 NSIS 一致：去掉 SupportedTypes，避免与 ProgID 并列出现两条「MetaDoc」（一条为 exe 默认图标）
+    await regDeleteKeyIfExists(`${appRegKey}\\SupportedTypes`)
+
     await regAddVe(appRegKey, DISPLAY_NAME)
     await regAddV(appRegKey, 'FriendlyAppName', DISPLAY_NAME)
     await regAddVe(`${appRegKey}\\DefaultIcon`, icons.appIcon)
     await regAddVe(`${appRegKey}\\shell\\open\\command`, openCmd)
-    await regEnsureKey(`${appRegKey}\\SupportedTypes\\.md`)
-    await regEnsureKey(`${appRegKey}\\SupportedTypes\\.tex`)
 
     await regAddVe(appPathsKey, exePath)
 
@@ -116,13 +131,24 @@ export async function writeWindowsCurrentUserFileAssociationsAsync(): Promise<{
     await regAddV(capFa, '.md', PROG_MD)
     await regAddV(capFa, '.tex', PROG_TEX)
 
-    await regAddVe(progMdKey, 'Markdown Document')
+    await regAddVe(progMdKey, mdTypeName)
     await regAddVe(`${progMdKey}\\DefaultIcon`, icons.md)
     await regAddVe(`${progMdKey}\\shell\\open\\command`, openCmd)
 
-    await regAddVe(progTexKey, 'LaTeX Document')
+    await regAddVe(progTexKey, texTypeName)
     await regAddVe(`${progTexKey}\\DefaultIcon`, icons.tex)
     await regAddVe(`${progTexKey}\\shell\\open\\command`, openCmd)
+
+    // 当前用户「新建」菜单（Steam / 便携版无 NSIS 时使用 HKCU 登记）；文案与主进程 i18n 一致
+    await regEnsureKey('HKCU\\Software\\Classes\\.md\\ShellNew')
+    await regAddV('HKCU\\Software\\Classes\\.md\\ShellNew', 'NullFile', '')
+    await regAddV('HKCU\\Software\\Classes\\.md\\ShellNew', 'ItemName', mdNewLabel)
+    await regEnsureKey('HKCU\\Software\\Classes\\.tex\\ShellNew')
+    await regAddV('HKCU\\Software\\Classes\\.tex\\ShellNew', 'NullFile', '')
+    await regAddV('HKCU\\Software\\Classes\\.tex\\ShellNew', 'ItemName', texNewLabel)
+
+    await regEnsureKey(`HKCU\\Software\\Classes\\.md\\OpenWithProgids\\${PROG_MD}`)
+    await regEnsureKey(`HKCU\\Software\\Classes\\.tex\\OpenWithProgids\\${PROG_TEX}`)
 
     return { ok: true }
   } catch (e) {

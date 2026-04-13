@@ -80,3 +80,17 @@ if (missingIcons.length > 0) {
   console.warn('   npm run generate-icons\n')
   // 不退出，允许构建继续（electron-builder 可能会使用默认图标）
 }
+
+// Windows：若缺 md-icon.ico 但已有 tex-icon.ico，复制一份避免 .md 关联落到空白/错误 ICO（临时优于无）
+if (platform === 'win32') {
+  const mdIco = path.join(buildDir, 'md-icon.ico')
+  const texIco = path.join(buildDir, 'tex-icon.ico')
+  if (!fs.existsSync(mdIco) && fs.existsSync(texIco)) {
+    try {
+      fs.copyFileSync(texIco, mdIco)
+      console.log('✓ 已从 tex-icon.ico 复制生成 md-icon.ico（建议后续执行 npm run generate-icons 生成专用 Markdown 图标）')
+    } catch (e) {
+      console.warn('✗ 无法从 tex-icon 复制 md-icon.ico:', e.message)
+    }
+  }
+}

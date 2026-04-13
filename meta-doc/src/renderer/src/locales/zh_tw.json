@@ -1,5 +1,11 @@
 {
   "lang": "zh_TW",
+  "windowsShell": {
+    "markdownDocument": "Markdown 文件",
+    "markdownNewMenu": "Markdown",
+    "latexDocument": "LaTeX 文件",
+    "latexNewMenu": "LaTeX"
+  },
   "markdownEditor": {
     "outlineMenu": {
       "optimizeSection": "優化目前段落",

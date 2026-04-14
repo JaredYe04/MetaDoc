@@ -24,6 +24,7 @@ import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import path from 'path'
 import fs from 'fs'
+import { resolveDocumentMetadataAbsolutePath } from './utils/document-metadata-paths'
 import { pathToFileURL } from 'url'
 
 // 第三方模块
@@ -395,7 +396,10 @@ interface SaveData {
   json: string
   tex: string
   format: DocumentFormat
-  sidecarMetadata?: Buffer | Uint8Array | number[] // Sidecar文件的元信息（二进制，渲染进程传递Uint8Array，主进程转换为Buffer）
+  /** 工作区根目录列表（与侧栏 workspaceFolders 一致），用于解析 `.metadoc/doc-meta/` 落盘路径 */
+  workspaceFolders?: string[]
+  /** 文档元数据二进制（msgpack/zstd），写入 `.metadoc/doc-meta/<hash>.meta` 或 userData */
+  documentMetadata?: Buffer | Uint8Array | number[]
   args?: {
     format: string
   }
@@ -1563,58 +1567,40 @@ function bindFileHandlers(): void {
     }
   )
 
-  // 读取Sidecar文件
-  // 注意：Electron IPC会自动将Buffer序列化为ArrayBuffer，在渲染进程中会变成Uint8Array
+  // 读取文档元数据（`.metadoc/doc-meta/` 或 userData）
   ipcBridge.registerHandle(
-    'read-sidecar-file',
-    async (event: IpcMainInvokeEvent, payload: { path: string }): Promise<Buffer | null> => {
+    'read-document-metadata',
+    async (
+      event: IpcMainInvokeEvent,
+      payload: { docPath: string; workspaceFolders?: string[] }
+    ): Promise<Buffer | null> => {
       try {
-        const { path: filePath } = payload
-
-        if (!filePath) {
-          logger.warn('[read-sidecar-file] 文件路径为空')
+        const docPath = payload?.docPath
+        if (!docPath) {
+          logger.warn('[read-document-metadata] docPath 为空')
           return null
         }
-
-        if (!fs.existsSync(filePath)) {
+        const { absolutePath: metaPath } = resolveDocumentMetadataAbsolutePath(
+          docPath,
+          payload.workspaceFolders
+        )
+        if (!fs.existsSync(metaPath)) {
           return null
         }
-
-        // 读取二进制文件
-        const buffer = fs.readFileSync(filePath)
-
-        // 验证文件完整性：检查是否有有效的数据
+        const buffer = fs.readFileSync(metaPath)
         if (buffer.length === 0) {
-          logger.warn('[read-sidecar-file] 文件为空', { filePath })
+          logger.warn('[read-document-metadata] 文件为空', { metaPath })
           return null
         }
-
-        // 验证第一个字节是否是有效的标记（0x00 或 0x01）
-        const firstByte = buffer[0]
-        if (firstByte !== 0x00 && firstByte !== 0x01) {
-          logger.warn('[read-sidecar-file] 文件格式无效（第一个字节不是有效标记）', {
-            filePath,
-            firstByte,
-            firstByteHex: '0x' + firstByte.toString(16).padStart(2, '0')
-          })
-          // 不返回null，让渲染进程尝试处理（可能是旧格式）
-        }
-
-        logger.info('[read-sidecar-file] 文件读取成功', {
-          filePath,
-          bufferLength: buffer.length,
-          firstByte: buffer[0],
-          firstByteHex: '0x' + buffer[0].toString(16).padStart(2, '0')
+        logger.debug('[read-document-metadata] 读取成功', {
+          metaPath,
+          bufferLength: buffer.length
         })
-
-        // Electron IPC会自动将Buffer转换为ArrayBuffer/Uint8Array
-        // 直接返回Buffer即可，渲染进程会收到Uint8Array
         return buffer
       } catch (error) {
-        logger.error('[read-sidecar-file] 读取Sidecar文件失败', {
+        logger.error('[read-document-metadata] 读取失败', {
           error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          filePath: payload?.path
+          docPath: payload?.docPath
         })
         return null
       }
@@ -4946,7 +4932,7 @@ const quit = (): void => {
 const saveInternal = async (
   data: SaveData,
   saveAs: boolean
-): Promise<{ path: string; format: string } | null> => {
+): Promise<{ path: string; format: string; metadataStorage?: 'workspace' | 'userData' } | null> => {
   let filePath = data.path
   let content = ''
 
@@ -5003,88 +4989,48 @@ const saveInternal = async (
   // 写入文件
   fs.writeFileSync(filePath, content)
 
-  // 如果存在Sidecar元信息，写入Sidecar文件
-  if (data.sidecarMetadata && (format === 'md' || format === 'tex')) {
+  let metadataStorage: 'workspace' | 'userData' | undefined
+  if (data.documentMetadata && (format === 'md' || format === 'tex')) {
     try {
-      const sidecarPath = getSidecarPath(filePath)
-      // 将渲染进程传递的Uint8Array转换为Buffer
+      const { absolutePath: metaPath, storage } = resolveDocumentMetadataAbsolutePath(
+        filePath,
+        data.workspaceFolders
+      )
+      metadataStorage = storage
       let buffer: Buffer
-      if (Buffer.isBuffer(data.sidecarMetadata)) {
-        buffer = data.sidecarMetadata
-      } else if (data.sidecarMetadata instanceof Uint8Array) {
-        buffer = Buffer.from(data.sidecarMetadata)
-      } else if (Array.isArray(data.sidecarMetadata)) {
-        buffer = Buffer.from(data.sidecarMetadata)
+      if (Buffer.isBuffer(data.documentMetadata)) {
+        buffer = data.documentMetadata
+      } else if (data.documentMetadata instanceof Uint8Array) {
+        buffer = Buffer.from(data.documentMetadata)
+      } else if (Array.isArray(data.documentMetadata)) {
+        buffer = Buffer.from(data.documentMetadata)
       } else {
-        throw new Error('不支持的sidecarMetadata类型')
+        throw new Error('不支持的 documentMetadata 类型')
       }
 
-      // 如果文件已存在，先删除（避免权限问题）
-      if (fs.existsSync(sidecarPath)) {
-        try {
-          // 先尝试移除隐藏属性（如果存在），以便删除
-          if (process.platform === 'win32') {
-            const { execSync } = require('child_process')
-            try {
-              execSync(`attrib -h "${sidecarPath}"`, { stdio: 'ignore' })
-            } catch (err) {
-              // 忽略移除隐藏属性失败的错误
-            }
-          }
-          fs.unlinkSync(sidecarPath)
-        } catch (unlinkError) {
-          logger.warn('删除旧Sidecar文件失败，尝试直接覆盖:', unlinkError)
-          // 如果删除失败，尝试直接覆盖（某些情况下可能成功）
-        }
-      }
-
-      // 写入二进制文件（同步写入，确保数据完全写入）
-      fs.writeFileSync(sidecarPath, buffer, { flag: 'w' }) // 明确指定写入模式
-
-      // 同步刷新文件系统缓存，确保数据写入磁盘
-      const fd = fs.openSync(sidecarPath, 'r+')
+      fs.mkdirSync(path.dirname(metaPath), { recursive: true })
+      fs.writeFileSync(metaPath, buffer, { flag: 'w' })
+      const fd = fs.openSync(metaPath, 'r+')
       fs.fsyncSync(fd)
       fs.closeSync(fd)
 
-      // 在Windows上设置隐藏属性
-      if (process.platform === 'win32') {
-        const { execSync } = require('child_process')
-        try {
-          execSync(`attrib +h "${sidecarPath}"`, { stdio: 'ignore' })
-        } catch (err) {
-          // 忽略设置隐藏属性失败的错误
-          logger.warn('设置Sidecar文件隐藏属性失败:', err)
-        }
-      }
-
-      logger.debug('[saveInternal] Sidecar文件写入成功', {
-        sidecarPath,
+      logger.debug('[saveInternal] 文档元数据写入成功', {
+        metaPath,
+        storage,
         bufferLength: buffer.length,
         firstByte: buffer[0],
         firstByteHex: '0x' + buffer[0].toString(16).padStart(2, '0')
       })
     } catch (error) {
-      logger.error('写入Sidecar文件失败:', error)
-      // 不抛出错误，避免影响主文件的保存，但记录错误
+      logger.error('写入文档元数据失败:', error)
     }
   }
 
   return {
     path: filePath,
-    format
+    format,
+    ...(metadataStorage ? { metadataStorage } : {})
   }
-}
-
-/**
- * 生成Sidecar文件路径
- * 使用path模块（主进程环境）
- * @param filePath 原始文件路径
- * @returns Sidecar文件路径
- */
-function getSidecarPath(filePath: string): string {
-  const dir = path.dirname(filePath)
-  const basename = path.basename(filePath)
-  return path.join(dir, `.${basename}.meta`)
 }
 
 const save = async (data: SaveData, saveAs: boolean): Promise<void> => {
@@ -5504,26 +5450,20 @@ function extractTitleFromSaveData(data: SaveData): string | null {
 
     // 简单的标题提取逻辑（与渲染进程保持一致）
     if (format === 'md') {
-      // 移除 Markdown 中的元信息标记（<!--meta-info: ... -->）
-      const contentWithoutMeta = content.replace(/<!--meta-info:[^>]*-->/g, '').trim()
-      const firstTitleMatch = contentWithoutMeta.match(/^(#+)\s+(.+)$/m)
+      const trimmed = content.trim()
+      const firstTitleMatch = trimmed.match(/^(#+)\s+(.+)$/m)
       if (firstTitleMatch) {
         const title = firstTitleMatch[2].trim()
         return title.replace(/\*\*|__|\*|_|`/g, '').trim()
       }
     } else if (format === 'tex') {
-      // 移除 LaTeX 中的元信息标记（%META-INFO: ... 和警告行）
-      const contentWithoutMeta = content
-        .replace(/% 请勿手动修改此行及下面的 META-INFO.*\n?/g, '')
-        .replace(/%META-INFO:[^\n]*\n?/g, '')
-        .trim()
-      // 尝试匹配 \title{}
-      const titleMatch = contentWithoutMeta.match(/\\title\{([^}]+)\}/)
+      const trimmed = content.trim()
+      const titleMatch = trimmed.match(/\\title\{([^}]+)\}/)
       if (titleMatch) {
         return titleMatch[1].trim()
       }
       // 尝试匹配 \section{}
-      const sectionMatch = contentWithoutMeta.match(/\\section\{([^}]+)\}/)
+      const sectionMatch = trimmed.match(/\\section\{([^}]+)\}/)
       if (sectionMatch) {
         return sectionMatch[1].trim()
       }

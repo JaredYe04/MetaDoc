@@ -304,8 +304,6 @@ import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import { computeDiff } from '../utils/agent-tools/diff-tool'
 import type { DiffChunk, DiffResult } from '../utils/agent-tools/diff-tool'
-import { removeMetaInfo } from '../utils/meta-info-remover'
-
 const { t } = useI18n()
 
 interface Props {
@@ -358,19 +356,11 @@ const allConflictsResolved = computed(() => {
   return conflictRanges.every((_, index) => conflictChoices.value.has(index))
 })
 
-// 移除 meta-info 后的内容（用于 diff 比较）
-// meta-info 是 MetaDoc 注入的，不应该显示在 diff 窗口中
-const currentContentWithoutMeta = computed(() => {
-  return removeMetaInfo(props.currentContent, props.format)
-})
+const currentContentForDiff = computed(() => props.currentContent)
+const externalContentForDiff = computed(() => props.externalContent)
 
-const externalContentWithoutMeta = computed(() => {
-  return removeMetaInfo(props.externalContent, props.format)
-})
-
-// 计算差异（使用移除 meta-info 后的内容）
 const diffResult = computed<DiffResult>(() => {
-  return computeDiff(currentContentWithoutMeta.value, externalContentWithoutMeta.value)
+  return computeDiff(currentContentForDiff.value, externalContentForDiff.value)
 })
 
 const diffChunks = computed<DiffChunk[]>(() => {
@@ -455,11 +445,11 @@ const getConflictChoice = (conflictIndex: number): 'current' | 'external' | null
 // 生成合并后的内容
 const generateMergedContent = (): string => {
   if (!hasConflicts.value || !props.savedContent) {
-    return currentContentWithoutMeta.value
+    return currentContentForDiff.value
   }
 
-  const currentLines = currentContentWithoutMeta.value.split('\n')
-  const externalLines = externalContentWithoutMeta.value.split('\n')
+  const currentLines = currentContentForDiff.value.split('\n')
+  const externalLines = externalContentForDiff.value.split('\n')
   const savedLines = props.savedContent.split('\n')
   const mergedLines: string[] = []
 
@@ -605,9 +595,9 @@ const initMonacoEditors = async () => {
   if (oldEditor) oldEditor.dispose()
   if (newEditor) newEditor.dispose()
 
-  // 创建编辑器（显示移除 meta-info 后的内容）
+  // 创建编辑器（当前版本与外部版本）
   const oldMonacoEditor = monaco.editor.create(oldContainer, {
-    value: currentContentWithoutMeta.value,
+    value: currentContentForDiff.value,
     language: 'plaintext',
     theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
     readOnly: true,
@@ -621,7 +611,7 @@ const initMonacoEditors = async () => {
   })
 
   const newMonacoEditor = monaco.editor.create(newContainer, {
-    value: externalContentWithoutMeta.value,
+    value: externalContentForDiff.value,
     language: 'plaintext',
     theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
     readOnly: true,
@@ -797,7 +787,7 @@ watch(
   }
 )
 
-watch([currentContentWithoutMeta, externalContentWithoutMeta], async () => {
+watch([currentContentForDiff, externalContentForDiff], async () => {
   if (props.visible && viewMode.value === 'split') {
     await nextTick()
     initMonacoEditors()

@@ -148,7 +148,6 @@ import { useI18n } from 'vue-i18n'
 import { themeState, mixColors } from '../utils/themes'
 import { formatRegistry } from '../utils/format-registry'
 import { extname } from '../utils/path-utils'
-import { isDocumentSidecarMetaFileName } from '../utils/workspace-tree-logic'
 import {
   WORKSPACE_FILE_PATH_DRAG_MIME,
   beginWorkspaceTreePathDragSession,
@@ -236,14 +235,7 @@ const isCreatingParent = computed(
     !!props.pendingCreate && props.pendingCreate.parentPath === props.node.path
 )
 
-/** 与 WorkspaceExplorer 一致：不展示 `.${文档名}.md|tex.meta` sidecar */
-const displayChildren = computed(() => {
-  const ch = props.node.children
-  if (!ch?.length) return []
-  return ch.filter(
-    (c) => !(c.type === 'file' && isDocumentSidecarMetaFileName(c.name))
-  )
-})
+const displayChildren = computed(() => props.node.children ?? [])
 
 const creatingName = ref('')
 const creatingInputRef = ref<HTMLInputElement | null>(null)

@@ -1836,7 +1836,6 @@ async function saveAllDocuments(): Promise<{ saved: string[]; failed: string[] }
 // ===== 跨窗口文档信息获取（用于设置窗口的Agent Tool测试） =====
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 import { mergeText } from '../utils/text-merge.js'
-import { removeMetaInfo } from '../utils/meta-info-remover'
 
 /**
  * 初始化workspace的跨窗口事件监听器
@@ -1892,14 +1891,9 @@ function handleExternalFileChange(payload: unknown): void {
       // 规范化内容（统一换行符）
       const normalizeContent = (text: string) => text.replace(/\r\n/g, '\n')
 
-      // 移除 meta-info 以便比较（meta-info 是 MetaDoc 注入的，不应该参与比较）
-      const externalContentWithoutMeta = removeMetaInfo(content, doc.format)
-      const currentContentWithoutMeta = removeMetaInfo(currentContent, doc.format)
-      const savedContentWithoutMeta = removeMetaInfo(savedContent, doc.format)
-
-      const normalizedExternal = normalizeContent(externalContentWithoutMeta)
-      const normalizedCurrent = normalizeContent(currentContentWithoutMeta)
-      const normalizedSaved = normalizeContent(savedContentWithoutMeta)
+      const normalizedExternal = normalizeContent(content)
+      const normalizedCurrent = normalizeContent(currentContent)
+      const normalizedSaved = normalizeContent(savedContent)
 
       // 情况1：外部文件内容与已保存内容相同（文件被外部恢复或撤销）
       if (normalizedExternal === normalizedSaved) {
@@ -1911,11 +1905,10 @@ function handleExternalFileChange(payload: unknown): void {
         }
         // 如果当前内容与已保存内容相同，直接同步外部文件
         logger.info('外部文件已恢复为已保存版本，同步更新', { filePath })
-        // 使用移除 meta-info 后的内容
         if (doc.format === 'tex') {
-          updateDocumentTex(matchingTab.id, externalContentWithoutMeta)
+          updateDocumentTex(matchingTab.id, content)
         } else {
-          updateDocumentMarkdown(matchingTab.id, externalContentWithoutMeta)
+          updateDocumentMarkdown(matchingTab.id, content)
         }
         markDocumentSaved(matchingTab.id, filePath)
         return
@@ -1947,12 +1940,7 @@ function handleExternalFileChange(payload: unknown): void {
           savedSize: normalizedSaved.length
         })
 
-        // 执行三路合并（使用移除 meta-info 后的内容，避免 meta-info 干扰合并）
-        const mergeResult = mergeText(
-          savedContentWithoutMeta,
-          currentContentWithoutMeta,
-          externalContentWithoutMeta
-        )
+        const mergeResult = mergeText(savedContent, currentContent, content)
 
         // 只要有冲突，就弹出对话框让用户选择，不自动合并
         if (mergeResult.hasConflict) {
@@ -1962,14 +1950,12 @@ function handleExternalFileChange(payload: unknown): void {
             conflictCount: mergeResult.conflictRanges?.length || 0
           })
 
-          // 发送冲突事件，让UI组件处理（显示对话框等）
-          // 注意：传递移除 meta-info 后的内容，这样 diff 窗口不会显示 meta-info 的差异
           eventBus.emit('file-conflict-detected', {
             tabId: matchingTab.id,
             filePath,
-            externalContent: externalContentWithoutMeta, // 移除 meta-info
-            currentContent: currentContentWithoutMeta, // 移除 meta-info
-            savedContent: savedContentWithoutMeta, // 移除 meta-info
+            externalContent: content,
+            currentContent: currentContent,
+            savedContent: savedContent,
             format: doc.format,
             mergeResult: mergeResult
           })
@@ -1978,7 +1964,6 @@ function handleExternalFileChange(payload: unknown): void {
           logger.info('智能合并成功，自动应用合并结果', { filePath })
           // 使用 nextTick 确保在下一个事件循环中更新，避免阻塞
           await new Promise((resolve) => setTimeout(resolve, 0))
-          // 注意：mergeResult.mergedContent 已经是移除 meta-info 后的内容，直接使用
           if (doc.format === 'tex') {
             updateDocumentTex(matchingTab.id, mergeResult.mergedContent)
           } else {
@@ -1993,9 +1978,9 @@ function handleExternalFileChange(payload: unknown): void {
           eventBus.emit('file-conflict-detected', {
             tabId: matchingTab.id,
             filePath,
-            externalContent: externalContentWithoutMeta, // 移除 meta-info
-            currentContent: currentContentWithoutMeta, // 移除 meta-info
-            savedContent: savedContentWithoutMeta, // 移除 meta-info
+            externalContent: content,
+            currentContent: currentContent,
+            savedContent: savedContent,
             format: doc.format,
             mergeResult: mergeResult
           })
@@ -2005,12 +1990,10 @@ function handleExternalFileChange(payload: unknown): void {
         logger.info('外部文件已修改，自动同步（无未保存改动）', { filePath })
         // 使用 nextTick 确保在下一个事件循环中更新，避免阻塞
         await new Promise((resolve) => setTimeout(resolve, 0))
-        // 注意：使用移除 meta-info 后的内容，这样不会把外部文件的 meta-info 带进来
-        // MetaDoc 会在保存时自动注入自己的 meta-info
         if (doc.format === 'tex') {
-          updateDocumentTex(matchingTab.id, externalContentWithoutMeta)
+          updateDocumentTex(matchingTab.id, content)
         } else {
-          updateDocumentMarkdown(matchingTab.id, externalContentWithoutMeta)
+          updateDocumentMarkdown(matchingTab.id, content)
         }
         markDocumentSaved(matchingTab.id, filePath)
       }

@@ -7,14 +7,13 @@
  * - 子目录（已展开）：新建/删除文件与文件夹、删除整个子目录
  * - 多级展开：内层 add、unlinkDir 内层目录
  * - 重命名：文件/文件夹（unlink+add、add+unlink、unlinkDir+addDir、addDir+unlinkDir）
- * - .metadoc 与点号文件：目录均展示；文件为支持格式或点号开头则加入（sidecar `.x.md.meta` / `.x.tex.meta` 除外）；change 不改结构、已存在不重复添加
+ * - .metadoc 与点号文件：目录均展示；文件为支持格式或点号开头则加入；change 不改结构、已存在不重复添加
  * - 父节点未在 nodeMap 时返回 false（由调用方刷新回退）
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   normalizePathForCompare,
   isPathNotExistError,
-  isDocumentSidecarMetaFileName,
   sortFileNodes,
   registerNode,
   unregisterNode,
@@ -70,19 +69,6 @@ describe('workspace-tree-logic', () => {
     it('Windows 与 Unix 路径同一化', () => {
       expect(normalizePathForCompare('C:\\Users\\x\\doc')).toBe('C:/Users/x/doc')
       expect(normalizePathForCompare('C:/Users/x/doc')).toBe('C:/Users/x/doc')
-    })
-  })
-
-  describe('isDocumentSidecarMetaFileName', () => {
-    it('识别 .文档.md.meta / .文档.tex.meta（与 getSidecarPath 一致）', () => {
-      expect(isDocumentSidecarMetaFileName('.note.md.meta')).toBe(true)
-      expect(isDocumentSidecarMetaFileName('.a.b.tex.meta')).toBe(true)
-      expect(isDocumentSidecarMetaFileName('.chap.ltx.meta')).toBe(true)
-    })
-    it('普通点号文件与裸 .meta 不匹配', () => {
-      expect(isDocumentSidecarMetaFileName('.env')).toBe(false)
-      expect(isDocumentSidecarMetaFileName('note.md.meta')).toBe(false)
-      expect(isDocumentSidecarMetaFileName('.readme.meta')).toBe(false)
     })
   })
 
@@ -225,7 +211,7 @@ describe('workspace-tree-logic', () => {
       expect(root.children![0]!.type).toBe('file')
     })
 
-    it('add 文档 sidecar .note.md.meta：不加入树（否则与点号文件规则冲突）', () => {
+    it('add 点号文件 .note.md.meta：作为点号文件加入树', () => {
       const payload: DirectoryChangedPayload = {
         directoryPath: 'C:/workspace',
         parentPath: 'C:/workspace',
@@ -234,7 +220,9 @@ describe('workspace-tree-logic', () => {
       }
       const applied = applyFsEvent(nodeMap, payload, defaultFormatOptions)
       expect(applied).toBe(true)
-      expect(root.children).toHaveLength(0)
+      expect(root.children).toHaveLength(1)
+      expect(root.children![0]!.name).toBe('.note.md.meta')
+      expect(root.children![0]!.type).toBe('file')
     })
 
     it('add .metadoc 下非点号文件：扩展名未注册也可加入（如 sessions-index.json）', () => {

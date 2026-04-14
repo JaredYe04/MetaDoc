@@ -1,10 +1,10 @@
 /**
  * 文本过滤工具
- * 用于过滤无意义文本和meta-info标记
+ * 用于过滤无意义文本块等
  */
 
 /**
- * 过滤文本内容，移除meta-info标记和无意义文本
+ * 过滤文本内容，移除无意义文本块等
  * @param content 原始文本内容
  * @returns 过滤后的文本内容
  */
@@ -13,11 +13,7 @@ export function filterTextContent(content: string): string {
     return ''
   }
 
-  // 第一步：移除meta-info标记
-  let filtered = removeMetaInfo(content)
-
-  // 第二步：移除无意义的文本块
-  filtered = removeMeaninglessBlocks(filtered)
+  let filtered = removeMeaninglessBlocks(content)
 
   // 第三步：清理多余的连续换行符（最多保留2个连续的\n）
   filtered = normalizeLineBreaks(filtered)
@@ -38,24 +34,6 @@ function normalizeLineBreaks(content: string): string {
   // 将3个或更多连续的换行符替换为2个换行符（段落分隔）
   // 这样既保留了段落分隔，又去除了多余的空行
   return content.replace(/\n{3,}/g, '\n\n')
-}
-
-/**
- * 移除meta-info标记
- * @param content 原始文本内容
- * @returns 移除meta-info后的文本
- */
-function removeMetaInfo(content: string): string {
-  let result = content
-
-  // 移除 Markdown 中的元信息标记（<!--meta-info: ... -->）
-  result = result.replace(/<!--meta-info:[^>]*-->/g, '')
-
-  // 移除 LaTeX 中的元信息标记（%META-INFO: ... 和警告行）
-  result = result.replace(/% 请勿手动修改此行及下面的 META-INFO.*\n?/g, '')
-  result = result.replace(/%META-INFO:[^\n]*\n?/g, '')
-
-  return result
 }
 
 /**

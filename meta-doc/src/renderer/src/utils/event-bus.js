@@ -131,7 +131,8 @@ const buildSavePayload = async (doc) => {
     html,
     tex: serialized.tex,
     format: doc.format,
-    sidecarMetadata: serialized.sidecarMetadata // 传递Sidecar元信息
+    workspaceFolders: serialized.workspaceFolders,
+    documentMetadata: serialized.documentMetadata
   }
 }
 

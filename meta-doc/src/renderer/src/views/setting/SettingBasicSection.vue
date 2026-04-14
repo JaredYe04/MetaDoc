@@ -187,27 +187,6 @@
       </FormField>
 
       <FormField
-        :label="t('setting.metadataSaveMode')"
-        name="metadataSaveMode"
-        layout="horizontal"
-        :hint="t('setting.metadataInfoHint')"
-      >
-        <Select
-          v-model="settings.metadataSaveMode"
-          @update:model-value="saveSetting('metadataSaveMode', settings.metadataSaveMode)"
-        >
-          <SelectTrigger class="w-[280px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent class="min-w-[280px]">
-            <SelectItem value="sidecar">{{ t('setting.metadataSaveModeSidecar') }}</SelectItem>
-            <SelectItem value="embed">{{ t('setting.metadataSaveModeEmbed') }}</SelectItem>
-            <SelectItem value="none">{{ t('setting.metadataSaveModeNone') }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </FormField>
-
-      <FormField
         :label="t('setting.externalFileOpenMode', '外部文件打开方式')"
         name="externalFileOpenMode"
         layout="horizontal"
@@ -883,8 +862,6 @@ const loadDemoData = () => {
   settings.startupOption = 'lastFile'
   // 自动保存设置
   settings.autoSave = '5'
-  // 元数据保存模式
-  settings.metadataSaveMode = 'sidecar'
   // 引用目录大小 (15MB = 15 * 1024 * 1024 bytes)
   referenceDirSize.value = 15 * 1024 * 1024
   agentAttachmentsDirSize.value = 8 * 1024 * 1024

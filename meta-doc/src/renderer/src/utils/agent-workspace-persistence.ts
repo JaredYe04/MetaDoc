@@ -4,6 +4,7 @@
  * - sessions/<id>.msess：单会话二进制，**仅 0x00 + msgpack**（不用 zstd；与文档 Sidecar 写入策略不同）
  *
  * 旧版单文件 sessions.json 在首次加载时自动迁移并改名为备份。
+ * 文档级元数据（文章 meta 等）使用 `.metadoc/doc-meta/`，与本模块的 Agent 布局独立。
  */
 
 import { encode } from '@msgpack/msgpack'

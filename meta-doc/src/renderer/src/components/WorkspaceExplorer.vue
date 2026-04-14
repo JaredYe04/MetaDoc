@@ -178,7 +178,6 @@ import * as treeLogic from '../utils/workspace-tree-logic'
 
 const normalizePathForCompare = treeLogic.normalizePathForCompare
 const isPathUnderMetadoc = treeLogic.isPathUnderMetadoc
-const isDocumentSidecarMetaFileName = treeLogic.isDocumentSidecarMetaFileName
 import { useCloseTab } from '../composables/useCloseTab'
 import { formatRegistry } from '../utils/format-registry'
 import * as Comlink from 'comlink'
@@ -1174,9 +1173,6 @@ const processDirectoryContentInMainThread = (
         children: undefined
       })
     } else {
-      if (isDocumentSidecarMetaFileName(entry.name)) {
-        continue
-      }
       const fileExt = extname(entry.path)
       const formatId = formatRegistry.getFormatByExtension(fileExt)
       const isDotfile = entry.name.startsWith('.')

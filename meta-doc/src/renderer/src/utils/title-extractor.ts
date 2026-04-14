@@ -11,11 +11,10 @@ export function extractTitleFromMarkdown(content: string): string | null {
     return null
   }
 
-  // 移除 Markdown 中的元信息标记（<!--meta-info: ... -->）
-  const contentWithoutMeta = content.replace(/<!--meta-info:[^>]*-->/g, '').trim()
+  const trimmed = content.trim()
 
   // 尝试匹配第一个标题（# 开头）
-  const firstTitleMatch = contentWithoutMeta.match(/^(#+)\s+(.+)$/m)
+  const firstTitleMatch = trimmed.match(/^(#+)\s+(.+)$/m)
   if (firstTitleMatch) {
     const title = firstTitleMatch[2].trim()
     // 移除可能的 Markdown 格式标记
@@ -33,32 +32,28 @@ export function extractTitleFromLatex(content: string): string | null {
     return null
   }
 
-  // 移除 LaTeX 中的元信息标记（%META-INFO: ... 和警告行）
-  const contentWithoutMeta = content
-    .replace(/% 请勿手动修改此行及下面的 META-INFO.*\n?/g, '')
-    .replace(/%META-INFO:[^\n]*\n?/g, '')
-    .trim()
+  const trimmed = content.trim()
 
   // 尝试匹配 \title{} 命令（文档标题）
-  const titleMatch = contentWithoutMeta.match(/\\title\{([^}]+)\}/)
+  const titleMatch = trimmed.match(/\\title\{([^}]+)\}/)
   if (titleMatch) {
     return titleMatch[1].trim()
   }
 
   // 尝试匹配 \section{}（一级标题）
-  const sectionMatch = contentWithoutMeta.match(/\\section\{([^}]+)\}/)
+  const sectionMatch = trimmed.match(/\\section\{([^}]+)\}/)
   if (sectionMatch) {
     return sectionMatch[1].trim()
   }
 
   // 尝试匹配 \subsection{}（二级标题）
-  const subsectionMatch = contentWithoutMeta.match(/\\subsection\{([^}]+)\}/)
+  const subsectionMatch = trimmed.match(/\\subsection\{([^}]+)\}/)
   if (subsectionMatch) {
     return subsectionMatch[1].trim()
   }
 
   // 尝试匹配 \subsubsection{}（三级标题）
-  const subsubsectionMatch = contentWithoutMeta.match(/\\subsubsection\{([^}]+)\}/)
+  const subsubsectionMatch = trimmed.match(/\\subsubsection\{([^}]+)\}/)
   if (subsubsectionMatch) {
     return subsubsectionMatch[1].trim()
   }

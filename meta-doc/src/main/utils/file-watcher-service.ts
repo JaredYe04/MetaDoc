@@ -8,8 +8,6 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { createMainLogger } from '../logger'
 import { WebContents } from 'electron'
-import { isPlainTextFormat, detectFileFormatFromPath } from './supported-formats'
-
 const logger = createMainLogger('FileWatcherService')
 
 export interface FileWatcherInfo {
@@ -19,63 +17,6 @@ export interface FileWatcherInfo {
   lastContent: string
   webContents: WebContents
   tabId?: string
-}
-
-/**
- * 根据文件路径判断文件格式
- */
-function detectFileFormat(filePath: string): string {
-  return detectFileFormatFromPath(filePath)
-}
-
-/**
- * 移除 Markdown 文件中的 meta-info
- */
-function removeMetaInfoFromMarkdown(content: string): string {
-  if (!content || typeof content !== 'string') {
-    return content || ''
-  }
-  // 移除 Markdown 中的元信息标记（<!--meta-info: ... -->）
-  return content.replace(/<!--meta-info:\s*[^>]*-->/g, '').trim()
-}
-
-/**
- * 移除 LaTeX 文件中的 meta-info
- */
-function removeMetaInfoFromLatex(content: string): string {
-  if (!content || typeof content !== 'string') {
-    return content || ''
-  }
-  let result = content
-  // 移除警告行
-  result = result.replace(/% 请勿手动修改此行及下面的 META-INFO.*\n?/g, '')
-  // 移除 META-INFO 行
-  result = result.replace(/%META-INFO:\s*[^\n]*\n?/g, '')
-  return result.trim()
-}
-
-/**
- * 根据文件格式移除 meta-info
- * 纯文本格式（txt, json等）不包含元信息，直接返回原内容
- */
-function removeMetaInfo(content: string, filePath: string): string {
-  if (!content || typeof content !== 'string') {
-    return content || ''
-  }
-
-  const ext = path.extname(filePath).toLowerCase()
-
-  // 纯文本格式不包含元信息，直接返回
-  if (isPlainTextFormat(ext)) {
-    return content
-  }
-
-  const format = detectFileFormat(filePath)
-  if (format === 'tex') {
-    return removeMetaInfoFromLatex(content)
-  } else {
-    return removeMetaInfoFromMarkdown(content)
-  }
 }
 
 class FileWatcherService {
@@ -116,7 +57,6 @@ class FileWatcherService {
       // 读取文件的初始内容和修改时间
       const stats = fs.statSync(normalizedPath)
       const rawInitialContent = fs.readFileSync(normalizedPath, 'utf-8')
-      // 保存原始内容（包含 meta-info），但后续比较时会移除 meta-info
       const initialContent = rawInitialContent
 
       // 创建文件监听器
@@ -278,28 +218,23 @@ class FileWatcherService {
       const stats = fs.statSync(normalizedPath)
       const rawContent = fs.readFileSync(normalizedPath, 'utf-8')
 
-      // 移除 meta-info（meta-info 是 MetaDoc 注入的，不应该参与比较和冲突检测）
-      const newContent = removeMetaInfo(rawContent, normalizedPath)
-      const lastContentWithoutMeta = removeMetaInfo(info.lastContent, normalizedPath)
+      const newContent = rawContent
+      const lastContent = info.lastContent
 
-      // 检查是否是真正的变化（避免重复触发，使用移除 meta-info 后的内容比较）
-      if (stats.mtimeMs === info.lastModified && newContent === lastContentWithoutMeta) {
-        logger.debug('文件内容未实际变化（已排除 meta-info），忽略', { filePath: normalizedPath })
+      if (stats.mtimeMs === info.lastModified && newContent === lastContent) {
+        logger.debug('文件内容未实际变化，忽略', { filePath: normalizedPath })
         return
       }
 
-      // 计算增量变化（使用移除 meta-info 后的内容）
-      const diff = this.computeDiff(lastContentWithoutMeta, newContent)
+      const diff = this.computeDiff(lastContent, newContent)
 
-      // 更新监听器信息（保存原始内容，但比较时使用移除 meta-info 后的版本）
       info.lastModified = stats.mtimeMs
-      info.lastContent = rawContent // 保存原始内容
+      info.lastContent = rawContent
 
-      // 发送文件变化通知到渲染进程（发送移除 meta-info 后的内容）
       webContents.send('file-changed', {
         filePath: normalizedPath,
         tabId,
-        content: newContent, // 移除 meta-info 后的内容
+        content: newContent,
         modifiedTime: stats.mtimeMs,
         diff // 增量变化信息
       })

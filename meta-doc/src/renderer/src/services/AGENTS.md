@@ -37,7 +37,7 @@ services/
 | Add export format       | `export-adapters/`           | Extend `base-adapter.ts`, register in `index.ts` |
 | Modify document loading | `document-loader.ts`         | Format detection + outline tree construction     |
 | Modify document saving  | `document-save.ts`           | Serialization + file write                       |
-| Change serialization    | `document-serializer.ts`     | ⚠️ META-INFO lines must not be modified          |
+| Change serialization    | `document-serializer.ts`     | 产出保存 payload（正文 + `.metadoc/doc-meta` 元数据二进制） |
 | Export format rules     | `src/common/export-rules.ts` | Defines allowed source→target conversions        |
 
 ## CONVENTIONS
@@ -49,7 +49,7 @@ services/
 
 ## ANTI-PATTERNS
 
-- `document-serializer.ts` contains META-INFO sentinel lines — **DO NOT modify** or metadata parsing breaks
+- 文档元数据落盘路径由主进程 `document-metadata-paths.ts` 解析；`workspaceFolders` 须与侧栏一致
 - Export pipeline split between renderer (`services/export-adapters/`, `export-steps/`) and main (`src/main/export/`) — tracing full export flow requires checking both
 
 ## EXPORT ADAPTER PATTERN

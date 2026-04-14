@@ -191,7 +191,7 @@ meta-doc/
 
 ## ANTI-PATTERNS
 
-- **DO NOT modify META-INFO lines** in `document-serializer.ts`
+- 文档元数据写入工作区 `.metadoc/doc-meta/`（或 userData），见主进程 `document-metadata-paths.ts` 与 `document-serializer.ts`
 - **Tool specs are LLM config** — "Do NOT" / "Important Notes" control AI behavior
 - **Avoid more `!important`** — already in 30+ components
 - **Don't extend monoliths** — main-calls.ts (6119 lines), workspace.ts (2009 lines), export-manager.ts (3645 lines)

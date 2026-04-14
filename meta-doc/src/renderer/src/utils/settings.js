@@ -157,7 +157,6 @@ export const settings = reactive({
   firstRunWizardCompleted: false,
   /** 设置页勾选「下次启动重置向导」后，下次冷启动时消费并清除 */
   resetFirstRunWizardOnNextLaunch: false,
-  metadataSaveMode: 'sidecar', // 元信息保存模式：'sidecar'（隐藏伴生文件，默认）、'embed'（嵌入注释）、'none'（不保存）
   mathInlineDigit: true, // 内联数学公式起始 $ 后是否允许数字，默认 true
   externalFileOpenMode: 'newWindow', // 外部打开文件模式：'newWindow'（新窗口）或 'newTab'（当前窗口新标签页）
   // 字体配置（导出字体在导出对话框中单独配置，默认使用编辑器字体）

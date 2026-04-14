@@ -2,11 +2,14 @@ import { serializeDocument } from './document-serializer'
 import type { WorkspaceDocument } from '../stores/workspace'
 import messageBridge from '../bridge/message-bridge'
 import { extractTitleFromContent, sanitizeTitleForFilename } from '../utils/title-extractor'
+import { notifyWarning } from '../utils/notify'
 
 type SaveResult = {
   path: string
   format: string
 } | null
+
+const USERDATA_META_WARN_KEY = 'metadoc-warned-metadata-userdata'
 
 export const saveWorkspaceDocument = async (
   doc: WorkspaceDocument,
@@ -44,13 +47,27 @@ export const saveWorkspaceDocument = async (
     return null
   }
 
-  const { path, format } = result as { path?: string; format?: string }
+  const { path, format, metadataStorage } = result as {
+    path?: string
+    format?: string
+    metadataStorage?: 'workspace' | 'userData'
+  }
   if (!path) {
     return null
   }
 
-  // 保存操作已完成，包括Sidecar文件（如果使用sidecar模式）
-  // fsync确保数据已写入磁盘
+  if (
+    metadataStorage === 'userData' &&
+    typeof sessionStorage !== 'undefined' &&
+    !sessionStorage.getItem(USERDATA_META_WARN_KEY)
+  ) {
+    sessionStorage.setItem(USERDATA_META_WARN_KEY, '1')
+    notifyWarning(
+      '文档元数据已保存到应用数据目录（当前文件不在已添加的工作区文件夹内）。将文件所在文件夹加入侧栏工作区后，元数据会写入该项目下的 .metadoc 目录。',
+      { duration: 8000 }
+    )
+  }
+
   return {
     path,
     format: format ?? doc.format

@@ -1,5 +1,5 @@
 /**
- * 元数据序列化工具（文档 Sidecar / 嵌入注释等）
+ * 元数据序列化工具（`.metadoc/doc-meta/*.meta` 等二进制格式）
  * 写入：msgpack；较大时用 zstd 压缩并加 0x01 前缀，较小时 0x00 + 原始 msgpack。
  * 读取：兼容 0x01/0x00 标记、无标记 zstd、纯 msgpack、旧 JSON+Base64。
  *

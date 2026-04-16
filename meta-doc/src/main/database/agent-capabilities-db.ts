@@ -800,3 +800,45 @@ export function syncSkillsFromWorkspaces(
     return { scanned, upserted, errors }
   })()
 }
+
+export function listAllSkillIndexRows(): SkillIndexRow[] {
+  ensureAgentTables()
+  if (!tableExists('agent_skills_index')) return []
+  return query<SkillIndexRow>('SELECT * FROM agent_skills_index ORDER BY id ASC', [])
+}
+
+export function deleteAllUserSourceRules(): void {
+  ensureAgentTables()
+  if (!tableExists('agent_rules')) return
+  execute(`DELETE FROM agent_rules WHERE source = 'user'`, [])
+}
+
+export function insertUserRuleFromCloud(row: {
+  scope: AgentRuleScope
+  title: string
+  content: string
+  priority: number
+  enabled: number
+  approval_status: AgentRuleApproval
+}): void {
+  ensureAgentTables()
+  execute(
+    `INSERT INTO agent_rules (scope, title, content, priority, enabled, approval_status, source)
+     VALUES (?, ?, ?, ?, ?, ?, 'user')`,
+    [row.scope, row.title, row.content, row.priority, row.enabled, row.approval_status]
+  )
+}
+
+export function replaceMcpConnectionsFromCloud(
+  rows: Array<{ label: string; base_url: string; is_active: number }>
+): void {
+  ensureAgentTables()
+  if (!tableExists('agent_mcp_connections')) return
+  execute('DELETE FROM agent_mcp_connections', [])
+  for (const r of rows) {
+    execute(
+      'INSERT INTO agent_mcp_connections (label, base_url, is_active, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+      [r.label, r.base_url, r.is_active]
+    )
+  }
+}

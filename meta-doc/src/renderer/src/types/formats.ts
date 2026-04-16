@@ -12,6 +12,8 @@ export interface DocumentTemplate {
   isUserTemplate?: boolean
   /** 用户模板唯一 id，用于删除 */
   userTemplateId?: string
+  /** 用户模板缩略图来源（仅 isUserTemplate 时有效） */
+  userTemplateThumbnailSource?: 'none' | 'custom' | 'generated'
 }
 
 export interface SupportedFormat {

@@ -138,7 +138,11 @@
           <div class="text-sm space-y-1">
             <div>
               <span class="text-muted-foreground">{{ $t('setting.about.steamStatus') }}:</span>
-              {{ steamInitialized ? $t('setting.about.steamInitialized') : $t('setting.about.steamNotInitialized') }}
+              {{
+                steamInitialized
+                  ? $t('setting.about.steamInitialized')
+                  : $t('setting.about.steamNotInitialized')
+              }}
             </div>
             <div v-if="steamReason" class="text-muted-foreground break-all">{{ steamReason }}</div>
           </div>
@@ -167,9 +171,49 @@
             <Button size="sm" variant="outline" :disabled="steamSyncing" @click="steamPushHistory">
               {{ $t('setting.about.steamSyncHistoryPush') }}
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              :disabled="steamSyncing"
+              @click="steamPullUserTemplates"
+            >
+              {{ $t('setting.about.steamSyncTemplatesPull') }}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              :disabled="steamSyncing"
+              @click="steamPushUserTemplates"
+            >
+              {{ $t('setting.about.steamSyncTemplatesPush') }}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              :disabled="steamSyncing"
+              @click="steamPullAgentPack"
+            >
+              {{ $t('setting.about.steamSyncAgentPull') }}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              :disabled="steamSyncing"
+              @click="steamPushAgentPack"
+            >
+              {{ $t('setting.about.steamSyncAgentPush') }}
+            </Button>
           </div>
-          <div>
-            <Button size="sm" @click="openWorkshopMarket">{{ $t('setting.about.steamOpenWorkshop') }}</Button>
+          <div class="flex flex-wrap gap-2">
+            <Button size="sm" @click="openWorkshopMarket">{{
+              $t('setting.about.steamOpenWorkshop')
+            }}</Button>
+            <Button size="sm" variant="secondary" @click="openCloudDocs">
+              {{ $t('setting.about.steamOpenCloudDocs') }}
+            </Button>
+            <Button size="sm" variant="secondary" @click="openWorkshopPublish">
+              {{ $t('setting.about.steamPublishTemplate') }}
+            </Button>
           </div>
         </div>
       </TabsContent>
@@ -196,7 +240,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Button } from '@renderer/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
@@ -221,11 +264,17 @@ import { notifyError, notifySuccess } from '../../utils/notify'
 import {
   getSteamStatus,
   getSteamUser,
+  steamSyncPullAgentPack,
   steamSyncPullHistory,
   steamSyncPullSettings,
+  steamSyncPullUserTemplates,
+  steamSyncPushAgentPack,
   steamSyncPushHistory,
-  steamSyncPushSettings
+  steamSyncPushSettings,
+  steamSyncPushUserTemplates
 } from '../../services/steam-client'
+import { focusOrOpenSystemRoute } from '../../utils/steam-system-tab-open'
+import { openWorkshopPublishDocumentDialog } from '../../utils/workshop-publish-document-dialog'
 
 // Logo 固定配色，不随亮/暗主题变化
 const bgColor = FIXED_LOGO_COLORS.bgColor
@@ -239,7 +288,6 @@ const props = defineProps<{
 const isDemo = computed(() => props.mode === 'demo')
 
 const { t } = useI18n()
-const router = useRouter()
 const workspace = useWorkspace()
 
 const steamInitialized = ref(false)
@@ -322,7 +370,71 @@ async function steamPushHistory() {
 }
 
 function openWorkshopMarket() {
-  router.push('/workshop-market')
+  focusOrOpenSystemRoute('/workshop-market', t('workshop.title'))
+}
+
+function openCloudDocs() {
+  focusOrOpenSystemRoute('/cloud-docs', t('steamCloudDocs.title'))
+}
+
+function openWorkshopPublish() {
+  openWorkshopPublishDocumentDialog()
+}
+
+async function steamPullUserTemplates() {
+  steamSyncing.value = true
+  try {
+    const r = await steamSyncPullUserTemplates()
+    if (r.success) {
+      notifySuccess(t('setting.about.steamSyncDone'))
+    } else {
+      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    }
+  } finally {
+    steamSyncing.value = false
+  }
+}
+
+async function steamPushUserTemplates() {
+  steamSyncing.value = true
+  try {
+    const r = await steamSyncPushUserTemplates()
+    if (r.success) {
+      notifySuccess(t('setting.about.steamSyncDone'))
+    } else {
+      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    }
+  } finally {
+    steamSyncing.value = false
+  }
+}
+
+async function steamPullAgentPack() {
+  steamSyncing.value = true
+  try {
+    const r = await steamSyncPullAgentPack()
+    if (r.success) {
+      notifySuccess(t('setting.about.steamSyncDone'))
+    } else {
+      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    }
+  } finally {
+    steamSyncing.value = false
+  }
+}
+
+async function steamPushAgentPack() {
+  steamSyncing.value = true
+  try {
+    const r = await steamSyncPushAgentPack()
+    if (r.success) {
+      notifySuccess(t('setting.about.steamSyncDone'))
+    } else {
+      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    }
+  } finally {
+    steamSyncing.value = false
+  }
 }
 
 function openFeedbackTab() {

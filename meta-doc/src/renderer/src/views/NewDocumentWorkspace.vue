@@ -34,13 +34,42 @@
           <div class="template-grid-wrapper" ref="templateGridWrapperRef">
             <div class="template-grid" :style="{ gridTemplateColumns: gridTemplateColumns }">
               <div
-                v-for="template in currentTemplates"
+                v-for="template in currentTemplatesWithThumbs"
                 :key="template.id"
                 class="template-card"
                 :class="{ active: template.id === selectedTemplateId }"
                 @click="selectTemplate(template.id)"
                 @dblclick="confirmTemplate(template.id)"
               >
+                <DropdownMenu v-if="template.isUserTemplate && template.userTemplateId">
+                  <DropdownMenuTrigger as-child>
+                    <Button
+                      class="template-card-thumb-menu-btn"
+                      variant="ghost"
+                      size="icon"
+                      :aria-label="t('newDocument.templateThumbMenu')"
+                      @click.stop
+                    >
+                      <MoreHorizontal :size="16" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" @click.stop>
+                    <DropdownMenuItem @click="pickUserTemplateThumb(template.userTemplateId!)">
+                      {{ t('newDocument.setTemplateThumb') }}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      v-if="template.userTemplateThumbnailSource === 'custom'"
+                      @click="resetUserTemplateThumb(template.userTemplateId!)"
+                    >
+                      {{ t('newDocument.clearTemplateThumb') }}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      @click="openWorkshopPublishForTemplate(template.userTemplateId!)"
+                    >
+                      {{ t('newDocument.publishWorkshop') }}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                   v-if="template.isUserTemplate && template.userTemplateId"
                   class="template-card-delete-btn"
@@ -71,7 +100,17 @@
                 </div>
                 <div class="template-card__body">
                   <h3>{{ templateLabel(template) }}</h3>
-                  <p>{{ templateDescription(template) }}</p>
+                  <Tooltip v-if="templateDescription(template).trim().length > 0">
+                    <TooltipTrigger as-child>
+                      <p class="template-card__body-desc">
+                        {{ templateDescription(template) }}
+                      </p>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" class="max-w-sm whitespace-pre-wrap break-words">
+                      {{ templateDescription(template) }}
+                    </TooltipContent>
+                  </Tooltip>
+                  <p v-else class="template-card__body-desc" />
                 </div>
                 <div class="template-card__actions">
                   <Button
@@ -98,13 +137,26 @@ import { useWorkspace } from '../stores/workspace'
 import type { WorkspaceTabFormat } from '../stores/workspace'
 import type { SupportedFormat, DocumentTemplate } from '../types/formats'
 import { useI18n } from 'vue-i18n'
-import { X } from 'lucide-vue-next'
+import { X, MoreHorizontal } from 'lucide-vue-next'
 import { messageBox } from '@renderer/utils/messageBox'
 import { Button } from '@renderer/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@renderer/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import messageBridge from '../bridge/message-bridge'
 import { themeState, mixColors } from '../utils/themes'
-import { removeUserTemplate } from '../stores/user-templates'
+import {
+  clearUserTemplateThumbnailRemote,
+  removeUserTemplate,
+  setUserTemplateThumbnailFromFilePath
+} from '../stores/user-templates'
+import { openWorkshopPublishDocumentDialog } from '../utils/workshop-publish-document-dialog'
 
 /** 根据主色亮度返回在按钮上可读的文字色（深色主色用白字，浅色主色用深字） */
 function getContrastTextColor(hex: string | undefined) {
@@ -126,9 +178,7 @@ const props = defineProps<{
 const workspace = useWorkspace()
 const { t } = useI18n()
 
-const primaryButtonBg = computed(
-  () => themeState.currentTheme?.primaryColor || '#000000'
-)
+const primaryButtonBg = computed(() => themeState.currentTheme?.primaryColor || '#000000')
 const primaryButtonText = computed(() =>
   getContrastTextColor(themeState.currentTheme?.primaryColor)
 )
@@ -152,6 +202,85 @@ const currentFormat = computed(() =>
 )
 
 const currentTemplates = computed<DocumentTemplate[]>(() => currentFormat.value?.templates ?? [])
+
+/** 用户模板缩略图 data URL（主进程文件） */
+const userTemplateThumbUrls = ref<Record<string, string>>({})
+
+const currentTemplatesWithThumbs = computed<DocumentTemplate[]>(() => {
+  const list = currentTemplates.value
+  return list.map((tm) => {
+    if (!tm.isUserTemplate || !tm.userTemplateId) return tm
+    const url = userTemplateThumbUrls.value[tm.userTemplateId]
+    if (url) {
+      return { ...tm, image: url }
+    }
+    return tm
+  })
+})
+
+async function loadUserTemplateThumbsForCurrent(): Promise<void> {
+  if (typeof window === 'undefined' || !(window as any).electron?.ipcRenderer) return
+  const ids = new Set<string>()
+  for (const tm of currentTemplates.value) {
+    if (tm.isUserTemplate && tm.userTemplateId) ids.add(tm.userTemplateId)
+  }
+  const next: Record<string, string> = { ...userTemplateThumbUrls.value }
+  for (const id of ids) {
+    if (next[id]) continue
+    try {
+      const r = await messageBridge.invoke('user-templates:get-thumb-data-url', { id })
+      if (r?.ok && typeof r.data === 'string' && r.data.length) {
+        next[id] = r.data
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  userTemplateThumbUrls.value = next
+}
+
+watch(
+  () =>
+    currentTemplates.value
+      .filter((t) => t.isUserTemplate && t.userTemplateId)
+      .map((t) => t.userTemplateId as string)
+      .join(','),
+  () => {
+    void loadUserTemplateThumbsForCurrent()
+  },
+  { immediate: true }
+)
+
+async function pickUserTemplateThumb(userTemplateId: string) {
+  try {
+    const pick = (await messageBridge.invoke('show-open-dialog', {
+      title: t('newDocument.setTemplateThumbDialogTitle'),
+      properties: ['openFile'],
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }]
+    })) as { canceled?: boolean; filePaths?: string[] }
+    if (pick?.canceled || !pick?.filePaths?.length) return
+    await setUserTemplateThumbnailFromFilePath(userTemplateId, pick.filePaths[0])
+    delete userTemplateThumbUrls.value[userTemplateId]
+    userTemplateThumbUrls.value = { ...userTemplateThumbUrls.value }
+    await loadUserTemplateThumbsForCurrent()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function resetUserTemplateThumb(userTemplateId: string) {
+  try {
+    await clearUserTemplateThumbnailRemote(userTemplateId)
+    delete userTemplateThumbUrls.value[userTemplateId]
+    userTemplateThumbUrls.value = { ...userTemplateThumbUrls.value }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function openWorkshopPublishForTemplate(userTemplateId: string) {
+  openWorkshopPublishDocumentDialog({ userTemplateId })
+}
 
 // 监听模板网格容器宽度，动态计算列数，尽量占满一行并减少换行
 const templateGridWrapperRef = ref<HTMLElement | null>(null)
@@ -331,7 +460,7 @@ async function deleteUserTemplate(userTemplateId: string, templateName?: string)
   } catch {
     return
   }
-  removeUserTemplate(userTemplateId)
+  await removeUserTemplate(userTemplateId)
   if (selectedTemplateId.value === userTemplateId) {
     const format = currentFormat.value
     const rest = format?.templates.filter((t) => t.userTemplateId !== userTemplateId) ?? []
@@ -445,6 +574,22 @@ function confirmTemplate(templateId?: string) {
   border-radius: inherit;
   border: 1px solid v-bind('themeState.currentTheme.borderColor');
   transition: border-color 0.2s ease;
+}
+
+.template-card-thumb-menu-btn {
+  position: absolute;
+  top: 8px;
+  right: 40px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.05s ease;
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.3)"') !important;
+}
+.template-card:hover .template-card-thumb-menu-btn {
+  opacity: 0.5;
+}
+.template-card-thumb-menu-btn:hover {
+  opacity: 1 !important;
 }
 
 .template-card-delete-btn {
@@ -579,11 +724,16 @@ function confirmTemplate(templateId?: string) {
   font-weight: 600;
 }
 
-.template-card__body p {
+.template-card__body-desc {
   margin: 0;
   color: v-bind('themeState.currentTheme.textColor2');
   font-size: 13px;
   line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .template-card__actions {

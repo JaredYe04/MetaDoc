@@ -47,22 +47,36 @@
             </div>
           </div>
 
-          <div class="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-2 text-sm">
+          <div
+            class="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-2 text-sm"
+          >
             <div class="flex justify-between gap-2">
-              <span class="text-muted-foreground">{{ t('leftMenu.steamStatPlaytime', '累计使用时长') }}</span>
+              <span class="text-muted-foreground">{{
+                t('leftMenu.steamStatPlaytime', '累计使用时长')
+              }}</span>
               <span class="font-medium tabular-nums">{{ playtimeLabel }}</span>
             </div>
             <div class="flex justify-between gap-2">
-              <span class="text-muted-foreground">{{ t('leftMenu.steamStatAiRequests', 'AI 调用次数') }}</span>
+              <span class="text-muted-foreground">{{
+                t('leftMenu.steamStatAiRequests', 'AI 调用次数')
+              }}</span>
               <span class="font-medium tabular-nums">{{ summary?.aiRequests ?? 0 }}</span>
             </div>
             <div class="flex justify-between gap-2">
-              <span class="text-muted-foreground">{{ t('leftMenu.steamStatChars', '累计输入字符') }}</span>
+              <span class="text-muted-foreground">{{
+                t('leftMenu.steamStatChars', '累计输入字符')
+              }}</span>
               <span class="font-medium tabular-nums">{{ summary?.charsTyped ?? 0 }}</span>
             </div>
           </div>
 
           <div class="mt-3 flex flex-col gap-2">
+            <Button variant="outline" size="sm" class="w-full" @click="openCloudDocsTab">
+              {{ t('leftMenu.steamManageCloudDocs', '管理云存档') }}
+            </Button>
+            <Button variant="outline" size="sm" class="w-full" @click="openWorkshopHubTab">
+              {{ t('leftMenu.steamManageWorkshop', '管理创意工坊') }}
+            </Button>
             <Button variant="outline" size="sm" class="w-full" @click="openProfileOverlay">
               {{ t('leftMenu.steamOpenProfileOverlay', '打开个人资料') }}
             </Button>
@@ -89,6 +103,7 @@ import {
   type SteamProfileSummaryPayload,
   type SteamUserPayload
 } from '../services/steam-client'
+import { focusOrOpenSystemRoute } from '../utils/steam-system-tab-open'
 
 defineProps<{
   collapsed: boolean
@@ -183,6 +198,16 @@ async function openProfileOverlay() {
 
 async function openAchievementsOverlay() {
   await openSteamOverlayToUser('achievements')
+}
+
+function openCloudDocsTab() {
+  open.value = false
+  focusOrOpenSystemRoute('/cloud-docs', t('steamCloudDocs.title'))
+}
+
+function openWorkshopHubTab() {
+  open.value = false
+  focusOrOpenSystemRoute('/workshop-market', t('workshop.title'))
 }
 
 watch(open, (v) => {

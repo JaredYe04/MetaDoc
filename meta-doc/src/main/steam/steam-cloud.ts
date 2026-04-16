@@ -12,6 +12,13 @@ export function assertAllowedSteamCloudPath(relPath: string): string {
   if (normalized === 'docs/manifest.json' || normalized.startsWith('docs/')) {
     return normalized
   }
+  /** 其它云同步 JSON 包（单层文件名，防 ..） */
+  if (normalized.startsWith('cloud/')) {
+    const rest = normalized.slice('cloud/'.length)
+    if (rest && !rest.includes('/') && /^[a-zA-Z0-9_.-]+$/.test(rest)) {
+      return normalized
+    }
+  }
   throw new Error('path_not_whitelisted')
 }
 

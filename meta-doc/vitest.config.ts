@@ -9,7 +9,8 @@ export default defineConfig({
     include: [
       'src/renderer/src/utils/**/*.test.ts',
       'src/converter/**/*.test.ts',
-      'src/main/utils/**/*.test.ts'
+      'src/main/utils/**/*.test.ts',
+      'src/main/steam/**/*.test.ts'
     ],
     globals: true
   },

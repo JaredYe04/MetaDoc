@@ -682,12 +682,12 @@ eventBus.on('close-doc', () => {
   eventBus.emit('close-active-tab')
 })
 
-eventBus.on('export-as-template', (payload) => {
+eventBus.on('export-as-template', async (payload) => {
   const { title, description, format, content, locale: localeFromPayload } = payload || {}
   if (!content || (format !== 'md' && format !== 'tex')) return
   const locale = (localeFromPayload || i18n?.global?.locale?.value || 'zh_CN').replace('-', '_')
   try {
-    addUserTemplate({
+    await addUserTemplate({
       formatId: format,
       locale,
       title: title || '未命名模板',

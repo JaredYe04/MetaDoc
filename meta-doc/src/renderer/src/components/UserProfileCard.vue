@@ -21,6 +21,62 @@
       </Tooltip>
     </div>
 
+    <div v-if="isElectronApp" class="profile-steam-actions">
+      <Button
+        variant="outline"
+        size="sm"
+        class="flex-1 min-w-0"
+        @click="cloudArchiveDialogOpen = true"
+      >
+        {{ t('userProfile.manageSteamCloud') }}
+      </Button>
+      <Button variant="outline" size="sm" class="flex-1 min-w-0" @click="workshopDialogOpen = true">
+        {{ t('userProfile.manageWorkshop') }}
+      </Button>
+    </div>
+
+    <Dialog v-model:open="cloudArchiveDialogOpen">
+      <DialogContent class="sm:max-w-md" @mousedown.stop>
+        <DialogHeader>
+          <DialogTitle>{{ t('userProfile.steamCloudDialog.title') }}</DialogTitle>
+          <DialogDescription>
+            {{ t('userProfile.steamCloudDialog.description') }}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter class="flex-col sm:flex-row gap-2">
+          <Button class="w-full sm:w-auto" @click="openCloudDocsFromDialog">
+            {{ t('userProfile.steamCloudDialog.openCloudDocs') }}
+          </Button>
+          <Button variant="secondary" class="w-full sm:w-auto" @click="openSettingSteamFromDialog">
+            {{ t('userProfile.steamCloudDialog.openAboutSteam') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog v-model:open="workshopDialogOpen">
+      <DialogContent class="sm:max-w-md" @mousedown.stop>
+        <DialogHeader>
+          <DialogTitle>{{ t('userProfile.workshopDialog.title') }}</DialogTitle>
+          <DialogDescription>
+            {{ t('userProfile.workshopDialog.description') }}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter class="flex-col sm:flex-row gap-2">
+          <Button class="w-full sm:w-auto" @click="openWorkshopMarketFromDialog">
+            {{ t('userProfile.workshopDialog.openMarket') }}
+          </Button>
+          <Button
+            variant="secondary"
+            class="w-full sm:w-auto"
+            @click="openWorkshopPublishFromDialog"
+          >
+            {{ t('userProfile.workshopDialog.openPublish') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     <Tabs v-if="!loggedIn" v-model="activeName" class="tabs" @mousedown.stop>
       <TabsList class="grid w-full grid-cols-2">
         <TabsTrigger value="Login">{{ t('userProfile.loginTab') }}</TabsTrigger>
@@ -312,14 +368,57 @@ import { Input } from '@renderer/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Form, FormField } from '@renderer/components/ui/form'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
 import { useLocalStorage } from '@vueuse/core'
 import { themeState } from '../utils/themes'
 import eventBus from '../utils/event-bus.js'
 import axios from 'axios'
 import { SERVER_URL } from '../utils/consts.js'
 import { useI18n } from 'vue-i18n'
+import { useWorkspace } from '../stores/workspace'
+import { focusOrOpenSystemRoute } from '../utils/steam-system-tab-open'
+import { openWorkshopPublishDocumentDialog } from '../utils/workshop-publish-document-dialog'
 
 const { t } = useI18n()
+const workspace = useWorkspace()
+
+const isElectronApp = computed(
+  () => typeof window !== 'undefined' && !!window.electron?.ipcRenderer
+)
+
+const cloudArchiveDialogOpen = ref(false)
+const workshopDialogOpen = ref(false)
+
+function openCloudDocsFromDialog() {
+  cloudArchiveDialogOpen.value = false
+  focusOrOpenSystemRoute('/cloud-docs', t('steamCloudDocs.title'))
+  closeDialog()
+}
+
+function openSettingSteamFromDialog() {
+  cloudArchiveDialogOpen.value = false
+  workspace.openToolTab('setting')
+  closeDialog()
+}
+
+function openWorkshopMarketFromDialog() {
+  workshopDialogOpen.value = false
+  focusOrOpenSystemRoute('/workshop-market', t('workshop.title'))
+  closeDialog()
+}
+
+function openWorkshopPublishFromDialog() {
+  workshopDialogOpen.value = false
+  openWorkshopPublishDocumentDialog()
+  closeDialog()
+}
 const editingPwd = ref(false)
 const editPwdForm = ref({
   oldPwd: '',
@@ -649,5 +748,12 @@ async function submitRegister() {
   justify-content: space-between;
   align-items: center;
   font-weight: bold;
+}
+
+.profile-steam-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 4px 10px;
+  flex-wrap: wrap;
 }
 </style>

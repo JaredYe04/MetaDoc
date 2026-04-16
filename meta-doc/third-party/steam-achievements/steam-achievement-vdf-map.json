@@ -65,6 +65,36 @@
       "apiName": "ACH_FIRST_AGENT_RULE",
       "nameToken": "ACH_FIRST_AGENT_RULE_NAME",
       "descToken": "ACH_FIRST_AGENT_RULE_DESC"
+    },
+    {
+      "apiName": "ACH_WORKSHOP_PUBLISH_TEMPLATE",
+      "nameToken": "ACH_WORKSHOP_PUBLISH_TEMPLATE_NAME",
+      "descToken": "ACH_WORKSHOP_PUBLISH_TEMPLATE_DESC"
+    },
+    {
+      "apiName": "ACH_WORKSHOP_PUBLISH_SKILL",
+      "nameToken": "ACH_WORKSHOP_PUBLISH_SKILL_NAME",
+      "descToken": "ACH_WORKSHOP_PUBLISH_SKILL_DESC"
+    },
+    {
+      "apiName": "ACH_WORKSHOP_PUBLISH_RULES",
+      "nameToken": "ACH_WORKSHOP_PUBLISH_RULES_NAME",
+      "descToken": "ACH_WORKSHOP_PUBLISH_RULES_DESC"
+    },
+    {
+      "apiName": "ACH_WORKSHOP_PUBLISH_MCP",
+      "nameToken": "ACH_WORKSHOP_PUBLISH_MCP_NAME",
+      "descToken": "ACH_WORKSHOP_PUBLISH_MCP_DESC"
+    },
+    {
+      "apiName": "ACH_WORKSHOP_SUBSCRIBE_ITEM",
+      "nameToken": "ACH_WORKSHOP_SUBSCRIBE_ITEM_NAME",
+      "descToken": "ACH_WORKSHOP_SUBSCRIBE_ITEM_DESC"
+    },
+    {
+      "apiName": "ACH_CLOUD_DOC_SAVE",
+      "nameToken": "ACH_CLOUD_DOC_SAVE_NAME",
+      "descToken": "ACH_CLOUD_DOC_SAVE_DESC"
     }
   ]
 }

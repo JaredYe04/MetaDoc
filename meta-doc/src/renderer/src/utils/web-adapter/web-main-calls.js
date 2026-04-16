@@ -549,12 +549,50 @@ export function webMainCalls() {
   }))
   localIpcMain.handle('steam:sync:meta', async () => ({
     success: true,
-    data: { settingsRemoteUpdatedAt: 0, historyRemoteUpdatedAt: 0 }
+    data: {
+      settingsRemoteUpdatedAt: 0,
+      historyRemoteUpdatedAt: 0,
+      userTemplatesRemoteUpdatedAt: 0,
+      agentPackRemoteUpdatedAt: 0
+    }
   }))
+  localIpcMain.handle('steam:sync:push-user-templates', async () => steamWeb)
+  localIpcMain.handle('steam:sync:pull-user-templates', async () => ({
+    success: true,
+    data: { applied: false }
+  }))
+  localIpcMain.handle('steam:sync:push-agent-pack', async () => steamWeb)
+  localIpcMain.handle('steam:sync:pull-agent-pack', async () => ({
+    success: true,
+    data: { applied: false }
+  }))
+  localIpcMain.handle('steam:cloud-docs:list', async () => ({
+    success: true,
+    data: { items: [] }
+  }))
+  localIpcMain.handle('steam:cloud-docs:stats', async () => ({
+    success: true,
+    data: { docsBytes: 0, itemCount: 0 }
+  }))
+  localIpcMain.handle('steam:cloud-docs:get', async () => steamWeb)
+  localIpcMain.handle('steam:cloud-docs:put', async () => steamWeb)
+  localIpcMain.handle('steam:cloud-docs:delete', async () => steamWeb)
+  localIpcMain.handle('steam:cloud-docs:rename', async () => steamWeb)
   localIpcMain.handle('steam:workshop:publish', async () => steamWeb)
   localIpcMain.handle('steam:workshop:download', async () => steamWeb)
   localIpcMain.handle('steam:workshop:list-subscribed', async () => ({
     success: true,
     data: { items: [] }
   }))
+  localIpcMain.handle('steam:workshop:default-install-root', async () => ({
+    success: true,
+    data: { path: '/tmp/metadoc-workshop' }
+  }))
+  localIpcMain.handle('steam:workshop:install-from-dir', async () => steamWeb)
+  localIpcMain.handle('steam:workshop:pull-and-sync', async () => steamWeb)
+  localIpcMain.handle('steam:workshop:read-manifest-from-dir', async () => ({
+    success: true,
+    data: { manifest: null, resolvedDir: null }
+  }))
+  localIpcMain.handle('steam:workshop:publish-document-template', async () => steamWeb)
 }

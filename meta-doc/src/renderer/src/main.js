@@ -50,6 +50,7 @@ import { initializeWorkspaceBroadcastListeners } from './stores/workspace'
 import { registerAllAdapters } from './services/export-adapters'
 import { registerUnitTests } from './utils/unit-tests-register.ts'
 import { initializeFormats } from './utils/format-initializer'
+import { initUserTemplatesStore } from './stores/user-templates'
 import AppIcon from './components/common/AppIcon.vue'
 __startupMark('after_vue_imports')
 
@@ -106,6 +107,11 @@ app.use(router)
     } catch (e2) {
       console.error('Fallback preloadInitialLocales failed:', e2)
     }
+  }
+  try {
+    await initUserTemplatesStore()
+  } catch (e) {
+    console.error('initUserTemplatesStore failed:', e)
   }
   app.use(i18n).mount('#app')
   __startupMark('after_mount')

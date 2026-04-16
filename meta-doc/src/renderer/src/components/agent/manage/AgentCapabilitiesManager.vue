@@ -1,7 +1,28 @@
 <template>
   <div class="agent-capabilities-manager" :style="containerStyle">
+    <div
+      class="flex flex-wrap gap-2 mb-3 items-center text-xs border-b pb-3"
+      :style="{ borderColor: themeState.currentTheme.borderColor }"
+    >
+      <span class="text-muted-foreground shrink-0 max-w-[min(100%,220px)]">{{
+        t('agent.manage.capabilities.steamCloudBar')
+      }}</span>
+      <Button variant="outline" size="small" @click="steamPullAgentPack">{{
+        t('agent.manage.capabilities.steamPullAgent')
+      }}</Button>
+      <Button variant="outline" size="small" @click="steamPushAgentPack">{{
+        t('agent.manage.capabilities.steamPushAgent')
+      }}</Button>
+      <Button variant="outline" size="small" @click="goWorkshopPublish">{{
+        t('agent.manage.capabilities.steamPublishWorkshop')
+      }}</Button>
+    </div>
     <!-- 从侧边栏分别打开时 initialPanel 有值：仅展示对应一块面板，不显示 Tab 切换（三合一已拆成三个入口） -->
-    <Tabs :model-value="activeTab" class="w-full capabilities-tabs-root" @update:model-value="onTabsUpdate">
+    <Tabs
+      :model-value="activeTab"
+      class="w-full capabilities-tabs-root"
+      @update:model-value="onTabsUpdate"
+    >
       <TabsList v-if="!singlePanelMode" class="grid w-full grid-cols-3 mb-4">
         <TabsTrigger value="rules">{{ t('agent.manage.capabilities.tabRules') }}</TabsTrigger>
         <TabsTrigger value="skills">{{ t('agent.manage.capabilities.tabSkills') }}</TabsTrigger>
@@ -10,7 +31,9 @@
 
       <TabsContent value="rules" class="mt-0">
         <div class="flex justify-between items-center mb-3 gap-2 flex-wrap">
-          <Button size="small" @click="loadRules">{{ t('agent.manage.capabilities.refresh') }}</Button>
+          <Button size="small" @click="loadRules">{{
+            t('agent.manage.capabilities.refresh')
+          }}</Button>
           <div class="flex gap-2 flex-wrap">
             <Button type="primary" size="small" @click="openRuleDialog('create')">
               {{ t('agent.manage.capabilities.addRule') }}
@@ -24,22 +47,34 @@
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead class="w-[100px]">{{ t('agent.manage.capabilities.colScope') }}</TableHead>
+                <TableHead class="w-[100px]">{{
+                  t('agent.manage.capabilities.colScope')
+                }}</TableHead>
                 <TableHead>{{ t('agent.manage.capabilities.colTitle') }}</TableHead>
-                <TableHead class="w-[70px]">{{ t('agent.manage.capabilities.colPriority') }}</TableHead>
-                <TableHead class="w-[80px]">{{ t('agent.manage.capabilities.colEnabled') }}</TableHead>
-                <TableHead class="w-[100px]">{{ t('agent.manage.capabilities.colApproval') }}</TableHead>
+                <TableHead class="w-[70px]">{{
+                  t('agent.manage.capabilities.colPriority')
+                }}</TableHead>
+                <TableHead class="w-[80px]">{{
+                  t('agent.manage.capabilities.colEnabled')
+                }}</TableHead>
+                <TableHead class="w-[100px]">{{
+                  t('agent.manage.capabilities.colApproval')
+                }}</TableHead>
                 <TableHead class="w-[160px]">{{ t('agent.manage.actions') }}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-for="r in rules" :key="r.id">
                 <TableCell>
-                  <Badge :variant="r.scope === 'system' ? 'default' : 'secondary'">{{ r.scope }}</Badge>
+                  <Badge :variant="r.scope === 'system' ? 'default' : 'secondary'">{{
+                    r.scope
+                  }}</Badge>
                 </TableCell>
                 <TableCell class="max-w-[220px]">
                   <div class="font-medium truncate" :title="r.title">{{ r.title }}</div>
-                  <div class="text-xs opacity-70 line-clamp-2" :title="r.content">{{ r.content }}</div>
+                  <div class="text-xs opacity-70 line-clamp-2" :title="r.content">
+                    {{ r.content }}
+                  </div>
                 </TableCell>
                 <TableCell>{{ r.priority }}</TableCell>
                 <TableCell>
@@ -98,16 +133,28 @@
       </TabsContent>
 
       <TabsContent value="skills" class="mt-0">
-        <p class="text-sm opacity-70 mb-2">{{ t('agent.manage.capabilities.skillsRefreshHint') }}</p>
+        <p class="text-sm opacity-70 mb-2">
+          {{ t('agent.manage.capabilities.skillsRefreshHint') }}
+        </p>
         <div class="flex justify-between items-center mb-3 gap-2 flex-wrap">
           <Button size="small" :disabled="skillsSyncing" @click="refreshSkillsFull">
             {{ t('agent.manage.capabilities.refresh') }}
           </Button>
           <div class="flex gap-2 flex-wrap">
-            <Button type="primary" size="small" :disabled="skillsSyncing" @click="openSkillDialog('create')">
+            <Button
+              type="primary"
+              size="small"
+              :disabled="skillsSyncing"
+              @click="openSkillDialog('create')"
+            >
               {{ t('agent.manage.capabilities.newSkill') }}
             </Button>
-            <Button variant="outline" size="small" :disabled="skillsSyncing" @click="openAiAssistSkillStandalone">
+            <Button
+              variant="outline"
+              size="small"
+              :disabled="skillsSyncing"
+              @click="openAiAssistSkillStandalone"
+            >
               {{ t('agent.manage.capabilities.aiAssistCreate') }}
             </Button>
           </div>
@@ -131,11 +178,18 @@
                   <div class="text-xs truncate" :title="s.workspace_root">{{ s.skill_folder }}</div>
                 </TableCell>
                 <TableCell>
-                  <Badge :variant="s.status === 'active' ? 'default' : 'secondary'">{{ s.status }}</Badge>
+                  <Badge :variant="s.status === 'active' ? 'default' : 'secondary'">{{
+                    s.status
+                  }}</Badge>
                 </TableCell>
                 <TableCell>
                   <div class="flex flex-wrap gap-1">
-                    <Button size="small" variant="secondary" :disabled="skillBusyId === s.id" @click="openSkillDialog('edit', s)">
+                    <Button
+                      size="small"
+                      variant="secondary"
+                      :disabled="skillBusyId === s.id"
+                      @click="openSkillDialog('edit', s)"
+                    >
                       {{ t('common.edit') }}
                     </Button>
                     <Button
@@ -172,7 +226,12 @@
           <Button size="small" :disabled="mcpBusy" @click="exportMcpConfig">
             {{ t('agent.manage.capabilities.mcpConfigExport') }}
           </Button>
-          <Button size="small" variant="outline" :disabled="mcpBusy" @click="triggerImportMcpConfig">
+          <Button
+            size="small"
+            variant="outline"
+            :disabled="mcpBusy"
+            @click="triggerImportMcpConfig"
+          >
             {{ t('agent.manage.capabilities.mcpConfigImport') }}
           </Button>
           <input
@@ -191,7 +250,9 @@
           v-if="mcpStructureErrors.length"
           class="rounded-md border border-destructive/50 bg-destructive/5 px-3 py-2 text-sm text-destructive"
         >
-          <div class="font-medium mb-1">{{ t('agent.manage.capabilities.mcpConfigStructureErrors') }}</div>
+          <div class="font-medium mb-1">
+            {{ t('agent.manage.capabilities.mcpConfigStructureErrors') }}
+          </div>
           <ul class="list-disc pl-4 space-y-0.5">
             <li v-for="(err, idx) in mcpStructureErrors" :key="idx">{{ err }}</li>
           </ul>
@@ -228,7 +289,9 @@
                   </span>
                 </template>
               </Tree>
-              <p v-else class="text-sm opacity-60 p-4">{{ t('agent.manage.capabilities.mcpToolsTreeEmpty') }}</p>
+              <p v-else class="text-sm opacity-60 p-4">
+                {{ t('agent.manage.capabilities.mcpToolsTreeEmpty') }}
+              </p>
             </el-scrollbar>
           </div>
         </div>
@@ -238,21 +301,34 @@
     <Dialog v-model:open="mcpToolDetailOpen">
       <DialogContent class="max-w-[560px] max-h-[85vh] flex flex-col" :style="dialogStyle">
         <DialogHeader>
-          <DialogTitle class="font-mono text-base break-all">{{ mcpToolDetail?.tool_name }}</DialogTitle>
+          <DialogTitle class="font-mono text-base break-all">{{
+            mcpToolDetail?.tool_name
+          }}</DialogTitle>
         </DialogHeader>
-        <div v-if="mcpToolDetail" class="space-y-3 flex-1 min-h-0 flex flex-col overflow-hidden text-sm">
+        <div
+          v-if="mcpToolDetail"
+          class="space-y-3 flex-1 min-h-0 flex flex-col overflow-hidden text-sm"
+        >
           <div>
-            <span class="text-xs opacity-70 block mb-1">{{ t('agent.manage.capabilities.colServer') }}</span>
+            <span class="text-xs opacity-70 block mb-1">{{
+              t('agent.manage.capabilities.colServer')
+            }}</span>
             <span class="font-mono">{{ mcpToolDetail.server_name || '—' }}</span>
           </div>
           <div>
-            <span class="text-xs opacity-70 block mb-1">{{ t('agent.manage.capabilities.colPermission') }}</span>
+            <span class="text-xs opacity-70 block mb-1">{{
+              t('agent.manage.capabilities.colPermission')
+            }}</span>
             <Badge variant="outline">{{ mcpToolDetail.permission_level }}</Badge>
           </div>
           <div class="min-h-0 flex flex-col">
-            <span class="text-xs opacity-70 block mb-1">{{ t('agent.manage.capabilities.colDescription') }}</span>
+            <span class="text-xs opacity-70 block mb-1">{{
+              t('agent.manage.capabilities.colDescription')
+            }}</span>
             <el-scrollbar max-height="200px" class="rounded-md border border-input">
-              <div class="p-2 whitespace-pre-wrap break-words">{{ mcpToolDetail.description || '—' }}</div>
+              <div class="p-2 whitespace-pre-wrap break-words">
+                {{ mcpToolDetail.description || '—' }}
+              </div>
             </el-scrollbar>
           </div>
           <div class="min-h-0 flex flex-col flex-1">
@@ -267,7 +343,9 @@
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" @click="mcpToolDetailOpen = false">{{ t('common.close') }}</Button>
+          <Button variant="ghost" @click="mcpToolDetailOpen = false">{{
+            t('common.close')
+          }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -295,7 +373,13 @@
             name="priority"
             :description="t('agent.manage.capabilities.priorityHint')"
           >
-            <Input v-model.number="ruleForm.priority" type="number" min="0" max="100" class="w-full max-w-[120px]" />
+            <Input
+              v-model.number="ruleForm.priority"
+              type="number"
+              min="0"
+              max="100"
+              class="w-full max-w-[120px]"
+            />
           </FormField>
         </div>
         <DialogFooter class="flex gap-2 justify-end">
@@ -308,7 +392,10 @@
     </Dialog>
 
     <Dialog v-model:open="skillDialogOpen">
-      <DialogContent class="max-w-[min(920px,96vw)] max-h-[92vh] flex flex-col" :style="dialogStyle">
+      <DialogContent
+        class="max-w-[min(920px,96vw)] max-h-[92vh] flex flex-col"
+        :style="dialogStyle"
+      >
         <DialogHeader>
           <DialogTitle>
             {{
@@ -346,10 +433,18 @@
             <FormField :label="t('agent.manage.capabilities.skillEntry')" name="entry">
               <Input v-model="skillMetaForm.entry" class="w-full font-mono text-sm" />
             </FormField>
-            <FormField class="sm:col-span-2" :label="t('agent.manage.capabilities.skillDescription')" name="sdesc">
+            <FormField
+              class="sm:col-span-2"
+              :label="t('agent.manage.capabilities.skillDescription')"
+              name="sdesc"
+            >
               <Input v-model="skillMetaForm.description" class="w-full" />
             </FormField>
-            <FormField class="sm:col-span-2" :label="t('agent.manage.capabilities.skillTags')" name="tags">
+            <FormField
+              class="sm:col-span-2"
+              :label="t('agent.manage.capabilities.skillTags')"
+              name="tags"
+            >
               <Input
                 v-model="skillMetaForm.tagsCsv"
                 class="w-full font-mono text-sm"
@@ -357,7 +452,10 @@
               />
             </FormField>
             <div class="sm:col-span-2 flex items-center gap-2">
-              <Switch :checked="skillMetaForm.draft" @update:checked="(v: boolean) => (skillMetaForm.draft = v)" />
+              <Switch
+                :checked="skillMetaForm.draft"
+                @update:checked="(v: boolean) => (skillMetaForm.draft = v)"
+              />
               <span class="text-sm">{{ t('agent.manage.capabilities.skillDraft') }}</span>
             </div>
           </div>
@@ -377,7 +475,12 @@
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button size="small" variant="outline" :disabled="!skillSkillMdPath" @click="openSkillFolderInExplorer">
+            <Button
+              size="small"
+              variant="outline"
+              :disabled="!skillSkillMdPath"
+              @click="openSkillFolderInExplorer"
+            >
               {{ t('agent.manage.capabilities.openSkillFolder') }}
             </Button>
           </div>
@@ -395,7 +498,6 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
-
   </div>
 </template>
 
@@ -439,6 +541,8 @@ import {
 import { Input } from '@renderer/components/ui/input'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { FormField } from '@renderer/components/ui/form'
+import { steamSyncPullAgentPack, steamSyncPushAgentPack } from '../../../services/steam-client'
+import { openWorkshopPublishDocumentDialog } from '../../../utils/workshop-publish-document-dialog'
 
 const { t } = useI18n()
 
@@ -451,7 +555,10 @@ const props = withDefaults(
 )
 
 const singlePanelMode = computed(
-  () => props.initialPanel === 'rules' || props.initialPanel === 'skills' || props.initialPanel === 'mcp'
+  () =>
+    props.initialPanel === 'rules' ||
+    props.initialPanel === 'skills' ||
+    props.initialPanel === 'mcp'
 )
 
 const activeTab = ref<'rules' | 'skills' | 'mcp'>('rules')
@@ -669,7 +776,9 @@ function workspaceRoots(): string[] {
     const raw = localStorage.getItem('workspaceFolders')
     if (!raw) return []
     const arr = JSON.parse(raw)
-    return Array.isArray(arr) ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0) : []
+    return Array.isArray(arr)
+      ? arr.filter((p: unknown) => typeof p === 'string' && p.length > 0)
+      : []
   } catch {
     return []
   }
@@ -862,7 +971,10 @@ async function runMcpFullSync() {
       const failed = servers.filter((x: { ok?: boolean }) => !x.ok)
       const n = res.registeredTotal ?? 0
       if (failed.length) {
-        const names = failed.map((x: { server?: string }) => x.server).filter(Boolean).join(', ')
+        const names = failed
+          .map((x: { server?: string }) => x.server)
+          .filter(Boolean)
+          .join(', ')
         toast.warning(
           t('agent.manage.capabilities.mcpSyncPartial', {
             n,
@@ -1057,7 +1169,9 @@ async function openSkillDialog(mode: 'create' | 'edit', s?: SkillSummary) {
     }
     skillEditId.value = s.id
     skillEditDiskPath.value = row.full_path
-    const content = (await messageBridge.invoke('read-file-content', row.full_path)) as string | null
+    const content = (await messageBridge.invoke('read-file-content', row.full_path)) as
+      | string
+      | null
     if (content == null) {
       toast.error(t('agent.manage.capabilities.skillReadFailed'))
       return
@@ -1092,10 +1206,7 @@ async function openSkillFolderInExplorer() {
 
 async function saveSkillDialog() {
   if (!canSaveSkill.value) return
-  const path =
-    skillDialogMode.value === 'edit'
-      ? skillEditDiskPath.value
-      : skillSkillMdPath.value
+  const path = skillDialogMode.value === 'edit' ? skillEditDiskPath.value : skillSkillMdPath.value
   if (!path) {
     toast.error(t('agent.manage.capabilities.saveFailed'))
     return
@@ -1155,10 +1266,15 @@ async function runWorkspaceSkillSync(): Promise<boolean> {
     toast.warning(t('agent.manage.capabilities.noWorkspace'))
     return false
   }
-  const res = await messageBridge.invoke('agent-capabilities-sync-skills', { workspaceRoots: roots })
+  const res = await messageBridge.invoke('agent-capabilities-sync-skills', {
+    workspaceRoots: roots
+  })
   if (res?.success) {
     toast.success(
-      t('agent.manage.capabilities.syncDone', { scanned: res.scanned ?? 0, upserted: res.upserted ?? 0 })
+      t('agent.manage.capabilities.syncDone', {
+        scanned: res.scanned ?? 0,
+        upserted: res.upserted ?? 0
+      })
     )
     return true
   }
@@ -1190,6 +1306,40 @@ async function activateSkill(id: number) {
   } finally {
     skillBusyId.value = null
   }
+}
+
+async function steamPullAgentPack() {
+  try {
+    const r = await steamSyncPullAgentPack()
+    if (!r.success) {
+      toast.error(r.error || t('agent.manage.capabilities.steamAgentFailed'))
+      return
+    }
+    toast.success(t('agent.manage.capabilities.steamAgentPullOk'))
+    await loadRules()
+    await loadSkills()
+    await loadMcpConfig()
+    await loadMcpToolsOnly()
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  }
+}
+
+async function steamPushAgentPack() {
+  try {
+    const r = await steamSyncPushAgentPack()
+    if (!r.success) {
+      toast.error(r.error || t('agent.manage.capabilities.steamAgentFailed'))
+      return
+    }
+    toast.success(t('agent.manage.capabilities.steamAgentPushOk'))
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  }
+}
+
+function goWorkshopPublish() {
+  openWorkshopPublishDocumentDialog()
 }
 
 onMounted(() => {

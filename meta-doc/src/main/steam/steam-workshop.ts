@@ -1,9 +1,20 @@
 import type { GreenworksApi } from './greenworks-loader'
 
+/** 与 greenworks SteamUGCDetails 对齐的订阅项摘要（用于下载须带 file 句柄） */
 export type WorkshopItemSummary = {
   publishedFileId: string
+  /** UGCHandle_t 字符串，ugcDownloadItem 第一个参数 */
+  file: string
   title: string
   description: string
+  fileName: string
+  steamIDOwner: string
+  tags: string
+  timeCreated: number
+  timeUpdated: number
+  timeAddedToUserList: number
+  fileType: number
+  previewFile: string
 }
 
 /**
@@ -22,8 +33,7 @@ export function ugcPublish(
       title,
       description,
       imageName,
-      (publishFileId: string) =>
-        resolve({ success: true, publishedFileId: String(publishFileId) }),
+      (publishFileId: string) => resolve({ success: true, publishedFileId: String(publishFileId) }),
       (err: Error | string) =>
         resolve({
           success: false,
@@ -34,10 +44,10 @@ export function ugcPublish(
   })
 }
 
-/** greenworks.ugcDownloadItem(published_file_id, download_dir, success, error) */
+/** greenworks.ugcDownloadItem(download_file_handle, download_dir, success, error) — 第一参为 SteamUGCDetails.file */
 export function ugcDownloadItem(
   gw: GreenworksApi,
-  publishedFileId: string,
+  downloadFileHandle: string,
   targetDir: string
 ): Promise<{ success: true } | { success: false; error: string }> {
   return new Promise((resolve) => {
@@ -45,8 +55,12 @@ export function ugcDownloadItem(
       resolve({ success: false, error: 'ugcDownloadItem_not_available' })
       return
     }
+    if (!downloadFileHandle || downloadFileHandle === '0') {
+      resolve({ success: false, error: 'invalid_ugc_file_handle' })
+      return
+    }
     gw.ugcDownloadItem(
-      publishedFileId,
+      downloadFileHandle,
       targetDir,
       () => resolve({ success: true }),
       (err: Error | string) =>
@@ -89,10 +103,21 @@ export function listSubscribedWorkshopItems(
           if (!id) {
             continue
           }
+          const file = it.file != null ? String(it.file) : ''
           out.push({
             publishedFileId: id,
+            file,
             title: it.title != null ? String(it.title) : '',
-            description: it.description != null ? String(it.description) : ''
+            description: it.description != null ? String(it.description) : '',
+            fileName: it.fileName != null ? String(it.fileName) : '',
+            steamIDOwner: it.steamIDOwner != null ? String(it.steamIDOwner) : '',
+            tags: it.tags != null ? String(it.tags) : '',
+            timeCreated: typeof it.timeCreated === 'number' ? it.timeCreated : 0,
+            timeUpdated: typeof it.timeUpdated === 'number' ? it.timeUpdated : 0,
+            timeAddedToUserList:
+              typeof it.timeAddedToUserList === 'number' ? it.timeAddedToUserList : 0,
+            fileType: typeof it.fileType === 'number' ? it.fileType : 0,
+            previewFile: it.previewFile != null ? String(it.previewFile) : ''
           })
         }
         resolve({ success: true, items: out })

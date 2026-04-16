@@ -5,9 +5,11 @@
 import { mainCalls } from '../main-calls'
 import { registerSteamIpc } from '../steam/register-steam-ipc'
 import { registerFileAssociationIpc } from './register-file-association-ipc'
+import { registerUserTemplatesIpc } from '../user-templates/user-templates-ipc'
 
 export function registerMainProcessIpc(): void {
   registerSteamIpc()
+  registerUserTemplatesIpc()
   registerFileAssociationIpc()
   mainCalls()
 }

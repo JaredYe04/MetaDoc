@@ -1,3 +1,6 @@
+import fs from 'fs'
+import path from 'path'
+import { app } from 'electron'
 import type { IpcMainInvokeEvent } from 'electron'
 import { ipcBridge } from '../bridge/ipc-bridge'
 import { assertAllowedSteamCloudPath, readTextFromCloud, saveTextToCloud } from './steam-cloud'
@@ -14,22 +17,40 @@ import { resolveSteamProfileAvatarUrl } from './steam-avatar'
 import { getAchievementUnlocked } from './steam-achievement-query'
 import { activateGameOverlayToLocalUser } from './steam-overlay-action'
 import { ugcPublish, ugcDownloadItem, listSubscribedWorkshopItems } from './steam-workshop'
+import {
+  deleteCloudDoc,
+  estimateCloudDocsUsageBytes,
+  getCloudDocBody,
+  listCloudDocs,
+  putCloudDoc,
+  renameCloudDoc
+} from './steam-cloud-docs-vault'
+import { writeMetadocUgcZipToFile, readMetadocUgcManifestFromDir } from './metadoc-ugc-pack'
+import type { MetadocUgcManifest } from './metadoc-ugc-types'
+import { installDocumentTemplateFromUgcDir } from './steam-workshop-ugc-install'
+import {
+  ensureWorkshopDirHasManifest,
+  resolveInstallContentDir,
+  findDirWithMetadocManifest
+} from './workshop-ugc-dir-prepare'
 import { getSteamInitResult, initSteam, getGreenworksOrNull } from './steam-state'
 import {
   getPendingSteamLocaleConflict,
   resolveSteamLocaleConflictChoice
 } from './steam-startup-locale'
 import {
+  pullAgentPackBundleFromCloud,
   pullHistoryFromCloud,
   pullSettingsFromCloud,
+  pullUserTemplatesFromCloud,
+  pushAgentPackBundleToCloud,
   pushHistoryToCloud,
   pushSettingsToCloud,
+  pushUserTemplatesToCloud,
   getSyncCoordinatorStatus
 } from './sync-coordinator'
 
-type SteamResult<T = unknown> =
-  | { success: true; data?: T }
-  | { success: false; error: string }
+type SteamResult<T = unknown> = { success: true; data?: T } | { success: false; error: string }
 
 function ok<T>(data?: T): SteamResult<T> {
   return data !== undefined ? { success: true, data } : { success: true }
@@ -39,7 +60,9 @@ function fail(err: string): SteamResult<never> {
   return { success: false, error: err }
 }
 
-function requireSteam(): { gw: NonNullable<ReturnType<typeof getGreenworksOrNull>> } | SteamResult<never> {
+function requireSteam():
+  | { gw: NonNullable<ReturnType<typeof getGreenworksOrNull>> }
+  | SteamResult<never> {
   initSteam()
   const gw = getGreenworksOrNull()
   if (!gw) {
@@ -143,10 +166,7 @@ export function registerSteamIpc(): void {
 
   ipcBridge.registerHandle(
     'steam:overlay:to-user',
-    async (
-      _e: IpcMainInvokeEvent,
-      payload: { dialog?: string }
-    ): Promise<SteamResult> => {
+    async (_e: IpcMainInvokeEvent, payload: { dialog?: string }): Promise<SteamResult> => {
       const r = requireSteam()
       if (!('gw' in r)) {
         return r
@@ -265,6 +285,139 @@ export function registerSteamIpc(): void {
     return ok(getSyncCoordinatorStatus())
   })
 
+  ipcBridge.registerHandle('steam:sync:push-user-templates', async (): Promise<SteamResult> => {
+    const r = requireSteam()
+    if (!('gw' in r)) {
+      return r
+    }
+    const pr = await pushUserTemplatesToCloud(r.gw)
+    return pr.success ? ok() : fail(pr.error)
+  })
+
+  ipcBridge.registerHandle('steam:sync:pull-user-templates', async (): Promise<SteamResult> => {
+    const r = requireSteam()
+    if (!('gw' in r)) {
+      return r
+    }
+    const pr = await pullUserTemplatesFromCloud(r.gw)
+    return pr.success ? ok({ applied: pr.applied }) : fail(pr.error)
+  })
+
+  ipcBridge.registerHandle('steam:sync:push-agent-pack', async (): Promise<SteamResult> => {
+    const r = requireSteam()
+    if (!('gw' in r)) {
+      return r
+    }
+    const pr = await pushAgentPackBundleToCloud(r.gw)
+    return pr.success ? ok() : fail(pr.error)
+  })
+
+  ipcBridge.registerHandle('steam:sync:pull-agent-pack', async (): Promise<SteamResult> => {
+    const r = requireSteam()
+    if (!('gw' in r)) {
+      return r
+    }
+    const pr = await pullAgentPackBundleFromCloud(r.gw)
+    return pr.success ? ok({ applied: pr.applied }) : fail(pr.error)
+  })
+
+  ipcBridge.registerHandle('steam:cloud-docs:list', async (): Promise<SteamResult> => {
+    const r = requireSteam()
+    if (!('gw' in r)) {
+      return r
+    }
+    const lr = await listCloudDocs(r.gw)
+    return lr.success ? ok({ items: lr.items }) : fail(lr.error)
+  })
+
+  ipcBridge.registerHandle(
+    'steam:cloud-docs:stats',
+    async (): Promise<SteamResult<{ docsBytes: number; itemCount: number }>> => {
+      const r = requireSteam()
+      if (!('gw' in r)) {
+        return r
+      }
+      const sr = await estimateCloudDocsUsageBytes(r.gw)
+      return sr.success ? ok({ docsBytes: sr.docsBytes, itemCount: sr.itemCount }) : fail(sr.error)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'steam:cloud-docs:get',
+    async (_e: IpcMainInvokeEvent, payload: { id?: string }): Promise<SteamResult> => {
+      const r = requireSteam()
+      if (!('gw' in r)) {
+        return r
+      }
+      const id = payload?.id
+      if (!id) {
+        return fail('invalid_id')
+      }
+      const gr = await getCloudDocBody(r.gw, id)
+      return gr.success ? ok({ title: gr.title, body: gr.body }) : fail(gr.error)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'steam:cloud-docs:put',
+    async (
+      _e: IpcMainInvokeEvent,
+      payload: { id?: string; title?: string; body?: string }
+    ): Promise<SteamResult<{ id: string }>> => {
+      const r = requireSteam()
+      if (!('gw' in r)) {
+        return r
+      }
+      const p = payload || {}
+      const pr = await putCloudDoc(r.gw, {
+        id: typeof p.id === 'string' ? p.id : undefined,
+        title: typeof p.title === 'string' ? p.title : '',
+        body: typeof p.body === 'string' ? p.body : ''
+      })
+      if (pr.success) {
+        tryUnlockSteamAchievement(r.gw, 'ACH_CLOUD_DOC_SAVE')
+        return ok({ id: pr.id })
+      }
+      return fail(pr.error)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'steam:cloud-docs:delete',
+    async (_e: IpcMainInvokeEvent, payload: { id?: string }): Promise<SteamResult> => {
+      const r = requireSteam()
+      if (!('gw' in r)) {
+        return r
+      }
+      const id = payload?.id
+      if (!id) {
+        return fail('invalid_id')
+      }
+      const dr = await deleteCloudDoc(r.gw, id)
+      return dr.success ? ok() : fail(dr.error)
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'steam:cloud-docs:rename',
+    async (
+      _e: IpcMainInvokeEvent,
+      payload: { id?: string; title?: string }
+    ): Promise<SteamResult> => {
+      const r = requireSteam()
+      if (!('gw' in r)) {
+        return r
+      }
+      const id = payload?.id
+      const title = typeof payload?.title === 'string' ? payload.title : ''
+      if (!id) {
+        return fail('invalid_id')
+      }
+      const rr = await renameCloudDoc(r.gw, id, title)
+      return rr.success ? ok() : fail(rr.error)
+    }
+  )
+
   ipcBridge.registerHandle(
     'steam:workshop:publish',
     async (
@@ -288,18 +441,120 @@ export function registerSteamIpc(): void {
     'steam:workshop:download',
     async (
       _e: IpcMainInvokeEvent,
-      payload: { publishedFileId: string; targetDir: string }
+      payload: { ugcFileHandle?: string; targetDir?: string }
     ): Promise<SteamResult> => {
       const r = requireSteam()
       if (!('gw' in r)) {
         return r
       }
-      const { publishedFileId, targetDir } = payload || ({} as typeof payload)
-      if (!publishedFileId || !targetDir) {
+      const { ugcFileHandle, targetDir } = payload || ({} as typeof payload)
+      if (!ugcFileHandle || !targetDir) {
         return fail('invalid_download_payload')
       }
-      const dr = await ugcDownloadItem(r.gw, publishedFileId, targetDir)
-      return dr.success ? ok() : fail(dr.error)
+      try {
+        fs.mkdirSync(targetDir, { recursive: true })
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+      const dr = await ugcDownloadItem(r.gw, ugcFileHandle, targetDir)
+      if (!dr.success) {
+        return fail(dr.error)
+      }
+      try {
+        await ensureWorkshopDirHasManifest(targetDir)
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+      return ok()
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'steam:workshop:pull-and-sync',
+    async (
+      _e: IpcMainInvokeEvent,
+      payload: { publishedFileId?: string; ugcFileHandle?: string }
+    ): Promise<
+      SteamResult<{
+        templateId: string
+        contentDir: string
+        source: 'steam_install' | 'downloaded'
+      }>
+    > => {
+      const r = requireSteam()
+      if (!('gw' in r)) {
+        return r
+      }
+      const publishedFileId =
+        payload && typeof payload.publishedFileId === 'string' ? payload.publishedFileId.trim() : ''
+      const ugcFileHandle =
+        payload && typeof payload.ugcFileHandle === 'string' ? payload.ugcFileHandle.trim() : ''
+      if (!publishedFileId || !ugcFileHandle) {
+        return fail('invalid_pull_payload')
+      }
+      const root = path.join(app.getPath('userData'), 'workshop', 'installed')
+      try {
+        fs.mkdirSync(root, { recursive: true })
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+      const targetDir = path.join(root, publishedFileId)
+      try {
+        fs.mkdirSync(targetDir, { recursive: true })
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+
+      const gwAny = r.gw as Record<string, unknown>
+      const getInfo = gwAny.ugcGetItemInstallInfo as
+        | ((id: string) => { folder?: string } | undefined)
+        | undefined
+      if (typeof getInfo === 'function') {
+        const info = getInfo(publishedFileId)
+        if (info?.folder && fs.existsSync(info.folder)) {
+          try {
+            await ensureWorkshopDirHasManifest(info.folder)
+            const contentDir = resolveInstallContentDir(info.folder)
+            const manifest = readMetadocUgcManifestFromDir(contentDir)
+            if (manifest?.kind === 'document_template') {
+              const ins = installDocumentTemplateFromUgcDir(contentDir, manifest)
+              tryUnlockSteamAchievement(r.gw, 'ACH_WORKSHOP_SUBSCRIBE_ITEM')
+              return ok({
+                templateId: ins.templateId,
+                contentDir,
+                source: 'steam_install' as const
+              })
+            }
+          } catch {
+            /* 继续走下载 */
+          }
+        }
+      }
+
+      const dr = await ugcDownloadItem(r.gw, ugcFileHandle, targetDir)
+      if (!dr.success) {
+        return fail(dr.error)
+      }
+      try {
+        await ensureWorkshopDirHasManifest(targetDir)
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+      const contentDir = resolveInstallContentDir(targetDir)
+      const manifest = readMetadocUgcManifestFromDir(contentDir)
+      if (!manifest) {
+        return fail('no_manifest')
+      }
+      if (manifest.kind !== 'document_template') {
+        return fail('unsupported_kind')
+      }
+      const ins = installDocumentTemplateFromUgcDir(contentDir, manifest)
+      tryUnlockSteamAchievement(r.gw, 'ACH_WORKSHOP_SUBSCRIBE_ITEM')
+      return ok({
+        templateId: ins.templateId,
+        contentDir,
+        source: 'downloaded' as const
+      })
     }
   )
 
@@ -311,6 +566,150 @@ export function registerSteamIpc(): void {
     const lr = await listSubscribedWorkshopItems(r.gw)
     return lr.success ? ok({ items: lr.items }) : fail(lr.error)
   })
+
+  ipcBridge.registerHandle(
+    'steam:workshop:default-install-root',
+    (): SteamResult<{ path: string }> => {
+      const root = path.join(app.getPath('userData'), 'workshop', 'installed')
+      try {
+        fs.mkdirSync(root, { recursive: true })
+      } catch {
+        /* ignore */
+      }
+      return ok({ path: root })
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'steam:workshop:read-manifest-from-dir',
+    (
+      _e: IpcMainInvokeEvent,
+      payload: { dir?: string }
+    ): SteamResult<{ manifest: MetadocUgcManifest | null; resolvedDir: string | null }> => {
+      const dir = payload?.dir
+      if (!dir || typeof dir !== 'string') {
+        return fail('invalid_dir')
+      }
+      try {
+        let resolvedDir: string | null = dir
+        let manifest = readMetadocUgcManifestFromDir(dir)
+        if (!manifest) {
+          const sub = findDirWithMetadocManifest(dir)
+          if (sub) {
+            resolvedDir = sub
+            manifest = readMetadocUgcManifestFromDir(sub)
+          } else {
+            resolvedDir = null
+          }
+        }
+        return ok({ manifest, resolvedDir })
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'steam:workshop:install-from-dir',
+    async (
+      _e: IpcMainInvokeEvent,
+      payload: { dir?: string }
+    ): Promise<SteamResult<{ templateId: string }>> => {
+      const dir = payload?.dir
+      if (!dir || typeof dir !== 'string') {
+        return fail('invalid_dir')
+      }
+      try {
+        await ensureWorkshopDirHasManifest(dir)
+        const contentDir = resolveInstallContentDir(dir)
+        const manifest = readMetadocUgcManifestFromDir(contentDir)
+        if (!manifest) {
+          return fail('no_manifest')
+        }
+        if (manifest.kind === 'document_template') {
+          const ins = installDocumentTemplateFromUgcDir(contentDir, manifest)
+          const sr = requireSteam()
+          if ('gw' in sr) {
+            tryUnlockSteamAchievement(sr.gw, 'ACH_WORKSHOP_SUBSCRIBE_ITEM')
+          }
+          return ok(ins)
+        }
+        return fail('unsupported_kind')
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+    }
+  )
+
+  ipcBridge.registerHandle(
+    'steam:workshop:publish-document-template',
+    async (
+      _e: IpcMainInvokeEvent,
+      payload: { manifest?: MetadocUgcManifest; thumbnailBase64?: string }
+    ): Promise<SteamResult<{ publishedFileId: string }>> => {
+      const r = requireSteam()
+      if (!('gw' in r)) {
+        return r
+      }
+      const manifest = payload?.manifest
+      if (!manifest || manifest.kind !== 'document_template') {
+        return fail('invalid_manifest')
+      }
+      const defKey = String(manifest.defaultLocale || '')
+        .replace(/-/g, '_')
+        .toLowerCase()
+      const block = manifest.locales?.[defKey]
+      if (!block) {
+        return fail('invalid_locales')
+      }
+      const tmp = path.join(app.getPath('temp'), `metadoc-ugc-${Date.now()}.zip`)
+      const files: Record<string, Buffer> = {}
+      const thumbFile = manifest.thumbnail?.file || 'thumbnail.png'
+      if (payload?.thumbnailBase64) {
+        const b64 = payload.thumbnailBase64.replace(/^data:image\/\w+;base64,/i, '')
+        try {
+          files[thumbFile] = Buffer.from(b64, 'base64')
+        } catch {
+          return fail('invalid_thumbnail')
+        }
+      }
+      try {
+        await writeMetadocUgcZipToFile(tmp, manifest, files)
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+      const imgTmp = path.join(app.getPath('temp'), `metadoc-ugc-preview-${Date.now()}.png`)
+      const previewBuf =
+        files[thumbFile] ||
+        Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          'base64'
+        )
+      try {
+        fs.writeFileSync(imgTmp, previewBuf)
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+      const title = (block.title || 'MetaDoc').slice(0, 128)
+      const desc = (block.description || '').slice(0, 8000)
+      const pr = await ugcPublish(r.gw, tmp, title, desc, imgTmp)
+      try {
+        fs.unlinkSync(tmp)
+      } catch {
+        /* ignore */
+      }
+      try {
+        fs.unlinkSync(imgTmp)
+      } catch {
+        /* ignore */
+      }
+      if (pr.success) {
+        tryUnlockSteamAchievement(r.gw, 'ACH_WORKSHOP_PUBLISH_TEMPLATE')
+        return ok({ publishedFileId: pr.publishedFileId })
+      }
+      return fail(pr.error)
+    }
+  )
 
   ipcBridge.registerHandle('steam:startup-locale:get-pending', () => ({
     pending: getPendingSteamLocaleConflict()

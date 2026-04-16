@@ -21,6 +21,17 @@ import UserFeedbackView from '../views/UserFeedbackView.vue'
 import AgentView from '../views/AgentView.vue'
 import AgentReviewView from '../views/AgentReviewView.vue'
 import UserManual from '../views/UserManual.vue'
+import WorkshopMarketView from '../views/WorkshopMarketView.vue'
+import CloudDocumentsView from '../views/CloudDocumentsView.vue'
+
+function systemRouteKey(route: string): string {
+  const q = route.indexOf('?')
+  const h = route.indexOf('#')
+  let end = route.length
+  if (q >= 0) end = Math.min(end, q)
+  if (h >= 0) end = Math.min(end, h)
+  return end < route.length ? route.slice(0, end) : route
+}
 
 export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   '/global-home': GlobalHome,
@@ -31,7 +42,9 @@ export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   /** 以下路由由 openSystemTab 打开为 system Tab，需显式映射，避免依赖嵌套 router-view（Main 不在 App 的 router-view 树内） */
   '/user-manual': UserManual,
   '/user-feedback': UserFeedbackView,
-  '/llm-statistics': LlmStatisticsView
+  '/llm-statistics': LlmStatisticsView,
+  '/workshop-market': WorkshopMarketView,
+  '/cloud-docs': CloudDocumentsView
 }
 
 export const TOOL_TAB_COMPONENTS: Record<string, Component> = {
@@ -51,7 +64,7 @@ export const TOOL_TAB_COMPONENTS: Record<string, Component> = {
 }
 
 export function getSystemTabComponent(route: string): Component | null {
-  return SYSTEM_TAB_COMPONENTS[route] || null
+  return SYSTEM_TAB_COMPONENTS[systemRouteKey(route)] || null
 }
 
 export function getToolTabComponent(route: string): Component | null {

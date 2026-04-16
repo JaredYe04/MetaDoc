@@ -98,6 +98,12 @@ const routes = [
     meta: { requiresLayout: true }
   },
   {
+    path: '/cloud-docs',
+    name: 'CloudDocuments',
+    component: () => import('../views/CloudDocumentsView.vue'),
+    meta: { requiresLayout: true }
+  },
+  {
     path: '/user-feedback',
     name: 'UserFeedback',
     component: () => import('../views/UserFeedbackView.vue'),

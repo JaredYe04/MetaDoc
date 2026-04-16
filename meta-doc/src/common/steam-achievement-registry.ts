@@ -76,6 +76,36 @@ export const STEAM_ACHIEVEMENTS: SteamAchievementDef[] = [
     apiName: 'ACH_FIRST_AGENT_RULE',
     displayNameKey: 'steamAch.ACH_FIRST_AGENT_RULE_NAME',
     descriptionKey: 'steamAch.ACH_FIRST_AGENT_RULE_DESC'
+  },
+  {
+    apiName: 'ACH_WORKSHOP_PUBLISH_TEMPLATE',
+    displayNameKey: 'steamAch.ACH_WORKSHOP_PUBLISH_TEMPLATE_NAME',
+    descriptionKey: 'steamAch.ACH_WORKSHOP_PUBLISH_TEMPLATE_DESC'
+  },
+  {
+    apiName: 'ACH_WORKSHOP_PUBLISH_SKILL',
+    displayNameKey: 'steamAch.ACH_WORKSHOP_PUBLISH_SKILL_NAME',
+    descriptionKey: 'steamAch.ACH_WORKSHOP_PUBLISH_SKILL_DESC'
+  },
+  {
+    apiName: 'ACH_WORKSHOP_PUBLISH_RULES',
+    displayNameKey: 'steamAch.ACH_WORKSHOP_PUBLISH_RULES_NAME',
+    descriptionKey: 'steamAch.ACH_WORKSHOP_PUBLISH_RULES_DESC'
+  },
+  {
+    apiName: 'ACH_WORKSHOP_PUBLISH_MCP',
+    displayNameKey: 'steamAch.ACH_WORKSHOP_PUBLISH_MCP_NAME',
+    descriptionKey: 'steamAch.ACH_WORKSHOP_PUBLISH_MCP_DESC'
+  },
+  {
+    apiName: 'ACH_WORKSHOP_SUBSCRIBE_ITEM',
+    displayNameKey: 'steamAch.ACH_WORKSHOP_SUBSCRIBE_ITEM_NAME',
+    descriptionKey: 'steamAch.ACH_WORKSHOP_SUBSCRIBE_ITEM_DESC'
+  },
+  {
+    apiName: 'ACH_CLOUD_DOC_SAVE',
+    displayNameKey: 'steamAch.ACH_CLOUD_DOC_SAVE_NAME',
+    descriptionKey: 'steamAch.ACH_CLOUD_DOC_SAVE_DESC'
   }
 ]
 

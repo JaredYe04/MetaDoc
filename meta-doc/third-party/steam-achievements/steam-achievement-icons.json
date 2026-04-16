@@ -80,6 +80,36 @@
       "api": "ACH_FIRST_AGENT_RULE",
       "icon": "multi-branch-black.svg",
       "label": "RULE"
+    },
+    {
+      "api": "ACH_WORKSHOP_PUBLISH_TEMPLATE",
+      "icon": "knowledge-black.svg",
+      "label": "WORKSHOP"
+    },
+    {
+      "api": "ACH_WORKSHOP_PUBLISH_SKILL",
+      "icon": "write-black.svg",
+      "label": "WS SKILL"
+    },
+    {
+      "api": "ACH_WORKSHOP_PUBLISH_RULES",
+      "icon": "multi-branch-black.svg",
+      "label": "WS RULE"
+    },
+    {
+      "api": "ACH_WORKSHOP_PUBLISH_MCP",
+      "icon": "agent-black.svg",
+      "label": "WS MCP"
+    },
+    {
+      "api": "ACH_WORKSHOP_SUBSCRIBE_ITEM",
+      "icon": "folder-add-black.svg",
+      "label": "SUB"
+    },
+    {
+      "api": "ACH_CLOUD_DOC_SAVE",
+      "icon": "base-doc-black.svg",
+      "label": "CLOUD"
     }
   ]
 }

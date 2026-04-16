@@ -27,6 +27,7 @@
       <NotificationStack />
       <!-- 全局终端执行确认弹窗（不依赖 Agent 是否渲染 Display 组件） -->
       <TerminalApprovalDialog />
+      <WorkshopPublishDocumentDialog />
     </div>
   </TooltipProvider>
 </template>
@@ -69,6 +70,7 @@ import NotificationStack from './components/NotificationStack.vue'
 import TerminalApprovalDialog from './components/global/TerminalApprovalDialog.vue'
 import FirstRunWizard from './components/onboarding/FirstRunWizard.vue'
 import SteamLocaleConflictDialog from './components/onboarding/SteamLocaleConflictDialog.vue'
+import WorkshopPublishDocumentDialog from './components/workshop/WorkshopPublishDocumentDialog.vue'
 import messageBridge from './bridge/message-bridge'
 import { useNotificationStore } from './stores/notification'
 import { setNotificationStore } from './utils/notify'

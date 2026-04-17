@@ -50,6 +50,47 @@ function isNativeTextInputOutsideEditor(target: HTMLElement): boolean {
   return !target.closest('.vditor, .monaco-editor, .editor, [data-editor]')
 }
 
+const EDITABLE_DOC_SURFACE_SELECTORS = [
+  '.monaco-editor',
+  '.vditor-wysiwyg',
+  '.vditor-ir',
+  '.vditor-sv',
+  '.editor',
+  '[data-editor]',
+  '.ql-editor',
+  '.tox-edit-area',
+  '.cm-editor',
+  '.CodeMirror',
+  '.ace_editor'
+] as const
+
+/**
+ * 焦点是否在「可编辑文档正文」表面（Monaco / Vditor 编辑区等）。
+ * 当前标签为文档但焦点在预览、Agent、侧栏等时，若仍转发 editor-command，会先 preventDefault，
+ * 导致只读区 Ctrl+C / Ctrl+Z 等无法走浏览器默认或全局选区复制。
+ * 使用 composedPath：Monaco 等在 Shadow DOM 内时 target.closest 打不到 .monaco-editor。
+ */
+function isFocusInEditableDocumentEditorSurface(
+  target: HTMLElement,
+  e?: KeyboardEvent | MouseEvent | WheelEvent
+): boolean {
+  const path = e && typeof e.composedPath === 'function' ? e.composedPath() : [target]
+  for (const n of path) {
+    if (n instanceof HTMLElement && n.closest('.vditor-preview')) return false
+  }
+  for (const n of path) {
+    if (!(n instanceof Element)) continue
+    for (const sel of EDITABLE_DOC_SURFACE_SELECTORS) {
+      try {
+        if (n.matches(sel)) return true
+      } catch {
+        /* ignore invalid selector in edge environments */
+      }
+    }
+  }
+  return false
+}
+
 export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
   const { workspace, t } = options
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
@@ -81,6 +122,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
         const inTerminal = target.closest('.xterm, .xterm-instance')
         if (inTerminal) return
         if (isNativeTextInputOutsideEditor(target)) return
+        if (!inDialog && inEditor && !isFocusInEditableDocumentEditorSurface(target, e)) return
         if (!inDialog && inEditor) {
           e.preventDefault()
           ;(e as any).stopPropagation?.()
@@ -94,6 +136,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
       case 'redo':
         if (target.closest('.xterm, .xterm-instance')) return
         if (isNativeTextInputOutsideEditor(target)) return
+        if (!inDialog && inEditor && !isFocusInEditableDocumentEditorSurface(target, e)) return
         if (!inDialog && inEditor) {
           e.preventDefault()
           ;(e as any).stopPropagation?.()

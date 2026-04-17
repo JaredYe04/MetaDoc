@@ -52,6 +52,32 @@ import {
 
 type SteamResult<T = unknown> = { success: true; data?: T } | { success: false; error: string }
 
+/** Steam 网页支付窗口（与主进程出口 IP 一致，避免 InitTxn ip 与外部浏览器不一致） */
+let mtxCheckoutBrowserWindow: BrowserWindow | null = null
+
+async function fetchPublicIpForMtxMain(): Promise<string | null> {
+  const timeout = (ms: number) =>
+    typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+      ? AbortSignal.timeout(ms)
+      : undefined
+  try {
+    const r = await fetch('https://api.ipify.org?format=json', { signal: timeout(15_000) })
+    if (!r.ok) return null
+    const j = (await r.json()) as { ip?: string }
+    return typeof j.ip === 'string' ? j.ip : null
+  } catch {
+    /* ignore */
+  }
+  try {
+    const r = await fetch('https://ipv4.icanhazip.com', { signal: timeout(15_000) })
+    if (!r.ok) return null
+    const t = (await r.text()).trim()
+    return /^\d{1,3}(\.\d{1,3}){3}$/.test(t) ? t : null
+  } catch {
+    return null
+  }
+}
+
 function ok<T>(data?: T): SteamResult<T> {
   return data !== undefined ? { success: true, data } : { success: true }
 }
@@ -793,27 +819,79 @@ export function registerSteamIpc(): void {
   )
 
   /**
-   * Worker InitTxn 成功后调用：尽快泵 Steam 回调队列，便于客户端弹出 MicroTxn 授权覆盖层。
-   * greenworks 通常已有 SteamLoop；若构建暴露了 runCallbacks 则额外调用一次。
+   * Worker InitTxn 成功后调用：尽快泵 Steam 回调队列（网页支付时 Greenworks 可能不可用，仍返回成功）。
    */
   ipcBridge.registerHandle('steam:mtx:after-init', (): SteamResult => {
     initSteam()
     const gw = getGreenworksOrNull() as Record<string, unknown> | null
-    if (!gw) {
-      return fail('greenworks_unavailable')
-    }
-    for (const name of ['runCallbacks', 'runSteamAPI', 'RunCallbacks']) {
-      const fn = gw[name]
-      if (typeof fn === 'function') {
-        try {
-          ;(fn as () => void).call(gw)
-        } catch {
-          /* ignore */
+    if (gw) {
+      for (const name of ['runCallbacks', 'runSteamAPI', 'RunCallbacks']) {
+        const fn = gw[name]
+        if (typeof fn === 'function') {
+          try {
+            ;(fn as () => void).call(gw)
+          } catch {
+            /* ignore */
+          }
         }
       }
     }
     return ok()
   })
+
+  /** 主进程获取公网 IPv4，供 InitTxn ipaddress 与下方内嵌支付页出口一致 */
+  ipcBridge.registerHandle('steam:mtx:get-public-ip', async (): Promise<SteamResult<{ ip: string }>> => {
+    const ip = await fetchPublicIpForMtxMain()
+    if (!ip) {
+      return fail('ip_unavailable')
+    }
+    return ok({ ip })
+  })
+
+  /** 在应用内打开 Steam 支付页（非系统默认浏览器），与 InitTxn 使用同一主进程网络出口 */
+  ipcBridge.registerHandle(
+    'steam:mtx:open-checkout-url',
+    async (_e, payload: unknown): Promise<SteamResult> => {
+      const url =
+        payload &&
+        typeof payload === 'object' &&
+        payload !== null &&
+        'url' in payload &&
+        typeof (payload as { url: unknown }).url === 'string'
+          ? (payload as { url: string }).url.trim()
+          : ''
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        return fail('bad_url')
+      }
+      try {
+        if (mtxCheckoutBrowserWindow && !mtxCheckoutBrowserWindow.isDestroyed()) {
+          mtxCheckoutBrowserWindow.close()
+          mtxCheckoutBrowserWindow = null
+        }
+        const parent = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+        mtxCheckoutBrowserWindow = new BrowserWindow({
+          width: 960,
+          height: 820,
+          parent: parent ?? undefined,
+          modal: false,
+          show: true,
+          autoHideMenuBar: true,
+          title: 'Steam',
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+          }
+        })
+        mtxCheckoutBrowserWindow.on('closed', () => {
+          mtxCheckoutBrowserWindow = null
+        })
+        await mtxCheckoutBrowserWindow.loadURL(url)
+        return ok()
+      } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+    }
+  )
 
   trySubscribeSteamMicroTxnListener()
 }

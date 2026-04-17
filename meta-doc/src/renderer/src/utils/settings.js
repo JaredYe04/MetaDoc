@@ -168,7 +168,12 @@ export const settings = reactive({
   /** 全局 userData/reference 自动清理：早于 N 天的文件；0 表示不自动清理 */
   referenceGlobalAutoPruneDays: 7,
   /** 工作区 .metadoc/attachments 自动清理：早于 N 天的文件；0 表示不自动清理 */
-  referenceAgentAutoPruneDays: 7
+  referenceAgentAutoPruneDays: 7,
+  /**
+   * Steam 环境下：为 true 时关闭 MetaDoc 官方云（Worker JWT），恢复 BYOK 与自建 Key 配置。
+   * 仅应在明确知晓风险时使用。
+   */
+  steamDeveloperBypassByok: false
 })
 
 // 关键设置列表：需要在窗口显示前加载的设置（影响UI渲染）

@@ -7,6 +7,8 @@ import { BaseLlmAdapter } from './base-adapter.ts'
 import { LlmError, LlmErrorType } from '../llm-errors.js'
 import { getSetting } from '../settings.js'
 import { loadMetadocOpenAiStyleConfig } from '../metadoc-llm-config.ts'
+import { useMetadocCloudOpenAiRoute } from '../dev-ai-pipeline'
+import { resolveEffectiveLlmInternal } from '../steam-cloud-route'
 import type { LlmConfig, CustomLlmConfig } from './types.ts'
 
 // 懒加载适配器类，避免初始化顺序问题
@@ -108,8 +110,12 @@ export async function createAdapterFromSettings(
       temperature: customConfig.temperature
     }
   } else {
-    // 从设置中加载配置
-    const selectedLlm = (await getSetting('selectedLlm')) as LlmConfig['type'] | null
+    // 从设置中加载配置（Steam 官方云链路下统一按 metadoc 解析，见 steam-cloud-route）
+    const rawSelected = (await getSetting('selectedLlm')) as LlmConfig['type'] | null
+    const selectedLlm = resolveEffectiveLlmInternal(
+      useMetadocCloudOpenAiRoute(),
+      rawSelected
+    ) as LlmConfig['type']
     if (!selectedLlm) {
       throw new LlmError(LlmErrorType.INVALID_CONFIG, '未选择 LLM 类型')
     }

@@ -2044,7 +2044,11 @@
     "llmSettingsDescription": "Configure LLM access methods, temperature, and completion options; supports switching between multiple configurations, as well as importing and exporting.",
     "llmSteamCloud": {
       "title": "MetaDoc Cloud (Steam)",
-      "description": "Official cloud uses Worker-hosted keys; no third-party API key entry.",
+      "developerModeTitle": "Experimental options",
+      "developerModeHint": "May affect stability or differ from the standard experience. For testing only.",
+      "developerModeLabel": "Enable experimental connectivity",
+      "developerModeConfirmTitle": "Enable this option?",
+      "developerModeConfirmBody": "This is experimental and may cause unexpected behavior or charges. Do you accept full responsibility?",
       "credits": "Balance (credits)",
       "refreshCredits": "Refresh",
       "model": "Model",
@@ -2055,9 +2059,11 @@
       "firstPurchaseGranted": "Welcome bonus: {n} credits added.",
       "rechargeNeedsSteam": "Purchase unavailable: start Steam and launch this app with Greenworks initialized (or use a Steam distribution build).",
       "mtxInitOk": "Order {order} created. If no payment window appears, launch this app from your Steam library.",
+      "mtxInitOkOverlay": "Order {order} created. Approve the in-app microtransaction prompt in the Steam client; if the Steam overlay does not appear, focus the game window or verify Steam is running.",
       "mtxWebCredited": "Payment complete. Added {n} credits (order {order}).",
       "mtxSteamAuthFailed": "Steam declined this authorization. A common cause is an IP mismatch between the purchase session and your browser. Retry after closing the payment tab; if you use VPN/proxy, keep the same egress as your browser.",
-      "mtxPollTimeout": "Timed out waiting for Steam. Refresh balance if you already paid; otherwise try again."
+      "mtxPollTimeout": "Timed out waiting for Steam. Refresh balance if you already paid; otherwise try again.",
+      "mtxNoPublicIp": "Could not reach the network. Check your connection and try again."
     },
     "loggingSettings": "Logging Settings",
     "mathInlineDigitHint": "When enabled, digits are allowed after the starting $ in inline math formulas, e.g., $123$ will be recognized as a math formula. When disabled, only formulas like $x$ will be recognized.",

@@ -113,6 +113,7 @@ export type SteamMtxInitResult = {
 /** 与 i18n 配合：Steam 网页拒绝 / 轮询超时 */
 export const MTX_ERR_STEAM_DECLINED = 'mtx_steam_declined'
 export const MTX_ERR_POLL_TIMEOUT = 'mtx_steam_poll_timeout'
+export const MTX_ERR_NO_PUBLIC_IP = 'MTX_ERR_NO_PUBLIC_IP'
 
 const FETCH_TIMEOUT_MS = 20000
 
@@ -129,7 +130,27 @@ async function fetchJsonWithTimeout(
   return { res, json }
 }
 
+async function fetchPublicIpViaMainProcess(): Promise<string | null> {
+  try {
+    const r = (await messageBridge.invoke('steam:mtx:get-public-ip')) as {
+      success?: boolean
+      data?: { ip?: string }
+      error?: string
+    }
+    if (r?.success && typeof r.data?.ip === 'string' && r.data.ip.length > 0) {
+      return r.data.ip
+    }
+  } catch {
+    /* 非 Electron 或无 handler */
+  }
+  return null
+}
+
 async function fetchPublicIpForMtx(): Promise<string | null> {
+  const fromMain = await fetchPublicIpViaMainProcess()
+  if (fromMain) {
+    return fromMain
+  }
   const tryOnce = async (url: string, parse: (r: Response) => Promise<string | null>) => {
     try {
       const signal =
@@ -164,9 +185,8 @@ function sleepMs(ms: number): Promise<void> {
 
 /**
  * 发起 Steam MTX：
- * - 能使用 Steam 客户端覆盖层时（Steam 分发或 Greenworks 已就绪）：**usersession=client**，在 Steam 内授权，
- *   由 `metadoc-steam-mtx-bridge` 调 Finalize；**不**走系统浏览器，避免 InitTxn 的 ip 与默认浏览器出口不一致导致「交易授权错误」。
- * - 否则：usersession=web + 本机上报公网 IP，打开 Steam URL 并轮询 /steam/mtx/sync-web。
+ * Electron 下 Steam 客户端覆盖层对 `usersession=client` 往往**不会**弹出支付 UI；因此统一走 **Web 结账**（`usersession=web`）：
+ * 主进程 `steam:mtx:get-public-ip` 与 `steam:mtx:open-checkout-url` 内嵌窗口，使 InitTxn 的 ip 与支付页出口一致。
  */
 export async function startSteamMtxInit(body: {
   item_id: string | number
@@ -180,8 +200,10 @@ export async function startSteamMtxInit(body: {
     throw new Error('VITE_METADOC_CLOUD_API_URL 未配置')
   }
   const jwt = await ensureMetadocSteamCloudJwt()
-  const useSteamOverlay = await canInitSteamMtx()
-  const publicIp = useSteamOverlay ? null : await fetchPublicIpForMtx()
+  const publicIp = await fetchPublicIpForMtx()
+  if (!publicIp) {
+    throw new Error(MTX_ERR_NO_PUBLIC_IP)
+  }
   const { res, json: initJson } = await fetchJsonWithTimeout(`${base}/steam/mtx/init`, {
     method: 'POST',
     headers: {
@@ -190,8 +212,8 @@ export async function startSteamMtxInit(body: {
     },
     body: JSON.stringify({
       ...body,
-      checkout: useSteamOverlay ? 'client' : 'auto',
-      ip_address: useSteamOverlay ? undefined : publicIp ?? undefined
+      checkout: 'auto',
+      ip_address: publicIp
     })
   })
   const json = initJson as {
@@ -220,7 +242,16 @@ export async function startSteamMtxInit(body: {
 
   if (checkout === 'web') {
     if (typeof json.steam_url === 'string' && json.steam_url.length > 0) {
-      eventBus.emit('open-link', json.steam_url)
+      try {
+        const opened = (await messageBridge.invoke('steam:mtx:open-checkout-url', {
+          url: json.steam_url
+        })) as { success?: boolean }
+        if (!opened || opened.success !== true) {
+          eventBus.emit('open-link', json.steam_url)
+        }
+      } catch {
+        eventBus.emit('open-link', json.steam_url)
+      }
     }
     const maxAttempts = 45
     for (let i = 0; i < maxAttempts; i++) {

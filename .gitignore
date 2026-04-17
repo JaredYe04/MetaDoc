@@ -17,8 +17,8 @@ meta-doc/resources_disabled/
 
 # ==========================================
 # 3. 调试、日志与导出产物 (Debug & Artifacts)
+# 注意：不要用 **/debug/ —— 会误忽略源码里的 components/debug/ 等目录。
 # ==========================================
-**/debug/
 meta-doc/startup-profile-report.json
 meta-doc/code-audit-report.md
 *.log
@@ -61,3 +61,4 @@ __pycache__
 *.pyc
 /steamworks_sdk
 /meta-doc/docs/thesis
+/debug

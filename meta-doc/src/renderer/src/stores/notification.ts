@@ -205,9 +205,9 @@ export const useNotificationStore = defineStore('notification', () => {
 
   /** 仅移除非后台任务类通知（任务类须通过各功能「中断」或业务完成后移除） */
   function removeNonBackgroundTasks(): void {
-    const keep = (n: NotificationItem) =>
-      !['export-task', 'knowledge-task', 'ocr-task'].includes(n.metadata?.kind as string)
-    const next = notifications.value.filter(keep)
+    const isBackgroundTask = (n: NotificationItem) =>
+      ['export-task', 'knowledge-task', 'ocr-task'].includes(n.metadata?.kind as string)
+    const next = notifications.value.filter(isBackgroundTask)
     if (next.length !== notifications.value.length) {
       notifications.value = next
       saveToStorage()

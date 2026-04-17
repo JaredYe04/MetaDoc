@@ -3153,7 +3153,12 @@
     "steamOpenProfileOverlay": "打开个人资料",
     "steamOpenAchievementsOverlay": "查看成就",
     "steamManageCloudDocs": "管理云存档",
-    "steamManageWorkshop": "管理创意工坊"
+    "steamManageWorkshop": "管理创意工坊",
+    "steamTrayLlmCredits": "账户 Credits 余额",
+    "steamTrayRecharge": "充值",
+    "steamTrayRefreshCloudCredits": "刷新额度",
+    "steamTrayCreditsUnavailable": "暂不可用",
+    "steamTrayMtxCatalogEmpty": "暂无可售档位，请检查网络或稍后重试。"
   },
   "steamAch": {
     "ACH_META_WELCOME_NAME": "欢迎使用 MetaDoc",
@@ -4397,6 +4402,12 @@
     "customThemeColor": "自定义主题颜色",
     "debug": {
       "title": "调试工具",
+      "aiPipeline": {
+        "title": "AI 链路（仅开发）",
+        "hint": "正式 Steam 包不受此项影响。用于在未勾选 Steam 分发时连接 staging Worker（需 VITE_METADOC_CLOUD_API_URL）。",
+        "legacy": "传统 BYOK（用户自填 API Key）",
+        "steamCloud": "官方云 + n1n（Worker + DEV 鉴权）"
+      },
       "eventBus": "EventBus 事件",
       "broadcast": "广播事件",
       "eventName": "事件名称",
@@ -4787,6 +4798,23 @@
     "llmConfigList": "LLM配置列表",
     "llmSettings": "LLM设置",
     "llmSettingsDescription": "配置大模型接入方式、温度与补全等选项；支持多套配置切换与导入导出。",
+    "llmSteamCloud": {
+      "title": "MetaDoc 官方云（Steam）",
+      "description": "由云端托管密钥，无需填写第三方 API Key。",
+      "credits": "剩余额度（credits）",
+      "refreshCredits": "刷新",
+      "model": "模型",
+      "recharge": "充值",
+      "rechargeCurrentBalance": "当前余额",
+      "mtxPackCreditsLabel": "额度（credits）",
+      "noCloudUrl": "未配置 VITE_METADOC_CLOUD_API_URL。",
+      "firstPurchaseGranted": "首购赠送已发放：{n} credits。",
+      "rechargeNeedsSteam": "当前无法发起内购：请启动 Steam，并确保本应用已通过 Steam 启动且 Greenworks 已初始化（或使用 Steam 分发渠道构建）。",
+      "mtxInitOk": "订单已创建：{order}。若未弹出支付窗口，请确认已从 Steam 库启动本应用。",
+      "mtxWebCredited": "支付完成，已入账 {n} credits（订单 {order}）。",
+      "mtxSteamAuthFailed": "Steam 未接受本次授权（常见原因：下单 IP 与浏览器出口 IP 不一致）。请关闭支付页后重试；若使用 VPN/代理，请保持与浏览器一致。",
+      "mtxPollTimeout": "等待 Steam 确认超时。若已付款，请稍后点「刷新额度」；若未完成支付，请重试。"
+    },
     "llmTemperature": "LLM温度",
     "llmTemperatureHint": "控制AI输出的随机性，值越高越随机，推荐1.3",
     "llmTemperatureRigorous": "严谨",

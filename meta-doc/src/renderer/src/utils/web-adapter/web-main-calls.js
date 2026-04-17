@@ -525,6 +525,7 @@ export function webMainCalls() {
     data: { initialized: false, available: false, reason: 'web' }
   }))
   localIpcMain.handle('steam:user:get', async () => steamWeb)
+  localIpcMain.handle('steam:auth:get-session-ticket', async () => steamWeb)
   localIpcMain.handle('steam:user:avatar', async () => ({
     success: true,
     data: { avatarUrl: null }

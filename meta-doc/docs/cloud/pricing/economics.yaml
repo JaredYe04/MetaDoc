@@ -1,0 +1,16 @@
+# 与 economics.md 同步；Worker 由 scripts/validate-pricing.mjs 生成 pricing-generated.ts
+version: "1"
+
+economics:
+  # MetaDoc 自留服务费 3%
+  metadoc_service_fee_pct: 0.03
+  # Steam MTX 有效平台扣率（占位：须替换为财务/Valve 结算确认值）
+  steam_mtx_effective_fee_pct: 0.30
+  # 每 1 USD 成本池对应 credits 数量
+  credits_per_usd_pool: 1000
+
+# 首次购买应用实付的 20% 转额度（业务系数；精确发放策略见 docs/economics-first-purchase.md）
+first_purchase:
+  grant_fraction_of_list_price_usd: 0.20
+  # 区域建议价基准（USD），与商店标价对齐后更新；用于 Worker 估算首购 credits
+  app_list_price_usd: 29.99

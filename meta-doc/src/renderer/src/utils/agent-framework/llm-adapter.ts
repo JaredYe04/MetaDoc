@@ -5,7 +5,7 @@
 
 import type { AgentEngine, CustomLlmConfig } from '../../types/agent-framework'
 import { getSetting } from '../settings'
-import { getMetaDocLlmConfig, verifyToken } from '../web-utils'
+import { loadMetadocOpenAiStyleConfig } from '../metadoc-llm-config'
 import { createRendererLogger } from '../logger'
 import { cancelAiTask, createAiTask, type CustomLlmConfigForTask } from '../ai_tasks'
 import { ai_types } from '../ai_tasks'
@@ -109,22 +109,16 @@ export class LlmAdapter {
         case 'metadoc': {
           const token = localStorage.getItem('loginToken')
           const modelName = await getSetting('metadocSelectedModel')
-          if (!token || !verifyToken(token)) {
-            throw new Error('请先登录MetaDoc账户')
-          }
-          const metadocConfig = await getMetaDocLlmConfig(token, modelName)
-          if (!metadocConfig) {
-            throw new Error('获取MetaDoc配置失败')
-          }
+          const metadocConfig = await loadMetadocOpenAiStyleConfig(token, modelName || '')
           const enableMaxTokens = (await getSetting('metadocEnableMaxTokens')) ?? false
           const maxTokens = (await getSetting('metadocMaxTokens')) || 4096
           config = {
-            apiUrl: metadocConfig.apiUrl || '',
-            apiKey: metadocConfig.apiKey,
+            apiUrl: (metadocConfig.apiUrl as string) || '',
+            apiKey: metadocConfig.apiKey as string,
             model: modelName || '',
             type: 'metadoc',
-            chatSuffix: metadocConfig.chatSuffix || '',
-            completionSuffix: metadocConfig.completionSuffix || '',
+            chatSuffix: (metadocConfig.chatSuffix as string) || '',
+            completionSuffix: (metadocConfig.completionSuffix as string) || '',
             enableMaxTokens,
             maxTokens
           }

@@ -1,0 +1,54 @@
+# InitTxn 参数须与此表 steam_item_id / amount_cents_usd 一致；改价后运行 validate:pricing 并部署 Worker（无需在 partner 逐条注册 SKU）
+# 入账 credits = creditsFromUsdGross(USD) + (volume_bonus_credits ?? 0)。非 USD 订单按 usd_price 回退计价。
+# 大档标价相对「按入门档倍数堆叠」有折扣（label 说明）；可选 volume_bonus_credits 作营销赠额（默认 0，须财务确认）。
+version: "2"
+
+items:
+  - steam_item_id: "100"
+    label: "MetaDoc Cloud · Tier 100 (starter)"
+    usd_price: 0.99
+    amount_cents_usd: 99
+    listed: true
+    volume_bonus_credits: 0
+
+  - steam_item_id: "200"
+    label: "MetaDoc Cloud · Tier 200 (~10pct off vs 2x starter USD)"
+    usd_price: 1.79
+    amount_cents_usd: 179
+    listed: true
+    volume_bonus_credits: 0
+
+  - steam_item_id: "500"
+    label: "MetaDoc Cloud · Tier 500 (~19pct off vs 5x starter USD)"
+    usd_price: 3.99
+    amount_cents_usd: 399
+    listed: true
+    volume_bonus_credits: 0
+
+  - steam_item_id: "1000"
+    label: "MetaDoc Cloud · Tier 1000 (~24pct off vs 10x starter USD)"
+    usd_price: 7.49
+    amount_cents_usd: 749
+    listed: true
+    volume_bonus_credits: 0
+
+  - steam_item_id: "2000"
+    label: "MetaDoc Cloud · Tier 2000 (~29pct off vs 20x starter USD)"
+    usd_price: 13.99
+    amount_cents_usd: 1399
+    listed: true
+    volume_bonus_credits: 0
+
+  - steam_item_id: "5000"
+    label: "MetaDoc Cloud · Tier 5000 (~33pct off vs 50x starter USD)"
+    usd_price: 32.99
+    amount_cents_usd: 3299
+    listed: true
+    volume_bonus_credits: 0
+
+  - steam_item_id: "10000"
+    label: "MetaDoc Cloud · Tier 10000 (~36pct off vs 100x starter USD)"
+    usd_price: 62.99
+    amount_cents_usd: 6299
+    listed: true
+    volume_bonus_credits: 0

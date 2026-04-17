@@ -70,15 +70,45 @@
             </div>
           </div>
 
+          <div
+            class="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-2 text-sm"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-muted-foreground shrink-0">{{
+                t('leftMenu.steamTrayLlmCredits', '账户 Credits 余额')
+              }}</span>
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="font-mono font-medium tabular-nums truncate">{{
+                  cloudCreditsDisplay
+                }}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="h-7 px-2 shrink-0 text-xs"
+                  :disabled="cloudCreditsLoading || !hasMetadocCloud"
+                  @click="refreshCloudCredits"
+                >
+                  {{ t('leftMenu.steamTrayRefreshCloudCredits', '刷新额度') }}
+                </Button>
+              </div>
+            </div>
+            <Button
+              v-if="hasMetadocCloud"
+              variant="secondary"
+              size="sm"
+              class="w-full"
+              @click="openRechargeDialog"
+            >
+              {{ t('leftMenu.steamTrayRecharge', '充值') }}
+            </Button>
+          </div>
+
           <div class="mt-3 flex flex-col gap-2">
             <Button variant="outline" size="sm" class="w-full" @click="openCloudDocsTab">
               {{ t('leftMenu.steamManageCloudDocs', '管理云存档') }}
             </Button>
             <Button variant="outline" size="sm" class="w-full" @click="openWorkshopHubTab">
               {{ t('leftMenu.steamManageWorkshop', '管理创意工坊') }}
-            </Button>
-            <Button variant="outline" size="sm" class="w-full" @click="openProfileOverlay">
-              {{ t('leftMenu.steamOpenProfileOverlay', '打开个人资料') }}
             </Button>
             <Button variant="outline" size="sm" class="w-full" @click="openAchievementsOverlay">
               {{ t('leftMenu.steamOpenAchievementsOverlay', '查看成就') }}
@@ -87,6 +117,44 @@
         </PopoverContent>
       </PopoverPortal>
     </PopoverRoot>
+
+    <Dialog v-model:open="rechargeDialogOpen">
+      <DialogContent class="sm:max-w-lg" @mousedown.stop>
+        <DialogHeader>
+          <DialogTitle>{{ t('setting.llmSteamCloud.recharge') }}</DialogTitle>
+        </DialogHeader>
+        <div
+          class="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-sm flex flex-wrap items-center justify-between gap-2"
+        >
+          <span class="text-muted-foreground">{{
+            t('setting.llmSteamCloud.rechargeCurrentBalance')
+          }}</span>
+          <span class="font-mono font-semibold tabular-nums">{{ cloudCreditsDisplay }}</span>
+        </div>
+        <div class="py-2">
+          <SteamMtxPackGrid
+            :packs="mtxPacks"
+            :loading="mtxCatalogLoading"
+            :disabled="mtxLoading || !hasMetadocCloud"
+            @select="startPack"
+          />
+        </div>
+        <p v-if="mtxCatalogLoading" class="text-xs text-muted-foreground">
+          {{ t('common.loading') }}
+        </p>
+        <p
+          v-else-if="hasMetadocCloud && mtxPacks.length === 0"
+          class="text-xs text-muted-foreground"
+        >
+          {{ t('leftMenu.steamTrayMtxCatalogEmpty') }}
+        </p>
+        <DialogFooter>
+          <Button variant="outline" @click="rechargeDialogOpen = false">
+            {{ t('common.close') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -96,6 +164,25 @@ import { useI18n } from 'vue-i18n'
 import { PopoverRoot, PopoverTrigger, PopoverPortal } from 'reka-ui'
 import { PopoverContent } from '@renderer/components/ui/popover'
 import { Button } from '@renderer/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import SteamMtxPackGrid, {
+  type SteamMtxPackRow
+} from '@renderer/components/steam/SteamMtxPackGrid.vue'
+import { getMetadocCloudApiBase } from '@common/build-env'
+import {
+  canInitSteamMtx,
+  ensureMetadocSteamCloudJwt,
+  MTX_ERR_POLL_TIMEOUT,
+  MTX_ERR_STEAM_DECLINED,
+  startSteamMtxInit
+} from '../utils/metadoc-cloud-auth'
+import { notifyError, notifySuccess } from '../utils/notify'
 import {
   getSteamProfileSummary,
   getSteamStatus,
@@ -119,6 +206,163 @@ const summary = ref<Pick<
   'secondsPlayed' | 'aiRequests' | 'charsTyped'
 > | null>(null)
 const open = ref(false)
+
+const hasMetadocCloud = computed(() => Boolean(getMetadocCloudApiBase()))
+const cloudCredits = ref<number | null>(null)
+const cloudCreditsLoading = ref(false)
+const rechargeDialogOpen = ref(false)
+const mtxLoading = ref(false)
+const mtxCatalogLoading = ref(false)
+
+const mtxPacks = ref<SteamMtxPackRow[]>([])
+
+const cloudCreditsDisplay = computed(() => {
+  if (!hasMetadocCloud.value) {
+    return t('leftMenu.steamTrayCreditsUnavailable')
+  }
+  if (cloudCredits.value === null) {
+    return '—'
+  }
+  return String(cloudCredits.value)
+})
+
+async function refreshCloudCredits() {
+  const base = getMetadocCloudApiBase()
+  if (!base) {
+    return
+  }
+  cloudCreditsLoading.value = true
+  try {
+    const jwt = await ensureMetadocSteamCloudJwt()
+    const res = await fetch(`${base}/user/credits`, {
+      headers: { authorization: `Bearer ${jwt}` }
+    })
+    const j = (await res.json()) as { credits?: number }
+    if (!res.ok) {
+      throw new Error(String((j as { message?: string }).message || res.status))
+    }
+    cloudCredits.value = typeof j.credits === 'number' ? j.credits : 0
+  } catch (e) {
+    cloudCredits.value = null
+    notifyError(e instanceof Error ? e.message : String(e))
+  } finally {
+    cloudCreditsLoading.value = false
+  }
+}
+
+async function loadMtxCatalog() {
+  const base = getMetadocCloudApiBase()
+  if (!base) {
+    return
+  }
+  mtxCatalogLoading.value = true
+  try {
+    const jwt = await ensureMetadocSteamCloudJwt()
+    const res = await fetch(`${base}/steam/mtx/catalog`, {
+      headers: { authorization: `Bearer ${jwt}` }
+    })
+    const j = (await res.json()) as {
+      items?: Array<{
+        steam_item_id: string
+        amount_cents_usd: number
+        usd_price: number
+        label: string
+      }>
+    }
+    if (!res.ok) {
+      throw new Error(String((j as { message?: string }).message || res.status))
+    }
+    if (!Array.isArray(j.items) || j.items.length === 0) {
+      mtxPacks.value = []
+      return
+    }
+    mtxPacks.value = j.items.map((it) => {
+      const credits = Number(it.steam_item_id)
+      return {
+        item_id: String(it.steam_item_id),
+        amount_cents: it.amount_cents_usd,
+        usd_price: it.usd_price,
+        credits_amount: Number.isFinite(credits) ? credits : 0
+      }
+    })
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+    mtxPacks.value = []
+  } finally {
+    mtxCatalogLoading.value = false
+  }
+}
+
+async function claimFirstPurchase() {
+  const base = getMetadocCloudApiBase()
+  if (!base) {
+    return
+  }
+  try {
+    const jwt = await ensureMetadocSteamCloudJwt()
+    const res = await fetch(`${base}/user/first-purchase-claim`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${jwt}` }
+    })
+    const j = (await res.json()) as { credits_added?: number; already_granted?: boolean }
+    if (res.ok && j.credits_added && j.credits_added > 0) {
+      notifySuccess(t('setting.llmSteamCloud.firstPurchaseGranted', { n: j.credits_added }))
+      await refreshCloudCredits()
+    }
+  } catch {
+    /* optional */
+  }
+}
+
+function openRechargeDialog() {
+  rechargeDialogOpen.value = true
+}
+
+async function startPack(p: SteamMtxPackRow) {
+  if (!(await canInitSteamMtx())) {
+    notifyError(t('setting.llmSteamCloud.rechargeNeedsSteam'))
+    return
+  }
+  mtxLoading.value = true
+  try {
+    const r = await startSteamMtxInit({
+      item_id: p.item_id,
+      amount_cents: p.amount_cents,
+      currency: 'USD',
+      language: typeof navigator !== 'undefined' ? navigator.language.slice(0, 2) : 'en'
+    })
+    if (r.used_browser) {
+      notifySuccess(
+        t('setting.llmSteamCloud.mtxWebCredited', {
+          n: r.credits_added ?? 0,
+          order: r.order_id
+        })
+      )
+    } else {
+      notifySuccess(t('setting.llmSteamCloud.mtxInitOk', { order: r.order_id }))
+    }
+    await refreshCloudCredits()
+  } catch (e) {
+    if (e instanceof Error && e.message === MTX_ERR_STEAM_DECLINED) {
+      notifyError(t('setting.llmSteamCloud.mtxSteamAuthFailed'))
+    } else if (e instanceof Error && e.message === MTX_ERR_POLL_TIMEOUT) {
+      notifyError(t('setting.llmSteamCloud.mtxPollTimeout'))
+    } else {
+      notifyError(e instanceof Error ? e.message : String(e))
+    }
+  } finally {
+    mtxLoading.value = false
+  }
+}
+
+watch(rechargeDialogOpen, (v) => {
+  if (v) {
+    void loadMtxCatalog()
+    if (hasMetadocCloud.value) {
+      void refreshCloudCredits()
+    }
+  }
+})
 
 /** 无头像 URL 时用显示名首字符（与常见头像占位一致）；无名称时用中性占位。 */
 function firstLetterFromDisplayName(name: string | undefined): string {
@@ -192,10 +436,6 @@ async function loadProfileSummaryOnly() {
   }
 }
 
-async function openProfileOverlay() {
-  await openSteamOverlayToUser('steamid')
-}
-
 async function openAchievementsOverlay() {
   await openSteamOverlayToUser('achievements')
 }
@@ -213,6 +453,10 @@ function openWorkshopHubTab() {
 watch(open, (v) => {
   if (v) {
     void loadProfileSummaryOnly()
+    if (getMetadocCloudApiBase()) {
+      void refreshCloudCredits()
+      void claimFirstPurchase()
+    }
   }
 })
 

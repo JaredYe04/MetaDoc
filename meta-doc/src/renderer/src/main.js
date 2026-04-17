@@ -49,6 +49,7 @@ import { initializeAgentTools } from './utils/agent-tools'
 import { initializeWorkspaceBroadcastListeners } from './stores/workspace'
 import { registerAllAdapters } from './services/export-adapters'
 import { registerUnitTests } from './utils/unit-tests-register.ts'
+import { registerSteamMicroTxnFinalizeBridge } from './utils/metadoc-steam-mtx-bridge.ts'
 import { initializeFormats } from './utils/format-initializer'
 import { initUserTemplatesStore } from './stores/user-templates'
 import AppIcon from './components/common/AppIcon.vue'
@@ -127,6 +128,7 @@ app.use(router)
     initializeAgentTools()
     initializeWorkspaceBroadcastListeners()
     registerUnitTests()
+    registerSteamMicroTxnFinalizeBridge()
   }
   if (typeof requestIdleCallback !== 'undefined') {
     requestIdleCallback(runAfterMount, { timeout: 3000 })

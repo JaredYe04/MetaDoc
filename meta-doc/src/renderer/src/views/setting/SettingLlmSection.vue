@@ -125,8 +125,10 @@
       </CardContent>
     </Card>
 
+    <LlmSteamCloudPanel v-if="settings.llmEnabled && showSteamMinimalLlm" />
+
     <!-- 配置管理区域：网格+卡片 -->
-    <div v-if="settings.llmEnabled" class="llm-config-grid-wrap">
+    <div v-if="settings.llmEnabled && showLegacyLlmGrid" class="llm-config-grid-wrap">
       <Card class="config-grid-card">
         <CardHeader class="pb-3 flex flex-row items-center justify-between">
           <CardTitle class="text-sm font-medium">{{ t('setting.llmConfigList') }}</CardTitle>
@@ -324,18 +326,28 @@
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem
-                      v-if="SHOW_METADOC_LLM_PROVIDER || editDraft.selectedLlm === 'metadoc'"
+                      v-if="showMetadocLlmProvider || editDraft.selectedLlm === 'metadoc'"
                       value="metadoc"
                     >
                       {{ t('setting.metadoc') }}
                     </SelectItem>
                     <SelectItem value="ollama">{{ t('setting.ollama') }}</SelectItem>
-                    <SelectItem value="openai">{{ t('setting.openai') }}</SelectItem>
-                    <SelectItem value="openai-official">{{ t('setting.openaiOfficial') }}</SelectItem>
-                    <SelectItem value="deepseek">{{ t('setting.deepseek') }}</SelectItem>
-                    <SelectItem value="gemini">{{ t('setting.gemini') }}</SelectItem>
-                    <SelectItem value="qwen">{{ t('setting.qwen') }}</SelectItem>
-                    <SelectItem v-if="isDev" value="manual">{{ t('setting.manual') }}</SelectItem>
+                    <SelectItem v-if="!steamDistributionBuild" value="openai">{{
+                      t('setting.openai')
+                    }}</SelectItem>
+                    <SelectItem v-if="!steamDistributionBuild" value="openai-official">{{
+                      t('setting.openaiOfficial')
+                    }}</SelectItem>
+                    <SelectItem v-if="!steamDistributionBuild" value="deepseek">{{
+                      t('setting.deepseek')
+                    }}</SelectItem>
+                    <SelectItem v-if="!steamDistributionBuild" value="gemini">{{
+                      t('setting.gemini')
+                    }}</SelectItem>
+                    <SelectItem v-if="!steamDistributionBuild" value="qwen">{{ t('setting.qwen') }}</SelectItem>
+                    <SelectItem v-if="isDev && !steamDistributionBuild" value="manual">{{
+                      t('setting.manual')
+                    }}</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>
@@ -831,7 +843,7 @@
     </div>
 
     <!-- 手动LLM界面对话框 -->
-    <Dialog v-model:open="manualLLMDialogVisible">
+    <Dialog v-show="showLegacyLlmGrid" v-model:open="manualLLMDialogVisible">
       <DialogContent class="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>{{ t('setting.manualLLMInterface') }}</DialogTitle>
@@ -890,6 +902,10 @@ import { useI18n } from 'vue-i18n'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import { getMetaDocLlmModels } from '../../utils/web-utils.ts'
+import { isSteamDistribution } from '@common/build-env'
+import { getDevAiPipelineMode } from '../../utils/dev-ai-pipeline'
+import { getSteamUiTrayReady } from '../../utils/steam-ui-ready'
+import LlmSteamCloudPanel from './LlmSteamCloudPanel.vue'
 import { createRendererLogger } from '../../utils/logger.ts'
 import { isDevEnvironment } from '../../utils/dev-env'
 import { ai_types, createAiTask, cancelAiTask } from '../../utils/ai_tasks.ts'
@@ -1007,6 +1023,38 @@ const BUILTIN_FREE_OPENROUTER_API_KEY =
 
 /** MetaDoc 云端 LLM 后端暂不可用（serverless），隐藏新建入口；旧配置仍可在编辑对话框中显示 */
 const SHOW_METADOC_LLM_PROVIDER = false
+
+const steamDistributionBuild = isSteamDistribution()
+const showMetadocLlmProvider = computed(
+  () => SHOW_METADOC_LLM_PROVIDER || steamDistributionBuild
+)
+
+/** DEV 切换 AI 链路时强制重算 */
+const pipelineRefresh = ref(0)
+/** 与左下角 Steam 托盘一致：运行时已接入 Steam 且能拉取资料时，设置页走官方云卡片而非自建 Key 网格 */
+const steamUiTrayReady = ref(false)
+let steamReadyPollTimer: ReturnType<typeof setInterval> | null = null
+
+async function refreshSteamUiTrayReady() {
+  steamUiTrayReady.value = await getSteamUiTrayReady()
+}
+
+const showSteamMinimalLlm = computed(() => {
+  void pipelineRefresh.value
+  void steamUiTrayReady.value
+  const devLegacy = import.meta.env.DEV && getDevAiPipelineMode() === 'legacy'
+  if (devLegacy) {
+    return false
+  }
+  if (steamDistributionBuild) {
+    return true
+  }
+  if (steamUiTrayReady.value) {
+    return true
+  }
+  return import.meta.env.DEV && getDevAiPipelineMode() === 'steam_cloud'
+})
+const showLegacyLlmGrid = computed(() => !showSteamMinimalLlm.value)
 
 const ollamaModels = ref<OllamaModel[]>([])
 const openaiModels = ref<OpenAIModel[]>([])
@@ -2273,10 +2321,33 @@ onMounted(async () => {
   }
 
   eventBus.on('llm-config-updated', loadConfigs)
+  eventBus.on('metadoc-dev-ai-pipeline-changed', bumpPipelineUi)
+
+  void refreshSteamUiTrayReady()
+  let n = 0
+  steamReadyPollTimer = setInterval(() => {
+    void refreshSteamUiTrayReady()
+    n++
+    if (steamUiTrayReady.value || n >= 15) {
+      if (steamReadyPollTimer) {
+        clearInterval(steamReadyPollTimer)
+        steamReadyPollTimer = null
+      }
+    }
+  }, 2000)
 })
 
+function bumpPipelineUi() {
+  pipelineRefresh.value++
+}
+
 onBeforeUnmount(() => {
+  if (steamReadyPollTimer) {
+    clearInterval(steamReadyPollTimer)
+    steamReadyPollTimer = null
+  }
   eventBus.off('llm-config-updated', loadConfigs)
+  eventBus.off('metadoc-dev-ai-pipeline-changed', bumpPipelineUi)
 })
 </script>
 

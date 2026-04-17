@@ -6,8 +6,35 @@ import { getMimeType } from './image-utils'
 import Token from 'markdown-it/lib/token.mjs'
 import { createRendererLogger } from './logger.ts'
 import { getImageUrlWithCache, cacheImageUrl } from './image-cache'
+import { getMetadocCloudApiBase } from '@common/build-env'
+import { useMetadocCloudOpenAiRoute } from './dev-ai-pipeline'
+import { ensureMetadocSteamCloudJwt } from './metadoc-cloud-auth'
 
 export const getMetaDocLlmModels = async () => {
+  if (useMetadocCloudOpenAiRoute()) {
+    const base = getMetadocCloudApiBase()
+    const fallback = [
+      { label: 'gpt-4o-mini' },
+      { label: 'gpt-4o' },
+      { label: 'gpt-4.1-mini' }
+    ]
+    if (!base) {
+      return fallback
+    }
+    try {
+      const jwt = await ensureMetadocSteamCloudJwt()
+      const res = await fetch(`${base}/cloud/models`, {
+        headers: { authorization: `Bearer ${jwt}` }
+      })
+      const j = (await res.json()) as { models?: Array<{ id: string }> }
+      if (Array.isArray(j.models) && j.models.length > 0) {
+        return j.models.map((m) => ({ label: m.id }))
+      }
+    } catch (e) {
+      createRendererLogger('web-utils').warn('MetaDoc cloud models fetch failed', e)
+    }
+    return fallback
+  }
   return await axios
     .get(SERVER_URL + '/llm/models')
     .then((response) => response.data.data)

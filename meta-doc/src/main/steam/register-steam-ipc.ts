@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { app } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import type { IpcMainInvokeEvent } from 'electron'
 import { ipcBridge } from '../bridge/ipc-bridge'
 import { assertAllowedSteamCloudPath, readTextFromCloud, saveTextToCloud } from './steam-cloud'
@@ -93,6 +93,68 @@ export function registerSteamIpc(): void {
     }
     return ok(user)
   })
+
+  /**
+   * 供 MetaDoc 云鉴权：获取 hex 会话票据，配合 Worker ISteamUserAuth/AuthenticateUserTicket。
+   * greenworks: getAuthSessionTicket(success, error)
+   */
+  /** Greenworks 可能返回十六进制字符串，也可能返回 Buffer / Uint8Array（须转 hex 供 Worker 校验） */
+  function sessionTicketToHex(raw: unknown): string | null {
+    if (raw == null) {
+      return null
+    }
+    if (typeof raw === 'string' && raw.length > 0) {
+      return raw
+    }
+    if (Buffer.isBuffer(raw) && raw.length > 0) {
+      return raw.toString('hex')
+    }
+    if (raw instanceof Uint8Array && raw.length > 0) {
+      return Buffer.from(raw).toString('hex')
+    }
+    return null
+  }
+
+  ipcBridge.registerHandle(
+    'steam:auth:get-session-ticket',
+    (): Promise<SteamResult<{ ticket: string }>> => {
+      const r = requireSteam()
+      if (!('gw' in r)) {
+        return Promise.resolve(r)
+      }
+      const gw = r.gw as Record<string, unknown>
+      const fn = gw.getAuthSessionTicket
+      if (typeof fn !== 'function') {
+        return Promise.resolve(fail('getAuthSessionTicket_unavailable'))
+      }
+      return new Promise((resolve) => {
+        try {
+          ;(
+            fn as (
+              this: unknown,
+              success: (t: { ticket?: string; handle?: number }) => void,
+              err?: (e: Error) => void
+            ) => void
+          ).call(
+            gw,
+            (ticketObj: { ticket?: unknown }) => {
+              const hex = sessionTicketToHex(ticketObj?.ticket)
+              if (hex) {
+                resolve(ok({ ticket: hex }))
+              } else {
+                resolve(fail('empty_ticket'))
+              }
+            },
+            (err: Error) => {
+              resolve(fail(err?.message || 'ticket_error'))
+            }
+          )
+        } catch (e) {
+          resolve(fail(e instanceof Error ? e.message : String(e)))
+        }
+      })
+    }
+  )
 
   ipcBridge.registerHandle('steam:profile-summary', async (): Promise<SteamResult> => {
     const r = requireSteam()
@@ -729,4 +791,61 @@ export function registerSteamIpc(): void {
       return resolveSteamLocaleConflictChoice(loc)
     }
   )
+
+  /**
+   * Worker InitTxn 成功后调用：尽快泵 Steam 回调队列，便于客户端弹出 MicroTxn 授权覆盖层。
+   * greenworks 通常已有 SteamLoop；若构建暴露了 runCallbacks 则额外调用一次。
+   */
+  ipcBridge.registerHandle('steam:mtx:after-init', (): SteamResult => {
+    initSteam()
+    const gw = getGreenworksOrNull() as Record<string, unknown> | null
+    if (!gw) {
+      return fail('greenworks_unavailable')
+    }
+    for (const name of ['runCallbacks', 'runSteamAPI', 'RunCallbacks']) {
+      const fn = gw[name]
+      if (typeof fn === 'function') {
+        try {
+          ;(fn as () => void).call(gw)
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    return ok()
+  })
+
+  trySubscribeSteamMicroTxnListener()
+}
+
+/**
+ * Steam 覆盖层内购授权结果：转发到各窗口，由渲染进程调用 Worker `/steam/mtx/finalize`。
+ * 依赖 greenworks 的 `micro-txn-authorization-response` 事件（见 greenworks docs/events.md）。
+ */
+function trySubscribeSteamMicroTxnListener(): void {
+  initSteam()
+  const gw = getGreenworksOrNull() as Record<string, unknown> | null
+  if (!gw || typeof gw.on !== 'function') {
+    return
+  }
+  try {
+    ;(gw.on as (ev: string, cb: (...args: unknown[]) => void) => void).call(
+      gw,
+      'micro-txn-authorization-response',
+      (appId: unknown, orderId: unknown, authorized: unknown) => {
+        const payload = {
+          appId: typeof appId === 'number' ? appId : Number(appId),
+          orderId: orderId != null ? String(orderId) : '',
+          authorized: authorized === true
+        }
+        for (const w of BrowserWindow.getAllWindows()) {
+          if (!w.isDestroyed()) {
+            w.webContents.send('steam:micro-txn-response', payload)
+          }
+        }
+      }
+    )
+  } catch {
+    /* 部分 greenworks 构建可能未暴露该事件 */
+  }
 }

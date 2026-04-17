@@ -6,7 +6,7 @@
 import { BaseLlmAdapter } from './base-adapter.ts'
 import { LlmError, LlmErrorType } from '../llm-errors.js'
 import { getSetting } from '../settings.js'
-import { getMetaDocLlmConfig, verifyToken } from '../web-utils.ts'
+import { loadMetadocOpenAiStyleConfig } from '../metadoc-llm-config.ts'
 import type { LlmConfig, CustomLlmConfig } from './types.ts'
 
 // 懒加载适配器类，避免初始化顺序问题
@@ -120,15 +120,7 @@ export async function createAdapterFromSettings(
       case 'metadoc': {
         const token = localStorage.getItem('loginToken')
         const modelName = (await getSetting('metadocSelectedModel')) as string | undefined
-
-        const isLoggedIn = verifyToken(token)
-        if (!isLoggedIn) {
-          throw new LlmError(LlmErrorType.AUTH_ERROR, '请先登录 MetaDoc 账户', null, {
-            showLoginDialog: true
-          })
-        }
-
-        const metadocConfig = await getMetaDocLlmConfig(token || '', modelName || '')
+        const metadocConfig = await loadMetadocOpenAiStyleConfig(token, modelName || '')
         config = { ...config, ...metadocConfig }
         const enableMaxTokens = (await getSetting('metadocEnableMaxTokens')) ?? false
         const maxTokens = (await getSetting('metadocMaxTokens')) || 4096

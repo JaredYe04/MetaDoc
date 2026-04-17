@@ -69,6 +69,16 @@
 
 - 发布流程、GitHub Actions、环境变量等
 
+### [`cloud/`](./cloud/) — Steam 官方云、Worker、n1n 与定价
+
+- [STEAM_CLOUD_GO_LIVE.md](./cloud/STEAM_CLOUD_GO_LIVE.md) — Cloudflare / Steamworks / n1n 上线步骤与 **`pricing-generated.ts` 说明**
+- [economics.md](./cloud/economics.md) — 经济公式与人类可读说明
+- [operations-pricing.md](./cloud/operations-pricing.md) — 改价运维流程
+- [steamworks-mtx-catalog.md](./cloud/steamworks-mtx-catalog.md) — Steamworks 商品与 YAML 对齐
+- [n1n-integration-notes.md](./cloud/n1n-integration-notes.md) — n1n 对接摘要
+- [acceptance-steam-ai-en.md](./cloud/acceptance-steam-ai-en.md) — 验收与送审英文骨架
+- `cloud/pricing/*.yaml` — 定价源文件（改后运行 `pnpm run validate:pricing`）
+
 ### [`tests/`](./tests/) — 测试相关笔记与示例
 
 ---

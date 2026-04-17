@@ -8,6 +8,7 @@
   >
     <ScrollArea class="debug-scrollbar h-full">
       <div class="debug-content-wrapper">
+        <DebugAiPipelineSwitch />
         <SettingDebugSection />
       </div>
       <ScrollBar />
@@ -18,6 +19,7 @@
 <script setup lang="ts">
 import { themeState } from '../utils/themes'
 import SettingDebugSection from './setting/SettingDebugSection.vue'
+import DebugAiPipelineSwitch from '../components/debug/DebugAiPipelineSwitch.vue'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 </script>
 

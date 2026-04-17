@@ -43,6 +43,9 @@
     "kill": "taskkill /IM electron.exe /F",
     "i18n": "python .\\src\\renderer\\src\\locales\\i18n_check.py",
     "clean:vite": "rimraf node_modules/.vite || rm -rf node_modules/.vite",
+    "validate:pricing": "node scripts/validate-pricing.mjs",
+    "generate:steam-store-mtx-snippet": "node scripts/generate-steam-store-mtx-snippet.mjs",
+    "fetch:n1n-models": "node scripts/fetch-n1n-models.mjs",
     "audit": "node scripts/code-audit.js",
     "compile:resume-templates": "node scripts/compile-resume-templates.js",
     "compile:templates": "node scripts/compile-templates.js",
@@ -253,6 +256,7 @@
     "vite-plugin-html": "^3.2.2",
     "vitest": "^2.1.9",
     "vue": "^3.4.30",
-    "vue-svg-loader": "^0.16.0"
+    "vue-svg-loader": "^0.16.0",
+    "yaml": "^2.6.0"
   }
 }

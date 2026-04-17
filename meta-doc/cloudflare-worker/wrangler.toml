@@ -1,0 +1,23 @@
+name = "metadoc-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+# wrangler d1 create metadoc-billing --local 后把 database_id 填到生产；本地 dev 可用 --persist
+[[d1_databases]]
+binding = "DB"
+database_name = "metadoc-billing"
+database_id = "cceae00f-2adf-4177-99a2-cef06a871c6f"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+# 覆盖为真实 App ID；也可 wrangler secret / 环境覆盖
+STEAM_APP_ID = "4359310"
+# 沙盒 MTX：partner.steam-api.com/ISteamMicroTxnSandbox
+STEAM_MICROTX_SANDBOX = "false"
+# 开发时可 true，生产必须 false
+ALLOW_DEV_AUTH = "false"
+
+# 以下通过 wrangler secret put 设置：
+# JWT_SECRET, OPENAI_API_KEY, STEAM_WEB_API_KEY, DEV_AUTH_SECRET (optional)

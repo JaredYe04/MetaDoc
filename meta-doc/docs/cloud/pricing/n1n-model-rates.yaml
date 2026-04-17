@@ -1,0 +1,53 @@
+# n1n model rate snapshot. Sync with https://docs.n1n.ai/llm-api-price
+# Full catalog: pnpm run fetch:n1n-models (requires N1N_API_KEY), then whitelist ids here.
+version: '2026-04-16'
+source: 'https://docs.n1n.ai/llm-api-price'
+models:
+  - id: gpt-4o-mini
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 40
+  - id: gpt-4o
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 120
+  - id: gpt-4.1-mini
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 45
+  - id: gpt-4.1
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 130
+  - id: gpt-4.1-nano
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 25
+  - id: o4-mini
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 55
+  - id: o3-mini
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 50
+  - id: deepseek-chat
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 35
+  - id: deepseek-reasoner
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 90
+  - id: qwen-turbo
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 30
+  - id: qwen-plus
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 55
+  - id: qwen-max
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 100
+  - id: claude-3-5-sonnet-20241022
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 140
+  - id: claude-3-5-haiku-20241022
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 50
+  - id: gemini-2.0-flash
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 35
+  - id: gemini-2.0-flash-lite
+    official_rate_multiplier: 1.0
+    credits_per_1k_tokens_est: 22

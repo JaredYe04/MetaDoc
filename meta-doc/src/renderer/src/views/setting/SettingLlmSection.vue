@@ -127,6 +127,26 @@
 
     <LlmSteamCloudPanel v-if="settings.llmEnabled && showSteamMinimalLlm" />
 
+    <Card v-if="settings.llmEnabled && showSteamDeveloperModeSwitch" class="mb-6">
+      <CardHeader class="pb-2">
+        <CardTitle class="text-sm font-medium text-muted-foreground">{{
+          t('setting.llmSteamCloud.developerModeTitle')
+        }}</CardTitle>
+      </CardHeader>
+      <CardContent class="pt-0">
+        <div class="flex items-center justify-between gap-4">
+          <div class="min-w-0 space-y-0.5">
+            <Label class="text-sm font-normal">{{ t('setting.llmSteamCloud.developerModeLabel') }}</Label>
+            <p class="text-xs text-muted-foreground">{{ t('setting.llmSteamCloud.developerModeHint') }}</p>
+          </div>
+          <Switch
+            :checked="settings.steamDeveloperBypassByok === true"
+            @update:checked="onSteamDeveloperBypassChange"
+          />
+        </div>
+      </CardContent>
+    </Card>
+
     <!-- 配置管理区域：网格+卡片 -->
     <div v-if="settings.llmEnabled && showLegacyLlmGrid" class="llm-config-grid-wrap">
       <Card class="config-grid-card">
@@ -1042,6 +1062,10 @@ async function refreshSteamUiTrayReady() {
 const showSteamMinimalLlm = computed(() => {
   void pipelineRefresh.value
   void steamUiTrayReady.value
+  void settings.steamDeveloperBypassByok
+  if (settings.steamDeveloperBypassByok === true) {
+    return false
+  }
   const devLegacy = import.meta.env.DEV && getDevAiPipelineMode() === 'legacy'
   if (devLegacy) {
     return false
@@ -1054,6 +1078,15 @@ const showSteamMinimalLlm = computed(() => {
   }
   return import.meta.env.DEV && getDevAiPipelineMode() === 'steam_cloud'
 })
+
+const showSteamDeveloperModeSwitch = computed(() => {
+  if (isDemo.value) {
+    return false
+  }
+  void steamUiTrayReady.value
+  return steamDistributionBuild || steamUiTrayReady.value
+})
+
 const showLegacyLlmGrid = computed(() => !showSteamMinimalLlm.value)
 
 const ollamaModels = ref<OllamaModel[]>([])
@@ -2339,6 +2372,24 @@ onMounted(async () => {
 
 function bumpPipelineUi() {
   pipelineRefresh.value++
+}
+
+async function onSteamDeveloperBypassChange(v: boolean) {
+  if (v) {
+    try {
+      await messageBox.confirm(
+        t('setting.llmSteamCloud.developerModeConfirmBody'),
+        t('setting.llmSteamCloud.developerModeConfirmTitle'),
+        { type: 'warning' }
+      )
+    } catch {
+      return
+    }
+  }
+  settings.steamDeveloperBypassByok = v
+  await setSetting('steamDeveloperBypassByok', v)
+  pipelineRefresh.value++
+  eventBus.emit('metadoc-dev-ai-pipeline-changed')
 }
 
 onBeforeUnmount(() => {

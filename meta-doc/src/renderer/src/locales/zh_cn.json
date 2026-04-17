@@ -4800,7 +4800,11 @@
     "llmSettingsDescription": "配置大模型接入方式、温度与补全等选项；支持多套配置切换与导入导出。",
     "llmSteamCloud": {
       "title": "MetaDoc 官方云（Steam）",
-      "description": "由云端托管密钥，无需填写第三方 API Key。",
+      "developerModeTitle": "实验性选项",
+      "developerModeHint": "可能影响稳定性或与正式环境不一致。仅供测试，请谨慎使用。",
+      "developerModeLabel": "启用实验性连接",
+      "developerModeConfirmTitle": "确认启用？",
+      "developerModeConfirmBody": "该选项为实验性质，可能产生不可预期的行为或额外费用。是否确认自行承担全部风险？",
       "credits": "剩余额度（credits）",
       "refreshCredits": "刷新",
       "model": "模型",
@@ -4811,9 +4815,11 @@
       "firstPurchaseGranted": "首购赠送已发放：{n} credits。",
       "rechargeNeedsSteam": "当前无法发起内购：请启动 Steam，并确保本应用已通过 Steam 启动且 Greenworks 已初始化（或使用 Steam 分发渠道构建）。",
       "mtxInitOk": "订单已创建：{order}。若未弹出支付窗口，请确认已从 Steam 库启动本应用。",
+      "mtxInitOkOverlay": "订单 {order} 已创建。请在 Steam 客户端内查看微交易授权弹窗并完成确认；若未出现，请切到本应用或游戏窗口，并确认 Steam 正在运行。",
       "mtxWebCredited": "支付完成，已入账 {n} credits（订单 {order}）。",
       "mtxSteamAuthFailed": "Steam 未接受本次授权（常见原因：下单 IP 与浏览器出口 IP 不一致）。请关闭支付页后重试；若使用 VPN/代理，请保持与浏览器一致。",
-      "mtxPollTimeout": "等待 Steam 确认超时。若已付款，请稍后点「刷新额度」；若未完成支付，请重试。"
+      "mtxPollTimeout": "等待 Steam 确认超时。若已付款，请稍后点「刷新额度」；若未完成支付，请重试。",
+      "mtxNoPublicIp": "无法获取网络信息，请检查网络连接后重试。"
     },
     "llmTemperature": "LLM温度",
     "llmTemperatureHint": "控制AI输出的随机性，值越高越随机，推荐1.3",

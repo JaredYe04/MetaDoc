@@ -1,9 +1,11 @@
 /**
  * 仅 DEV：在 localStorage 中切换 legacy BYOK 与 Steam 官方云（Worker→n1n）。
  * 生产构建应死代码剔除 import.meta.env.DEV 分支。
+ * Steam 生产：默认走官方云；用户可在设置中开启「开发人员模式」退回 BYOK（settings.steamDeveloperBypassByok）。
  */
 import { isSteamDistribution } from '@common/build-env'
 import eventBus from './event-bus.js'
+import { settings } from './settings.js'
 
 const STORAGE_KEY = 'metadoc_dev_ai_pipeline'
 
@@ -38,6 +40,9 @@ export function setDevAiPipelineMode(mode: DevAiPipelineMode): void {
 
 /** Steam 包走官方云；DEV 非 Steam 包可选 steam_cloud 以连 staging Worker */
 export function useMetadocCloudOpenAiRoute(): boolean {
+  if (settings.steamDeveloperBypassByok === true) {
+    return false
+  }
   if (isSteamDistribution()) {
     return true
   }

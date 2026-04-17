@@ -16,6 +16,8 @@ import { extractOuterJsonString } from '../regex-utils'
 import { parseToolCalls, type ParsedToolCall } from './tool-call-processor'
 import { createAdapterFromSettings } from '../llm-adapters/adapter-factory.ts'
 import type { EngineToolSpec } from '../llm-ai-sdk/tools-to-ai-sdk'
+import { useMetadocCloudOpenAiRoute } from '../dev-ai-pipeline'
+import { resolveEffectiveLlmInternal } from '../steam-cloud-route'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -98,7 +100,8 @@ export class LlmAdapter {
    */
   private static async getGlobalLlmConfig(): Promise<LlmResponseConfig> {
     try {
-      const selectedLlm = await getSetting('selectedLlm')
+      const rawSelected = await getSetting('selectedLlm')
+      const selectedLlm = resolveEffectiveLlmInternal(useMetadocCloudOpenAiRoute(), rawSelected)
       if (!selectedLlm) {
         throw new Error('未选择LLM类型')
       }

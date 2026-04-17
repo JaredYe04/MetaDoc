@@ -178,6 +178,7 @@ import { getMetadocCloudApiBase } from '@common/build-env'
 import {
   canInitSteamMtx,
   ensureMetadocSteamCloudJwt,
+  MTX_ERR_NO_PUBLIC_IP,
   MTX_ERR_POLL_TIMEOUT,
   MTX_ERR_STEAM_DECLINED,
   startSteamMtxInit
@@ -338,12 +339,16 @@ async function startPack(p: SteamMtxPackRow) {
           order: r.order_id
         })
       )
+    } else if (r.checkout === 'client') {
+      notifySuccess(t('setting.llmSteamCloud.mtxInitOkOverlay', { order: r.order_id }))
     } else {
       notifySuccess(t('setting.llmSteamCloud.mtxInitOk', { order: r.order_id }))
     }
     await refreshCloudCredits()
   } catch (e) {
-    if (e instanceof Error && e.message === MTX_ERR_STEAM_DECLINED) {
+    if (e instanceof Error && e.message === MTX_ERR_NO_PUBLIC_IP) {
+      notifyError(t('setting.llmSteamCloud.mtxNoPublicIp'))
+    } else if (e instanceof Error && e.message === MTX_ERR_STEAM_DECLINED) {
       notifyError(t('setting.llmSteamCloud.mtxSteamAuthFailed'))
     } else if (e instanceof Error && e.message === MTX_ERR_POLL_TIMEOUT) {
       notifyError(t('setting.llmSteamCloud.mtxPollTimeout'))

@@ -64,7 +64,47 @@
 
       <div class="composer-actions">
         <div
-          v-if="showLlmConfigSwitch && llmSwitchVisible"
+          v-if="showSteamCloudModelSwitcher"
+          class="composer-llm-select"
+        >
+          <Select
+            :model-value="steamCloudSelectedModel || undefined"
+            :disabled="disabled || loading || steamCloudModelsLoading"
+            @update:model-value="onSteamCloudModelSelect"
+          >
+            <SelectTrigger
+              :title="steamCloudSelectedModel"
+              :aria-label="`${t('aiChat.llmConfigSwitchLabel')}: ${steamCloudSelectedModel || t('aiChat.llmConfigSwitchPlaceholder')}`"
+              class="composer-llm-select-trigger border border-input bg-transparent shadow-none focus:ring-1"
+            >
+              <SelectValue :placeholder="t('aiChat.llmConfigSwitchPlaceholder')">
+                <span
+                  class="truncate font-mono text-xs"
+                  :class="{
+                    'text-muted-foreground': !steamCloudSelectedModel
+                  }"
+                >
+                  {{ steamCloudTriggerDisplay }}
+                </span>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent class="max-h-[min(280px,40vh)] w-[min(100vw-24px,320px)]">
+              <SelectItem
+                v-for="m in steamCloudModelOptions"
+                :key="m.id"
+                :value="m.id"
+                class="whitespace-normal break-words py-2 font-mono text-xs"
+              >
+                {{ m.id
+                }}<span v-if="m.credits_per_1k_tokens_est != null" class="text-muted-foreground">
+                  (~{{ m.credits_per_1k_tokens_est }} credits / 1k)</span
+                >
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div
+          v-else-if="showLlmConfigSwitch && llmSwitchVisible"
           class="composer-llm-select"
         >
           <Select
@@ -204,7 +244,7 @@ import { themeState } from '../../utils/themes'
 import { selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
 import messageBridge from '../../bridge/message-bridge'
 import AgentRefComposerInput from '../agent/AgentRefComposerInput.vue'
-import { settings } from '../../utils/settings.js'
+import { settings, setSetting } from '../../utils/settings.js'
 import {
   getAllConfigs,
   getCurrentConfig,
@@ -213,6 +253,9 @@ import {
   type LlmConfigItem
 } from '../../utils/llm-config-manager'
 import { getLlmConfigOptionLabel, getLlmConfigSelectedModel } from '../../utils/llm-config-display'
+import { useMetadocCloudOpenAiRoute } from '../../utils/dev-ai-pipeline'
+import { getMetadocCloudApiBase } from '@common/build-env'
+import { ensureMetadocSteamCloudJwt } from '../../utils/metadoc-cloud-auth'
 
 const props = withDefaults(
   defineProps<{
@@ -296,7 +339,23 @@ const slots = useSlots()
 const llmConfigList = ref<LlmConfigItem[]>([])
 const selectedConfigId = ref<string>('')
 const llmConfigSwitching = ref(false)
+const steamCloudModelOptions = ref<Array<{ id: string; credits_per_1k_tokens_est?: number }>>([])
+const steamCloudModelsLoading = ref(false)
 let removeLlmEventListeners: (() => void) | null = null
+
+/** Steam 官方云：与设置页「官方云」模型列表同源，不走 BYOK 配置卡片 */
+const showSteamCloudModelSwitcher = computed(() => {
+  void settings.steamDeveloperBypassByok
+  return props.showLlmConfigSwitch && useMetadocCloudOpenAiRoute()
+})
+
+const steamCloudSelectedModel = computed(() =>
+  typeof settings.metadoc?.selectedModel === 'string' ? settings.metadoc.selectedModel : ''
+)
+
+const steamCloudTriggerDisplay = computed(() =>
+  steamCloudSelectedModel.value || t('aiChat.llmConfigSwitchPlaceholder')
+)
 
 const llmSwitchVisible = computed(
   () => settings.llmEnabled && llmConfigList.value.length > 0
@@ -330,17 +389,82 @@ async function refreshLlmConfigUi() {
   selectedConfigId.value = cur?.id ?? ''
 }
 
+async function loadSteamCloudModelsForComposer() {
+  const base = getMetadocCloudApiBase()
+  if (!base) {
+    steamCloudModelOptions.value = []
+    return
+  }
+  steamCloudModelsLoading.value = true
+  try {
+    const jwt = await ensureMetadocSteamCloudJwt()
+    const res = await fetch(`${base}/cloud/models`, {
+      headers: { authorization: `Bearer ${jwt}` }
+    })
+    const j = (await res.json()) as {
+      models?: Array<{ id: string; credits_per_1k_tokens_est: number }>
+    }
+    if (res.ok && Array.isArray(j.models) && j.models.length > 0) {
+      steamCloudModelOptions.value = j.models
+      if (typeof settings.metadoc !== 'object' || settings.metadoc === null) {
+        settings.metadoc = { selectedModel: '', enableMaxTokens: false, maxTokens: 4096 }
+      }
+      if (!settings.metadoc.selectedModel) {
+        settings.metadoc.selectedModel = j.models[0].id
+        await setSetting('metadocSelectedModel', j.models[0].id)
+      }
+    } else {
+      steamCloudModelOptions.value = []
+    }
+  } catch {
+    steamCloudModelOptions.value = []
+  } finally {
+    steamCloudModelsLoading.value = false
+  }
+}
+
+async function onSteamCloudModelSelect(value: unknown) {
+  const id = typeof value === 'string' ? value : ''
+  if (!id || id === steamCloudSelectedModel.value) {
+    return
+  }
+  llmConfigSwitching.value = true
+  try {
+    if (typeof settings.metadoc !== 'object' || settings.metadoc === null) {
+      settings.metadoc = { selectedModel: '', enableMaxTokens: false, maxTokens: 4096 }
+    }
+    settings.metadoc.selectedModel = id
+    await setSetting('metadocSelectedModel', id)
+    const eventBus = (await import('../../utils/event-bus.js')).default
+    eventBus.emit('llm-config-updated')
+  } finally {
+    llmConfigSwitching.value = false
+  }
+}
+
 async function setupLlmConfigEventListeners() {
   if (removeLlmEventListeners) return
   const eventBus = (await import('../../utils/event-bus.js')).default
   const handler = () => {
     void refreshLlmConfigUi()
+    if (showSteamCloudModelSwitcher.value) {
+      void loadSteamCloudModelsForComposer()
+    }
+  }
+  const pipelineHandler = () => {
+    if (showSteamCloudModelSwitcher.value) {
+      void loadSteamCloudModelsForComposer()
+    } else {
+      void refreshLlmConfigUi()
+    }
   }
   eventBus.on('llm-config-updated', handler)
   eventBus.on('llm-api-updated', handler)
+  eventBus.on('metadoc-dev-ai-pipeline-changed', pipelineHandler)
   removeLlmEventListeners = () => {
     eventBus.off('llm-config-updated', handler)
     eventBus.off('llm-api-updated', handler)
+    eventBus.off('metadoc-dev-ai-pipeline-changed', pipelineHandler)
     removeLlmEventListeners = null
   }
 }
@@ -362,14 +486,19 @@ async function onLlmConfigSelect(value: unknown) {
 }
 
 watch(
-  () => props.showLlmConfigSwitch,
-  async (enabled) => {
-    if (enabled) {
+  () => [props.showLlmConfigSwitch, showSteamCloudModelSwitcher.value] as const,
+  async ([enabled, steam]) => {
+    teardownLlmConfigEventListeners()
+    if (!enabled) {
+      return
+    }
+    if (steam) {
+      await loadSteamCloudModelsForComposer()
+      await setupLlmConfigEventListeners()
+    } else {
       await loadLlmConfigs()
       await refreshLlmConfigUi()
       await setupLlmConfigEventListeners()
-    } else {
-      teardownLlmConfigEventListeners()
     }
   },
   { immediate: true }

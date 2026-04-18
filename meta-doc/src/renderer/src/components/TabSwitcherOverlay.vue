@@ -1,67 +1,66 @@
 <template>
   <Teleport to="body">
-    <Transition name="switcher-fade">
-      <div
-        v-show="isVisible && !isCapturing"
-        class="tab-switcher-overlay"
-        @click.self="confirmSelection"
-      >
-        <!-- 标签列表（左侧面板） -->
-        <div class="switcher-panel">
-          <div class="tab-list">
-            <div class="tab-list-header">{{ $t('tabSwitcher.openEditors', '打开的编辑器') }}</div>
-            <div class="tab-list-scroll">
-              <div
-                v-for="(tab, index) in orderedTabs"
-                :key="tab.id"
-                class="tab-item"
-                :class="{ 'is-selected': index === selectedIndex }"
-                @click="selectAndConfirm(index)"
-                @mouseenter="selectedIndex = index"
-              >
-                <div class="tab-icon">
-                  <span v-if="tab.kind === 'tool'">🛠️</span>
-                  <span v-else-if="tab.kind === 'system'">🏠</span>
-                  <span v-else-if="tab.format === 'tex'" class="format-badge">TeX</span>
-                  <span v-else-if="tab.format === 'md'" class="format-badge">MD</span>
-                  <span v-else-if="tab.format === 'txt'" class="format-badge">TXT</span>
-                  <span v-else>📄</span>
+    <div
+      v-show="isVisible && !isCapturing"
+      class="tab-switcher-overlay"
+      @click="confirmSelection"
+      @wheel.prevent="onOverlayWheel"
+    >
+      <!-- 标签列表（左侧面板） -->
+      <div class="switcher-panel">
+        <div class="tab-list">
+          <div class="tab-list-header">{{ $t('tabSwitcher.openEditors', '打开的编辑器') }}</div>
+          <div class="tab-list-scroll">
+            <div
+              v-for="(tab, index) in orderedTabs"
+              :key="tab.id"
+              class="tab-item"
+              :class="{ 'is-selected': index === selectedIndex }"
+              @click="onSelectTab(index)"
+              @mouseenter="selectedIndex = index"
+            >
+              <div class="tab-icon">
+                <span v-if="tab.kind === 'tool'">🛠️</span>
+                <span v-else-if="tab.kind === 'system'">🏠</span>
+                <span v-else-if="tab.format === 'tex'" class="format-badge">TeX</span>
+                <span v-else-if="tab.format === 'md'" class="format-badge">MD</span>
+                <span v-else-if="tab.format === 'txt'" class="format-badge">TXT</span>
+                <span v-else>📄</span>
+              </div>
+              <div class="tab-info">
+                <div class="tab-title">
+                  {{ tab.title || $t('tabSwitcher.untitledDocument', '未命名文档') }}
+                  <span v-if="tab.dirty" class="dirty-dot" />
                 </div>
-                <div class="tab-info">
-                  <div class="tab-title">
-                    {{ tab.title || $t('tabSwitcher.untitledDocument', '未命名文档') }}
-                    <span v-if="tab.dirty" class="dirty-dot" />
-                  </div>
-                  <div v-if="tab.subtitle" class="tab-path">{{ tab.subtitle }}</div>
-                </div>
+                <div v-if="tab.subtitle" class="tab-path">{{ tab.subtitle }}</div>
               </div>
             </div>
           </div>
-          <!-- 胶卷缩略图区域 -->
-          <div class="filmstrip-container">
-            <div class="filmstrip-track" :style="filmstripTransform">
-              <div
-                v-for="(tab, index) in orderedTabs"
-                :key="tab.id"
-                class="filmstrip-frame"
-                :class="{ 'is-active': index === selectedIndex }"
-                @click="selectAndConfirm(index)"
-              >
-                <div class="frame-label">
-                  {{ tab.title || $t('tabSwitcher.untitledDocument', '未命名文档') }}
-                </div>
-                <div class="frame-thumbnail">
-                  <img v-if="thumbnailCache[tab.id]" :src="thumbnailCache[tab.id]" alt="" />
-                  <div v-else class="frame-placeholder">
-                    <span class="placeholder-icon">{{ getPlaceholderIcon(tab) }}</span>
-                  </div>
+        </div>
+        <!-- 胶卷缩略图区域 -->
+        <div class="filmstrip-container">
+          <div class="filmstrip-track" :style="filmstripTransform">
+            <div
+              v-for="(tab, index) in orderedTabs"
+              :key="tab.id"
+              class="filmstrip-frame"
+              :class="{ 'is-active': index === selectedIndex }"
+              @click="onSelectTab(index)"
+            >
+              <div class="frame-label">
+                {{ tab.title || $t('tabSwitcher.untitledDocument', '未命名文档') }}
+              </div>
+              <div class="frame-thumbnail">
+                <img v-if="thumbnailCache[tab.id]" :src="thumbnailCache[tab.id]" alt="" />
+                <div v-else class="frame-placeholder">
+                  <span class="placeholder-icon">{{ getPlaceholderIcon(tab) }}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </Transition>
+    </div>
   </Teleport>
 </template>
 
@@ -75,9 +74,20 @@ const {
   orderedTabs,
   selectedIndex,
   thumbnailCache,
-  selectAndConfirm,
-  confirmSelection
+  selectTabOnly,
+  confirmSelection,
+  cycleSwitcher
 } = useTabSwitcher()
+
+const onSelectTab = (index: number) => {
+  selectTabOnly(index)
+  confirmSelection()
+}
+
+const onOverlayWheel = (e: WheelEvent) => {
+  const direction = e.deltaY > 0 ? 'next' : 'prev'
+  cycleSwitcher(direction)
+}
 
 const getPlaceholderIcon = (tab: WorkspaceTab) => {
   if (tab.kind === 'tool') return '🛠️'
@@ -89,8 +99,7 @@ const getPlaceholderIcon = (tab: WorkspaceTab) => {
 
 const filmstripTransform = computed(() => {
   const frameWidth = 220 // 200px frame + 20px gap
-  // Center the selected frame
-  const containerWidth = 660 // shows ~3 frames
+  const containerWidth = 660
   const offset = containerWidth / 2 - frameWidth / 2 - selectedIndex.value * frameWidth
   return { transform: `translateX(${offset}px)` }
 })
@@ -126,7 +135,18 @@ const filmstripTransform = computed(() => {
 .tab-list {
   width: 280px;
   min-width: 280px;
-  background-color: var(--el-bg-color-overlay);
+  height: 100%;
+  align-self: stretch;
+  /*
+   * 与自定义主题一致：applyShadcnTheme 写入的 --muted / --primary（来自 themeState），
+   * 勿用 --el-fill-color-darker：后者未映射自定义主题，混 --el-color-primary 仍易显「纯灰」。
+   */
+  --tab-list-surface: color-mix(
+    in srgb,
+    hsl(var(--muted)) 85%,
+    hsl(var(--primary)) 15%
+  );
+  background-color: var(--tab-list-surface);
   border-right: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
@@ -144,8 +164,11 @@ const filmstripTransform = computed(() => {
 
 .tab-list-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 6px;
+  /* 滚动区单独铺色，避免 WebKit/层叠下仍透出 switcher-panel 的 el-bg-color */
+  background-color: var(--tab-list-surface);
 }
 
 .tab-item {
@@ -155,16 +178,17 @@ const filmstripTransform = computed(() => {
   border-radius: 6px;
   cursor: pointer;
   margin-bottom: 2px;
-  transition: background-color 0.1s;
 }
 
-.tab-item:hover {
-  background-color: var(--el-fill-color-light);
-}
+/* 不设 hover 底色：滚轮切换 selectedIndex 时，鼠标若还在旧行上会出现双高亮 */
 
 .tab-item.is-selected {
-  background-color: var(--el-color-primary-light-9);
-  border-left: 3px solid var(--el-color-primary);
+  background-color: color-mix(
+    in srgb,
+    hsl(var(--muted)) 78%,
+    hsl(var(--primary)) 22%
+  );
+  border-left: 3px solid hsl(var(--primary));
   padding-left: 9px;
 }
 
@@ -234,7 +258,6 @@ const filmstripTransform = computed(() => {
   display: flex;
   align-items: center;
   padding-left: 0;
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
 
@@ -250,17 +273,12 @@ const filmstripTransform = computed(() => {
   overflow: hidden;
   flex-shrink: 0;
   cursor: pointer;
-  transition:
-    transform 0.25s ease,
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
   position: relative;
 }
 
 .filmstrip-frame.is-active {
-  transform: scale(1.05);
-  border-color: var(--el-color-primary);
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.22);
   z-index: 2;
 }
 
@@ -303,31 +321,5 @@ const filmstripTransform = computed(() => {
 .placeholder-icon {
   font-size: 32px;
   opacity: 0.5;
-}
-
-.switcher-fade-enter-active,
-.switcher-fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.switcher-fade-enter-active .switcher-panel {
-  transition: transform 0.15s ease;
-}
-
-.switcher-fade-leave-active .switcher-panel {
-  transition: transform 0.1s ease;
-}
-
-.switcher-fade-enter-from,
-.switcher-fade-leave-to {
-  opacity: 0;
-}
-
-.switcher-fade-enter-from .switcher-panel {
-  transform: scale(0.95);
-}
-
-.switcher-fade-leave-to .switcher-panel {
-  transform: scale(0.98);
 }
 </style>

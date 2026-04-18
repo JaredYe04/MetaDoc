@@ -3,6 +3,7 @@ import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import { findGroupContainingTab } from '../stores/workspace-layout'
 import { createRendererLogger } from '../utils/logger'
 import messageBridge from '../bridge/message-bridge'
+import eventBus from '../utils/event-bus'
 
 const logger = createRendererLogger('useTabSwitcher')
 
@@ -138,12 +139,8 @@ export function useTabSwitcher() {
       nextIndex = (currentIndex - 1 + tabsList.length) % tabsList.length
     }
 
-    // 立即切换 Tab
-    const nextTab = tabsList[nextIndex]
-    if (nextTab) {
-      workspace.activateTab(nextTab.id)
-      selectedIndex.value = nextIndex
-    }
+    // 仅预览高亮，真正激活到确认（点击 / 松开 Ctrl）时再切换
+    selectedIndex.value = nextIndex
 
     isVisible.value = true
     setupWindowListeners()
@@ -163,33 +160,35 @@ export function useTabSwitcher() {
       newIndex = (newIndex - 1 + len) % len
     }
 
-    // 立即切换 Tab
-    const nextTab = tabsList[newIndex]
-    if (nextTab) {
-      workspace.activateTab(nextTab.id)
-      selectedIndex.value = newIndex
-    }
+    selectedIndex.value = newIndex
   }
 
   function confirmSelection(): void {
     if (!isVisible.value) return
-    // Tab 已经在 cycleSwitcher 中切换了，这里只需要关闭遮罩
+    const tabsList = orderedTabs.value
+    const idx = selectedIndex.value
+    const tab = tabsList[idx]
+    if (tab) {
+      workspace.activateTab(tab.id)
+      eventBus.emit('tab-switcher-confirm-route', tab)
+    }
     hideSwitcher()
   }
 
-  function selectAndConfirm(index: number): void {
-    const tabsList = orderedTabs.value
-    if (index >= 0 && index < tabsList.length) {
-      const targetTab = tabsList[index]
-      workspace.activateTab(targetTab.id)
+  /** 仅更新浮层内选中项（预览），不激活工作区 Tab */
+  function selectTabOnly(index: number): void {
+    if (index >= 0 && index < orderedTabs.value.length) {
       selectedIndex.value = index
     }
-    confirmSelection()
   }
 
   function cancelSwitcher(): void {
     if (originalTabId) {
+      const t = (workspace.tabs as WorkspaceTab[]).find((x) => x.id === originalTabId)
       workspace.activateTab(originalTabId)
+      if (t) {
+        eventBus.emit('tab-switcher-confirm-route', t)
+      }
     }
     hideSwitcher()
   }
@@ -228,7 +227,7 @@ export function useTabSwitcher() {
     showSwitcher,
     cycleSwitcher,
     confirmSelection,
-    selectAndConfirm,
+    selectTabOnly,
     cancelSwitcher,
     flashIndicator
   }

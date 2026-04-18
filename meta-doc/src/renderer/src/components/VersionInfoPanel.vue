@@ -38,7 +38,7 @@
           </div>
 
           <!-- 更新状态提示 -->
-          <div v-if="updateStatus" class="update-status">
+          <div v-if="!isSteamBuild && updateStatus" class="update-status">
             <Alert v-if="updateStatus.updateAvailable" variant="default">
               <CheckCircle2 class="h-4 w-4" />
               <AlertTitle>{{ $t('versionInfoPanel.updateAvailable') }}</AlertTitle>
@@ -66,35 +66,51 @@
 
       <!-- 操作按钮 -->
       <div class="version-actions">
-        <Button
-          v-if="!updateStatus?.updateAvailable && !downloaded && !downloading"
-          type="primary"
-          :loading="checking"
-          :disabled="checking"
-          @click="handleCheckUpdate"
-          style="width: 100%"
-        >
-          {{ checking ? $t('versionInfoPanel.checking') : $t('versionInfoPanel.checkUpdate') }}
-        </Button>
-        <Button
-          v-if="updateStatus?.updateAvailable && !downloaded && !downloading"
-          type="primary"
-          @click="handleDownloadUpdate"
-          style="width: 100%"
-        >
-          {{ $t('versionInfoPanel.downloadAndInstall') }}
-        </Button>
-        <Button v-if="downloading" type="primary" :loading="true" disabled style="width: 100%">
-          {{ $t('versionInfoPanel.downloadProgress', { progress: downloadProgress }) }}
-        </Button>
-        <Button v-if="downloaded" type="success" @click="handleInstallUpdate" style="width: 100%">
-          {{ $t('versionInfoPanel.installAndRestart') }}
-        </Button>
-        <Alert v-if="downloadError" variant="destructive" class="mt-3">
-          <XCircle class="h-4 w-4" />
-          <AlertTitle>{{ $t('versionInfoPanel.downloadError') }}</AlertTitle>
-          <AlertDescription>{{ downloadError }}</AlertDescription>
-        </Alert>
+        <div class="version-actions-row">
+          <Button
+            v-if="!isSteamBuild && !updateStatus?.updateAvailable && !downloaded && !downloading"
+            type="primary"
+            :loading="checking"
+            :disabled="checking"
+            class="version-btn-check"
+            @click="handleCheckUpdate"
+          >
+            {{ checking ? $t('versionInfoPanel.checking') : $t('versionInfoPanel.checkUpdate') }}
+          </Button>
+          <Button
+            variant="outline"
+            :class="['version-btn-feedback', versionFeedbackRowSolo && 'version-btn-feedback--solo']"
+            @click="openUserFeedbackTab"
+          >
+            {{ $t('versionInfoPanel.feedback') }}
+          </Button>
+        </div>
+        <template v-if="!isSteamBuild">
+          <Button
+            v-if="updateStatus?.updateAvailable && !downloaded && !downloading"
+            type="primary"
+            class="version-btn-full"
+            @click="handleDownloadUpdate"
+          >
+            {{ $t('versionInfoPanel.downloadAndInstall') }}
+          </Button>
+          <Button v-if="downloading" type="primary" :loading="true" disabled class="version-btn-full">
+            {{ $t('versionInfoPanel.downloadProgress', { progress: downloadProgress }) }}
+          </Button>
+          <Button
+            v-if="downloaded"
+            type="success"
+            class="version-btn-full"
+            @click="handleInstallUpdate"
+          >
+            {{ $t('versionInfoPanel.installAndRestart') }}
+          </Button>
+          <Alert v-if="downloadError" variant="destructive" class="mt-3">
+            <XCircle class="h-4 w-4" />
+            <AlertTitle>{{ $t('versionInfoPanel.downloadError') }}</AlertTitle>
+            <AlertDescription>{{ downloadError }}</AlertDescription>
+          </Alert>
+        </template>
       </div>
     </div>
   </ResizablePanel>
@@ -114,8 +130,13 @@ import { getAppVersion } from '../utils/version'
 import { getSetting } from '../utils/settings'
 import { isDevEnvironment } from '../utils/dev-env'
 import messageBridge from '../bridge/message-bridge'
+import { isSteamDistribution } from '@common/build-env'
+import { useWorkspace } from '../stores/workspace'
 
 const { t, locale } = useI18n()
+const workspace = useWorkspace()
+
+const isSteamBuild = isSteamDistribution()
 
 const visible = ref(false)
 const panelRef = ref<InstanceType<typeof ResizablePanel> | null>(null)
@@ -138,6 +159,14 @@ const downloadError = ref<string | null>(null)
 
 const maxWidth = computed(() => Math.floor(window.innerWidth * 0.3))
 const maxHeight = computed(() => Math.floor(window.innerHeight * 0.7))
+
+const versionFeedbackRowSolo = computed(
+  () =>
+    isSteamBuild ||
+    Boolean(updateStatus.value?.updateAvailable) ||
+    downloaded.value ||
+    downloading.value
+)
 
 const wrapperStyle = computed(() => {
   const isDark = themeState.currentTheme?.type === 'dark'
@@ -280,6 +309,14 @@ function onResize(width: number, height: number) {
   // 可以在这里处理尺寸变化的逻辑
 }
 
+function openUserFeedbackTab() {
+  closePanel()
+  workspace.openSystemTab(
+    '/user-feedback',
+    t('leftMenu.userFeedback') || t('userFeedback.title') || 'User Feedback'
+  )
+}
+
 function toggleVisibility() {
   visible.value = !visible.value
   if (visible.value) {
@@ -288,8 +325,9 @@ function toggleVisibility() {
     eventBus.emit('close-logger-console')
     // 加载版本信息
     loadVersionInfo()
-    // 加载更新状态
-    loadUpdateStatus()
+    if (!isSteamBuild) {
+      loadUpdateStatus()
+    }
   }
 }
 
@@ -368,7 +406,9 @@ function removeEventListeners() {
 onMounted(() => {
   setupEventListeners()
   loadVersionInfo()
-  loadUpdateStatus()
+  if (!isSteamBuild) {
+    loadUpdateStatus()
+  }
 })
 
 onBeforeUnmount(() => {
@@ -438,5 +478,32 @@ onBeforeUnmount(() => {
   gap: 8px;
   border-top: 1px solid var(--version-border-color);
   padding-top: 12px;
+}
+
+.version-actions-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.version-btn-check {
+  flex: 1;
+  min-width: 0;
+}
+
+.version-btn-feedback {
+  flex: 1;
+  min-width: 0;
+}
+
+.version-btn-feedback--solo {
+  flex: none;
+  width: 100%;
+}
+
+.version-btn-full {
+  width: 100%;
 }
 </style>

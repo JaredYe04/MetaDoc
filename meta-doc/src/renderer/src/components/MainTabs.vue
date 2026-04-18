@@ -89,6 +89,14 @@
                 </span>
               </div>
             </div>
+            <div
+              class="new-tab-button new-tab-button--tab-strip"
+              :class="{ 'is-locked': isLockedEffective }"
+              :title="$t('mainTabs.newDocumentTooltip')"
+              @click="handleNewTabClick"
+            >
+              <el-icon><Plus /></el-icon>
+            </div>
             <!-- Electron：父级 drag 会吞掉 HTML5 drop；列表保持 no-drag，仅尾部条为 drag 以拖窗 -->
             <div
               class="tabs-list-window-drag-sash"
@@ -155,6 +163,14 @@
               </button>
             </div>
             <div
+              class="new-tab-button new-tab-button--tab-strip new-tab-button--focus-strip"
+              :class="{ 'is-locked': isLockedEffective }"
+              :title="$t('mainTabs.newDocumentTooltip')"
+              @click="handleNewTabClick"
+            >
+              <el-icon><Plus /></el-icon>
+            </div>
+            <div
               class="tabs-list-window-drag-sash tabs-list-window-drag-sash--focus"
               aria-hidden="true"
               @dragover.prevent="handleTabsListDragOverCombined"
@@ -170,24 +186,39 @@
             class="focus-doc-picker-shell"
             :style="focusDocPickerShellStyle"
           >
-            <div
-              :id="focusDocListboxId"
-              ref="focusDocPickerPanelRef"
-              class="focus-doc-picker-panel"
-              role="listbox"
-              tabindex="-1"
-              @keydown="onFocusDocListKeydown"
-            >
-              <template v-if="focusPickerTabs.length === 0">
-                <div class="focus-doc-picker-empty" role="presentation">
-                  {{ t('mainTabs.focusMode.emptyList') }}
-                </div>
-              </template>
-              <template v-else>
+            <div class="focus-doc-picker-inner">
+              <div class="open-docs-popover__header">
+                <span class="open-docs-popover__header-title">{{
+                  t('mainTabs.openDocumentsTitle', '文档')
+                }}</span>
+                <button
+                  type="button"
+                  class="open-docs-popover__close-all"
+                  :disabled="!closeAllTabsEnabled || isLockedEffective"
+                  @click.stop="handleCloseAllTabs"
+                >
+                  {{ t('mainTabs.closeAllTabs') }}
+                </button>
+              </div>
+              <div class="focus-doc-picker-body">
                 <div
-                  v-for="(tab, index) in focusPickerTabs"
-                  :key="tab.id"
-                  class="tab-item focus-doc-picker-row"
+                  :id="focusDocListboxId"
+                  ref="focusDocPickerPanelRef"
+                  class="focus-doc-picker-panel"
+                  role="listbox"
+                  tabindex="-1"
+                  @keydown="onFocusDocListKeydown"
+                >
+                  <template v-if="focusPickerTabs.length === 0">
+                    <div class="focus-doc-picker-empty" role="presentation">
+                      {{ t('mainTabs.focusMode.emptyList') }}
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div
+                      v-for="(tab, index) in focusPickerTabs"
+                      :key="tab.id"
+                      class="tab-item focus-doc-picker-row"
                   :class="{
                     'is-active': currentActiveId === tab.id,
                     'is-pinned': tab.pinned,
@@ -244,14 +275,16 @@
                     </span>
                   </div>
                 </div>
-              </template>
+                  </template>
+                </div>
+                <div
+                  class="focus-doc-picker-resize-handle"
+                  title=""
+                  aria-hidden="true"
+                  @mousedown.stop.prevent="onFocusDocPickerResizePointerDown"
+                />
+              </div>
             </div>
-            <div
-              class="focus-doc-picker-resize-handle"
-              title=""
-              aria-hidden="true"
-              @mousedown.stop.prevent="onFocusDocPickerResizePointerDown"
-            />
           </div>
         </Teleport>
       </template>
@@ -274,11 +307,11 @@
               aria-controls="main-tabs-open-docs-popover"
               :disabled="isLockedEffective"
             >
-              <LogoIcon
-                class="focus-doc-picker-trigger__logo"
-                :size="20"
-                :bg-color="focusTriggerLogoBg"
-                :symbol-color="focusTriggerLogoSymbol"
+              <img
+                class="open-docs-trigger-slot__doc-icon"
+                :src="openDocsTriggerIconSrc"
+                alt=""
+                draggable="false"
               />
               <span class="focus-doc-picker-trigger__text">{{ focusDocPickerButtonLabel }}</span>
               <span
@@ -304,7 +337,17 @@
           :side-offset="6"
         >
           <div class="open-docs-popover__header">
-            {{ t('mainTabs.openDocumentsTitle', '文档') }}
+            <span class="open-docs-popover__header-title">{{
+              t('mainTabs.openDocumentsTitle', '文档')
+            }}</span>
+            <button
+              type="button"
+              class="open-docs-popover__close-all"
+              :disabled="!closeAllTabsEnabled || isLockedEffective"
+              @click.stop="handleCloseAllTabs"
+            >
+              {{ t('mainTabs.closeAllTabs') }}
+            </button>
           </div>
           <ScrollArea class="open-docs-popover__scroll h-[min(320px,50vh)]">
             <template v-if="focusPickerTabs.length === 0">
@@ -344,15 +387,6 @@
           </ScrollArea>
         </PopoverContent>
       </PopoverRoot>
-      <!-- 新建文档按钮 - 在 scroll 外面，永远可见 -->
-      <div
-        class="new-tab-button"
-        :class="{ 'is-locked': isLockedEffective }"
-        :title="$t('mainTabs.newDocumentTooltip')"
-        @click="handleNewTabClick"
-      >
-        <el-icon><Plus /></el-icon>
-      </div>
       <!-- 专注模式切换按钮 -->
       <div
         class="focus-mode-button"
@@ -594,6 +628,7 @@ import {
   layoutQualifiesForWorkbenchMainTab
 } from '../stores/workspace-layout'
 import { isMacOSLayout } from '../utils/keyboard-scheme-defaults'
+import { useTabSwitcher } from '../composables/useTabSwitcher'
 
 // 主题中的窗口控制图标（themes.js 中注册，TS 无类型声明故用 Record 访问）
 const windowControlIcons = computed(() => {
@@ -609,6 +644,7 @@ const route = useRoute()
 const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 
 const workspace = useWorkspace()
+const tabSwitcher = useTabSwitcher()
 const openDocsPopoverOpen = ref(false)
 /** 资源树路径 / 窗格 Tab 拖过顶栏时整栏高亮 */
 const mainTabsExternalDropHighlight = ref(false)
@@ -1294,6 +1330,14 @@ const getFocusPickerRowIcon = (tab: WorkspaceTab): string => {
   return getFocusSurfaceTabIcon(tab)
 }
 
+/** 普通模式「打开文档」触发器左侧：与当前文档类型一致（专注模式仍用 MetaDoc Logo，因在最左侧） */
+const openDocsTriggerIconSrc = computed(() => {
+  const tab = focusActivePickerTab.value
+  if (tab) return getFocusPickerRowIcon(tab)
+  const th = themeState.currentTheme as unknown as Record<string, string>
+  return th.FileIcon || th.MdDocIcon || ''
+})
+
 const getFocusSurfaceTabIcon = (tab: WorkspaceTab): string => {
   const th = themeState.currentTheme as unknown as Record<string, string>
   const route = tab.route || ''
@@ -1374,6 +1418,24 @@ const syncFocusDocListHighlight = () => {
 const canCloseTab = (tab: WorkspaceTab): boolean => {
   if (tab.id === WORKBENCH_SYNTHETIC_ID) return true
   return workspace.canRemoveTab(tab.id)
+}
+
+const closeAllTabsEnabled = computed(() =>
+  focusPickerTabs.value.some((t) => canCloseTab(t) && !t._isClosing)
+)
+
+const handleCloseAllTabs = async () => {
+  if (isLockedEffective.value) return
+  openDocsPopoverOpen.value = false
+  closeFocusDocPicker()
+  const ids = focusPickerTabs.value
+    .filter((t) => canCloseTab(t) && !t._isClosing)
+    .map((t) => t.id)
+  for (const tabId of ids) {
+    if (!allTabs.value.find((t) => t.id === tabId)) continue
+    const ok = await handleCloseTab(tabId)
+    if (!ok) break
+  }
 }
 
 const canDragTab = (tab: WorkspaceTab): boolean => {
@@ -1551,21 +1613,21 @@ const handleTabItemAuxClick = (event: MouseEvent, tab: WorkspaceTab) => {
 const closingTabIds = new Set<string>()
 
 // 自定义关闭Tab处理函数 - 先检查确认，再播放动画，最后真正移除
-const handleCloseTab = async (tabId: string) => {
+const handleCloseTab = async (tabId: string): Promise<boolean> => {
   if (tabId === WORKBENCH_SYNTHETIC_ID) {
     workspace.dissolveWorkbenchLayout()
-    return
+    return true
   }
 
   // 防止重复关闭
-  if (closingTabIds.has(tabId)) return
+  if (closingTabIds.has(tabId)) return false
 
   const tab = allTabs.value.find((t) => t.id === tabId)
-  if (!tab) return
+  if (!tab) return false
 
   // 先检查是否可以关闭（显示确认对话框等）
   const canClose = await checkCanCloseTab(tabId)
-  if (!canClose) return
+  if (!canClose) return false
 
   closingTabIds.add(tabId)
   tab._isClosing = true
@@ -1575,9 +1637,16 @@ const handleCloseTab = async (tabId: string) => {
     await triggerCloseTabAnimation(tabId, () => {
       doRemoveTab(tabId)
     })
+    return true
+  } catch {
+    return false
   } finally {
     closingTabIds.delete(tabId)
   }
+}
+
+const handleTabCloseWithAnimationBus = (tabId: unknown) => {
+  void handleCloseTab(String(tabId))
 }
 
 const handleTabLabelDblclick = (tab: WorkspaceTab) => {
@@ -2247,36 +2316,24 @@ const handleWrapperDragOver = (event: DragEvent) => {
   }
 }
 
-// Issue 8: 鼠标滚轮切换 tab
+// Issue 8: 鼠标滚轮仅驱动浮层预览；真正切换在确认时（点击关闭 / 松开 Ctrl），由 tab-switcher-confirm-route 同步路由与滚动
 const handleTabWheel = (event: WheelEvent) => {
   if (isLockedEffective.value) return
-  if (allTabs.value.length <= 1) return
+  if (tabSwitcher.orderedTabs.value.length <= 1) return
 
-  const currentIndex = allTabs.value.findIndex((t) => t.id === workspace.activeTabId.value)
-  if (currentIndex === -1) return
+  const direction = event.deltaY > 0 ? 'next' : 'prev'
+  void tabSwitcher.showSwitcher(direction)
+}
 
-  let newIndex: number
-  if (event.deltaY > 0) {
-    // 向下/右滚动 -> 下一个 tab
-    newIndex = (currentIndex + 1) % allTabs.value.length
-  } else {
-    // 向上/左滚动 -> 上一个 tab
-    newIndex = (currentIndex - 1 + allTabs.value.length) % allTabs.value.length
-  }
-
-  const newTab = allTabs.value[newIndex]
-  if (newTab) {
-    workspace.activateTab(newTab.id)
-    nextTick(() => {
-      scrollActiveTabIntoView()
-      if ((newTab.kind === 'system' || newTab.kind === 'tool') && newTab.route) {
-        if (newTab.route && newTab.route !== route.path) {
-          router.push(newTab.route)
-        }
-      }
-    })
-    eventBus.emit('tab-switch-indicator', newTab.id)
-  }
+const handleTabSwitcherConfirmRoute = (tab: unknown) => {
+  if (!tab || typeof tab !== 'object' || !('id' in tab)) return
+  const t = tab as WorkspaceTab
+  nextTick(() => {
+    scrollActiveTabIntoView()
+    if ((t.kind === 'system' || t.kind === 'tool') && t.route && t.route !== route.path) {
+      router.push(t.route)
+    }
+  })
 }
 
 // 中键点击关闭 Tab（事件委托，覆盖 .tab-item 的完整区域）
@@ -2337,6 +2394,7 @@ onMounted(async () => {
   eventBus.on('main-tabs-external-drop-ui-highlight', (active: unknown) => {
     mainTabsExternalDropHighlight.value = Boolean(active)
   })
+  eventBus.on('tab-switcher-confirm-route', handleTabSwitcherConfirmRoute)
 
   // 初始化标签页溢出检测
   nextTick(() => {
@@ -2497,7 +2555,7 @@ onMounted(async () => {
   }
 
   // 监听来自 Main.vue 的关闭动画请求（用于 Ctrl+W 快捷键）
-  eventBus.on('tab-close-with-animation', handleCloseTab)
+  eventBus.on('tab-close-with-animation', handleTabCloseWithAnimationBus)
 })
 
 // 监听activeTabId变化，确保路由同步（用于首次打开系统Tab时）
@@ -2570,11 +2628,12 @@ onUnmounted(() => {
   eventBus.off('main-tabs-external-drop-ui-reset', clearMainTabsExternalDropUi)
   eventBus.off('main-tabs-path-bar-insert-hint', onPathBarInsertHintBus)
   eventBus.off('main-tabs-external-drop-ui-highlight')
+  eventBus.off('tab-switcher-confirm-route', handleTabSwitcherConfirmRoute)
 
   window.removeEventListener('scroll', onFocusDocPickerScrollOrResize, true)
   window.removeEventListener('resize', onFocusDocPickerScrollOrResize)
 
-  eventBus.off('tab-close-with-animation', handleCloseTab)
+  eventBus.off('tab-close-with-animation', handleTabCloseWithAnimationBus)
 
   if (moveToWindowLeaveTimer) {
     clearTimeout(moveToWindowLeaveTimer)
@@ -2876,7 +2935,7 @@ onUnmounted(() => {
 
 .focus-doc-picker-shell {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: stretch;
   box-sizing: border-box;
   border-radius: 8px;
@@ -2886,6 +2945,22 @@ onUnmounted(() => {
   border: 1px solid v-bind('borderColor');
   overflow: hidden;
   -webkit-app-region: no-drag !important;
+}
+
+.focus-doc-picker-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.focus-doc-picker-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }
 
 .focus-doc-picker-panel {
@@ -3157,11 +3232,57 @@ onUnmounted(() => {
   min-width: 0;
 }
 
+/* 普通模式：与 Logo 占位一致 20×20，类型与下拉列表行一致 */
+.open-docs-trigger-slot__doc-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .open-docs-popover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
   font-size: 12px;
   font-weight: 600;
   border-bottom: 1px solid hsl(var(--border));
+}
+
+.open-docs-popover__header-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.open-docs-popover__close-all {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--primary));
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.open-docs-popover__close-all:hover:not(:disabled) {
+  background: hsl(var(--muted) / 0.55);
+}
+
+.open-docs-popover__close-all:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .open-docs-popover__empty {
@@ -3429,7 +3550,7 @@ onUnmounted(() => {
   height: 32px;
   min-height: 32px;
   max-height: 32px;
-  margin: 0 0 0 6px;
+  margin: 0;
   padding: 0;
   display: flex;
   align-items: center;
@@ -3475,6 +3596,29 @@ onUnmounted(() => {
   font-weight: 600;
   line-height: 0;
   display: block;
+}
+
+/*
+ * 普通模式「+」跟在最后一个 tab 后；tab 少时与 sash 相邻，不顶到 tab-region 最右。
+ * tab 溢出横向滚动时 sticky 钉在视口右缘（左侧 box-shadow 盖住滚过的标签）。
+ */
+.tabs-list:not(.tabs-list--focus-mode) .new-tab-button--tab-strip {
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: 4px;
+  position: sticky;
+  right: 0;
+  /* 略高于 .tab-item，溢出滚动时标签从 + 下经过；勿加向左的 box-shadow，否则会盖住左侧 tab 右缘 */
+  z-index: 12;
+}
+
+.tabs-list--focus-mode .new-tab-button--tab-strip {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.main-tabs-wrapper.is-focus-mode .new-tab-button--focus-strip {
+  margin-left: 0;
 }
 
 .focus-mode-button {

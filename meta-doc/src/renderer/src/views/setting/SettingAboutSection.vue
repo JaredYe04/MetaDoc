@@ -35,13 +35,15 @@
     <!-- 使用标签页组织更新设置、开源许可证和第三方资产 -->
     <Tabs v-model="activeTab" class="about-tabs">
       <TabsList class="about-tabs-list">
-        <TabsTrigger value="updates">{{ $t('setting.about.updateSettings') }}</TabsTrigger>
+        <TabsTrigger v-if="!hideAppUpdatesUi" value="updates">{{
+          $t('setting.about.updateSettings')
+        }}</TabsTrigger>
         <TabsTrigger value="steam">{{ $t('setting.about.steamTab') }}</TabsTrigger>
         <TabsTrigger value="licenses">{{ $t('setting.about.openSourceLicenses') }}</TabsTrigger>
         <TabsTrigger value="assets">{{ $t('setting.about.thirdPartyAssets') }}</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="updates" class="about-tabs-content">
+      <TabsContent v-if="!hideAppUpdatesUi" value="updates" class="about-tabs-content">
         <div class="update-settings">
           <div class="settings-form space-y-6">
             <FormField :label="$t('setting.about.autoCheckUpdates')" name="autoCheckUpdates">
@@ -157,62 +159,20 @@
               {{ steamUser.id }}
             </div>
           </div>
-          <p class="text-sm text-muted-foreground">{{ $t('setting.about.steamHint') }}</p>
           <div class="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" :disabled="steamSyncing" @click="steamPullSettings">
-              {{ $t('setting.about.steamSyncSettingsPull') }}
-            </Button>
-            <Button size="sm" variant="outline" :disabled="steamSyncing" @click="steamPushSettings">
-              {{ $t('setting.about.steamSyncSettingsPush') }}
-            </Button>
-            <Button size="sm" variant="outline" :disabled="steamSyncing" @click="steamPullHistory">
-              {{ $t('setting.about.steamSyncHistoryPull') }}
-            </Button>
-            <Button size="sm" variant="outline" :disabled="steamSyncing" @click="steamPushHistory">
-              {{ $t('setting.about.steamSyncHistoryPush') }}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              :disabled="steamSyncing"
-              @click="steamPullUserTemplates"
-            >
-              {{ $t('setting.about.steamSyncTemplatesPull') }}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              :disabled="steamSyncing"
-              @click="steamPushUserTemplates"
-            >
-              {{ $t('setting.about.steamSyncTemplatesPush') }}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              :disabled="steamSyncing"
-              @click="steamPullAgentPack"
-            >
-              {{ $t('setting.about.steamSyncAgentPull') }}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              :disabled="steamSyncing"
-              @click="steamPushAgentPack"
-            >
-              {{ $t('setting.about.steamSyncAgentPush') }}
-            </Button>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <Button size="sm" @click="openWorkshopMarket">{{
+            <Button size="sm" :disabled="steamSyncing" @click="openWorkshopMarket">{{
               $t('setting.about.steamOpenWorkshop')
             }}</Button>
-            <Button size="sm" variant="secondary" @click="openCloudDocs">
+            <Button size="sm" variant="secondary" :disabled="steamSyncing" @click="openCloudDocs">
               {{ $t('setting.about.steamOpenCloudDocs') }}
             </Button>
-            <Button size="sm" variant="secondary" @click="openWorkshopPublish">
-              {{ $t('setting.about.steamPublishTemplate') }}
+            <Button
+              size="sm"
+              variant="secondary"
+              :disabled="steamSyncing"
+              @click="syncAllCloudArchive"
+            >
+              {{ $t('setting.about.steamSyncAllCloud') }}
             </Button>
           </div>
         </div>
@@ -267,14 +227,11 @@ import {
   steamSyncPullAgentPack,
   steamSyncPullHistory,
   steamSyncPullSettings,
-  steamSyncPullUserTemplates,
-  steamSyncPushAgentPack,
-  steamSyncPushHistory,
-  steamSyncPushSettings,
-  steamSyncPushUserTemplates
+  steamSyncPullUserTemplates
 } from '../../services/steam-client'
 import { focusOrOpenSystemRoute } from '../../utils/steam-system-tab-open'
-import { openWorkshopPublishDocumentDialog } from '../../utils/workshop-publish-document-dialog'
+import { refreshSteamOfficialCloudEligible } from '../../utils/steam-official-cloud-eligible'
+import { isSteamDistribution } from '@common/build-env'
 
 // Logo 固定配色，不随亮/暗主题变化
 const bgColor = FIXED_LOGO_COLORS.bgColor
@@ -286,6 +243,8 @@ const props = defineProps<{
   mode?: string
 }>()
 const isDemo = computed(() => props.mode === 'demo')
+
+const hideAppUpdatesUi = computed(() => isSteamDistribution() && !isDemo.value)
 
 const { t } = useI18n()
 const workspace = useWorkspace()
@@ -312,63 +271,6 @@ async function loadSteamPanel() {
   }
 }
 
-async function steamPullSettings() {
-  steamSyncing.value = true
-  try {
-    const r = await steamSyncPullSettings()
-    if (r.success) {
-      notifySuccess(t('setting.about.steamSyncDone'))
-      await loadSettings()
-    } else {
-      notifyError(r.error || t('setting.about.steamSyncFailed'))
-    }
-  } finally {
-    steamSyncing.value = false
-  }
-}
-
-async function steamPushSettings() {
-  steamSyncing.value = true
-  try {
-    const r = await steamSyncPushSettings()
-    if (r.success) {
-      notifySuccess(t('setting.about.steamSyncDone'))
-    } else {
-      notifyError(r.error || t('setting.about.steamSyncFailed'))
-    }
-  } finally {
-    steamSyncing.value = false
-  }
-}
-
-async function steamPullHistory() {
-  steamSyncing.value = true
-  try {
-    const r = await steamSyncPullHistory()
-    if (r.success) {
-      notifySuccess(t('setting.about.steamSyncDone'))
-    } else {
-      notifyError(r.error || t('setting.about.steamSyncFailed'))
-    }
-  } finally {
-    steamSyncing.value = false
-  }
-}
-
-async function steamPushHistory() {
-  steamSyncing.value = true
-  try {
-    const r = await steamSyncPushHistory()
-    if (r.success) {
-      notifySuccess(t('setting.about.steamSyncDone'))
-    } else {
-      notifyError(r.error || t('setting.about.steamSyncFailed'))
-    }
-  } finally {
-    steamSyncing.value = false
-  }
-}
-
 function openWorkshopMarket() {
   focusOrOpenSystemRoute('/workshop-market', t('workshop.title'))
 }
@@ -377,61 +279,37 @@ function openCloudDocs() {
   focusOrOpenSystemRoute('/cloud-docs', t('steamCloudDocs.title'))
 }
 
-function openWorkshopPublish() {
-  openWorkshopPublishDocumentDialog()
-}
-
-async function steamPullUserTemplates() {
+async function syncAllCloudArchive() {
   steamSyncing.value = true
   try {
-    const r = await steamSyncPullUserTemplates()
-    if (r.success) {
-      notifySuccess(t('setting.about.steamSyncDone'))
-    } else {
-      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    const rSettings = await steamSyncPullSettings()
+    if (!rSettings.success) {
+      notifyError(rSettings.error || t('setting.about.steamSyncFailed'))
+      return
     }
-  } finally {
-    steamSyncing.value = false
-  }
-}
+    await loadSettings()
 
-async function steamPushUserTemplates() {
-  steamSyncing.value = true
-  try {
-    const r = await steamSyncPushUserTemplates()
-    if (r.success) {
-      notifySuccess(t('setting.about.steamSyncDone'))
-    } else {
-      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    const rHistory = await steamSyncPullHistory()
+    if (!rHistory.success) {
+      notifyError(rHistory.error || t('setting.about.steamSyncFailed'))
+      return
     }
-  } finally {
-    steamSyncing.value = false
-  }
-}
 
-async function steamPullAgentPack() {
-  steamSyncing.value = true
-  try {
-    const r = await steamSyncPullAgentPack()
-    if (r.success) {
-      notifySuccess(t('setting.about.steamSyncDone'))
-    } else {
-      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    const rTemplates = await steamSyncPullUserTemplates()
+    if (!rTemplates.success) {
+      notifyError(rTemplates.error || t('setting.about.steamSyncFailed'))
+      return
     }
-  } finally {
-    steamSyncing.value = false
-  }
-}
 
-async function steamPushAgentPack() {
-  steamSyncing.value = true
-  try {
-    const r = await steamSyncPushAgentPack()
-    if (r.success) {
-      notifySuccess(t('setting.about.steamSyncDone'))
-    } else {
-      notifyError(r.error || t('setting.about.steamSyncFailed'))
+    const rAgent = await steamSyncPullAgentPack()
+    if (!rAgent.success) {
+      notifyError(rAgent.error || t('setting.about.steamSyncFailed'))
+      return
     }
+
+    await loadSteamPanel()
+    await refreshSteamOfficialCloudEligible().catch(() => {})
+    notifySuccess(t('setting.about.steamSyncDone'))
   } finally {
     steamSyncing.value = false
   }
@@ -463,7 +341,7 @@ const downloadProgress = ref<number>(0)
 const downloadError = ref<string | null>(null)
 const openSourceLicenses = ref<string>('')
 const thirdPartyAssets = ref<string>('')
-const activeTab = ref<string>('updates')
+const activeTab = ref<string>(isSteamDistribution() ? 'steam' : 'updates')
 
 // 加载版本信息
 const loadVersionInfo = async () => {

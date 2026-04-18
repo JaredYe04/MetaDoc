@@ -1145,13 +1145,6 @@ function initMainEventListeners() {
   }
   eventBus.on('tab-new', handleTabNew)
 
-  const handleTabSwitchIndicator = (tabId: unknown) => {
-    if (typeof tabId === 'string') {
-      tabSwitcher.flashIndicator(tabId)
-    }
-  }
-  eventBus.on('tab-switch-indicator', handleTabSwitchIndicator)
-
   // 工作区打开文档
   const workspaceOpenDocumentHandler = (payload: unknown) => {
     handleWorkspaceOpenDocument(payload as OpenDocumentPayload)
@@ -1794,7 +1787,6 @@ function initMainEventListeners() {
     () => eventBus.off('tab-close', handleTabClose),
     () => eventBus.off('tab-reopen', handleTabReopen),
     () => eventBus.off('tab-new', handleTabNew),
-    () => eventBus.off('tab-switch-indicator', handleTabSwitchIndicator),
     () => eventBus.off('workspace-open-document', workspaceOpenDocumentHandler),
     () => eventBus.off('workspace-grep-jump', handleWorkspaceGrepJump),
     () => eventBus.off('convert-pdf-preview-tab-to-md', handleConvertPdfPreviewTabToMd),

@@ -58,6 +58,11 @@ class PathServiceImpl implements PathService {
     return path.join(app.getPath('userData'), 'llm-statistics.json')
   }
 
+  /** Steam 下 BYOK 专用明细（与官方云账单分离） */
+  getLlmStatisticsByokPath(): FilePath {
+    return path.join(app.getPath('userData'), 'llm-statistics-byok.json')
+  }
+
   /**
    * 获取向量数据库路径
    */
@@ -128,3 +133,4 @@ export type { PathService }
 export const getResourcesPath = (): FilePath => pathService.getResourcesPath()
 export const getVectorDatabasePath = (): FilePath => pathService.getVectorDatabasePath()
 export const getLlmStatisticsPath = (): FilePath => pathService.getLlmStatisticsPath()
+export const getLlmStatisticsByokPath = (): FilePath => pathService.getLlmStatisticsByokPath()

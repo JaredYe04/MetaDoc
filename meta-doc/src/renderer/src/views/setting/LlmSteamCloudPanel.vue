@@ -15,14 +15,42 @@
       <FormField name="steamCloudModel" :label="t('setting.llmSteamCloud.model')">
         <Select
           :model-value="selectedModel || undefined"
-          :disabled="modelsLoading || modelOptions.length === 0"
+          :disabled="modelsLoading || modelOptionsRaw.length === 0"
           @update:model-value="onModelChange"
         >
           <SelectTrigger class="w-full max-w-md">
             <SelectValue :placeholder="t('setting.chooseModel')" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="m in modelOptions" :key="m.id" :value="m.id">
+          <SelectContent class="max-w-md">
+            <div
+              class="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1.5"
+              @pointerdown.stop
+            >
+              <span class="shrink-0 text-[11px] text-muted-foreground">{{
+                t('setting.llmSteamCloud.sortByPrice')
+              }}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="h-7 px-2 text-[11px]"
+                :class="{ 'bg-muted': modelPriceSortOrder === 'asc' }"
+                @click="setModelPriceSortOrder('asc')"
+              >
+                {{ t('setting.llmSteamCloud.sortPriceAsc') }}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="h-7 px-2 text-[11px]"
+                :class="{ 'bg-muted': modelPriceSortOrder === 'desc' }"
+                @click="setModelPriceSortOrder('desc')"
+              >
+                {{ t('setting.llmSteamCloud.sortPriceDesc') }}
+              </Button>
+            </div>
+            <SelectItem v-for="m in modelOptionsSorted" :key="m.id" :value="m.id">
               {{ m.id }} (~{{ m.credits_per_1k_tokens_est }} credits / 1k tok)
             </SelectItem>
           </SelectContent>
@@ -52,6 +80,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import {
+  readStoredSteamCloudPriceSortOrder,
+  sortSteamCloudModelsByPrice,
+  writeStoredSteamCloudPriceSortOrder,
+  type SteamCloudModelRow
+} from '../../utils/steam-cloud-models-display'
 import { useI18n } from 'vue-i18n'
 import { settings, setSetting } from '../../utils/settings.js'
 import { getMetadocCloudApiBase } from '@common/build-env'
@@ -92,7 +126,16 @@ const loading = ref(false)
 const modelsLoading = ref(false)
 const mtxLoading = ref(false)
 const mtxCatalogLoading = ref(false)
-const modelOptions = ref<Array<{ id: string; credits_per_1k_tokens_est: number }>>([])
+const modelOptionsRaw = ref<SteamCloudModelRow[]>([])
+const modelPriceSortOrder = ref<'asc' | 'desc'>(readStoredSteamCloudPriceSortOrder())
+const modelOptionsSorted = computed(() =>
+  sortSteamCloudModelsByPrice(modelOptionsRaw.value, modelPriceSortOrder.value)
+)
+
+function setModelPriceSortOrder(order: 'asc' | 'desc') {
+  modelPriceSortOrder.value = order
+  writeStoredSteamCloudPriceSortOrder(order)
+}
 
 /** 由 Worker `GET /steam/mtx/catalog` 填充，与 `steam-mtx-items.yaml` 一致 */
 const mtxPacks = ref<SteamMtxPackRow[]>([])
@@ -183,9 +226,12 @@ async function loadModels() {
       models?: Array<{ id: string; credits_per_1k_tokens_est: number }>
     }
     if (res.ok && Array.isArray(j.models)) {
-      modelOptions.value = j.models
+      modelOptionsRaw.value = j.models
       if (!selectedModel.value && j.models.length > 0) {
-        await onModelChange(j.models[0].id)
+        const first = sortSteamCloudModelsByPrice(j.models, 'asc')[0]
+        if (first) {
+          await onModelChange(first.id)
+        }
       }
     }
   } catch {

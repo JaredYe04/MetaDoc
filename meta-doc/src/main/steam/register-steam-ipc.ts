@@ -52,27 +52,79 @@ import {
 
 type SteamResult<T = unknown> = { success: true; data?: T } | { success: false; error: string }
 
-/** Steam 网页支付窗口（与主进程出口 IP 一致，避免 InitTxn ip 与外部浏览器不一致） */
+/**
+ * Steam Web 结账：InitTxn 的 ipaddress 必须与**打开 steam_url 的浏览器**出口 IP 一致。
+ * Node 的 fetch 与 Electron Chromium 的出口可能不同（代理/双栈等），因此在**同一 BrowserWindow**
+ * 内用 executeJavaScript 取 ip，并在该窗口内 loadURL(steam_url)。
+ */
+const MTX_CHECKOUT_PARTITION = 'persist:steam-mtx-checkout'
+
 let mtxCheckoutBrowserWindow: BrowserWindow | null = null
 
-async function fetchPublicIpForMtxMain(): Promise<string | null> {
-  const timeout = (ms: number) =>
-    typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
-      ? AbortSignal.timeout(ms)
-      : undefined
-  try {
-    const r = await fetch('https://api.ipify.org?format=json', { signal: timeout(15_000) })
-    if (!r.ok) return null
-    const j = (await r.json()) as { ip?: string }
-    return typeof j.ip === 'string' ? j.ip : null
-  } catch {
-    /* ignore */
+function ensureMtxCheckoutBrowserWindow(): BrowserWindow {
+  if (mtxCheckoutBrowserWindow && !mtxCheckoutBrowserWindow.isDestroyed()) {
+    return mtxCheckoutBrowserWindow
   }
+  const parent = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+  mtxCheckoutBrowserWindow = new BrowserWindow({
+    width: 960,
+    height: 820,
+    show: false,
+    parent: parent ?? undefined,
+    modal: false,
+    autoHideMenuBar: true,
+    title: 'Steam',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      partition: MTX_CHECKOUT_PARTITION
+    }
+  })
+  mtxCheckoutBrowserWindow.on('closed', () => {
+    mtxCheckoutBrowserWindow = null
+  })
+  return mtxCheckoutBrowserWindow
+}
+
+const IPV4_DOTTED = /^\d{1,3}(\.\d{1,3}){3}$/
+
+/** 与内嵌支付页同一 Chromium 网络栈上探测出口 IP（供 InitTxn）；优先 IPv4，与 Steam Web 结账校验一致 */
+async function fetchPublicIpViaMtxChromiumWindow(): Promise<string | null> {
+  const win = ensureMtxCheckoutBrowserWindow()
   try {
-    const r = await fetch('https://ipv4.icanhazip.com', { signal: timeout(15_000) })
-    if (!r.ok) return null
-    const t = (await r.text()).trim()
-    return /^\d{1,3}(\.\d{1,3}){3}$/.test(t) ? t : null
+    await win.loadURL('about:blank')
+    const ip = await win.webContents.executeJavaScript(
+      `
+      (async () => {
+        const v4 = async () => {
+          try {
+            const r = await fetch('https://ipv4.icanhazip.com', { signal: AbortSignal.timeout(15000) })
+            const t = (await r.text()).trim()
+            return /^\\d{1,3}(\\.\\d{1,3}){3}$/.test(t) ? t : ''
+          } catch (e) {
+            return ''
+          }
+        }
+        const fallback = async () => {
+          try {
+            const r = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(15000) })
+            const j = await r.json()
+            return typeof j.ip === 'string' ? j.ip : ''
+          } catch (e) {
+            return ''
+          }
+        }
+        let s = await v4()
+        if (!s) s = await fallback()
+        return s
+      })()
+      `
+    )
+    const s = typeof ip === 'string' ? ip.trim() : ''
+    if (!s) return null
+    if (IPV4_DOTTED.test(s)) return s
+    if (s.includes(':')) return s
+    return null
   } catch {
     return null
   }
@@ -839,16 +891,16 @@ export function registerSteamIpc(): void {
     return ok()
   })
 
-  /** 主进程获取公网 IPv4，供 InitTxn ipaddress 与下方内嵌支付页出口一致 */
+  /** 在与内嵌支付页相同的 Chromium 会话中取出口 IP，供 InitTxn ipaddress */
   ipcBridge.registerHandle('steam:mtx:get-public-ip', async (): Promise<SteamResult<{ ip: string }>> => {
-    const ip = await fetchPublicIpForMtxMain()
+    const ip = await fetchPublicIpViaMtxChromiumWindow()
     if (!ip) {
       return fail('ip_unavailable')
     }
     return ok({ ip })
   })
 
-  /** 在应用内打开 Steam 支付页（非系统默认浏览器），与 InitTxn 使用同一主进程网络出口 */
+  /** 在同一内嵌窗口中加载 Steam 支付页（须与 get-public-ip 为同一窗口，避免 IP 不一致） */
   ipcBridge.registerHandle(
     'steam:mtx:open-checkout-url',
     async (_e, payload: unknown): Promise<SteamResult> => {
@@ -864,28 +916,10 @@ export function registerSteamIpc(): void {
         return fail('bad_url')
       }
       try {
-        if (mtxCheckoutBrowserWindow && !mtxCheckoutBrowserWindow.isDestroyed()) {
-          mtxCheckoutBrowserWindow.close()
-          mtxCheckoutBrowserWindow = null
-        }
-        const parent = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
-        mtxCheckoutBrowserWindow = new BrowserWindow({
-          width: 960,
-          height: 820,
-          parent: parent ?? undefined,
-          modal: false,
-          show: true,
-          autoHideMenuBar: true,
-          title: 'Steam',
-          webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true
-          }
-        })
-        mtxCheckoutBrowserWindow.on('closed', () => {
-          mtxCheckoutBrowserWindow = null
-        })
-        await mtxCheckoutBrowserWindow.loadURL(url)
+        const win = ensureMtxCheckoutBrowserWindow()
+        await win.loadURL(url)
+        win.show()
+        win.focus()
         return ok()
       } catch (e) {
         return fail(e instanceof Error ? e.message : String(e))

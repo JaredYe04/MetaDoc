@@ -3,6 +3,7 @@
  */
 import messageBridge from '../bridge/message-bridge'
 import eventBus from './event-bus.js'
+import { createRendererLogger } from './logger.ts'
 import { getSteamStatus, getSteamUser } from '../services/steam-client'
 import { getMetadocCloudApiBase, isSteamDistribution } from '@common/build-env'
 import { useMetadocCloudOpenAiRoute } from './dev-ai-pipeline'
@@ -146,37 +147,12 @@ async function fetchPublicIpViaMainProcess(): Promise<string | null> {
   return null
 }
 
+/**
+ * 仅使用主进程内嵌 Chromium 探测的 IP（与支付页同一网络栈）。
+ * 不再在渲染进程用 fetch 兜底，避免与内嵌窗口出口不一致导致 Steam「交易授权错误」。
+ */
 async function fetchPublicIpForMtx(): Promise<string | null> {
-  const fromMain = await fetchPublicIpViaMainProcess()
-  if (fromMain) {
-    return fromMain
-  }
-  const tryOnce = async (url: string, parse: (r: Response) => Promise<string | null>) => {
-    try {
-      const signal =
-        typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
-          ? AbortSignal.timeout(FETCH_TIMEOUT_MS)
-          : undefined
-      const r = await fetch(url, { signal })
-      return await parse(r)
-    } catch {
-      return null
-    }
-  }
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const a = await tryOnce('https://api.ipify.org?format=json', async (r) => {
-      const j = (await r.json()) as { ip?: string }
-      return typeof j.ip === 'string' ? j.ip : null
-    })
-    if (a) return a
-    const b = await tryOnce('https://ipv4.icanhazip.com', async (r) => {
-      const t = (await r.text()).trim()
-      return /^\d{1,3}(\.\d{1,3}){3}$/.test(t) ? t : null
-    })
-    if (b) return b
-    await new Promise((r) => setTimeout(r, 400))
-  }
-  return null
+  return fetchPublicIpViaMainProcess()
 }
 
 function sleepMs(ms: number): Promise<void> {
@@ -185,8 +161,8 @@ function sleepMs(ms: number): Promise<void> {
 
 /**
  * 发起 Steam MTX：
- * Electron 下 Steam 客户端覆盖层对 `usersession=client` 往往**不会**弹出支付 UI；因此统一走 **Web 结账**（`usersession=web`）：
- * 主进程 `steam:mtx:get-public-ip` 与 `steam:mtx:open-checkout-url` 内嵌窗口，使 InitTxn 的 ip 与支付页出口一致。
+ * Electron 下统一走 **Web 结账**（`usersession=web`）。InitTxn 的 `ipaddress` 必须与**打开 steam_url 的 Chromium** 出口一致；
+ * 主进程在同一 `BrowserWindow`（固定 partition）内先 `executeJavaScript` 请求 ipify，再 `loadURL(steam_url)`，避免 Node `fetch` 与 Chromium 出口不一致触发「交易授权错误」。
  */
 export async function startSteamMtxInit(body: {
   item_id: string | number
@@ -224,6 +200,14 @@ export async function startSteamMtxInit(body: {
     detail?: { response?: { errordesc?: string } }
   }
   if (!res.ok || !json.order_id) {
+    if (import.meta.env.DEV) {
+      const log = createRendererLogger('MetaDocCloudAuth')
+      log.debug('[MTX init] failed', {
+        httpStatus: res.status,
+        message: json.message,
+        steamErrordesc: json.detail?.response?.errordesc
+      })
+    }
     const msg =
       json.message ||
       (typeof json.detail?.response?.errordesc === 'string'

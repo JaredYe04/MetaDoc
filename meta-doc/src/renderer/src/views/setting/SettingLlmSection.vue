@@ -925,6 +925,7 @@ import { getMetaDocLlmModels } from '../../utils/web-utils.ts'
 import { isSteamDistribution } from '@common/build-env'
 import { getDevAiPipelineMode } from '../../utils/dev-ai-pipeline'
 import { getSteamUiTrayReady } from '../../utils/steam-ui-ready'
+import { steamOfficialCloudEligible } from '../../utils/steam-official-cloud-eligible'
 import LlmSteamCloudPanel from './LlmSteamCloudPanel.vue'
 import { createRendererLogger } from '../../utils/logger.ts'
 import { isDevEnvironment } from '../../utils/dev-env'
@@ -1057,11 +1058,13 @@ let steamReadyPollTimer: ReturnType<typeof setInterval> | null = null
 
 async function refreshSteamUiTrayReady() {
   steamUiTrayReady.value = await getSteamUiTrayReady()
+  steamOfficialCloudEligible.value = steamDistributionBuild || steamUiTrayReady.value
 }
 
 const showSteamMinimalLlm = computed(() => {
   void pipelineRefresh.value
   void steamUiTrayReady.value
+  void steamOfficialCloudEligible.value
   void settings.steamDeveloperBypassByok
   if (settings.steamDeveloperBypassByok === true) {
     return false
@@ -1070,10 +1073,7 @@ const showSteamMinimalLlm = computed(() => {
   if (devLegacy) {
     return false
   }
-  if (steamDistributionBuild) {
-    return true
-  }
-  if (steamUiTrayReady.value) {
+  if (steamOfficialCloudEligible.value) {
     return true
   }
   return import.meta.env.DEV && getDevAiPipelineMode() === 'steam_cloud'

@@ -79,6 +79,21 @@ node scripts/fetch-n1n-models.mjs
 
 条目与 AppID 对齐说明见 [steamworks-mtx-catalog.md](./steamworks-mtx-catalog.md)。
 
+### Steam 网页提示「交易授权错误」等（Web 结账 / `usersession=web`）
+
+官方 [ISteamMicroTxn / InitTxn](https://partner.steamgames.com/doc/webapi/ISteamMicroTxn) 要求：`usersession=web` 时必须提供 **`ipaddress`**（IPv4 点分），且须与用户完成授权时使用的浏览器会话一致。客户端在 Electron 内用**同一**内嵌 Chromium 窗口探测出口 IP 再打开 `steam_url`，见 `register-steam-ipc.ts` 与 `metadoc-cloud-auth.ts`。
+
+**排查清单：**
+
+| 项目 | 说明 |
+|------|------|
+| **JWT 内 `steam_id` 与内嵌页登录账号** | `InitTxn` 的 `steamid` 来自 JWT。若使用 **DEV 鉴权**（`VITE_METADOC_CLOUD_DEV_STEAM_ID`），该 SteamID64 必须与 **内嵌窗口里当前登录的 Steam 账号**一致；否则订单属于用户 A、浏览器是用户 B，易出现授权类错误。 |
+| **`STEAM_MICROTX_SANDBOX`** | Worker `wrangler.toml` 与 Steamworks 中物品/环境（沙盒 vs 正式）必须一致。 |
+| **`STEAM_WEB_API_KEY`** | 须为 Steamworks **Publisher Web API Key**（见上文第 3 节排障）。 |
+| **网络** | VPN/代理/双栈可能导致探测 IP 与打开支付页时出口不一致；纯 IPv6 环境需单独策略。 |
+
+开发构建下，`startSteamMtxInit` 在 InitTxn 失败时会向控制台输出 `[MTX init] failed` 的脱敏 `debug` 日志（含 Worker 返回的 `message` / Steam `errordesc` 摘要）。
+
 ---
 
 ## 5. n1n（api.n1n.ai）

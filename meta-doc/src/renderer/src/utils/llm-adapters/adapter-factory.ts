@@ -6,7 +6,7 @@
 import { BaseLlmAdapter } from './base-adapter.ts'
 import { LlmError, LlmErrorType } from '../llm-errors.js'
 import { getSetting } from '../settings.js'
-import { loadMetadocOpenAiStyleConfig } from '../metadoc-llm-config.ts'
+import { ensureDefaultMetadocCloudModelIfNeeded, loadMetadocOpenAiStyleConfig } from '../metadoc-llm-config.ts'
 import { useMetadocCloudOpenAiRoute } from '../dev-ai-pipeline'
 import { resolveEffectiveLlmInternal } from '../steam-cloud-route'
 import type { LlmConfig, CustomLlmConfig } from './types.ts'
@@ -124,10 +124,13 @@ export async function createAdapterFromSettings(
 
     switch (selectedLlm) {
       case 'metadoc': {
+        await ensureDefaultMetadocCloudModelIfNeeded()
         const token = localStorage.getItem('loginToken')
         const modelName = (await getSetting('metadocSelectedModel')) as string | undefined
         const metadocConfig = await loadMetadocOpenAiStyleConfig(token, modelName || '')
         config = { ...config, ...metadocConfig }
+        // loadMetadocOpenAiStyleConfig 云分支不总带 selectedModel；须与设置一致，否则 validate() 报「未选择模型」
+        config.selectedModel = (modelName ?? '').trim()
         const enableMaxTokens = (await getSetting('metadocEnableMaxTokens')) ?? false
         const maxTokens = (await getSetting('metadocMaxTokens')) || 4096
         config.enableMaxTokens = enableMaxTokens

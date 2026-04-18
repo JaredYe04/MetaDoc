@@ -8,13 +8,13 @@
   >
     <header class="frw-header">
       <div class="frw-step-label text-muted-foreground">
-        {{ t('onboarding.stepProgress', { current: currentStep + 1, total: STEP_COUNT }) }}
+        {{ t('onboarding.stepProgress', { current: progressCurrent, total: progressTotal }) }}
       </div>
       <div class="frw-progress">
         <div
           class="frw-progress-bar"
           :style="{
-            width: `${((currentStep + 1) / STEP_COUNT) * 100}%`,
+            width: `${(progressCurrent / progressTotal) * 100}%`,
             backgroundColor: 'hsl(var(--primary))'
           }"
         />
@@ -174,7 +174,7 @@
         t('onboarding.back')
       }}</Button>
       <div class="frw-footer-spacer" />
-      <Button v-if="currentStep === 5" variant="ghost" @click="skipLlm">{{
+      <Button v-if="currentStep === 5 && !skipLlmStep" variant="ghost" @click="skipLlm">{{
         t('onboarding.llm.skipLater')
       }}</Button>
       <Button v-if="showPrimaryFooter" :disabled="primaryFooterDisabled" @click="onPrimaryFooter">
@@ -200,6 +200,10 @@ import { setI18nLocale } from '../../i18n.js'
 import eventBus from '../../utils/event-bus.js'
 import { setFocusModePersisted } from '../../composables/useFocusMode'
 import { setSetting, settings, getSetting } from '../../utils/settings.js'
+import {
+  steamOfficialCloudEligible,
+  refreshSteamOfficialCloudEligible
+} from '../../utils/steam-official-cloud-eligible'
 import { saveUserProfile } from '../../utils/user-profile'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile } from '../../stores/userManual'
@@ -228,6 +232,27 @@ function onWelcomeLogoClick() {
 }
 
 const currentStep = ref(0)
+
+/** Steam 官方云用户无需 BYOK 向导步骤 */
+const skipLlmStep = computed(
+  () => steamOfficialCloudEligible.value && settings.steamDeveloperBypassByok !== true
+)
+
+const progressTotal = computed(() => (skipLlmStep.value ? 6 : 7))
+
+const progressCurrent = computed(() => {
+  if (!skipLlmStep.value) {
+    return currentStep.value + 1
+  }
+  if (currentStep.value <= 4) {
+    return currentStep.value + 1
+  }
+  if (currentStep.value === 6) {
+    return 6
+  }
+  return currentStep.value + 1
+})
+
 const selectedLocale = ref<string>('zh_CN')
 const layoutFocus = ref(false)
 const finalPhase = ref<'profile' | 'editor'>('profile')
@@ -299,7 +324,9 @@ const primaryFooterLabel = computed(() => {
   return t('onboarding.next')
 })
 
-const primaryFooterDisabled = computed(() => currentStep.value === 5 && !llmOnboardingSaved.value)
+const primaryFooterDisabled = computed(
+  () => currentStep.value === 5 && !llmOnboardingSaved.value && !skipLlmStep.value
+)
 
 function onPrimaryFooter() {
   if (currentStep.value === 6 && finalPhase.value === 'editor') {
@@ -340,10 +367,16 @@ async function goNext() {
     await selectLanguage(selectedLocale.value)
   }
   if (currentStep.value < STEP_COUNT - 1) {
-    currentStep.value += 1
-    if (currentStep.value === 6) {
+    if (currentStep.value === 4 && skipLlmStep.value) {
+      currentStep.value = 6
       finalPhase.value = 'profile'
       onEnterProfileStep()
+    } else {
+      currentStep.value += 1
+      if (currentStep.value === 6) {
+        finalPhase.value = 'profile'
+        onEnterProfileStep()
+      }
     }
   }
 }
@@ -353,7 +386,17 @@ function goBack() {
     finalPhase.value = 'profile'
     return
   }
-  if (currentStep.value > 0) currentStep.value -= 1
+  if (currentStep.value > 0) {
+    if (
+      currentStep.value === 6 &&
+      skipLlmStep.value &&
+      finalPhase.value === 'profile'
+    ) {
+      currentStep.value = 4
+      return
+    }
+    currentStep.value -= 1
+  }
 }
 
 function onEnterProfileStep() {
@@ -399,6 +442,7 @@ watch(currentStep, (s, prev) => {
 })
 
 onMounted(() => {
+  void refreshSteamOfficialCloudEligible()
   const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('lang') : null
   if (raw) {
     const normalized = raw.replace(/-/g, '_')

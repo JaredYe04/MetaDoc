@@ -52,6 +52,7 @@ import {
   initNonCriticalSettings,
   prepareFirstRunWizardOnStartup
 } from './utils/settings'
+import { refreshSteamOfficialCloudEligible } from './utils/steam-official-cloud-eligible'
 import { themeState, applyTheme } from './utils/themes'
 import { clearAiTasks } from './utils/ai_tasks'
 import { useI18n } from 'vue-i18n'
@@ -352,6 +353,7 @@ onMounted(async () => {
 
   // 先加载关键设置（主题相关等，需要在窗口显示前完成）
   await initCriticalSettings()
+  await refreshSteamOfficialCloudEligible()
 
   if (isMainWindow()) {
     const needWizard = await prepareFirstRunWizardOnStartup()

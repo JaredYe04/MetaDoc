@@ -8,6 +8,7 @@ import {
   getCredits,
   releaseFreeze
 } from './billing'
+import { insertCreditLedger, insertUsageLedger } from './ledger'
 import {
   actualCostFromUsageForModel,
   cloudModelsPayload,
@@ -18,7 +19,11 @@ import {
   usdGrossForMtxOrder,
   volumeBonusCreditsForItemId
 } from './pricing-helpers'
-import { forwardChatCompletion } from './ai-proxy'
+import {
+  fetchChatCompletionsStreaming,
+  forwardChatCompletion,
+  parseLastUsageFromOpenAiSse
+} from './ai-proxy'
 import {
   authenticateSteamTicket,
   checkAppOwnership,
@@ -108,7 +113,7 @@ async function runGetReportCron(env: Env): Promise<void> {
 async function handle(
   req: Request,
   env: Env,
-  _ctx: ExecutionContext,
+  ctx: ExecutionContext,
   url: URL,
   c: Record<string, string>
 ): Promise<Response> {
@@ -126,6 +131,10 @@ async function handle(
     return handleUserCredits(req, env, c)
   }
 
+  if (path === '/user/credit-ledger' && req.method === 'GET') {
+    return handleCreditLedger(req, env, c)
+  }
+
   if (path === '/user/first-purchase-claim' && req.method === 'POST') {
     return handleFirstPurchaseClaim(req, env, c)
   }
@@ -135,7 +144,7 @@ async function handle(
   }
 
   if ((path === '/ai/chat' || path === '/v1/chat/completions') && req.method === 'POST') {
-    return handleAiChat(req, env, c)
+    return handleAiChat(req, env, c, ctx)
   }
 
   if (path === '/steam/mtx/catalog' && req.method === 'GET') {
@@ -259,6 +268,131 @@ async function handleUserCredits(req: Request, env: Env, c: Record<string, strin
   return new Response(JSON.stringify({ credits }), { headers: { 'content-type': 'application/json', ...c } })
 }
 
+async function handleCreditLedger(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+  const u = await requireJwt(req, env, c)
+  if (u instanceof Response) return u
+
+  const url = new URL(req.url)
+  let fromTs: number | null = null
+  let toTs: number | null = null
+  const fromParam = url.searchParams.get('from')
+  const toParam = url.searchParams.get('to')
+  if (fromParam) {
+    const n = Number(fromParam)
+    if (Number.isFinite(n)) fromTs = Math.floor(n)
+  }
+  if (toParam) {
+    const n = Number(toParam)
+    if (Number.isFinite(n)) toTs = Math.floor(n)
+  }
+
+  const limitRaw = Number(url.searchParams.get('limit'))
+  const limit = Math.min(200, Math.max(1, Number.isFinite(limitRaw) ? Math.floor(limitRaw) : 50))
+
+  const cursorRaw = url.searchParams.get('cursor')
+  let cursorCreated: number | null = null
+  let cursorId: string | null = null
+  if (cursorRaw) {
+    const pipe = cursorRaw.indexOf('|')
+    if (pipe > 0) {
+      const ca = Number(cursorRaw.slice(0, pipe))
+      const id = cursorRaw.slice(pipe + 1)
+      if (Number.isFinite(ca) && id.length > 0) {
+        cursorCreated = Math.floor(ca)
+        cursorId = id
+      }
+    }
+  }
+
+  const includeSummary = url.searchParams.get('include_summary') === '1' || url.searchParams.get('summary') === '1'
+
+  const hasCursor = cursorCreated !== null && cursorId !== null ? 1 : 0
+  const cCa = cursorCreated ?? 0
+  const cId = cursorId ?? ''
+
+  const rows = await env.DB.prepare(
+    `SELECT id, created_at, kind, delta_credits, balance_after, meta FROM credit_ledger
+     WHERE steam_id = ?
+     AND (? IS NULL OR created_at >= ?)
+     AND (? IS NULL OR created_at <= ?)
+     AND (
+       ? = 0
+       OR created_at < ?
+       OR (created_at = ? AND id < ?)
+     )
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?`
+  )
+    .bind(
+      u.steamId,
+      fromTs,
+      fromTs,
+      toTs,
+      toTs,
+      hasCursor,
+      cCa,
+      cCa,
+      cId,
+      limit + 1
+    )
+    .all<{
+      id: string
+      created_at: number
+      kind: string
+      delta_credits: number
+      balance_after: number | null
+      meta: string
+    }>()
+
+  const list = rows.results ?? []
+  const hasMore = list.length > limit
+  const page = hasMore ? list.slice(0, limit) : list
+  let next_cursor: string | undefined
+  if (hasMore && page.length > 0) {
+    const last = page[page.length - 1]
+    next_cursor = `${last.created_at}|${last.id}`
+  }
+
+  const items = page.map((r) => {
+    let meta: Record<string, unknown> = {}
+    try {
+      meta = JSON.parse(r.meta || '{}') as Record<string, unknown>
+    } catch {
+      meta = {}
+    }
+    return {
+      id: r.id,
+      created_at: r.created_at,
+      kind: r.kind,
+      delta_credits: r.delta_credits,
+      balance_after: r.balance_after,
+      meta
+    }
+  })
+
+  const payload: Record<string, unknown> = { items, next_cursor }
+
+  if (includeSummary) {
+    const sumRow = await env.DB.prepare(
+      `SELECT
+         COALESCE(SUM(CASE WHEN delta_credits < 0 THEN -delta_credits ELSE 0 END), 0) AS spent,
+         COALESCE(SUM(CASE WHEN delta_credits > 0 THEN delta_credits ELSE 0 END), 0) AS added
+       FROM credit_ledger
+       WHERE steam_id = ?
+       AND (? IS NULL OR created_at >= ?)
+       AND (? IS NULL OR created_at <= ?)`
+    )
+      .bind(u.steamId, fromTs, fromTs, toTs, toTs)
+      .first<{ spent: number; added: number }>()
+    payload.summary = {
+      credits_spent: sumRow?.spent ?? 0,
+      credits_added: sumRow?.added ?? 0
+    }
+  }
+
+  return new Response(JSON.stringify(payload), { headers: { 'content-type': 'application/json', ...c } })
+}
+
 async function handleCloudModels(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
   const auth = await requireJwt(req, env, c)
   if (auth instanceof Response) return auth
@@ -316,13 +450,81 @@ async function handleFirstPurchaseClaim(req: Request, env: Env, c: Record<string
     .bind(u.steamId, credits)
     .run()
 
+  await insertCreditLedger(env, {
+    steamId: u.steamId,
+    kind: 'first_purchase',
+    deltaCredits: credits,
+    meta: { request_id }
+  })
+
   return new Response(
     JSON.stringify({ ok: true, request_id, credits_added: credits, owns_app: true }),
     { headers: { 'content-type': 'application/json', ...c } }
   )
 }
 
-async function handleAiChat(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+/**
+ * 单路 TransformStream 透传 SSE：每个 chunk 立即下发客户端，避免 tee() 双读在 Workers 上引入额外缓冲/背压。
+ * 上游结束后在 flush 中解析整段 SSE 做 commit + ledger。
+ */
+function createChatStreamBillingTransform(
+  ctx: ExecutionContext,
+  env: Env,
+  options: {
+    freezeId: string
+    steamId: string
+    est: number
+    request_id: string
+    modelStr: string | undefined
+  }
+): TransformStream<Uint8Array, Uint8Array> {
+  const decoder = new TextDecoder()
+  let sseBuffer = ''
+  const { freezeId, steamId, est, request_id, modelStr } = options
+  return new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      controller.enqueue(chunk)
+      sseBuffer += decoder.decode(chunk, { stream: true })
+    },
+    flush() {
+      sseBuffer += decoder.decode()
+      ctx.waitUntil(
+        (async () => {
+          try {
+            let actual = est
+            const usage = parseLastUsageFromOpenAiSse(sseBuffer)
+            if (usage) {
+              actual = actualCostFromUsageForModel(usage, modelStr)
+            }
+            await commitFreeze(env, steamId, freezeId, actual)
+            await insertUsageLedger(env, steamId, {
+              requestId: request_id,
+              model: modelStr,
+              actualCredits: actual,
+              usage: usage
+                ? {
+                    prompt_tokens: usage.prompt_tokens,
+                    completion_tokens: usage.completion_tokens,
+                    total_tokens: usage.total_tokens
+                  }
+                : undefined,
+              scenario: 'chat_stream'
+            })
+          } catch {
+            await releaseFreeze(env, steamId, freezeId)
+          }
+        })()
+      )
+    }
+  })
+}
+
+async function handleAiChat(
+  req: Request,
+  env: Env,
+  c: Record<string, string>,
+  ctx: ExecutionContext
+): Promise<Response> {
   const request_id = newRequestId()
   const u = await requireJwt(req, env, c)
   if (u instanceof Response) return u
@@ -333,9 +535,8 @@ async function handleAiChat(req: Request, env: Env, c: Record<string, string>): 
   }
 
   const payload = body as Record<string, unknown>
-  if (payload.stream === true) {
-    payload.stream = false
-  }
+  const wantsStream = payload.stream === true
+  const modelStr = typeof payload.model === 'string' ? payload.model : undefined
 
   const est = estimateFreezeForRequest(payload)
   const freezeId = crypto.randomUUID()
@@ -358,8 +559,79 @@ async function handleAiChat(req: Request, env: Env, c: Record<string, string>): 
     return jsonError(500, { request_id, error: 'MISCONFIG', message: 'N1N_API_KEY or OPENAI_API_KEY' }, c)
   }
 
+  if (wantsStream) {
+    try {
+      const upstream = await fetchChatCompletionsStreaming(env, payload)
+      if (!upstream.ok) {
+        await releaseFreeze(env, u.steamId, freezeId)
+        const errText = await upstream.text()
+        let detail: Record<string, unknown> = { status: upstream.status }
+        try {
+          detail.raw = JSON.parse(errText)
+        } catch {
+          detail.body = errText.slice(0, 500)
+        }
+        return jsonError(
+          upstream.status >= 500 ? 502 : 502,
+          {
+            request_id,
+            error: 'UPSTREAM_ERROR',
+            message: 'AI provider error',
+            detail
+          },
+          c
+        )
+      }
+      if (!upstream.body) {
+        await releaseFreeze(env, u.steamId, freezeId)
+        return jsonError(
+          502,
+          { request_id, error: 'UPSTREAM_ERROR', message: 'Empty upstream body' },
+          c
+        )
+      }
+
+      const passthrough = createChatStreamBillingTransform(ctx, env, {
+        freezeId,
+        steamId: u.steamId,
+        est,
+        request_id,
+        modelStr
+      })
+      const piped = upstream.body.pipeThrough(passthrough)
+
+      return new Response(piped, {
+        status: upstream.status,
+        headers: {
+          'content-type':
+            upstream.headers.get('content-type') || 'text/event-stream; charset=utf-8',
+          'cache-control': 'no-cache, no-store, no-transform',
+          'x-accel-buffering': 'no',
+          'x-request-id': request_id,
+          ...c
+        }
+      })
+    } catch (e) {
+      await releaseFreeze(env, u.steamId, freezeId)
+      return jsonError(
+        502,
+        {
+          request_id,
+          error: 'UPSTREAM_ERROR',
+          message: e instanceof Error ? e.message : String(e)
+        },
+        c
+      )
+    }
+  }
+
+  const nonStreamPayload = { ...payload }
+  if (nonStreamPayload.stream === true) {
+    nonStreamPayload.stream = false
+  }
+
   try {
-    const { response: upstream, usage } = await forwardChatCompletion(env, payload)
+    const { response: upstream, usage } = await forwardChatCompletion(env, nonStreamPayload)
     const text = await upstream.text()
     if (!upstream.ok) {
       await releaseFreeze(env, u.steamId, freezeId)
@@ -381,7 +653,6 @@ async function handleAiChat(req: Request, env: Env, c: Record<string, string>): 
       )
     }
 
-    const modelStr = typeof payload.model === 'string' ? payload.model : undefined
     let actual = est
     if (usage) {
       actual = actualCostFromUsageForModel(usage, modelStr)
@@ -392,11 +663,37 @@ async function handleAiChat(req: Request, env: Env, c: Record<string, string>): 
         }
         if (parsed.usage) actual = actualCostFromUsageForModel(parsed.usage, modelStr)
       } catch {
-        /* stream response — keep est as cost */
+        /* keep est */
       }
     }
 
     await commitFreeze(env, u.steamId, freezeId, actual)
+
+    const usageForLedger =
+      usage ??
+      (() => {
+        try {
+          const parsed = JSON.parse(text) as {
+            usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number }
+          }
+          return parsed.usage
+        } catch {
+          return undefined
+        }
+      })()
+    await insertUsageLedger(env, u.steamId, {
+      requestId: request_id,
+      model: modelStr,
+      actualCredits: actual,
+      usage: usageForLedger
+        ? {
+            prompt_tokens: usageForLedger.prompt_tokens,
+            completion_tokens: usageForLedger.completion_tokens,
+            total_tokens: usageForLedger.total_tokens
+          }
+        : undefined,
+      scenario: 'chat'
+    })
 
     return new Response(text, {
       status: upstream.status,
@@ -559,6 +856,13 @@ async function finalizeMtxOrderAndGrantCredits(
     .bind(steamId, add)
     .run()
 
+  await insertCreditLedger(env, {
+    steamId,
+    kind: 'purchase',
+    deltaCredits: add,
+    meta: { order_id: orderId, item_id: row.item_id ?? null, finalize: 'txn' }
+  })
+
   return new Response(
     JSON.stringify({ ok: true, completed: true, credits_added: add, steam_response: data }),
     {
@@ -649,6 +953,12 @@ async function handleMtxSyncWeb(req: Request, env: Env, c: Record<string, string
     )
       .bind(u.steamId, add)
       .run()
+    await insertCreditLedger(env, {
+      steamId: u.steamId,
+      kind: 'purchase',
+      deltaCredits: add,
+      meta: { order_id: orderId, item_id: row.item_id ?? null, recovered: true }
+    })
     return new Response(
       JSON.stringify({ ok: true, completed: true, credits_added: add, recovered: true }),
       { headers: { 'content-type': 'application/json', ...c } }

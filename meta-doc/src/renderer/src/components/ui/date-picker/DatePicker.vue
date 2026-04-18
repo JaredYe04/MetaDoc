@@ -67,11 +67,21 @@ function parseValue(val: typeof props.modelValue): { start: Date | null; end: Da
 
   const isRange = props.type === 'daterange' || props.type === 'datetimerange'
 
+  function parseOne(v: unknown): Date | null {
+    if (v == null || v === '') return null
+    if (v instanceof Date) return isNaN(v.getTime()) ? null : v
+    const s = String(v).trim()
+    // 与 value-format 一致：空格日期在部分环境解析失败，改为 ISO 风格
+    const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s) ? s.replace(' ', 'T') : s
+    const d = new Date(normalized)
+    return isNaN(d.getTime()) ? null : d
+  }
+
   if (isRange) {
     if (Array.isArray(val)) {
       return {
-        start: val[0] ? (val[0] instanceof Date ? val[0] : new Date(val[0])) : null,
-        end: val[1] ? (val[1] instanceof Date ? val[1] : new Date(val[1])) : null
+        start: parseOne(val[0]),
+        end: parseOne(val[1])
       }
     }
     return { start: null, end: null }
@@ -527,7 +537,7 @@ function handleInputBlur() {
     <PopoverPortal>
       <PopoverContent
         align="start"
-        class="z-50 w-auto p-0 bg-popover border border-border rounded-md shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
+        class="z-[10001] w-auto p-0 bg-popover border border-border rounded-md shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2"
       >
         <div class="p-3">
           <!-- Calendar Header -->

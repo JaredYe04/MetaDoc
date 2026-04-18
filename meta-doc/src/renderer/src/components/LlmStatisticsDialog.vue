@@ -1,6 +1,6 @@
 <template>
   <Dialog v-model:open="visible">
-    <DialogContent class="max-w-[900px]" :close-on-click-modal="false">
+    <DialogContent class="max-w-[1100px]" :close-on-click-modal="false">
       <DialogHeader>
         <DialogTitle>{{ $t('llmStatistics.title') }}</DialogTitle>
       </DialogHeader>
@@ -11,7 +11,11 @@
         <Button @click="handleExport">
           {{ $t('llmStatistics.export') }}
         </Button>
-        <Button @click="handleClear" variant="destructive">
+        <Button
+          v-if="contentRef?.canClearStatistics !== false"
+          @click="handleClear"
+          variant="destructive"
+        >
           {{ $t('llmStatistics.clear') }}
         </Button>
         <Button @click="handleClose">

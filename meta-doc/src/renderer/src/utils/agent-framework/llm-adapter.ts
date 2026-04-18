@@ -5,7 +5,10 @@
 
 import type { AgentEngine, CustomLlmConfig } from '../../types/agent-framework'
 import { getSetting } from '../settings'
-import { loadMetadocOpenAiStyleConfig } from '../metadoc-llm-config'
+import {
+  ensureDefaultMetadocCloudModelIfNeeded,
+  loadMetadocOpenAiStyleConfig
+} from '../metadoc-llm-config'
 import { createRendererLogger } from '../logger'
 import { cancelAiTask, createAiTask, type CustomLlmConfigForTask } from '../ai_tasks'
 import { ai_types } from '../ai_tasks'
@@ -110,15 +113,17 @@ export class LlmAdapter {
 
       switch (selectedLlm) {
         case 'metadoc': {
+          await ensureDefaultMetadocCloudModelIfNeeded()
           const token = localStorage.getItem('loginToken')
-          const modelName = await getSetting('metadocSelectedModel')
+          const modelName = (await getSetting('metadocSelectedModel')) as string | undefined
           const metadocConfig = await loadMetadocOpenAiStyleConfig(token, modelName || '')
           const enableMaxTokens = (await getSetting('metadocEnableMaxTokens')) ?? false
           const maxTokens = (await getSetting('metadocMaxTokens')) || 4096
+          const resolvedModel = (modelName ?? '').trim()
           config = {
             apiUrl: (metadocConfig.apiUrl as string) || '',
             apiKey: metadocConfig.apiKey as string,
-            model: modelName || '',
+            model: resolvedModel,
             type: 'metadoc',
             chatSuffix: (metadocConfig.chatSuffix as string) || '',
             completionSuffix: (metadocConfig.completionSuffix as string) || '',

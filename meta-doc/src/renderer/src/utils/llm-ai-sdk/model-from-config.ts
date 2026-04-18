@@ -91,10 +91,19 @@ export function getModelFromConfig(config: LlmConfig, options?: GetModelOptions)
           ? effectiveBaseURL.replace(/\/$/, '')
           : `${effectiveBaseURL.replace(/\/$/, '')}/compatible-mode/v1`
       }
+      const reasoningFetch = createReasoningFetchForOpenAICompatible(effectiveBaseURL, enableReasoning)
+      const baseFetch: typeof fetch =
+        reasoningFetch ?? ((input, init) => fetch(input as RequestInfo, init))
+      /** MetaDoc 云 Worker：禁止缓存 SSE 响应，避免中间层攒包导致「非流式」观感 */
+      const fetchImpl: typeof fetch | undefined =
+        type === 'metadoc'
+          ? async (input, init) =>
+              baseFetch(input as RequestInfo, { ...init, cache: 'no-store' } as RequestInit)
+          : reasoningFetch ?? undefined
       const openai = createOpenAI({
         apiKey: apiKey || 'dummy-key',
         baseURL: effectiveBaseURL,
-        fetch: createReasoningFetchForOpenAICompatible(effectiveBaseURL, enableReasoning)
+        fetch: fetchImpl
       })
       // 关键：OpenAI-compatible（如 DeepSeek/Ollama/Qwen compatible）通常不支持 /responses
       // 必须强制走 /chat/completions

@@ -1,8 +1,14 @@
 import { getSetting } from './settings.js'
+import { refreshSteamOfficialCloudEligible } from './steam-official-cloud-eligible'
 import { handleLlmError, LlmError, LlmErrorType } from './llm-errors.js'
 import { processThinkTag } from './llm-http.js'
 import { recordLlmRequest } from './llm-statistics-service.js'
 import { createRendererLogger } from './logger.ts'
+
+/** @param {{ type?: string } | null | undefined} config */
+function llmStatsSource(config) {
+  return config?.type === 'metadoc' ? 'metadoc' : 'byok'
+}
 import { createAdapterFromSettings } from './llm-adapters/adapter-factory.ts'
 import { streamChat, generateChat, streamChatWithTools } from './llm-ai-sdk/index.ts'
 import { queryKnowledgeBase } from './rag_utils.js'
@@ -46,6 +52,8 @@ async function getLlmAdapter(customConfig = null) {
  */
 async function validateApi() {
   try {
+    // 与设置页一致：先刷新 Steam 托盘就绪态，再走官方云 / BYOK，避免首帧误判为 BYOK 且无密钥
+    await refreshSteamOfficialCloudEligible()
     const enabled = await getSetting('llmEnabled')
     if (!enabled) {
       throw new LlmError(LlmErrorType.NOT_ENABLED, 'LLM API 未启用')
@@ -429,7 +437,7 @@ async function answerQuestionNonStream(
     if (reasoningRef && reasoning && meta.enableReasoning === true) reasoningRef.value = reasoning
     if (usage) {
       try {
-        await recordLlmRequest(usage, selectedModel, 'completion')
+        await recordLlmRequest(usage, selectedModel, 'completion', { source: llmStatsSource(config) })
       } catch (error) {
         const logger = createRendererLogger('LLM-API')
         logger.warn('记录 token 统计失败:', error)
@@ -487,7 +495,7 @@ async function answerQuestionStream(
     }
     if (usage) {
       try {
-        await recordLlmRequest(usage, selectedModel, 'completion')
+        await recordLlmRequest(usage, selectedModel, 'completion', { source: llmStatsSource(config) })
       } catch (error) {
         const logger = createRendererLogger('LLM-API')
         logger.warn('记录 token 统计失败:', error)
@@ -683,7 +691,7 @@ async function continueConversationNonStream(
 
     if (usage) {
       try {
-        await recordLlmRequest(usage, selectedModel, 'chat')
+        await recordLlmRequest(usage, selectedModel, 'chat', { source: llmStatsSource(config) })
       } catch (error) {
         logger.warn('记录 token 统计失败:', error)
       }
@@ -755,7 +763,7 @@ async function continueConversationStream(
     }
     if (usage) {
       try {
-        await recordLlmRequest(usage, selectedModel, 'chat')
+        await recordLlmRequest(usage, selectedModel, 'chat', { source: llmStatsSource(config) })
       } catch (error) {
         logger.warn('记录 token 统计失败:', error)
       }
@@ -936,7 +944,7 @@ async function continueConversationWithTools(
     }
     if (usage) {
       try {
-        await recordLlmRequest(usage, selectedModel, 'chat')
+        await recordLlmRequest(usage, selectedModel, 'chat', { source: llmStatsSource(config) })
       } catch (err) {
         logger.warn('记录 token 统计失败:', err)
       }

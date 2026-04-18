@@ -6,7 +6,12 @@
         <Button variant="outline" @click="handleExport" :disabled="isDemo">
           {{ $t('llmStatistics.export') }}
         </Button>
-        <Button variant="destructive" @click="handleClear" :disabled="isDemo">
+        <Button
+          v-if="contentRef?.canClearStatistics !== false"
+          variant="destructive"
+          @click="handleClear"
+          :disabled="isDemo"
+        >
           {{ $t('llmStatistics.clear') }}
         </Button>
       </div>

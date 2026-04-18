@@ -88,9 +88,37 @@
                 </span>
               </SelectValue>
             </SelectTrigger>
-            <SelectContent class="max-h-[min(280px,40vh)] w-[min(100vw-24px,320px)]">
+            <SelectContent class="max-h-[min(280px,40vh)] w-[min(100vw-24px,360px)]">
+              <div
+                class="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1.5"
+                @pointerdown.stop
+              >
+                <span class="shrink-0 text-[11px] text-muted-foreground">{{
+                  t('setting.llmSteamCloud.sortByPrice')
+                }}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  class="h-7 px-2 text-[11px]"
+                  :class="{ 'bg-muted': steamCloudPriceSortOrder === 'asc' }"
+                  @click="setSteamCloudPriceSortOrder('asc')"
+                >
+                  {{ t('setting.llmSteamCloud.sortPriceAsc') }}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  class="h-7 px-2 text-[11px]"
+                  :class="{ 'bg-muted': steamCloudPriceSortOrder === 'desc' }"
+                  @click="setSteamCloudPriceSortOrder('desc')"
+                >
+                  {{ t('setting.llmSteamCloud.sortPriceDesc') }}
+                </Button>
+              </div>
               <SelectItem
-                v-for="m in steamCloudModelOptions"
+                v-for="m in steamCloudModelsForSelect"
                 :key="m.id"
                 :value="m.id"
                 class="whitespace-normal break-words py-2 font-mono text-xs"
@@ -254,8 +282,15 @@ import {
 } from '../../utils/llm-config-manager'
 import { getLlmConfigOptionLabel, getLlmConfigSelectedModel } from '../../utils/llm-config-display'
 import { useMetadocCloudOpenAiRoute } from '../../utils/dev-ai-pipeline'
+import { steamOfficialCloudEligible } from '../../utils/steam-official-cloud-eligible'
 import { getMetadocCloudApiBase } from '@common/build-env'
 import { ensureMetadocSteamCloudJwt } from '../../utils/metadoc-cloud-auth'
+import {
+  readStoredSteamCloudPriceSortOrder,
+  sortSteamCloudModelsByPrice,
+  writeStoredSteamCloudPriceSortOrder,
+  type SteamCloudModelRow
+} from '../../utils/steam-cloud-models-display'
 
 const props = withDefaults(
   defineProps<{
@@ -339,13 +374,23 @@ const slots = useSlots()
 const llmConfigList = ref<LlmConfigItem[]>([])
 const selectedConfigId = ref<string>('')
 const llmConfigSwitching = ref(false)
-const steamCloudModelOptions = ref<Array<{ id: string; credits_per_1k_tokens_est?: number }>>([])
+const steamCloudModelsRaw = ref<SteamCloudModelRow[]>([])
+const steamCloudPriceSortOrder = ref<'asc' | 'desc'>(readStoredSteamCloudPriceSortOrder())
+const steamCloudModelsForSelect = computed(() =>
+  sortSteamCloudModelsByPrice(steamCloudModelsRaw.value, steamCloudPriceSortOrder.value)
+)
 const steamCloudModelsLoading = ref(false)
+
+function setSteamCloudPriceSortOrder(order: 'asc' | 'desc') {
+  steamCloudPriceSortOrder.value = order
+  writeStoredSteamCloudPriceSortOrder(order)
+}
 let removeLlmEventListeners: (() => void) | null = null
 
 /** Steam 官方云：与设置页「官方云」模型列表同源，不走 BYOK 配置卡片 */
 const showSteamCloudModelSwitcher = computed(() => {
   void settings.steamDeveloperBypassByok
+  void steamOfficialCloudEligible.value
   return props.showLlmConfigSwitch && useMetadocCloudOpenAiRoute()
 })
 
@@ -392,7 +437,7 @@ async function refreshLlmConfigUi() {
 async function loadSteamCloudModelsForComposer() {
   const base = getMetadocCloudApiBase()
   if (!base) {
-    steamCloudModelOptions.value = []
+    steamCloudModelsRaw.value = []
     return
   }
   steamCloudModelsLoading.value = true
@@ -405,19 +450,22 @@ async function loadSteamCloudModelsForComposer() {
       models?: Array<{ id: string; credits_per_1k_tokens_est: number }>
     }
     if (res.ok && Array.isArray(j.models) && j.models.length > 0) {
-      steamCloudModelOptions.value = j.models
+      steamCloudModelsRaw.value = j.models
       if (typeof settings.metadoc !== 'object' || settings.metadoc === null) {
         settings.metadoc = { selectedModel: '', enableMaxTokens: false, maxTokens: 4096 }
       }
       if (!settings.metadoc.selectedModel) {
-        settings.metadoc.selectedModel = j.models[0].id
-        await setSetting('metadocSelectedModel', j.models[0].id)
+        const cheapest = sortSteamCloudModelsByPrice(j.models, 'asc')[0]
+        if (cheapest) {
+          settings.metadoc.selectedModel = cheapest.id
+          await setSetting('metadocSelectedModel', cheapest.id)
+        }
       }
     } else {
-      steamCloudModelOptions.value = []
+      steamCloudModelsRaw.value = []
     }
   } catch {
-    steamCloudModelOptions.value = []
+    steamCloudModelsRaw.value = []
   } finally {
     steamCloudModelsLoading.value = false
   }

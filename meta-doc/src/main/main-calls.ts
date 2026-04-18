@@ -77,6 +77,7 @@ import {
   queryKnowledgeBase,
   getResourcesPath,
   getLlmStatisticsPath,
+  getLlmStatisticsByokPath,
   compileLatexToPDF,
   setEmbeddingMode,
   getEmbeddingMode,
@@ -3094,6 +3095,10 @@ function bindUtilityHandlers(): void {
   // LLM 统计文件路径（userData，不打包、不监听）
   ipcBridge.registerHandle('llm-statistics-path', (): string => {
     return getLlmStatisticsPath()
+  })
+
+  ipcBridge.registerHandle('llm-statistics-byok-path', (): string => {
+    return getLlmStatisticsByokPath()
   })
 
   // HTTP请求代理处理器（通过主进程绕过CORS限制）

@@ -57,7 +57,12 @@ export type {
 // ============ 向后兼容的API导出 ============
 
 // 路径相关 - 保持原有API
-export { getResourcesPath, getVectorDatabasePath, getLlmStatisticsPath } from './path-service'
+export {
+  getResourcesPath,
+  getVectorDatabasePath,
+  getLlmStatisticsPath,
+  getLlmStatisticsByokPath
+} from './path-service'
 
 // 文件转换相关 - 保持原有API
 export { tryConvertFileToText } from './file-conversion-service'

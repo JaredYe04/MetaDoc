@@ -35,9 +35,10 @@ Set `[vars] STEAM_APP_ID` to your Steam App ID. Set `STEAM_MICROTX_SANDBOX` to `
 |--------|------|------|-------------|
 | POST | `/auth/steam` | — | Body: `{ steam_id, ticket }` → JWT |
 | GET | `/user/credits` | Bearer JWT | Current credits |
+| GET | `/user/credit-ledger` | Bearer JWT | Credit ledger (`from`/`to` unix, `limit`, `cursor`, `include_summary=1`) |
 | GET | `/steam/mtx/catalog` | Bearer JWT | Listed MTX items from `steam-mtx-items.yaml` (for in-game store) |
 | GET | `/cloud/models` | Bearer JWT | Model list + estimated credits / 1k tokens |
-| POST | `/v1/chat/completions` | Bearer JWT | OpenAI-compatible chat (non-stream forced server-side for metering) |
+| POST | `/v1/chat/completions` | Bearer JWT | OpenAI-compatible chat；`stream:true` 时透传上游 SSE，流结束后按 `usage` 或预估结算 credits |
 | POST | `/steam/mtx/init` | Bearer JWT | Start MTX (server calls `InitTxn`) |
 | POST | `/steam/mtx/finalize` | Bearer JWT | After overlay auth, finalize and grant credits |
 | GET | `/health` | — | Liveness |

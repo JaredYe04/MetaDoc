@@ -437,7 +437,9 @@ async function answerQuestionNonStream(
     if (reasoningRef && reasoning && meta.enableReasoning === true) reasoningRef.value = reasoning
     if (usage) {
       try {
-        await recordLlmRequest(usage, selectedModel, 'completion', { source: llmStatsSource(config) })
+        await recordLlmRequest(usage, selectedModel, 'completion', {
+          source: llmStatsSource(config)
+        })
       } catch (error) {
         const logger = createRendererLogger('LLM-API')
         logger.warn('记录 token 统计失败:', error)
@@ -495,7 +497,9 @@ async function answerQuestionStream(
     }
     if (usage) {
       try {
-        await recordLlmRequest(usage, selectedModel, 'completion', { source: llmStatsSource(config) })
+        await recordLlmRequest(usage, selectedModel, 'completion', {
+          source: llmStatsSource(config)
+        })
       } catch (error) {
         const logger = createRendererLogger('LLM-API')
         logger.warn('记录 token 统计失败:', error)

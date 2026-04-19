@@ -6,11 +6,13 @@ import {
   STAT_SECONDS_PLAYED,
   STAT_AI_REQUESTS,
   STAT_CHARS_TYPED,
+  STAT_FOCUS_SECONDS,
   STEAM_LOCAL_STATS_FILENAME,
   type SteamLocalStatsFile
 } from '../../common/steam-stats'
 import type { GreenworksApi } from './greenworks-loader'
 import { getLlmStatisticsPath } from '../utils/path-service'
+import { tryUnlockSteamAchievement } from './steam-achievement-manager'
 
 const log = createMainLogger('SteamStats')
 
@@ -19,8 +21,17 @@ function statsFilePath(): string {
 }
 
 function defaultLocal(): SteamLocalStatsFile {
-  return { secondsPlayed: 0, charsTyped: 0 }
+  return { secondsPlayed: 0, charsTyped: 0, focusSeconds: 0 }
 }
+
+/** 专注时长（秒）与对应成就 API 名（与 steam-achievement-registry 一致） */
+const FOCUS_ACHIEVEMENT_THRESHOLDS: { seconds: number; apiName: string }[] = [
+  { seconds: 3600, apiName: 'ACH_FOCUS_H_1' },
+  { seconds: 36_000, apiName: 'ACH_FOCUS_H_10' },
+  { seconds: 360_000, apiName: 'ACH_FOCUS_H_100' },
+  { seconds: 1_800_000, apiName: 'ACH_FOCUS_H_500' },
+  { seconds: 3_600_000, apiName: 'ACH_FOCUS_H_1000' }
+]
 
 export function loadLocalSteamStatsFile(): SteamLocalStatsFile {
   const p = statsFilePath()
@@ -38,7 +49,11 @@ export function loadLocalSteamStatsFile(): SteamLocalStatsFile {
       typeof j.charsTyped === 'number' && Number.isFinite(j.charsTyped)
         ? Math.max(0, Math.floor(j.charsTyped))
         : 0
-    return { secondsPlayed, charsTyped }
+    const focusSeconds =
+      typeof j.focusSeconds === 'number' && Number.isFinite(j.focusSeconds)
+        ? Math.max(0, Math.floor(j.focusSeconds))
+        : 0
+    return { secondsPlayed, charsTyped, focusSeconds }
   } catch (e) {
     log.warn('loadLocalSteamStatsFile failed', e)
     return defaultLocal()
@@ -115,6 +130,7 @@ export type SteamProfileStats = {
   secondsPlayed: number
   aiRequests: number
   charsTyped: number
+  focusSeconds: number
 }
 
 export function getMergedSteamProfileStats(gw: GreenworksApi | null): SteamProfileStats {
@@ -123,10 +139,12 @@ export function getMergedSteamProfileStats(gw: GreenworksApi | null): SteamProfi
   const steamSec = gw ? readStatIntFromGw(gw, STAT_SECONDS_PLAYED) : 0
   const steamAi = gw ? readStatIntFromGw(gw, STAT_AI_REQUESTS) : 0
   const steamChars = gw ? readStatIntFromGw(gw, STAT_CHARS_TYPED) : 0
+  const steamFocus = gw ? readStatIntFromGw(gw, STAT_FOCUS_SECONDS) : 0
   return {
     secondsPlayed: Math.max(local.secondsPlayed, steamSec),
     aiRequests: Math.max(aiFile, steamAi),
-    charsTyped: Math.max(local.charsTyped, steamChars)
+    charsTyped: Math.max(local.charsTyped, steamChars),
+    focusSeconds: Math.max(local.focusSeconds, steamFocus)
   }
 }
 
@@ -148,12 +166,15 @@ export async function flushSteamStatsToSteam(gw: GreenworksApi): Promise<void> {
   setStatIfAvailable(gw, STAT_SECONDS_PLAYED, merged.secondsPlayed)
   setStatIfAvailable(gw, STAT_AI_REQUESTS, merged.aiRequests)
   setStatIfAvailable(gw, STAT_CHARS_TYPED, merged.charsTyped)
+  setStatIfAvailable(gw, STAT_FOCUS_SECONDS, merged.focusSeconds)
   await storeStatsIfAvailable(gw)
 }
 
 export type SteamStatsReportPayload = {
   /** 本次会话新增前台秒数（由主进程计时器传入） */
   sessionSecondsDelta?: number
+  /** 专注模式下新增前台秒数（由主进程计时器在 focusMode 为 true 时传入） */
+  focusSecondsDelta?: number
   /** 渲染进程累计的输入字符增量 */
   charsDelta?: number
   /** LLM 保存后的 totalRequests（与 llm-statistics.json 一致） */
@@ -163,12 +184,29 @@ export type SteamStatsReportPayload = {
 /**
  * 应用渲染进程/计时器上报；更新本地 JSON 并节流 storeStats。
  */
-export function applySteamStatsReport(gw: GreenworksApi | null, payload: SteamStatsReportPayload): void {
+export function applySteamStatsReport(
+  gw: GreenworksApi | null,
+  payload: SteamStatsReportPayload
+): void {
   const local = loadLocalSteamStatsFile()
   let changed = false
   if (typeof payload.sessionSecondsDelta === 'number' && payload.sessionSecondsDelta > 0) {
     local.secondsPlayed += Math.floor(payload.sessionSecondsDelta)
     changed = true
+  }
+  if (typeof payload.focusSecondsDelta === 'number' && payload.focusSecondsDelta > 0) {
+    const delta = Math.floor(payload.focusSecondsDelta)
+    const beforeFocus = local.focusSeconds
+    local.focusSeconds += delta
+    changed = true
+    if (gw) {
+      const afterFocus = local.focusSeconds
+      for (const { seconds, apiName } of FOCUS_ACHIEVEMENT_THRESHOLDS) {
+        if (beforeFocus < seconds && afterFocus >= seconds) {
+          tryUnlockSteamAchievement(gw, apiName)
+        }
+      }
+    }
   }
   if (typeof payload.charsDelta === 'number' && payload.charsDelta > 0) {
     local.charsTyped += Math.floor(payload.charsDelta)

@@ -20,6 +20,7 @@ export type SteamProfileSummaryPayload = {
   secondsPlayed: number
   aiRequests: number
   charsTyped: number
+  focusSeconds: number
 }
 
 type SteamInvokeResult<T = unknown> =

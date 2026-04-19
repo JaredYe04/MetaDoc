@@ -204,7 +204,7 @@ const user = ref<SteamUserPayload | null>(null)
 const avatarUrl = ref<string | null>(null)
 const summary = ref<Pick<
   SteamProfileSummaryPayload,
-  'secondsPlayed' | 'aiRequests' | 'charsTyped'
+  'secondsPlayed' | 'aiRequests' | 'charsTyped' | 'focusSeconds'
 > | null>(null)
 const open = ref(false)
 
@@ -424,7 +424,8 @@ async function refreshSteamState() {
   summary.value = {
     secondsPlayed: r.data.secondsPlayed,
     aiRequests: r.data.aiRequests,
-    charsTyped: r.data.charsTyped
+    charsTyped: r.data.charsTyped,
+    focusSeconds: r.data.focusSeconds
   }
 }
 
@@ -436,7 +437,8 @@ async function loadProfileSummaryOnly() {
     summary.value = {
       secondsPlayed: r.data.secondsPlayed,
       aiRequests: r.data.aiRequests,
-      charsTyped: r.data.charsTyped
+      charsTyped: r.data.charsTyped,
+      focusSeconds: r.data.focusSeconds
     }
   }
 }

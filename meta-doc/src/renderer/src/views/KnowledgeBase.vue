@@ -637,6 +637,18 @@ async function doSearch(): Promise<void> {
   try {
     await queryKnowledgeBase(searchQuery.value).then((res) => {
       searchResults.value = res
+      const failLabel = t('knowledgeBase.searchFailed') || '检索失败'
+      const hasHit =
+        Array.isArray(res) &&
+        res.some((line) => {
+          const s = typeof line === 'string' ? line.trim() : ''
+          return s.length > 0 && !s.startsWith(failLabel)
+        })
+      if (hasHit) {
+        void import('../services/steam-client').then((m) =>
+          m.tryUnlockSteamAchievementByApi('ACH_KB_QUERY_HIT')
+        )
+      }
     })
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err)
@@ -750,6 +762,9 @@ async function uploadSingleFileWithTask(file: File): Promise<void> {
       })
       setTimeout(() => notificationStore.remove(notifId), 6000)
       await fetchList()
+      void import('../services/steam-client').then((m) =>
+        m.tryUnlockSteamAchievementByApi('ACH_KB_UPLOAD_FIRST')
+      )
     } else {
       const msg = j.message || j.error || t('knowledgeBase.unknownError') || '未知错误'
       notificationStore.updateNotification(notifId, {

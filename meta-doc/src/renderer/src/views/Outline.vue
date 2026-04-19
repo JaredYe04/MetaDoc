@@ -1331,6 +1331,8 @@ const generatedText = ref('')
 
 // 素材篮
 const materialBasketExpanded = ref(false)
+/** 大纲节点拖拽是否在 drop 中改变了结构，待 onNodeDragEnd 中 commit 后解锁 Steam 成就 */
+const outlineDragAchUnlockPending = ref(false)
 const draggingBasketId = ref<string | null>(null)
 const materialBasketPanelRef = ref<InstanceType<typeof MaterialBasketPanel> | null>(null)
 const MIME_MATERIAL_BASKET = 'application/x-metadoc-material-basket'
@@ -1373,9 +1375,15 @@ function basketItemToOutlineNode(item: MaterialBasketItem): DocumentOutlineNode 
 function commitMaterialBasket(items: MaterialBasketItem[]) {
   const tabId = effectiveTabId.value
   if (!tabId) return
+  const prevLen = materialBasketList.value.length
   updateDocumentMeta(tabId, (meta) => {
     meta.materialBasket = JSON.parse(JSON.stringify(items))
   })
+  if (items.length > prevLen) {
+    void import('../services/steam-client').then((m) =>
+      m.tryUnlockSteamAchievementByApi('ACH_MATERIAL_BASKET_ADD')
+    )
+  }
 }
 
 function moveSelectedNodeToBasket() {
@@ -2808,6 +2816,7 @@ function onNodeMouseDown() {
 }
 
 const onNodeDragStart = (node: DocumentOutlineNode) => {
+  outlineDragAchUnlockPending.value = false
   draggingNodePath.value = node.path
   isDraggingNode.value = true
   // 使用 CSS 自定义属性设置拖拽状态，避免触发 Vue 重新渲染
@@ -2916,6 +2925,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
     // 从素材篮拖入：合并到当前树
     const basketId = e.dataTransfer?.getData(MIME_MATERIAL_BASKET)
     if (basketId) {
+      outlineDragAchUnlockPending.value = false
       draggingBasketId.value = null
       const mode = dropPreview.value.mode
       dropPreview.value.targetPath = null
@@ -3038,6 +3048,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
         target.children.push(drag)
         reindexChildrenPaths(target)
       }
+      outlineDragAchUnlockPending.value = true
       restoreAfterDrop()
       return
     }
@@ -3054,6 +3065,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
         const shallow = createShallowCopy(drag)
         parent.children.splice(insertIndex, 0, shallow)
         reindexChildrenPaths(parent)
+        outlineDragAchUnlockPending.value = true
         restoreAfterDrop()
         return
       }
@@ -3082,6 +3094,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
         ) {
           // 已经在目标位置，不需要移动
           reindexChildrenPaths(parent)
+          outlineDragAchUnlockPending.value = false
           restoreAfterDrop()
           return
         }
@@ -3114,6 +3127,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
       // 插入节点
       parent.children.splice(insertIndex, 0, drag)
       reindexChildrenPaths(parent)
+      outlineDragAchUnlockPending.value = true
       restoreAfterDrop()
       return
     }
@@ -3134,6 +3148,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
           parent.children.splice(idx, 0, drag)
         }
         reindexChildrenPaths(parent)
+        outlineDragAchUnlockPending.value = true
         restoreAfterDrop()
         return
       }
@@ -3150,6 +3165,7 @@ const onNodeDrop = (targetNode: DocumentOutlineNode, e: DragEvent) => {
         grandParent.children.splice(insertIndex, 0, drag)
       }
       reindexChildrenPaths(grandParent)
+      outlineDragAchUnlockPending.value = true
       restoreAfterDrop()
       return
     }
@@ -3195,7 +3211,15 @@ const onNodeDragEnd = () => {
   // 拖动结束时恢复同步并提交更改
   if (suppressDocumentSync) {
     suppressDocumentSync = false
-    commitOutline()
+    const shouldUnlockOutlineDrag = outlineDragAchUnlockPending.value
+    outlineDragAchUnlockPending.value = false
+    void commitOutline().then(() => {
+      if (shouldUnlockOutlineDrag) {
+        void import('../services/steam-client').then((m) =>
+          m.tryUnlockSteamAchievementByApi('ACH_OUTLINE_DRAG_REORDER')
+        )
+      }
+    })
   }
 }
 const dropPreview = ref<{ targetPath: string | null; mode: string | null }>({
@@ -3452,6 +3476,9 @@ const executeFormatTitle = async () => {
 
     formatTitleDialogVisible.value = false
     eventBus.emit('show-success', t('outline.formatSuccess'))
+    void import('../services/steam-client').then((m) =>
+      m.tryUnlockSteamAchievementByApi('ACH_OUTLINE_FORMAT_TITLES')
+    )
   } finally {
     // 恢复同步状态
     suppressDocumentSync = prevSync

@@ -11,6 +11,7 @@
 | `STAT_SECONDS_PLAYED` | 应用前台累计秒数（本地与云端取较大值后写回） |
 | `STAT_AI_REQUESTS` | LLM 请求总次数（与 `userData/llm-statistics.json` 的 `totalRequests` 对齐） |
 | `STAT_CHARS_TYPED` | 编辑器与 Agent 输入累计字符（渲染进程节流上报） |
+| `STAT_FOCUS_SECONDS` | 专注模式前台累计秒数（本地与云端取较大值后写回；主进程计时器在 `focusMode` 为真时累加） |
 
 实现参考：`src/common/steam-stats.ts`、`src/main/steam/steam-stats-sync.ts`。
 
@@ -31,6 +32,18 @@
 | `ACH_FIRST_AGENT_CHAT` | 首次在 Agent 中发送用户消息 |
 | `ACH_FIRST_AGENT_SKILL` | Agent 工具成功写入并索引首个技能文件 |
 | `ACH_FIRST_AGENT_RULE` | 在能力管理中首次插入动态规则 |
+| `ACH_WORKSHOP_PUBLISH_TEMPLATE` / `SKILL` / `RULES` / `MCP` | 首次向创意工坊发布对应类型物品 |
+| `ACH_WORKSHOP_SUBSCRIBE_ITEM` | 首次将已订阅创意工坊物品安装到应用内 |
+| `ACH_CLOUD_DOC_SAVE` | 首次在云文档库成功保存文档 |
+| `ACH_MANUAL_HOTKEY_F1` | 使用 F1 快捷键打开用户手册 |
+| `ACH_TABBAR_WHEEL` | 在标签栏使用滚轮切换标签 |
+| `ACH_FOCUS_MODE_ONCE` | 首次进入专注模式 |
+| `ACH_FOCUS_H_1` / `_10` / `_100` / `_500` / `_1000` | 专注模式累计 1/10/100/500/1000 小时（由 `STAT_FOCUS_SECONDS` 跨阈值解锁） |
+| `ACH_KB_UPLOAD_FIRST` | 成功向知识库上传一篇文档 |
+| `ACH_KB_QUERY_HIT` | 知识库检索返回至少一条结果 |
+| `ACH_OUTLINE_DRAG_REORDER` | 在大纲树中拖拽节点调整结构并成功保存 |
+| `ACH_OUTLINE_FORMAT_TITLES` | 在大纲视图中成功执行格式化标题向导 |
+| `ACH_MATERIAL_BASKET_ADD` | 向素材篮添加素材（新建或从节点导入） |
 
 注册表与 i18n key：`src/common/steam-achievement-registry.ts`；去重与解锁：`src/main/steam/steam-achievement-manager.ts`。
 
@@ -63,6 +76,9 @@
 | 11 | `ACH_FIRST_AGENT_CHAT` | `ACH_FIRST_AGENT_CHAT_NAME` | `ACH_FIRST_AGENT_CHAT_DESC` |
 | 12 | `ACH_FIRST_AGENT_SKILL` | `ACH_FIRST_AGENT_SKILL_NAME` | `ACH_FIRST_AGENT_SKILL_DESC` |
 | 13 | `ACH_FIRST_AGENT_RULE` | `ACH_FIRST_AGENT_RULE_NAME` | `ACH_FIRST_AGENT_RULE_DESC` |
+| … | （含 Workshop、云文档及上表后续成就，顺序与 `steam-achievement-vdf-map.json` 一致） | | |
+
+完整顺序以 `steam-achievement-vdf-map.json` 与 `STEAM_ACHIEVEMENTS` 为准。
 
 ## 成就图标
 
@@ -87,12 +103,12 @@
 ## 上传顺序建议
 
 1. 在 Steamworks 删除或停用旧版与本列表冲突的成就/统计项（若仍存在旧 API 名）。
-2. 创建上述 3 个统计项与 13 个成就，API 名与上表一致。
+2. 创建上述统计项与成就，API 名与 `steam-achievement-registry.ts` / 上表一致。
 3. 上传成就图标（解锁/锁定两套）。
 4. 将 VDF 或 Partner 导出的本地化合并后上传。
 
 ## 相关 IPC（渲染进程）
 
-- `steam:profile-summary`：资料卡摘要（用户、头像 URL、等级、三项统计）
-- `steam:stats:report`：上报 `{ charsDelta?, aiRequestsTotal? }`（主进程合并本地 JSON 与 Steam）
+- `steam:profile-summary`：资料卡摘要（用户、头像 URL、等级、含 `focusSeconds` 在内的统计）
+- `steam:stats:report`：上报 `{ sessionSecondsDelta?, focusSecondsDelta?, charsDelta?, aiRequestsTotal? }`（主进程合并本地 JSON 与 Steam）
 - `steam:achievement:try-unlock`：按 API 名尝试解锁（带 app-store 去重）

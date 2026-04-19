@@ -57,7 +57,9 @@ validateManifest(manifest)
 /** 单一数据源：NSIS / electron-builder（生成物）/ 主进程 Steam·HKCU 登记共用 */
 export const shellFileBindingsManifest: Readonly<ShellFileBindingsManifest> = manifest
 
-export function shellAssociationByExtension(extWithoutDot: string): ShellFileAssociation | undefined {
+export function shellAssociationByExtension(
+  extWithoutDot: string
+): ShellFileAssociation | undefined {
   const e = extWithoutDot.replace(/^\./, '').toLowerCase()
   return manifest.associations.find((a) => a.extension.toLowerCase() === e)
 }

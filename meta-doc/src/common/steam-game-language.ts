@@ -36,7 +36,9 @@ export const METADOC_LOCALE_NATIVE_LABEL: Record<string, string> = {
 
 const SUPPORTED = new Set(Object.keys(METADOC_LOCALE_NATIVE_LABEL))
 
-export function mapSteamGameLanguageToMetaDocLocale(steamRaw: string | undefined | null): string | null {
+export function mapSteamGameLanguageToMetaDocLocale(
+  steamRaw: string | undefined | null
+): string | null {
   if (!steamRaw || typeof steamRaw !== 'string') return null
   const key = steamRaw.trim().toLowerCase()
   const mapped = STEAM_GAME_LANG_TO_METADOC_LOCALE[key]

@@ -95,6 +95,71 @@
       "apiName": "ACH_CLOUD_DOC_SAVE",
       "nameToken": "ACH_CLOUD_DOC_SAVE_NAME",
       "descToken": "ACH_CLOUD_DOC_SAVE_DESC"
+    },
+    {
+      "apiName": "ACH_MANUAL_HOTKEY_F1",
+      "nameToken": "ACH_MANUAL_HOTKEY_F1_NAME",
+      "descToken": "ACH_MANUAL_HOTKEY_F1_DESC"
+    },
+    {
+      "apiName": "ACH_TABBAR_WHEEL",
+      "nameToken": "ACH_TABBAR_WHEEL_NAME",
+      "descToken": "ACH_TABBAR_WHEEL_DESC"
+    },
+    {
+      "apiName": "ACH_FOCUS_MODE_ONCE",
+      "nameToken": "ACH_FOCUS_MODE_ONCE_NAME",
+      "descToken": "ACH_FOCUS_MODE_ONCE_DESC"
+    },
+    {
+      "apiName": "ACH_FOCUS_H_1",
+      "nameToken": "ACH_FOCUS_H_1_NAME",
+      "descToken": "ACH_FOCUS_H_1_DESC"
+    },
+    {
+      "apiName": "ACH_FOCUS_H_10",
+      "nameToken": "ACH_FOCUS_H_10_NAME",
+      "descToken": "ACH_FOCUS_H_10_DESC"
+    },
+    {
+      "apiName": "ACH_FOCUS_H_100",
+      "nameToken": "ACH_FOCUS_H_100_NAME",
+      "descToken": "ACH_FOCUS_H_100_DESC"
+    },
+    {
+      "apiName": "ACH_FOCUS_H_500",
+      "nameToken": "ACH_FOCUS_H_500_NAME",
+      "descToken": "ACH_FOCUS_H_500_DESC"
+    },
+    {
+      "apiName": "ACH_FOCUS_H_1000",
+      "nameToken": "ACH_FOCUS_H_1000_NAME",
+      "descToken": "ACH_FOCUS_H_1000_DESC"
+    },
+    {
+      "apiName": "ACH_KB_UPLOAD_FIRST",
+      "nameToken": "ACH_KB_UPLOAD_FIRST_NAME",
+      "descToken": "ACH_KB_UPLOAD_FIRST_DESC"
+    },
+    {
+      "apiName": "ACH_KB_QUERY_HIT",
+      "nameToken": "ACH_KB_QUERY_HIT_NAME",
+      "descToken": "ACH_KB_QUERY_HIT_DESC"
+    },
+    {
+      "apiName": "ACH_OUTLINE_DRAG_REORDER",
+      "nameToken": "ACH_OUTLINE_DRAG_REORDER_NAME",
+      "descToken": "ACH_OUTLINE_DRAG_REORDER_DESC"
+    },
+    {
+      "apiName": "ACH_OUTLINE_FORMAT_TITLES",
+      "nameToken": "ACH_OUTLINE_FORMAT_TITLES_NAME",
+      "descToken": "ACH_OUTLINE_FORMAT_TITLES_DESC"
+    },
+    {
+      "apiName": "ACH_MATERIAL_BASKET_ADD",
+      "nameToken": "ACH_MATERIAL_BASKET_ADD_NAME",
+      "descToken": "ACH_MATERIAL_BASKET_ADD_DESC"
     }
   ]
 }

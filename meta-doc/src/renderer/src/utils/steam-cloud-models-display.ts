@@ -33,10 +33,8 @@ export function sortSteamCloudModelsByPrice(
   copy.sort((a, b) => {
     const pa = a.credits_per_1k_tokens_est
     const pb = b.credits_per_1k_tokens_est
-    const na =
-      typeof pa === 'number' && Number.isFinite(pa) ? pa : Number.POSITIVE_INFINITY
-    const nb =
-      typeof pb === 'number' && Number.isFinite(pb) ? pb : Number.POSITIVE_INFINITY
+    const na = typeof pa === 'number' && Number.isFinite(pa) ? pa : Number.POSITIVE_INFINITY
+    const nb = typeof pb === 'number' && Number.isFinite(pb) ? pb : Number.POSITIVE_INFINITY
     if (na !== nb) {
       return order === 'asc' ? na - nb : nb - na
     }

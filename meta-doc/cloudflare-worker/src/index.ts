@@ -120,7 +120,9 @@ async function handle(
   const path = url.pathname.replace(/\/$/, '') || '/'
 
   if (path === '/health') {
-    return new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json', ...c } })
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'content-type': 'application/json', ...c }
+    })
   }
 
   if (path === '/auth/steam' && req.method === 'POST') {
@@ -166,10 +168,15 @@ async function handle(
   return jsonError(404, { request_id: newRequestId(), error: 'NOT_FOUND', message: 'Not found' }, c)
 }
 
-async function handleAuthSteam(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+async function handleAuthSteam(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
   const body = (await readJson(req)) as { steam_id?: string; ticket?: string } | null
   const devSecret = req.headers.get('X-Dev-Secret')
-  const allowDev = env.ALLOW_DEV_AUTH === 'true' && env.DEV_AUTH_SECRET && devSecret === env.DEV_AUTH_SECRET
+  const allowDev =
+    env.ALLOW_DEV_AUTH === 'true' && env.DEV_AUTH_SECRET && devSecret === env.DEV_AUTH_SECRET
 
   let steamId: string | undefined
   if (allowDev && body?.steam_id) {
@@ -232,7 +239,11 @@ async function handleAuthSteam(req: Request, env: Env, c: Record<string, string>
   }
 
   if (!env.JWT_SECRET) {
-    return jsonError(500, { request_id: newRequestId(), error: 'MISCONFIG', message: 'JWT_SECRET' }, c)
+    return jsonError(
+      500,
+      { request_id: newRequestId(), error: 'MISCONFIG', message: 'JWT_SECRET' },
+      c
+    )
   }
 
   const token = await signJwt(env.JWT_SECRET, { sub: steamId! }, 3600)
@@ -248,27 +259,49 @@ async function requireJwt(
 ): Promise<{ steamId: string } | Response> {
   const auth = req.headers.get('Authorization')
   if (!auth?.startsWith('Bearer ')) {
-    return jsonError(401, { request_id: newRequestId(), error: 'UNAUTHORIZED', message: 'Missing Bearer token' }, c)
+    return jsonError(
+      401,
+      { request_id: newRequestId(), error: 'UNAUTHORIZED', message: 'Missing Bearer token' },
+      c
+    )
   }
   const token = auth.slice(7).trim()
   if (!env.JWT_SECRET) {
-    return jsonError(500, { request_id: newRequestId(), error: 'MISCONFIG', message: 'JWT_SECRET' }, c)
+    return jsonError(
+      500,
+      { request_id: newRequestId(), error: 'MISCONFIG', message: 'JWT_SECRET' },
+      c
+    )
   }
   const payload = await verifyJwt(env.JWT_SECRET, token)
   if (!payload) {
-    return jsonError(401, { request_id: newRequestId(), error: 'UNAUTHORIZED', message: 'Invalid token' }, c)
+    return jsonError(
+      401,
+      { request_id: newRequestId(), error: 'UNAUTHORIZED', message: 'Invalid token' },
+      c
+    )
   }
   return { steamId: payload.sub }
 }
 
-async function handleUserCredits(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+async function handleUserCredits(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
   const u = await requireJwt(req, env, c)
   if (u instanceof Response) return u
   const credits = await getCredits(env, u.steamId)
-  return new Response(JSON.stringify({ credits }), { headers: { 'content-type': 'application/json', ...c } })
+  return new Response(JSON.stringify({ credits }), {
+    headers: { 'content-type': 'application/json', ...c }
+  })
 }
 
-async function handleCreditLedger(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+async function handleCreditLedger(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
   const u = await requireJwt(req, env, c)
   if (u instanceof Response) return u
 
@@ -304,7 +337,8 @@ async function handleCreditLedger(req: Request, env: Env, c: Record<string, stri
     }
   }
 
-  const includeSummary = url.searchParams.get('include_summary') === '1' || url.searchParams.get('summary') === '1'
+  const includeSummary =
+    url.searchParams.get('include_summary') === '1' || url.searchParams.get('summary') === '1'
 
   const hasCursor = cursorCreated !== null && cursorId !== null ? 1 : 0
   const cCa = cursorCreated ?? 0
@@ -323,18 +357,7 @@ async function handleCreditLedger(req: Request, env: Env, c: Record<string, stri
      ORDER BY created_at DESC, id DESC
      LIMIT ?`
   )
-    .bind(
-      u.steamId,
-      fromTs,
-      fromTs,
-      toTs,
-      toTs,
-      hasCursor,
-      cCa,
-      cCa,
-      cId,
-      limit + 1
-    )
+    .bind(u.steamId, fromTs, fromTs, toTs, toTs, hasCursor, cCa, cCa, cId, limit + 1)
     .all<{
       id: string
       created_at: number
@@ -390,10 +413,16 @@ async function handleCreditLedger(req: Request, env: Env, c: Record<string, stri
     }
   }
 
-  return new Response(JSON.stringify(payload), { headers: { 'content-type': 'application/json', ...c } })
+  return new Response(JSON.stringify(payload), {
+    headers: { 'content-type': 'application/json', ...c }
+  })
 }
 
-async function handleCloudModels(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+async function handleCloudModels(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
   const auth = await requireJwt(req, env, c)
   if (auth instanceof Response) return auth
   return new Response(JSON.stringify(cloudModelsPayload()), {
@@ -401,7 +430,11 @@ async function handleCloudModels(req: Request, env: Env, c: Record<string, strin
   })
 }
 
-async function handleSteamMtxCatalog(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+async function handleSteamMtxCatalog(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
   const auth = await requireJwt(req, env, c)
   if (auth instanceof Response) return auth
   return new Response(JSON.stringify(steamMtxCatalogPayload()), {
@@ -409,7 +442,11 @@ async function handleSteamMtxCatalog(req: Request, env: Env, c: Record<string, s
   })
 }
 
-async function handleFirstPurchaseClaim(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+async function handleFirstPurchaseClaim(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
   const request_id = newRequestId()
   const u = await requireJwt(req, env, c)
   if (u instanceof Response) return u
@@ -438,7 +475,13 @@ async function handleFirstPurchaseClaim(req: Request, env: Env, c: Record<string
 
   if (ins.meta.changes === 0) {
     return new Response(
-      JSON.stringify({ ok: true, request_id, already_granted: true, credits_added: 0, owns_app: true }),
+      JSON.stringify({
+        ok: true,
+        request_id,
+        already_granted: true,
+        credits_added: 0,
+        owns_app: true
+      }),
       { headers: { 'content-type': 'application/json', ...c } }
     )
   }
@@ -556,7 +599,11 @@ async function handleAiChat(
 
   if (!hasUpstreamAiKey(env)) {
     await releaseFreeze(env, u.steamId, freezeId)
-    return jsonError(500, { request_id, error: 'MISCONFIG', message: 'N1N_API_KEY or OPENAI_API_KEY' }, c)
+    return jsonError(
+      500,
+      { request_id, error: 'MISCONFIG', message: 'N1N_API_KEY or OPENAI_API_KEY' },
+      c
+    )
   }
 
   if (wantsStream) {
@@ -734,7 +781,11 @@ async function handleMtxInit(req: Request, env: Env, c: Record<string, string>):
   const itemKey = String(body?.item_id ?? '')
   const item = getSteamMtxItemById(itemKey)
   if (!item || !item.listed || !body?.amount_cents) {
-    return jsonError(400, { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'Invalid item' }, c)
+    return jsonError(
+      400,
+      { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'Invalid item' },
+      c
+    )
   }
 
   /**
@@ -829,7 +880,11 @@ async function finalizeMtxOrderAndGrantCredits(
       currency: string | null
     }>()
   if (!row || row.steam_id !== steamId) {
-    return jsonError(403, { request_id: newRequestId(), error: 'FORBIDDEN', message: 'Order mismatch' }, c)
+    return jsonError(
+      403,
+      { request_id: newRequestId(), error: 'FORBIDDEN', message: 'Order mismatch' },
+      c
+    )
   }
 
   const data = await finalizeTxn(env, orderId)
@@ -848,7 +903,9 @@ async function finalizeMtxOrderAndGrantCredits(
 
   const grossUsd = usdGrossForMtxOrder(row.amount_cents, row.currency, row.item_id)
   const add = creditsFromUsdGross(grossUsd) + volumeBonusCreditsForItemId(row.item_id)
-  await env.DB.prepare(`UPDATE mtx_orders SET status = 'completed' WHERE order_id = ?`).bind(orderId).run()
+  await env.DB.prepare(`UPDATE mtx_orders SET status = 'completed' WHERE order_id = ?`)
+    .bind(orderId)
+    .run()
   await env.DB.prepare(
     `INSERT INTO users (steam_id, credits, updated_at) VALUES (?, ?, unixepoch())
      ON CONFLICT(steam_id) DO UPDATE SET credits = users.credits + excluded.credits, updated_at = unixepoch()`
@@ -871,14 +928,22 @@ async function finalizeMtxOrderAndGrantCredits(
   )
 }
 
-async function handleMtxSyncWeb(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+async function handleMtxSyncWeb(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
   const u = await requireJwt(req, env, c)
   if (u instanceof Response) return u
 
   const body = (await readJson(req)) as { order_id?: string } | null
   const orderId = body?.order_id ? String(body.order_id) : ''
   if (!orderId) {
-    return jsonError(400, { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'order_id required' }, c)
+    return jsonError(
+      400,
+      { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'order_id required' },
+      c
+    )
   }
 
   const row = await env.DB.prepare(
@@ -893,7 +958,11 @@ async function handleMtxSyncWeb(req: Request, env: Env, c: Record<string, string
       status: string | null
     }>()
   if (!row || row.steam_id !== u.steamId) {
-    return jsonError(403, { request_id: newRequestId(), error: 'FORBIDDEN', message: 'Order mismatch' }, c)
+    return jsonError(
+      403,
+      { request_id: newRequestId(), error: 'FORBIDDEN', message: 'Order mismatch' },
+      c
+    )
   }
   if (row.status === 'completed') {
     return new Response(
@@ -946,7 +1015,9 @@ async function handleMtxSyncWeb(req: Request, env: Env, c: Record<string, string
   if (norm === 'succeeded') {
     const grossUsd = usdGrossForMtxOrder(row.amount_cents, row.currency, row.item_id)
     const add = creditsFromUsdGross(grossUsd) + volumeBonusCreditsForItemId(row.item_id)
-    await env.DB.prepare(`UPDATE mtx_orders SET status = 'completed' WHERE order_id = ?`).bind(orderId).run()
+    await env.DB.prepare(`UPDATE mtx_orders SET status = 'completed' WHERE order_id = ?`)
+      .bind(orderId)
+      .run()
     await env.DB.prepare(
       `INSERT INTO users (steam_id, credits, updated_at) VALUES (?, ?, unixepoch())
        ON CONFLICT(steam_id) DO UPDATE SET credits = users.credits + excluded.credits, updated_at = unixepoch()`
@@ -971,14 +1042,22 @@ async function handleMtxSyncWeb(req: Request, env: Env, c: Record<string, string
   )
 }
 
-async function handleMtxFinalize(req: Request, env: Env, c: Record<string, string>): Promise<Response> {
+async function handleMtxFinalize(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
   const u = await requireJwt(req, env, c)
   if (u instanceof Response) return u
 
   const body = (await readJson(req)) as { order_id?: string; authorized?: boolean } | null
   const orderId = body?.order_id ? String(body.order_id) : ''
   if (!orderId || body?.authorized !== true) {
-    return jsonError(400, { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'order_id and authorized' }, c)
+    return jsonError(
+      400,
+      { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'order_id and authorized' },
+      c
+    )
   }
 
   const row = await env.DB.prepare(
@@ -992,7 +1071,11 @@ async function handleMtxFinalize(req: Request, env: Env, c: Record<string, strin
       currency: string | null
     }>()
   if (!row || row.steam_id !== u.steamId) {
-    return jsonError(403, { request_id: newRequestId(), error: 'FORBIDDEN', message: 'Order mismatch' }, c)
+    return jsonError(
+      403,
+      { request_id: newRequestId(), error: 'FORBIDDEN', message: 'Order mismatch' },
+      c
+    )
   }
 
   return finalizeMtxOrderAndGrantCredits(env, u.steamId, orderId, c)

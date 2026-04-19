@@ -15,9 +15,11 @@ export async function ensureUserRow(env: Env, steamId: string): Promise<void> {
 
 export async function getCredits(env: Env, steamId: string): Promise<number> {
   await ensureUserRow(env, steamId)
-  const row = await env.DB.prepare(`SELECT credits FROM users WHERE steam_id = ?`).bind(steamId).first<{
-    credits: number
-  }>()
+  const row = await env.DB.prepare(`SELECT credits FROM users WHERE steam_id = ?`)
+    .bind(steamId)
+    .first<{
+      credits: number
+    }>()
   return row?.credits ?? 0
 }
 
@@ -46,7 +48,9 @@ export async function freezeCredits(
 }
 
 export async function releaseFreeze(env: Env, steamId: string, freezeId: string): Promise<void> {
-  const row = await env.DB.prepare(`SELECT amount FROM credit_freezes WHERE id = ? AND steam_id = ?`)
+  const row = await env.DB.prepare(
+    `SELECT amount FROM credit_freezes WHERE id = ? AND steam_id = ?`
+  )
     .bind(freezeId, steamId)
     .first<{ amount: number }>()
   if (!row) return
@@ -65,7 +69,9 @@ export async function commitFreeze(
   freezeId: string,
   actualCost: number
 ): Promise<void> {
-  const row = await env.DB.prepare(`SELECT amount FROM credit_freezes WHERE id = ? AND steam_id = ?`)
+  const row = await env.DB.prepare(
+    `SELECT amount FROM credit_freezes WHERE id = ? AND steam_id = ?`
+  )
     .bind(freezeId, steamId)
     .first<{ amount: number }>()
   if (!row) return

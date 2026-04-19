@@ -29,8 +29,14 @@ if (urlFocusMode === null) {
 }
 
 export function setFocusModePersisted(value: boolean) {
+  const was = isFocusMode.value
   isFocusMode.value = value
   void setSetting(FOCUS_MODE_SETTING_KEY, value)
+  if (value === true && was === false) {
+    void import('../services/steam-client').then((m) =>
+      m.tryUnlockSteamAchievementByApi('ACH_FOCUS_MODE_ONCE')
+    )
+  }
 }
 
 /** document 级拖放等非 setup 处读取当前是否专注模式 */
@@ -43,7 +49,7 @@ export function useFocusMode() {
     setFocusModePersisted(!isFocusMode.value)
   }
   const enterFocusMode = () => {
-    isFocusMode.value = true
+    setFocusModePersisted(true)
   }
   const exitFocusMode = () => {
     isFocusMode.value = false

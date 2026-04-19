@@ -82,7 +82,10 @@ export function findGroupContainingTab(root: LayoutNode, tabId: string): LayoutT
   return found
 }
 
-export function findGroupByLayoutId(root: LayoutNode, layoutGroupId: string): LayoutTabGroup | null {
+export function findGroupByLayoutId(
+  root: LayoutNode,
+  layoutGroupId: string
+): LayoutTabGroup | null {
   let found: LayoutTabGroup | null = null
   forEachGroup(root, (g) => {
     if (g.id === layoutGroupId) found = g
@@ -206,8 +209,7 @@ export function reconcileDocumentLayout(
 
   if (missing.length > 0) {
     const activeIsDoc = docIdSet.has(globalActiveTabId)
-    let target =
-      activeIsDoc ? findGroupContainingTab(next, globalActiveTabId) : null
+    let target = activeIsDoc ? findGroupContainingTab(next, globalActiveTabId) : null
     if (!target) {
       const first = findFirstGroup(next)
       if (first && first.tabIds.length === 0 && missing.length > 0) {
@@ -226,9 +228,10 @@ export function reconcileDocumentLayout(
       }
     }
     if (!target.activeTabId && target.tabIds.length > 0) {
-      target.activeTabId = globalActiveTabId && target.tabIds.includes(globalActiveTabId)
-        ? globalActiveTabId
-        : target.tabIds[0]!
+      target.activeTabId =
+        globalActiveTabId && target.tabIds.includes(globalActiveTabId)
+          ? globalActiveTabId
+          : target.tabIds[0]!
     }
   }
 
@@ -314,7 +317,11 @@ export function insertTabIntoGroupFromOutside(
 }
 
 /** 同组内重排 */
-export function reorderTabInGroup(root: LayoutNode, tabId: string, beforeTabId: string | null): boolean {
+export function reorderTabInGroup(
+  root: LayoutNode,
+  tabId: string,
+  beforeTabId: string | null
+): boolean {
   const g = findGroupContainingTab(root, tabId)
   if (!g) return false
   const from = g.tabIds.indexOf(tabId)
@@ -367,8 +374,7 @@ export function splitTabOutFromTarget(
     activeTabId: draggedTabId
   }
 
-  const direction: LayoutDirection =
-    edge === 'left' || edge === 'right' ? 'row' : 'col'
+  const direction: LayoutDirection = edge === 'left' || edge === 'right' ? 'row' : 'col'
   const newFirst = edge === 'left' || edge === 'top'
   const tgClone = cloneNode(tg) as LayoutTabGroup
   const split = createSplit(

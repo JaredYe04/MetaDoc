@@ -110,6 +110,71 @@
       "api": "ACH_CLOUD_DOC_SAVE",
       "icon": "base-doc-black.svg",
       "label": "CLOUD"
+    },
+    {
+      "api": "ACH_MANUAL_HOTKEY_F1",
+      "icon": "knowledge-black.svg",
+      "label": "F1 HELP"
+    },
+    {
+      "api": "ACH_TABBAR_WHEEL",
+      "icon": "folder-add-black.svg",
+      "label": "TAB WHEEL"
+    },
+    {
+      "api": "ACH_FOCUS_MODE_ONCE",
+      "icon": "write-black.svg",
+      "label": "FOCUS ON"
+    },
+    {
+      "api": "ACH_FOCUS_H_1",
+      "icon": "write-black.svg",
+      "label": "FOCUS 1H"
+    },
+    {
+      "api": "ACH_FOCUS_H_10",
+      "icon": "write-black.svg",
+      "label": "FOCUS 10H"
+    },
+    {
+      "api": "ACH_FOCUS_H_100",
+      "icon": "write-black.svg",
+      "label": "FOCUS 100H"
+    },
+    {
+      "api": "ACH_FOCUS_H_500",
+      "icon": "write-black.svg",
+      "label": "FOCUS 500H"
+    },
+    {
+      "api": "ACH_FOCUS_H_1000",
+      "icon": "write-black.svg",
+      "label": "FOCUS 1KH"
+    },
+    {
+      "api": "ACH_KB_UPLOAD_FIRST",
+      "icon": "knowledge-black.svg",
+      "label": "KB UP"
+    },
+    {
+      "api": "ACH_KB_QUERY_HIT",
+      "icon": "knowledge-black.svg",
+      "label": "KB FIND"
+    },
+    {
+      "api": "ACH_OUTLINE_DRAG_REORDER",
+      "icon": "multi-branch-black.svg",
+      "label": "OUTLINE"
+    },
+    {
+      "api": "ACH_OUTLINE_FORMAT_TITLES",
+      "icon": "multi-branch-black.svg",
+      "label": "FMT TITLE"
+    },
+    {
+      "api": "ACH_MATERIAL_BASKET_ADD",
+      "icon": "folder-add-black.svg",
+      "label": "BASKET"
     }
   ]
 }

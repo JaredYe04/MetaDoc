@@ -251,7 +251,8 @@ export function registerSteamIpc(): void {
       level: user.level,
       secondsPlayed: stats.secondsPlayed,
       aiRequests: stats.aiRequests,
-      charsTyped: stats.charsTyped
+      charsTyped: stats.charsTyped,
+      focusSeconds: stats.focusSeconds
     })
   })
 
@@ -262,11 +263,13 @@ export function registerSteamIpc(): void {
       const gw = getGreenworksOrNull()
       const p = (payload && typeof payload === 'object' ? payload : {}) as {
         sessionSecondsDelta?: number
+        focusSecondsDelta?: number
         charsDelta?: number
         aiRequestsTotal?: number
       }
       applySteamStatsReport(gw, {
         sessionSecondsDelta: p.sessionSecondsDelta,
+        focusSecondsDelta: p.focusSecondsDelta,
         charsDelta: p.charsDelta,
         aiRequestsTotal: p.aiRequestsTotal
       })
@@ -892,13 +895,16 @@ export function registerSteamIpc(): void {
   })
 
   /** 在与内嵌支付页相同的 Chromium 会话中取出口 IP，供 InitTxn ipaddress */
-  ipcBridge.registerHandle('steam:mtx:get-public-ip', async (): Promise<SteamResult<{ ip: string }>> => {
-    const ip = await fetchPublicIpViaMtxChromiumWindow()
-    if (!ip) {
-      return fail('ip_unavailable')
+  ipcBridge.registerHandle(
+    'steam:mtx:get-public-ip',
+    async (): Promise<SteamResult<{ ip: string }>> => {
+      const ip = await fetchPublicIpViaMtxChromiumWindow()
+      if (!ip) {
+        return fail('ip_unavailable')
+      }
+      return ok({ ip })
     }
-    return ok({ ip })
-  })
+  )
 
   /** 在同一内嵌窗口中加载 Steam 支付页（须与 get-public-ip 为同一窗口，避免 IP 不一致） */
   ipcBridge.registerHandle(

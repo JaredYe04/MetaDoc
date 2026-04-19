@@ -1,10 +1,6 @@
 import { app } from 'electron'
 import { createMainLogger } from '../logger'
-import {
-  loadGreenworks,
-  getGreenworksLastLoadError,
-  type GreenworksApi
-} from './greenworks-loader'
+import { loadGreenworks, getGreenworksLastLoadError, type GreenworksApi } from './greenworks-loader'
 
 const logger = createMainLogger('Steam')
 

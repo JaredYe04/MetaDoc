@@ -91,7 +91,10 @@ export function getModelFromConfig(config: LlmConfig, options?: GetModelOptions)
           ? effectiveBaseURL.replace(/\/$/, '')
           : `${effectiveBaseURL.replace(/\/$/, '')}/compatible-mode/v1`
       }
-      const reasoningFetch = createReasoningFetchForOpenAICompatible(effectiveBaseURL, enableReasoning)
+      const reasoningFetch = createReasoningFetchForOpenAICompatible(
+        effectiveBaseURL,
+        enableReasoning
+      )
       const baseFetch: typeof fetch =
         reasoningFetch ?? ((input, init) => fetch(input as RequestInfo, init))
       /** MetaDoc 云 Worker：禁止缓存 SSE 响应，避免中间层攒包导致「非流式」观感 */
@@ -99,7 +102,7 @@ export function getModelFromConfig(config: LlmConfig, options?: GetModelOptions)
         type === 'metadoc'
           ? async (input, init) =>
               baseFetch(input as RequestInfo, { ...init, cache: 'no-store' } as RequestInit)
-          : reasoningFetch ?? undefined
+          : (reasoningFetch ?? undefined)
       const openai = createOpenAI({
         apiKey: apiKey || 'dummy-key',
         baseURL: effectiveBaseURL,

@@ -7,7 +7,10 @@ import { getGreenworksOrNull } from './steam-state'
 import { isLikelySteamLaunch } from '../windows/user-file-associations-win'
 import { setLocale, getLocale } from '../i18n'
 import { createMainLogger } from '../logger'
-import { mapSteamGameLanguageToMetaDocLocale, isSupportedMetaDocLocale } from '../../common/steam-game-language'
+import {
+  mapSteamGameLanguageToMetaDocLocale,
+  isSupportedMetaDocLocale
+} from '../../common/steam-game-language'
 
 const logger = createMainLogger('SteamStartupLocale')
 
@@ -45,15 +48,14 @@ export function getPendingSteamLocaleConflict(): SteamLocalePending | null {
   return pendingConflict ? { ...pendingConflict } : null
 }
 
-export function resolveSteamLocaleConflictChoice(locale: string): { ok: true } | { ok: false; error: string } {
+export function resolveSteamLocaleConflictChoice(
+  locale: string
+): { ok: true } | { ok: false; error: string } {
   if (!pendingConflict) {
     return { ok: false, error: 'no_pending_conflict' }
   }
   const choice = locale.replace(/-/g, '_')
-  if (
-    choice !== pendingConflict.steamLocale &&
-    choice !== pendingConflict.appLocale
-  ) {
+  if (choice !== pendingConflict.steamLocale && choice !== pendingConflict.appLocale) {
     return { ok: false, error: 'invalid_locale_choice' }
   }
   if (!isSupportedMetaDocLocale(choice)) {

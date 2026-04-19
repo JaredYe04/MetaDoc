@@ -326,7 +326,8 @@ export function buildTopWordsThemeRiverOption(
           if (t) return t[1]
           const val = p.value
           if (Array.isArray(val) && typeof val[1] === 'number') return val[1]
-          if (Array.isArray(val) && typeof val[0] === 'number' && val.length === 1) return val[0] as number
+          if (Array.isArray(val) && typeof val[0] === 'number' && val.length === 1)
+            return val[0] as number
           const v = Array.isArray(val) ? val[0] : val
           return typeof v === 'number' ? v : 0
         }

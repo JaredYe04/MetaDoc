@@ -13,12 +13,15 @@ const STEAM_FETCH_HEADERS = {
   'User-Agent': 'MetaDocCloudWorker/1.0 (+https://partner.steamgames.com/doc/webapi/ISteamUserAuth)'
 } as const
 
-function parseSteamAuthJson(text: string): {
-  ok: true; steamId: string
-} | {
-  ok: false
-  reason: string
-} {
+function parseSteamAuthJson(text: string):
+  | {
+      ok: true
+      steamId: string
+    }
+  | {
+      ok: false
+      reason: string
+    } {
   let data: {
     response?: {
       params?: { result?: string; steamid?: string }
@@ -48,17 +51,11 @@ function parseSteamAuthJson(text: string): {
 export async function authenticateSteamTicket(
   env: Env,
   ticketHex: string
-): Promise<
-  | { ok: true; steamId: string }
-  | { ok: false; reason: string; diagnostic?: string }
-> {
+): Promise<{ ok: true; steamId: string } | { ok: false; reason: string; diagnostic?: string }> {
   const key = steamWebApiKey(env)
   const appid = env.STEAM_APP_ID
   if (!key || !appid) return { ok: false, reason: 'server_misconfigured' }
-  const ticket = String(ticketHex)
-    .trim()
-    .replace(/\s+/g, '')
-    .replace(/-/g, '')
+  const ticket = String(ticketHex).trim().replace(/\s+/g, '').replace(/-/g, '')
   if (!ticket) {
     return { ok: false, reason: 'empty_ticket_after_normalize' }
   }
@@ -254,7 +251,11 @@ export function mtxQueryOrderStatus(data: Record<string, unknown>): string | nul
   return null
 }
 
-export async function queryTxn(env: Env, orderId: string, transId?: string): Promise<Record<string, unknown>> {
+export async function queryTxn(
+  env: Env,
+  orderId: string,
+  transId?: string
+): Promise<Record<string, unknown>> {
   const key = steamWebApiKey(env)
   const appid = Number(env.STEAM_APP_ID)
   const base = mtxBase(env)
@@ -269,7 +270,8 @@ export async function queryTxn(env: Env, orderId: string, transId?: string): Pro
     method: 'GET',
     headers: {
       Accept: 'application/json',
-      'User-Agent': 'MetaDocCloudWorker/1.0 (+https://partner.steamgames.com/doc/webapi/ISteamMicroTxn)'
+      'User-Agent':
+        'MetaDocCloudWorker/1.0 (+https://partner.steamgames.com/doc/webapi/ISteamMicroTxn)'
     }
   })
   const text = await res.text()
@@ -289,10 +291,7 @@ export function newSteamMtxOrderId(): string {
   return (id > max ? id % max : id).toString()
 }
 
-export async function finalizeTxn(
-  env: Env,
-  orderId: string
-): Promise<Record<string, unknown>> {
+export async function finalizeTxn(env: Env, orderId: string): Promise<Record<string, unknown>> {
   const appid = Number(env.STEAM_APP_ID)
   return steamMicroTxnPost(env, '/FinalizeTxn/v2/', {
     orderid: orderId,
@@ -318,7 +317,10 @@ export async function checkAppOwnership(
   return { ok: true, owns: data.appownership?.ownsapp === true }
 }
 
-export async function getReport(env: Env, type: string = 'GAMESALES'): Promise<Record<string, unknown>> {
+export async function getReport(
+  env: Env,
+  type: string = 'GAMESALES'
+): Promise<Record<string, unknown>> {
   const appid = Number(env.STEAM_APP_ID)
   return steamMicroTxnPost(env, '/GetReport/v4/', {
     appid,

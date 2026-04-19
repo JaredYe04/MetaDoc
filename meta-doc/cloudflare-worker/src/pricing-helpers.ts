@@ -44,7 +44,10 @@ export function volumeBonusCreditsForItemId(itemId: string | null | undefined): 
   return Math.floor(b)
 }
 
-export function estimateFreezeByModel(model: string | undefined, maxTokens: number | undefined): number {
+export function estimateFreezeByModel(
+  model: string | undefined,
+  maxTokens: number | undefined
+): number {
   const m = N1N_MODEL_RATES.models.find((x) => x.id === model)
   const per1k = m?.credits_per_1k_tokens_est ?? 50
   const estTok = maxTokens && maxTokens > 0 ? maxTokens : 2048
@@ -89,7 +92,10 @@ export function cloudModelsPayload(): {
   }
 }
 
-type MtxItemRow = (typeof STEAM_MTX_ITEMS)[number] & { listed?: boolean; volume_bonus_credits?: number }
+type MtxItemRow = (typeof STEAM_MTX_ITEMS)[number] & {
+  listed?: boolean
+  volume_bonus_credits?: number
+}
 
 export function steamMtxCatalogPayload(): {
   version: string

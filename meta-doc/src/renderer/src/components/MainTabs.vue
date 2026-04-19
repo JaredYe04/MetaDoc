@@ -2323,6 +2323,9 @@ const handleTabWheel = (event: WheelEvent) => {
 
   const direction = event.deltaY > 0 ? 'next' : 'prev'
   void tabSwitcher.showSwitcher(direction)
+  void import('../services/steam-client').then((m) =>
+    m.tryUnlockSteamAchievementByApi('ACH_TABBAR_WHEEL')
+  )
 }
 
 const handleTabSwitcherConfirmRoute = (tab: unknown) => {

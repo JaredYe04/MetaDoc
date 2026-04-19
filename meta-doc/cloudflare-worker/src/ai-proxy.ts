@@ -93,7 +93,10 @@ export async function fetchChatCompletionsStreaming(
 export async function forwardChatCompletion(
   env: Env,
   body: unknown
-): Promise<{ response: Response; usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number } }> {
+): Promise<{
+  response: Response
+  usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number }
+}> {
   const res = await fetch(getUpstreamChatCompletionsUrl(env), {
     method: 'POST',
     headers: {
@@ -103,7 +106,9 @@ export async function forwardChatCompletion(
     body: JSON.stringify(body)
   })
   const clone = res.clone()
-  let usage: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number } | undefined
+  let usage:
+    | { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number }
+    | undefined
   try {
     const json = (await clone.json()) as { usage?: typeof usage }
     usage = json.usage

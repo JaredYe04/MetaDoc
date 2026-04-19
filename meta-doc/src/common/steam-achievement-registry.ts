@@ -106,6 +106,71 @@ export const STEAM_ACHIEVEMENTS: SteamAchievementDef[] = [
     apiName: 'ACH_CLOUD_DOC_SAVE',
     displayNameKey: 'steamAch.ACH_CLOUD_DOC_SAVE_NAME',
     descriptionKey: 'steamAch.ACH_CLOUD_DOC_SAVE_DESC'
+  },
+  {
+    apiName: 'ACH_MANUAL_HOTKEY_F1',
+    displayNameKey: 'steamAch.ACH_MANUAL_HOTKEY_F1_NAME',
+    descriptionKey: 'steamAch.ACH_MANUAL_HOTKEY_F1_DESC'
+  },
+  {
+    apiName: 'ACH_TABBAR_WHEEL',
+    displayNameKey: 'steamAch.ACH_TABBAR_WHEEL_NAME',
+    descriptionKey: 'steamAch.ACH_TABBAR_WHEEL_DESC'
+  },
+  {
+    apiName: 'ACH_FOCUS_MODE_ONCE',
+    displayNameKey: 'steamAch.ACH_FOCUS_MODE_ONCE_NAME',
+    descriptionKey: 'steamAch.ACH_FOCUS_MODE_ONCE_DESC'
+  },
+  {
+    apiName: 'ACH_FOCUS_H_1',
+    displayNameKey: 'steamAch.ACH_FOCUS_H_1_NAME',
+    descriptionKey: 'steamAch.ACH_FOCUS_H_1_DESC'
+  },
+  {
+    apiName: 'ACH_FOCUS_H_10',
+    displayNameKey: 'steamAch.ACH_FOCUS_H_10_NAME',
+    descriptionKey: 'steamAch.ACH_FOCUS_H_10_DESC'
+  },
+  {
+    apiName: 'ACH_FOCUS_H_100',
+    displayNameKey: 'steamAch.ACH_FOCUS_H_100_NAME',
+    descriptionKey: 'steamAch.ACH_FOCUS_H_100_DESC'
+  },
+  {
+    apiName: 'ACH_FOCUS_H_500',
+    displayNameKey: 'steamAch.ACH_FOCUS_H_500_NAME',
+    descriptionKey: 'steamAch.ACH_FOCUS_H_500_DESC'
+  },
+  {
+    apiName: 'ACH_FOCUS_H_1000',
+    displayNameKey: 'steamAch.ACH_FOCUS_H_1000_NAME',
+    descriptionKey: 'steamAch.ACH_FOCUS_H_1000_DESC'
+  },
+  {
+    apiName: 'ACH_KB_UPLOAD_FIRST',
+    displayNameKey: 'steamAch.ACH_KB_UPLOAD_FIRST_NAME',
+    descriptionKey: 'steamAch.ACH_KB_UPLOAD_FIRST_DESC'
+  },
+  {
+    apiName: 'ACH_KB_QUERY_HIT',
+    displayNameKey: 'steamAch.ACH_KB_QUERY_HIT_NAME',
+    descriptionKey: 'steamAch.ACH_KB_QUERY_HIT_DESC'
+  },
+  {
+    apiName: 'ACH_OUTLINE_DRAG_REORDER',
+    displayNameKey: 'steamAch.ACH_OUTLINE_DRAG_REORDER_NAME',
+    descriptionKey: 'steamAch.ACH_OUTLINE_DRAG_REORDER_DESC'
+  },
+  {
+    apiName: 'ACH_OUTLINE_FORMAT_TITLES',
+    displayNameKey: 'steamAch.ACH_OUTLINE_FORMAT_TITLES_NAME',
+    descriptionKey: 'steamAch.ACH_OUTLINE_FORMAT_TITLES_DESC'
+  },
+  {
+    apiName: 'ACH_MATERIAL_BASKET_ADD',
+    displayNameKey: 'steamAch.ACH_MATERIAL_BASKET_ADD_NAME',
+    descriptionKey: 'steamAch.ACH_MATERIAL_BASKET_ADD_DESC'
   }
 ]
 

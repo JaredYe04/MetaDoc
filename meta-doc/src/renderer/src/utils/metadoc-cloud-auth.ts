@@ -241,14 +241,17 @@ export async function startSteamMtxInit(body: {
     for (let i = 0; i < maxAttempts; i++) {
       await sleepMs(2000)
       const jwtPoll = await ensureMetadocSteamCloudJwt()
-      const { res: poll, json: pollJson } = await fetchJsonWithTimeout(`${base}/steam/mtx/sync-web`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${jwtPoll}`
-        },
-        body: JSON.stringify({ order_id: json.order_id })
-      })
+      const { res: poll, json: pollJson } = await fetchJsonWithTimeout(
+        `${base}/steam/mtx/sync-web`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${jwtPoll}`
+          },
+          body: JSON.stringify({ order_id: json.order_id })
+        }
+      )
       const pj = pollJson as {
         ok?: boolean
         completed?: boolean

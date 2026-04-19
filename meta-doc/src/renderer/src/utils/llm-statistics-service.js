@@ -203,7 +203,10 @@ function filterByDateRange(stats, startDate, endDate) {
     requests: filteredRequests,
     totalRequests: filteredRequests.length,
     totalPromptTokens: filteredRequests.reduce((sum, req) => sum + (req.prompt_tokens || 0), 0),
-    totalCompletionTokens: filteredRequests.reduce((sum, req) => sum + (req.completion_tokens || 0), 0),
+    totalCompletionTokens: filteredRequests.reduce(
+      (sum, req) => sum + (req.completion_tokens || 0),
+      0
+    ),
     totalTokens: filteredRequests.reduce((sum, req) => sum + (req.total_tokens || 0), 0)
   }
 }

@@ -113,6 +113,11 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
           route: '/user-manual',
           title: t('userManual.title') || '用户手册'
         })
+        if (e instanceof KeyboardEvent && e.key === 'F1') {
+          void import('../services/steam-client').then((m) =>
+            m.tryUnlockSteamAchievementByApi('ACH_MANUAL_HOTKEY_F1')
+          )
+        }
         return
 
       case 'copy':

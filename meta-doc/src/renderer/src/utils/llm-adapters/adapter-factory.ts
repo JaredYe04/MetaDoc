@@ -6,7 +6,10 @@
 import { BaseLlmAdapter } from './base-adapter.ts'
 import { LlmError, LlmErrorType } from '../llm-errors.js'
 import { getSetting } from '../settings.js'
-import { ensureDefaultMetadocCloudModelIfNeeded, loadMetadocOpenAiStyleConfig } from '../metadoc-llm-config.ts'
+import {
+  ensureDefaultMetadocCloudModelIfNeeded,
+  loadMetadocOpenAiStyleConfig
+} from '../metadoc-llm-config.ts'
 import { useMetadocCloudOpenAiRoute } from '../dev-ai-pipeline'
 import { resolveEffectiveLlmInternal } from '../steam-cloud-route'
 import type { LlmConfig, CustomLlmConfig } from './types.ts'

@@ -13,11 +13,7 @@ import { ensureMetadocSteamCloudJwt } from './metadoc-cloud-auth'
 export const getMetaDocLlmModels = async () => {
   if (useMetadocCloudOpenAiRoute()) {
     const base = getMetadocCloudApiBase()
-    const fallback = [
-      { label: 'gpt-4o-mini' },
-      { label: 'gpt-4o' },
-      { label: 'gpt-4.1-mini' }
-    ]
+    const fallback = [{ label: 'gpt-4o-mini' }, { label: 'gpt-4o' }, { label: 'gpt-4.1-mini' }]
     if (!base) {
       return fallback
     }

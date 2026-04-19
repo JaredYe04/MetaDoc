@@ -428,8 +428,7 @@ export function registerDragManagerIPC(): void {
       // 离开窗口外 / Shift+在窗口内 / 全程无有效投放高亮且在窗口内释放 → 分离（多 Tab 时）。否则未消费且曾高亮 → 取消。
       const noHighlightInsideWindow =
         payload.hadValidDropHighlight === false && !isOutside && payload.forceDetach !== true
-      const shouldDetach =
-        isOutside || payload.forceDetach === true || noHighlightInsideWindow
+      const shouldDetach = isOutside || payload.forceDetach === true || noHighlightInsideWindow
       logger.info('[DnD] drag:end', {
         tabId: session.tabId,
         hadValidDropHighlight: payload.hadValidDropHighlight,

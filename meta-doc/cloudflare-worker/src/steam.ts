@@ -317,14 +317,49 @@ export async function checkAppOwnership(
   return { ok: true, owns: data.appownership?.ownsapp === true }
 }
 
+/** Steam GetReport：`time` 须为 RFC 3339 UTC（如 `2010-01-01T00:00:00Z`），不能传 Unix 秒数字符串 */
+export function rfc3339UtcFromUnixSeconds(unixSec: number): string {
+  return new Date(unixSec * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+}
+
+/** 未指定时：昨日 UTC 0 点（与日常对账「昨日」窗口起点一致，便于增量拉取） */
+function defaultMicroTxnReportTimeRfc3339Utc(): string {
+  const now = new Date()
+  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const yesterdayUtc = new Date(todayUtc.getTime() - 86400_000)
+  return rfc3339UtcFromUnixSeconds(Math.floor(yesterdayUtc.getTime() / 1000))
+}
+
+/**
+ * Steam 文档：GetReport **必须**使用 HTTP GET（query string），POST 会返回 405 HTML「Method Not Allowed」。
+ * `time`：报表起始时间，RFC 3339 UTC（见 `rfc3339UtcFromUnixSeconds` / 官方示例）。
+ * @see https://partner.steamgames.com/doc/webapi/ISteamMicroTxn
+ */
 export async function getReport(
   env: Env,
-  type: string = 'GAMESALES'
+  type: string = 'GAMESALES',
+  options?: { timeRfc3339Utc?: string }
 ): Promise<Record<string, unknown>> {
+  const key = steamWebApiKey(env)
   const appid = Number(env.STEAM_APP_ID)
-  return steamMicroTxnPost(env, '/GetReport/v4/', {
-    appid,
-    type,
-    time: Math.floor(Date.now() / 1000)
+  const base = mtxBase(env)
+  const url = new URL(`${base}/GetReport/v5/`)
+  url.searchParams.set('key', key)
+  url.searchParams.set('appid', String(appid))
+  url.searchParams.set('type', type)
+  url.searchParams.set('time', options?.timeRfc3339Utc ?? defaultMicroTxnReportTimeRfc3339Utc())
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      'User-Agent':
+        'MetaDocCloudWorker/1.0 (+https://partner.steamgames.com/doc/webapi/ISteamMicroTxn)'
+    }
   })
+  const text = await res.text()
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch {
+    return { parse_error: true, raw: text.slice(0, 2000), http_status: res.status }
+  }
 }

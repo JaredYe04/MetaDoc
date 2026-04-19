@@ -49,6 +49,7 @@ import {
   pushUserTemplatesToCloud,
   getSyncCoordinatorStatus
 } from './sync-coordinator'
+import { createMainLogger } from '../logger'
 
 type SteamResult<T = unknown> = { success: true; data?: T } | { success: false; error: string }
 
@@ -86,7 +87,13 @@ function ensureMtxCheckoutBrowserWindow(): BrowserWindow {
   return mtxCheckoutBrowserWindow
 }
 
+const mtxCheckoutLogger = createMainLogger('SteamMtxCheckout')
+
 const IPV4_DOTTED = /^\d{1,3}(\.\d{1,3}){3}$/
+
+function normalizeMtxIp(s: string): string {
+  return s.trim().toLowerCase()
+}
 
 /** 与内嵌支付页同一 Chromium 网络栈上探测出口 IP（供 InitTxn）；优先 IPv4，与 Steam Web 结账校验一致 */
 async function fetchPublicIpViaMtxChromiumWindow(): Promise<string | null> {
@@ -116,6 +123,11 @@ async function fetchPublicIpViaMtxChromiumWindow(): Promise<string | null> {
         }
         let s = await v4()
         if (!s) s = await fallback()
+        if (s && s.includes(':')) {
+          await new Promise((r) => setTimeout(r, 400))
+          const again = await v4()
+          if (again) s = again
+        }
         return s
       })()
       `
@@ -918,10 +930,37 @@ export function registerSteamIpc(): void {
         typeof (payload as { url: unknown }).url === 'string'
           ? (payload as { url: string }).url.trim()
           : ''
+      const expectedIp =
+        payload &&
+        typeof payload === 'object' &&
+        payload !== null &&
+        'expected_ip' in payload &&
+        typeof (payload as { expected_ip: unknown }).expected_ip === 'string'
+          ? (payload as { expected_ip: string }).expected_ip.trim()
+          : ''
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
         return fail('bad_url')
       }
       try {
+        const ipNow = await fetchPublicIpViaMtxChromiumWindow()
+        if (expectedIp.length > 0 && ipNow) {
+          const a = normalizeMtxIp(expectedIp)
+          const b = normalizeMtxIp(ipNow)
+          mtxCheckoutLogger.info('MTX checkout IP check', {
+            expected: a,
+            now: b,
+            match: a === b
+          })
+          if (a !== b) {
+            mtxCheckoutLogger.warn('MTX checkout IP mismatch — renderer should retry InitTxn', {
+              expected: a,
+              now: b
+            })
+            return fail('mtx_ip_mismatch')
+          }
+        } else if (expectedIp.length > 0 && !ipNow) {
+          mtxCheckoutLogger.warn('MTX checkout: could not re-probe IP before loadURL')
+        }
         const win = ensureMtxCheckoutBrowserWindow()
         await win.loadURL(url)
         win.show()

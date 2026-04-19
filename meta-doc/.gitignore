@@ -2,6 +2,10 @@ node_modules
 dist
 out
 
+# Cloudflare Worker 本地密钥（mtx-verify / wrangler dev）
+cloudflare-worker/.dev.vars
+cloudflare-worker/.env.vars
+
 # Steam 本地调试 AppID（勿提交真实发行 ID）
 steam_appid.txt
 

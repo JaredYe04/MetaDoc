@@ -4517,6 +4517,13 @@
       "agentSessionDebug": "Agent会话调试",
       "exportRegression": "导出回归测试",
       "startupProfile": "启动耗时",
+      "steamCloudDebug": "Steam 云 / MTX",
+      "steamCloudDebugHint": "模拟官方云 Credits 不足弹窗、清除本地 JWT；开发环境下可对已 init 订单调用 Worker 模拟入账（需 ALLOW_DEV_AUTH 与 X-Dev-Secret）。",
+      "steamCloudSimulateInsufficient": "模拟 Credits 不足错误",
+      "steamCloudClearJwt": "清除云 JWT 缓存",
+      "steamCloudDevSimulateTitle": "DEV：模拟支付完成",
+      "steamCloudOrderIdPlaceholder": "order_id（先真实 init）",
+      "steamCloudDevSimulateRun": "调用模拟入账接口",
       "startupProfileHint": "启动时设置 ENABLE_STARTUP_PROFILE=1 可记录各阶段耗时。主进程数据通过 IPC 获取，渲染进程来自本次加载打点。",
       "startupProfileMain": "主进程",
       "startupProfileRenderer": "渲染进程",
@@ -5820,6 +5827,7 @@
     "message": "提示",
     "originalException": "原始异常（展开查看）",
     "dontShowAgain": "不再提示",
-    "learnHowToConfigure": "查看配置教程"
+    "learnHowToConfigure": "查看配置教程",
+    "rechargeCredits": "充值 Credits"
   }
 }

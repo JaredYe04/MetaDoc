@@ -37,6 +37,7 @@ import {
   queryTxn,
   type MtxCheckoutSession
 } from './steam'
+import { runDailyReconciliation } from './reconcile'
 
 function hasUpstreamAiKey(env: Env): boolean {
   return Boolean(env.N1N_API_KEY || env.OPENAI_API_KEY)
@@ -75,6 +76,40 @@ function mtxInitErrorMessage(data: Record<string, unknown>): string {
   return 'Steam InitTxn failed'
 }
 
+type MtxPurchaseRow = {
+  item_id: string | null
+  amount_cents: number | null
+  currency: string | null
+}
+
+/** 将订单标为 completed 并增加用户 credits（FinalizeTxn 成功或 recovered / dev 模拟） */
+async function applyMtxPurchaseCreditsCore(
+  env: Env,
+  steamId: string,
+  orderId: string,
+  row: MtxPurchaseRow,
+  ledgerMeta: Record<string, unknown>
+): Promise<number> {
+  const grossUsd = usdGrossForMtxOrder(row.amount_cents, row.currency, row.item_id)
+  const add = creditsFromUsdGross(grossUsd) + volumeBonusCreditsForItemId(row.item_id)
+  await env.DB.prepare(`UPDATE mtx_orders SET status = 'completed' WHERE order_id = ?`)
+    .bind(orderId)
+    .run()
+  await env.DB.prepare(
+    `INSERT INTO users (steam_id, credits, updated_at) VALUES (?, ?, unixepoch())
+     ON CONFLICT(steam_id) DO UPDATE SET credits = users.credits + excluded.credits, updated_at = unixepoch()`
+  )
+    .bind(steamId, add)
+    .run()
+  await insertCreditLedger(env, {
+    steamId,
+    kind: 'purchase',
+    deltaCredits: add,
+    meta: ledgerMeta
+  })
+  return add
+}
+
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url)
@@ -95,6 +130,11 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    const cron = event.cron ?? ''
+    if (cron === '15 2 * * *') {
+      ctx.waitUntil(runDailyReconciliation(env).catch((e) => console.error('[cron reconcile]', e)))
+      return
+    }
     ctx.waitUntil(runGetReportCron(env))
   }
 }
@@ -163,6 +203,14 @@ async function handle(
 
   if (path === '/steam/mtx/sync-web' && req.method === 'POST') {
     return handleMtxSyncWeb(req, env, c)
+  }
+
+  if (path === '/dev/steam/mtx/simulate-complete' && req.method === 'POST') {
+    return handleDevMtxSimulate(req, env, c)
+  }
+
+  if (path === '/dev/reconciliation/run' && req.method === 'POST') {
+    return handleDevReconciliationRun(req, env, c)
   }
 
   return jsonError(404, { request_id: newRequestId(), error: 'NOT_FOUND', message: 'Not found' }, c)
@@ -586,7 +634,7 @@ async function handleAiChat(
   const fr = await freezeCredits(env, u.steamId, freezeId, est)
   if (!fr.ok) {
     return jsonError(
-      403,
+      402,
       {
         request_id,
         error: 'INSUFFICIENT_CREDITS',
@@ -829,6 +877,32 @@ async function handleMtxInit(req: Request, env: Env, c: Record<string, string>):
     ipAddress: checkoutMode === 'web' ? explicitIp : undefined
   })
 
+  const steamResult = (data as { response?: { result?: string; errordesc?: string } }).response
+  if (mtxOk(data)) {
+    console.log(
+      JSON.stringify({
+        tag: 'mtx_init_ok',
+        order_id: orderId,
+        checkout: checkoutMode,
+        steam_result: steamResult?.result ?? 'unknown',
+        has_steam_url: Boolean(mtxInitSteamUrl(data))
+      })
+    )
+  } else {
+    console.log(
+      JSON.stringify({
+        tag: 'mtx_init_failed',
+        order_id: orderId,
+        checkout: checkoutMode,
+        steam_result: steamResult?.result ?? 'unknown',
+        errordesc:
+          typeof steamResult?.errordesc === 'string'
+            ? steamResult.errordesc.slice(0, 200)
+            : undefined
+      })
+    )
+  }
+
   if (!mtxOk(data)) {
     return jsonError(
       502,
@@ -901,23 +975,10 @@ async function finalizeMtxOrderAndGrantCredits(
     )
   }
 
-  const grossUsd = usdGrossForMtxOrder(row.amount_cents, row.currency, row.item_id)
-  const add = creditsFromUsdGross(grossUsd) + volumeBonusCreditsForItemId(row.item_id)
-  await env.DB.prepare(`UPDATE mtx_orders SET status = 'completed' WHERE order_id = ?`)
-    .bind(orderId)
-    .run()
-  await env.DB.prepare(
-    `INSERT INTO users (steam_id, credits, updated_at) VALUES (?, ?, unixepoch())
-     ON CONFLICT(steam_id) DO UPDATE SET credits = users.credits + excluded.credits, updated_at = unixepoch()`
-  )
-    .bind(steamId, add)
-    .run()
-
-  await insertCreditLedger(env, {
-    steamId,
-    kind: 'purchase',
-    deltaCredits: add,
-    meta: { order_id: orderId, item_id: row.item_id ?? null, finalize: 'txn' }
+  const add = await applyMtxPurchaseCreditsCore(env, steamId, orderId, row, {
+    order_id: orderId,
+    item_id: row.item_id ?? null,
+    finalize: 'txn'
   })
 
   return new Response(
@@ -1013,22 +1074,10 @@ async function handleMtxSyncWeb(
   }
 
   if (norm === 'succeeded') {
-    const grossUsd = usdGrossForMtxOrder(row.amount_cents, row.currency, row.item_id)
-    const add = creditsFromUsdGross(grossUsd) + volumeBonusCreditsForItemId(row.item_id)
-    await env.DB.prepare(`UPDATE mtx_orders SET status = 'completed' WHERE order_id = ?`)
-      .bind(orderId)
-      .run()
-    await env.DB.prepare(
-      `INSERT INTO users (steam_id, credits, updated_at) VALUES (?, ?, unixepoch())
-       ON CONFLICT(steam_id) DO UPDATE SET credits = users.credits + excluded.credits, updated_at = unixepoch()`
-    )
-      .bind(u.steamId, add)
-      .run()
-    await insertCreditLedger(env, {
-      steamId: u.steamId,
-      kind: 'purchase',
-      deltaCredits: add,
-      meta: { order_id: orderId, item_id: row.item_id ?? null, recovered: true }
+    const add = await applyMtxPurchaseCreditsCore(env, u.steamId, orderId, row, {
+      order_id: orderId,
+      item_id: row.item_id ?? null,
+      recovered: true
     })
     return new Response(
       JSON.stringify({ ok: true, completed: true, credits_added: add, recovered: true }),
@@ -1079,4 +1128,123 @@ async function handleMtxFinalize(
   }
 
   return finalizeMtxOrderAndGrantCredits(env, u.steamId, orderId, c)
+}
+
+/** DEV：跳过 Steam FinalizeTxn，对已 init 订单按定价入账（需 ALLOW_DEV_AUTH + X-Dev-Secret） */
+async function handleDevMtxSimulate(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
+  const devSecret = req.headers.get('X-Dev-Secret')
+  const allowDev =
+    env.ALLOW_DEV_AUTH === 'true' && env.DEV_AUTH_SECRET && devSecret === env.DEV_AUTH_SECRET
+  if (!allowDev) {
+    return jsonError(
+      403,
+      {
+        request_id: newRequestId(),
+        error: 'FORBIDDEN',
+        message: 'Dev simulate requires ALLOW_DEV_AUTH'
+      },
+      c
+    )
+  }
+
+  const u = await requireJwt(req, env, c)
+  if (u instanceof Response) return u
+
+  const body = (await readJson(req)) as { order_id?: string } | null
+  const orderId = body?.order_id ? String(body.order_id) : ''
+  if (!orderId) {
+    return jsonError(
+      400,
+      { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'order_id required' },
+      c
+    )
+  }
+
+  const row = await env.DB.prepare(
+    `SELECT steam_id, item_id, amount_cents, currency, status FROM mtx_orders WHERE order_id = ?`
+  )
+    .bind(orderId)
+    .first<{
+      steam_id: string
+      item_id: string | null
+      amount_cents: number | null
+      currency: string | null
+      status: string | null
+    }>()
+  if (!row || row.steam_id !== u.steamId) {
+    return jsonError(
+      403,
+      { request_id: newRequestId(), error: 'FORBIDDEN', message: 'Order mismatch' },
+      c
+    )
+  }
+  if (row.status === 'completed') {
+    return new Response(JSON.stringify({ ok: true, already_completed: true, credits_added: 0 }), {
+      headers: { 'content-type': 'application/json', ...c }
+    })
+  }
+  if (row.status !== 'init') {
+    return jsonError(
+      400,
+      {
+        request_id: newRequestId(),
+        error: 'BAD_REQUEST',
+        message: `Order status is ${row.status}, expected init`
+      },
+      c
+    )
+  }
+
+  const add = await applyMtxPurchaseCreditsCore(env, u.steamId, orderId, row, {
+    order_id: orderId,
+    item_id: row.item_id ?? null,
+    finalize: 'dev_simulate'
+  })
+
+  return new Response(
+    JSON.stringify({ ok: true, completed: true, credits_added: add, dev_simulate: true }),
+    { headers: { 'content-type': 'application/json', ...c } }
+  )
+}
+
+/** DEV：手动跑一轮「每日对账」（与定时任务相同逻辑，会发 Brevo 邮件并写 reconciliation_runs） */
+async function handleDevReconciliationRun(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
+  const devSecret = req.headers.get('X-Dev-Secret')
+  const allowDev =
+    env.ALLOW_DEV_AUTH === 'true' && env.DEV_AUTH_SECRET && devSecret === env.DEV_AUTH_SECRET
+  if (!allowDev) {
+    return jsonError(
+      403,
+      {
+        request_id: newRequestId(),
+        error: 'FORBIDDEN',
+        message: 'Dev reconciliation requires ALLOW_DEV_AUTH and matching X-Dev-Secret'
+      },
+      c
+    )
+  }
+  try {
+    const outcome = await runDailyReconciliation(env)
+    return new Response(JSON.stringify({ ok: true, ...outcome }), {
+      headers: { 'content-type': 'application/json', ...c }
+    })
+  } catch (e) {
+    return jsonError(
+      500,
+      {
+        request_id: newRequestId(),
+        error: 'INTERNAL',
+        message: e instanceof Error ? e.message : String(e)
+      },
+      c
+    )
+  }
 }

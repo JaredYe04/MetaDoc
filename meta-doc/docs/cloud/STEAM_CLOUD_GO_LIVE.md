@@ -81,18 +81,34 @@ node scripts/fetch-n1n-models.mjs
 
 ### Steam 网页提示「交易授权错误」等（Web 结账 / `usersession=web`）
 
-官方 [ISteamMicroTxn / InitTxn](https://partner.steamgames.com/doc/webapi/ISteamMicroTxn) 要求：`usersession=web` 时必须提供 **`ipaddress`**（IPv4 点分），且须与用户完成授权时使用的浏览器会话一致。客户端在 Electron 内用**同一**内嵌 Chromium 窗口探测出口 IP 再打开 `steam_url`，见 `register-steam-ipc.ts` 与 `metadoc-cloud-auth.ts`。
+官方 [ISteamMicroTxn / InitTxn](https://partner.steamgames.com/doc/webapi/ISteamMicroTxn) 要求：`usersession=web` 时必须提供 **`ipaddress`**（IPv4 点分），且须与用户完成授权时使用的浏览器会话一致。客户端在 Electron 内用**同一**内嵌 Chromium 窗口（`persist:steam-mtx-checkout`）探测出口 IP、再打开 `steam_url`，见 `register-steam-ipc.ts` 与 `metadoc-cloud-auth.ts`。
+
+**Cloudflare Worker 的出口 IP** 与上述 `ipaddress` **无需一致**；Steam 校验的是 **InitTxn 里填写的 `ipaddress`** 与 **用户完成授权时浏览器会话的出口**（对你们即该内嵌窗口的公网出口）。
+
+#### 应用内已做的加固（IP 与时序）
+
+- **同一窗口两次探测**：渲染进程在调用 `POST /steam/mtx/init` 前通过 `steam:mtx:get-public-ip` 取 IP；主进程在 **`loadURL(steam_url)` 之前**再次在同一窗口探测。若两次规范化后的 IP 不一致，主进程返回 **`mtx_ip_mismatch`**，渲染进程会 **重新 InitTxn**（新 `order_id`），最多重试若干轮。
+- **双栈 / CN**：探测逻辑优先 **IPv4**（`ipv4.icanhazip.com` 等）；若先得到 IPv6，会短暂等待后再试一次 IPv4，减轻中国区双栈下与 Steam Web 行为不一致的情况。
+- **多次仍无法内嵌打开**：最后一轮仍失败时，会 **回退为系统浏览器打开** 最后一次返回的 `steam_url`，并继续 **`sync-web` 轮询**（用户可在外部浏览器完成支付）。
+
+#### 人工复现时的对照（排障）
+
+| 步骤 | 说明 |
+|------|------|
+| **核对 InitTxn 用 IP 与支付窗出口** | 在 DEV 下可看主进程日志 `MTX checkout IP check`（`expected` / `now` / `match`）。若需与系统侧对照，可在**即将打开支付页的时刻**用系统浏览器访问同一类出口 IP 查询页，与日志中的 IP 比对。 |
+| **JWT `steamid`、沙盒、启动方式** | 见下表；务必从 **Steam 客户端** 启动应用；DEV 下 **`VITE_METADOC_CLOUD_DEV_STEAM_ID`** 须与当前登录 Steam 账号一致。 |
+| **内嵌 vs 系统浏览器** | 复制同一笔的 `steam_url`（或从网络面板取得），在 **系统 Chrome/Edge** 中打开：若仅内嵌报「站点错误」而系统浏览器正常，优先排查 **Electron 分区代理、证书、WebView 与系统浏览器差异**；若两者均失败，更偏向 **Steam 网页/CDN 或地区网络**。 |
 
 **排查清单：**
 
 | 项目 | 说明 |
 |------|------|
 | **JWT 内 `steam_id` 与内嵌页登录账号** | `InitTxn` 的 `steamid` 来自 JWT。若使用 **DEV 鉴权**（`VITE_METADOC_CLOUD_DEV_STEAM_ID`），该 SteamID64 必须与 **内嵌窗口里当前登录的 Steam 账号**一致；否则订单属于用户 A、浏览器是用户 B，易出现授权类错误。 |
-| **`STEAM_MICROTX_SANDBOX`** | Worker `wrangler.toml` 与 Steamworks 中物品/环境（沙盒 vs 正式）必须一致。 |
+| **`STEAM_MICROTX_SANDBOX`** | Worker `wrangler.toml` / 部署环境与 Steamworks 中物品、InitTxn 环境（沙盒 vs 正式）必须一致；与客户端构建无关，但与 Steam 后台订单状态是否「沙盒」一致。 |
 | **`STEAM_WEB_API_KEY`** | 须为 Steamworks **Publisher Web API Key**（见上文第 3 节排障）。 |
-| **网络** | VPN/代理/双栈可能导致探测 IP 与打开支付页时出口不一致；纯 IPv6 环境需单独策略。 |
+| **网络** | VPN/代理/双栈可能导致探测 IP 与打开支付页时出口不一致；应用已做打开前重探测与 IPv4 优先，若仍频繁 `mtx_ip_mismatch`，需从系统层检查代理是否在秒级切换出口。 |
 
-开发构建下，`startSteamMtxInit` 在 InitTxn 失败时会向控制台输出 `[MTX init] failed` 的脱敏 `debug` 日志（含 Worker 返回的 `message` / Steam `errordesc` 摘要）。
+开发构建下，`startSteamMtxInit` 在 InitTxn 失败时会向控制台输出 `[MTX init] failed` 的脱敏 `debug` 日志（含 Worker 返回的 `message` / Steam `errordesc` 摘要）。**生产 Worker** 在 InitTxn 成功/失败时还会向 **Cloudflare 日志** 输出单行 JSON（`mtx_init_ok` / `mtx_init_failed`，含 `order_id`、`errordesc` 截断，不含密钥），便于对照 Steam 侧问题。
 
 ---
 

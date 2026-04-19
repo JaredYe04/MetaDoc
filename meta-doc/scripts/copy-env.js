@@ -12,18 +12,89 @@ const buildDir = path.resolve(__dirname, '../build')
 const targetEnvPath = path.join(resourcesDir, '.env')
 const targetVersionPath = path.join(resourcesDir, 'version.json')
 
+/**
+ * 生成写入 resources 的 .env：去掉纯注释行、去掉行尾注释。
+ * 行尾注释按「空白 + #」识别，避免误伤 URL 等未加引号且含 # 的值；双引号串内 # 保留。
+ */
+function stripEnvCommentsForResources(content) {
+  const lines = content.split(/\r?\n/)
+  const out = []
+  for (const line of lines) {
+    const t = line.trim()
+    if (t === '') {
+      out.push('')
+      continue
+    }
+    if (t.startsWith('#')) continue
+    const eq = line.indexOf('=')
+    if (eq <= 0) {
+      out.push(line.trimEnd())
+      continue
+    }
+    const keyPart = line.slice(0, eq)
+    const valuePart = line.slice(eq + 1)
+    out.push(keyPart + '=' + stripTrailingEnvComment(valuePart))
+  }
+  return out.length ? out.join('\n') + '\n' : ''
+}
+
+function stripTrailingEnvComment(valuePart) {
+  const s = valuePart
+  const mLead = s.match(/^\s*/)
+  const lead = mLead ? mLead[0] : ''
+  const rest = s.slice(lead.length)
+  if (rest.startsWith('"')) {
+    let i = 1
+    let esc = false
+    while (i < rest.length) {
+      const c = rest[i]
+      if (esc) {
+        esc = false
+        i++
+        continue
+      }
+      if (c === '\\') {
+        esc = true
+        i++
+        continue
+      }
+      if (c === '"') {
+        const tail = rest.slice(i + 1)
+        const withoutComment = tail.replace(/^\s+#.*$/, '')
+        return (lead + rest.slice(0, i + 1) + withoutComment).trimEnd()
+      }
+      i++
+    }
+    return s.trimEnd()
+  }
+  if (rest.startsWith("'")) {
+    const end = rest.indexOf("'", 1)
+    if (end > 0) {
+      const tail = rest.slice(end + 1)
+      const withoutComment = tail.replace(/^\s+#.*$/, '')
+      return (lead + rest.slice(0, end + 1) + withoutComment).trimEnd()
+    }
+    return s.trimEnd()
+  }
+  const idx = s.search(/\s+#/)
+  if (idx >= 0) return s.slice(0, idx).trimEnd()
+  return s.trimEnd()
+}
+
 // 确保 resources 目录存在
 if (!fs.existsSync(resourcesDir)) {
   fs.mkdirSync(resourcesDir, { recursive: true })
 }
 
-// 复制 .env 文件
+// 写入 .env（去掉注释，不原样复制）
 if (fs.existsSync(rootEnvPath)) {
   try {
-    fs.copyFileSync(rootEnvPath, targetEnvPath)
-    console.log('✓ .env 文件已复制到 resources 目录')
+    const raw = fs.readFileSync(rootEnvPath, 'utf8')
+    const cleaned = stripEnvCommentsForResources(raw)
+    fs.writeFileSync(targetEnvPath, cleaned, 'utf8')
+    console.log('✓ .env 已写入 resources（已去除注释行与行尾注释）')
   } catch (error) {
-    console.error('✗ 复制 .env 文件失败:', error.message)
+    console.error('✗ 处理 .env 文件失败:', error.message)
     process.exit(1)
   }
 } else {

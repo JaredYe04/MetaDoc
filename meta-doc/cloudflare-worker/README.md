@@ -25,6 +25,11 @@ npx wrangler secret put OPENAI_API_KEY
 npx wrangler secret put STEAM_WEB_API_KEY
 # optional dev-only:
 npx wrangler secret put DEV_AUTH_SECRET
+# optional: daily reconcile email via Brevo REST (`api.brevo.com`)
+npx wrangler secret put BREVO_API_KEY
+npx wrangler secret put BREVO_SENDER_EMAIL
+# optional display name:
+npx wrangler secret put BREVO_SENDER_NAME
 ```
 
 Set `[vars] STEAM_APP_ID` to your Steam App ID. Set `STEAM_MICROTX_SANDBOX` to `false` for live MTX.
@@ -41,6 +46,8 @@ Set `[vars] STEAM_APP_ID` to your Steam App ID. Set `STEAM_MICROTX_SANDBOX` to `
 | POST | `/v1/chat/completions` | Bearer JWT | OpenAI-compatible chat；`stream:true` 时透传上游 SSE，流结束后按 `usage` 或预估结算 credits |
 | POST | `/steam/mtx/init` | Bearer JWT | Start MTX (server calls `InitTxn`) |
 | POST | `/steam/mtx/finalize` | Bearer JWT | After overlay auth, finalize and grant credits |
+| POST | `/dev/steam/mtx/simulate-complete` | Bearer JWT + `X-Dev-Secret` | DEV only (`ALLOW_DEV_AUTH`): grant credits for `init` order without Steam |
+| POST | `/dev/reconciliation/run` | `X-Dev-Secret` | DEV only: run same job as daily reconcile (Brevo email + D1 `reconciliation_runs`) |
 | GET | `/health` | — | Liveness |
 
 ## MetaDoc client

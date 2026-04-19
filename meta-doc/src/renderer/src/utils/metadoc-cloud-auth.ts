@@ -3,9 +3,15 @@
  */
 import messageBridge from '../bridge/message-bridge'
 import eventBus from './event-bus.js'
+import { i18n } from '../i18n.js'
 import { createRendererLogger } from './logger.ts'
+import { notifySuccess } from './notify'
 import { getSteamStatus, getSteamUser } from '../services/steam-client'
-import { getMetadocCloudApiBase, isSteamDistribution } from '@common/build-env'
+import {
+  getMetadocCloudApiBase,
+  getMetadocSteamMtxCheckoutPref,
+  isSteamDistribution
+} from '@common/build-env'
 import { useMetadocCloudOpenAiRoute } from './dev-ai-pipeline'
 
 const JWT_KEY = 'metadocCloudJwt'
@@ -16,6 +22,16 @@ export function getStoredMetadocCloudJwt(): string | null {
     return localStorage.getItem(JWT_KEY)
   } catch {
     return null
+  }
+}
+
+/** 清除本地缓存的 MetaDoc 云 JWT（调试用） */
+export function clearMetadocCloudJwtStorage(): void {
+  try {
+    localStorage.removeItem(JWT_KEY)
+    localStorage.removeItem(JWT_EXP_KEY)
+  } catch {
+    /* ignore */
   }
 }
 
@@ -115,6 +131,10 @@ export type SteamMtxInitResult = {
 export const MTX_ERR_STEAM_DECLINED = 'mtx_steam_declined'
 export const MTX_ERR_POLL_TIMEOUT = 'mtx_steam_poll_timeout'
 export const MTX_ERR_NO_PUBLIC_IP = 'MTX_ERR_NO_PUBLIC_IP'
+/** 主进程在 loadURL(steam_url) 前发现出口 IP 与 InitTxn 不一致；渲染进程会重试 InitTxn */
+export const MTX_ERR_CHECKOUT_IP_MISMATCH = 'mtx_ip_mismatch'
+
+const MTX_WEB_OPEN_MAX_ATTEMPTS = 3
 
 const FETCH_TIMEOUT_MS = 20000
 
@@ -161,8 +181,8 @@ function sleepMs(ms: number): Promise<void> {
 
 /**
  * 发起 Steam MTX：
- * Electron 下统一走 **Web 结账**（`usersession=web`）。InitTxn 的 `ipaddress` 必须与**打开 steam_url 的 Chromium** 出口一致；
- * 主进程在同一 `BrowserWindow`（固定 partition）内先 `executeJavaScript` 请求 ipify，再 `loadURL(steam_url)`，避免 Node `fetch` 与 Chromium 出口不一致触发「交易授权错误」。
+ * 默认 **Web 结账**（`usersession=web`）：InitTxn 的 `ipaddress` 必须与打开 `steam_url` 的 Chromium 出口一致。
+ * 若设置 `VITE_METADOC_STEAM_MTX_CHECKOUT=client`，则走 **客户端覆盖层**结账，不加载 Steam 网页（可绕过 checkout 页 Site Error）。
  */
 export async function startSteamMtxInit(body: {
   item_id: string | number
@@ -176,109 +196,187 @@ export async function startSteamMtxInit(body: {
     throw new Error('VITE_METADOC_CLOUD_API_URL 未配置')
   }
   const jwt = await ensureMetadocSteamCloudJwt()
-  const publicIp = await fetchPublicIpForMtx()
-  if (!publicIp) {
-    throw new Error(MTX_ERR_NO_PUBLIC_IP)
-  }
-  const { res, json: initJson } = await fetchJsonWithTimeout(`${base}/steam/mtx/init`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${jwt}`
-    },
-    body: JSON.stringify({
-      ...body,
-      checkout: 'auto',
-      ip_address: publicIp
-    })
-  })
-  const json = initJson as {
-    order_id?: string
-    checkout?: 'client' | 'web'
-    steam_url?: string | null
-    message?: string
-    detail?: { response?: { errordesc?: string } }
-  }
-  if (!res.ok || !json.order_id) {
-    if (import.meta.env.DEV) {
-      const log = createRendererLogger('MetaDocCloudAuth')
-      log.debug('[MTX init] failed', {
-        httpStatus: res.status,
-        message: json.message,
-        steamErrordesc: json.detail?.response?.errordesc
+  const devLog = import.meta.env.DEV ? createRendererLogger('MetaDocCloudAuth') : null
+  const checkoutPref = getMetadocSteamMtxCheckoutPref()
+
+  /** 仅客户端覆盖层：不调网页、不取公网 IP */
+  if (checkoutPref === 'client') {
+    const { res, json: initJson } = await fetchJsonWithTimeout(`${base}/steam/mtx/init`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${jwt}`
+      },
+      body: JSON.stringify({
+        ...body,
+        checkout: 'client'
       })
+    })
+    const json = initJson as {
+      order_id?: string
+      checkout?: 'client' | 'web'
+      message?: string
+      detail?: { response?: { errordesc?: string } }
     }
-    const msg =
-      json.message ||
-      (typeof json.detail?.response?.errordesc === 'string'
-        ? json.detail.response.errordesc
-        : undefined) ||
-      `MTX init failed (${res.status})`
-    throw new Error(msg)
-  }
-  try {
-    await messageBridge.invoke('steam:mtx:after-init', { order_id: json.order_id })
-  } catch {
-    /* 主进程泵 Steam 回调失败不阻断 */
-  }
-
-  const checkout: 'client' | 'web' = json.checkout === 'client' ? 'client' : 'web'
-
-  if (checkout === 'web') {
-    if (typeof json.steam_url === 'string' && json.steam_url.length > 0) {
-      try {
-        const opened = (await messageBridge.invoke('steam:mtx:open-checkout-url', {
-          url: json.steam_url
-        })) as { success?: boolean }
-        if (!opened || opened.success !== true) {
-          eventBus.emit('open-link', json.steam_url)
-        }
-      } catch {
-        eventBus.emit('open-link', json.steam_url)
+    if (!res.ok || !json.order_id) {
+      if (import.meta.env.DEV) {
+        devLog?.debug('[MTX init client] failed', {
+          httpStatus: res.status,
+          message: json.message,
+          steamErrordesc: json.detail?.response?.errordesc
+        })
       }
+      const msg =
+        json.message ||
+        (typeof json.detail?.response?.errordesc === 'string'
+          ? json.detail.response.errordesc
+          : undefined) ||
+        `MTX init failed (${res.status})`
+      throw new Error(msg)
     }
-    const maxAttempts = 45
-    for (let i = 0; i < maxAttempts; i++) {
-      await sleepMs(2000)
-      const jwtPoll = await ensureMetadocSteamCloudJwt()
-      const { res: poll, json: pollJson } = await fetchJsonWithTimeout(
-        `${base}/steam/mtx/sync-web`,
-        {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            authorization: `Bearer ${jwtPoll}`
-          },
-          body: JSON.stringify({ order_id: json.order_id })
-        }
-      )
-      const pj = pollJson as {
-        ok?: boolean
-        completed?: boolean
-        failed?: boolean
-        credits_added?: number
-        already_completed?: boolean
-        message?: string
-      }
-      if (!poll.ok) {
-        throw new Error(pj.message || `sync-web failed (${poll.status})`)
-      }
-      if (pj.failed === true) {
-        throw new Error(MTX_ERR_STEAM_DECLINED)
-      }
-      if (pj.completed === true) {
-        return {
-          order_id: json.order_id,
-          checkout: 'web',
-          used_browser: true,
-          credits_added: typeof pj.credits_added === 'number' ? pj.credits_added : 0
-        }
-      }
+    try {
+      await messageBridge.invoke('steam:mtx:after-init', { order_id: json.order_id })
+    } catch {
+      /* ignore */
     }
-    throw new Error(MTX_ERR_POLL_TIMEOUT)
+    return { order_id: json.order_id, checkout: 'client' }
   }
 
-  return { order_id: json.order_id, checkout: 'client' }
+  let orderIdForPoll = ''
+  let openedCheckout = false
+  let lastSteamUrl = ''
+
+  for (let attempt = 0; attempt < MTX_WEB_OPEN_MAX_ATTEMPTS; attempt++) {
+    const publicIp = await fetchPublicIpForMtx()
+    if (!publicIp) {
+      throw new Error(MTX_ERR_NO_PUBLIC_IP)
+    }
+
+    const { res, json: initJson } = await fetchJsonWithTimeout(`${base}/steam/mtx/init`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${jwt}`
+      },
+      body: JSON.stringify({
+        ...body,
+        checkout: checkoutPref === 'web' ? 'web' : 'auto',
+        ip_address: publicIp
+      })
+    })
+    const json = initJson as {
+      order_id?: string
+      checkout?: 'client' | 'web'
+      steam_url?: string | null
+      message?: string
+      detail?: { response?: { errordesc?: string } }
+    }
+    if (!res.ok || !json.order_id) {
+      if (import.meta.env.DEV) {
+        devLog?.debug('[MTX init] failed', {
+          httpStatus: res.status,
+          message: json.message,
+          steamErrordesc: json.detail?.response?.errordesc
+        })
+      }
+      const msg =
+        json.message ||
+        (typeof json.detail?.response?.errordesc === 'string'
+          ? json.detail.response.errordesc
+          : undefined) ||
+        `MTX init failed (${res.status})`
+      throw new Error(msg)
+    }
+
+    try {
+      await messageBridge.invoke('steam:mtx:after-init', { order_id: json.order_id })
+    } catch {
+      /* 主进程泵 Steam 回调失败不阻断 */
+    }
+
+    const checkout: 'client' | 'web' = json.checkout === 'client' ? 'client' : 'web'
+
+    if (checkout === 'client') {
+      return { order_id: json.order_id, checkout: 'client' }
+    }
+
+    if (typeof json.steam_url !== 'string' || json.steam_url.length === 0) {
+      throw new Error('MTX init ok but missing steam_url')
+    }
+
+    orderIdForPoll = json.order_id
+    lastSteamUrl = json.steam_url
+
+    /** InitTxn 已成功：Worker / Steam 侧订单已建立；与是否弹出支付窗、是否最终入账无关 */
+    notifySuccess(i18n.global.t('setting.llmSteamCloud.mtxInitOk', { order: json.order_id }))
+
+    try {
+      const opened = (await messageBridge.invoke('steam:mtx:open-checkout-url', {
+        url: json.steam_url,
+        expected_ip: publicIp
+      })) as { success?: boolean; error?: string }
+
+      if (opened?.success === true) {
+        openedCheckout = true
+        break
+      }
+
+      if (opened?.error === MTX_ERR_CHECKOUT_IP_MISMATCH) {
+        devLog?.debug('[MTX] checkout IP mismatch, retry InitTxn', { attempt })
+        continue
+      }
+
+      eventBus.emit('open-link', json.steam_url)
+      openedCheckout = true
+      break
+    } catch {
+      eventBus.emit('open-link', json.steam_url)
+      openedCheckout = true
+      break
+    }
+  }
+
+  if (!openedCheckout && lastSteamUrl.length > 0) {
+    devLog?.warn('[MTX] opening embedded checkout failed after retries, falling back to system browser')
+    eventBus.emit('open-link', lastSteamUrl)
+  }
+
+  const maxAttempts = 45
+  for (let i = 0; i < maxAttempts; i++) {
+    await sleepMs(2000)
+    const jwtPoll = await ensureMetadocSteamCloudJwt()
+    const { res: poll, json: pollJson } = await fetchJsonWithTimeout(`${base}/steam/mtx/sync-web`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${jwtPoll}`
+      },
+      body: JSON.stringify({ order_id: orderIdForPoll })
+    })
+    const pj = pollJson as {
+      ok?: boolean
+      completed?: boolean
+      failed?: boolean
+      credits_added?: number
+      already_completed?: boolean
+      message?: string
+    }
+    if (!poll.ok) {
+      throw new Error(pj.message || `sync-web failed (${poll.status})`)
+    }
+    if (pj.failed === true) {
+      throw new Error(MTX_ERR_STEAM_DECLINED)
+    }
+    if (pj.completed === true) {
+      return {
+        order_id: orderIdForPoll,
+        checkout: 'web',
+        used_browser: true,
+        credits_added: typeof pj.credits_added === 'number' ? pj.credits_added : 0
+      }
+    }
+  }
+  throw new Error(MTX_ERR_POLL_TIMEOUT)
 }
 
 /** 是否可在本机发起 Steam 内购：Steam 分发包，或运行时 Greenworks 已初始化且可用（无需仅依赖构建变量） */

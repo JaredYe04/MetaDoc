@@ -62,3 +62,4 @@ __pycache__
 /steamworks_sdk
 /meta-doc/docs/thesis
 /debug
+/meta-doc/cloudflare-worker/.wrangler

@@ -84,6 +84,15 @@
             <Timer class="debug-menu-icon" />
             <span class="debug-menu-label">{{ $t('setting.debug.startupProfile') }}</span>
           </Button>
+          <Button
+            v-if="showSteamCloudDebug"
+            variant="ghost"
+            :class="['debug-menu-item', { 'is-active': activeTab === 'steamcloud' }]"
+            @click="handleMenuSelect('steamcloud')"
+          >
+            <Cloud class="debug-menu-icon" />
+            <span class="debug-menu-label">{{ $t('setting.debug.steamCloudDebug') }}</span>
+          </Button>
         </div>
       </div>
 
@@ -186,7 +195,10 @@
                       />
                     </FormField>
 
-                    <FormField name="mockUpdateVersion" :label="$t('setting.debug.mockUpdateVersion')">
+                    <FormField
+                      name="mockUpdateVersion"
+                      :label="$t('setting.debug.mockUpdateVersion')"
+                    >
                       <Input
                         v-model="updateTestForm.mockUpdateVersion"
                         :placeholder="$t('setting.debug.mockUpdateVersionPlaceholder')"
@@ -198,11 +210,15 @@
                       <RadioGroup v-model="updateTestForm.channel" class="flex flex-row gap-4">
                         <div class="flex items-center gap-2">
                           <RadioGroupItem value="release" id="channel-release" />
-                          <label for="channel-release" class="text-sm cursor-pointer">{{ $t('setting.debug.channelRelease') }}</label>
+                          <label for="channel-release" class="text-sm cursor-pointer">{{
+                            $t('setting.debug.channelRelease')
+                          }}</label>
                         </div>
                         <div class="flex items-center gap-2">
                           <RadioGroupItem value="dev" id="channel-dev" />
-                          <label for="channel-dev" class="text-sm cursor-pointer">{{ $t('setting.debug.channelDev') }}</label>
+                          <label for="channel-dev" class="text-sm cursor-pointer">{{
+                            $t('setting.debug.channelDev')
+                          }}</label>
                         </div>
                       </RadioGroup>
                     </FormField>
@@ -262,9 +278,11 @@
                     }}</Divider>
                     <Alert v-if="updateTestStatus.updateAvailable" variant="default" class="mb-4">
                       <CheckCircle2 class="h-4 w-4" />
-                      <AlertTitle
-                        >{{ $t('setting.debug.newVersionFound', { version: updateTestStatus.updateInfo?.version || '' }) }}</AlertTitle
-                      >
+                      <AlertTitle>{{
+                        $t('setting.debug.newVersionFound', {
+                          version: updateTestStatus.updateInfo?.version || ''
+                        })
+                      }}</AlertTitle>
                       <AlertDescription v-if="updateTestStatus.updateInfo?.releaseNotes">
                         {{ updateTestStatus.updateInfo.releaseNotes }}
                       </AlertDescription>
@@ -529,7 +547,9 @@
                             $t('setting.debug.useCurrentActiveTab', '（不指定，使用当前活动Tab）')
                           }}</SelectItem>
                           <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
-                            {{ tab.title || tab.subtitle || $t('setting.debug.unnamed') }} ({{ tab.id }})
+                            {{ tab.title || tab.subtitle || $t('setting.debug.unnamed') }} ({{
+                              tab.id
+                            }})
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -615,7 +635,9 @@
                       marginTop: '20px'
                     }"
                   >
-                    <Divider :style="{ marginTop: 0 }">{{ $t('setting.debug.executionResult') }}</Divider>
+                    <Divider :style="{ marginTop: 0 }">{{
+                      $t('setting.debug.executionResult')
+                    }}</Divider>
                     <ScrollArea class="flex-1">
                       <div
                         v-for="(entry, index) in toolTestHistory"
@@ -999,7 +1021,9 @@
                             $t('setting.debug.useCurrentActiveTab', '（不指定，使用当前活动Tab）')
                           }}</SelectItem>
                           <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
-                            {{ tab.title || tab.subtitle || $t('setting.debug.unnamed') }} ({{ tab.id }})
+                            {{ tab.title || tab.subtitle || $t('setting.debug.unnamed') }} ({{
+                              tab.id
+                            }})
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -1041,7 +1065,9 @@
                     class="auto-test-results"
                     style="margin-top: 20px"
                   >
-                    <Divider :style="{ marginTop: 0 }">{{ $t('setting.debug.testResultTitle') }}</Divider>
+                    <Divider :style="{ marginTop: 0 }">{{
+                      $t('setting.debug.testResultTitle')
+                    }}</Divider>
                     <AutoTestResultDisplay
                       v-if="autoTestResults.length > 0"
                       :test-results="autoTestResults"
@@ -1260,7 +1286,9 @@
                                 )
                               }}</SelectItem>
                               <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
-                                {{ tab.title || tab.subtitle || $t('setting.debug.unnamed') }} ({{ tab.id }})
+                                {{ tab.title || tab.subtitle || $t('setting.debug.unnamed') }} ({{
+                                  tab.id
+                                }})
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -1311,7 +1339,9 @@
                         class="unit-test-batch-results"
                         style="margin-top: 20px"
                       >
-                        <Divider :style="{ marginTop: 0 }">{{ $t('setting.debug.testResultTitle') }}</Divider>
+                        <Divider :style="{ marginTop: 0 }">{{
+                          $t('setting.debug.testResultTitle')
+                        }}</Divider>
                         <UnitTestResultDisplay
                           v-if="unitTestBatchResults.length > 0"
                           :test-results="unitTestBatchResults"
@@ -1347,25 +1377,26 @@
                           <SelectValue :placeholder="$t('setting.debug.openDocPlaceholder')" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem
-                            v-for="tab in documentTabs"
-                            :key="tab.id"
-                            :value="tab.id"
-                          >
-                            {{ tab.path ? tab.path.replace(/^.*[/\\]/, '') : (tab.title || $t('setting.debug.unnamed')) }}
-                            <span v-if="isExportTestDoc(tab)" class="text-muted-foreground ml-1">({{ $t('setting.debug.acceptanceDoc') }})</span>
+                          <SelectItem v-for="tab in documentTabs" :key="tab.id" :value="tab.id">
+                            {{
+                              tab.path
+                                ? tab.path.replace(/^.*[/\\]/, '')
+                                : tab.title || $t('setting.debug.unnamed')
+                            }}
+                            <span v-if="isExportTestDoc(tab)" class="text-muted-foreground ml-1"
+                              >({{ $t('setting.debug.acceptanceDoc') }})</span
+                            >
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button
-                        variant="outline"
-                        size="default"
-                        @click="handleOpenDebugExportTest"
-                      >
+                      <Button variant="outline" size="default" @click="handleOpenDebugExportTest">
                         {{ $t('setting.debug.openExportTestDoc') }}
                       </Button>
                     </div>
-                    <p v-if="!exportRegressionDoc && documentTabs.length === 0" class="text-xs text-muted-foreground mt-1">
+                    <p
+                      v-if="!exportRegressionDoc && documentTabs.length === 0"
+                      class="text-xs text-muted-foreground mt-1"
+                    >
                       {{ $t('setting.debug.exportRegressionOpenHint') }}
                     </p>
                   </FormField>
@@ -1389,18 +1420,31 @@
                   <FormField name="runExport">
                     <Button
                       variant="default"
-                      :disabled="!exportRegressionSelectedTabId || !exportRegressionDoc || !exportRegressionOutputDir || exportRegressionRunning"
+                      :disabled="
+                        !exportRegressionSelectedTabId ||
+                        !exportRegressionDoc ||
+                        !exportRegressionOutputDir ||
+                        exportRegressionRunning
+                      "
                       @click="runExportRegression"
                     >
                       <template v-if="exportRegressionRunning">
-                        {{ $t('setting.debug.exportRegressionExporting', { current: exportRegressionCurrent, total: exportRegressionCases.length }) }}
+                        {{
+                          $t('setting.debug.exportRegressionExporting', {
+                            current: exportRegressionCurrent,
+                            total: exportRegressionCases.length
+                          })
+                        }}
                       </template>
                       <template v-else>
                         {{ $t('setting.debug.exportRegressionRunAll') }}
                       </template>
                     </Button>
                   </FormField>
-                  <div v-if="exportRegressionProgressMessage" class="text-sm text-muted-foreground mb-2">
+                  <div
+                    v-if="exportRegressionProgressMessage"
+                    class="text-sm text-muted-foreground mb-2"
+                  >
                     {{ exportRegressionProgressMessage }}
                   </div>
                   <Progress
@@ -1428,9 +1472,22 @@
                                 : 'outline'
                         "
                       >
-                        {{ c.status === 'success' ? $t('setting.debug.success') : c.status === 'fail' ? $t('setting.debug.fail') : c.status === 'running' ? $t('setting.debug.statusRunning') : $t('setting.debug.statusPending') }}
+                        {{
+                          c.status === 'success'
+                            ? $t('setting.debug.success')
+                            : c.status === 'fail'
+                              ? $t('setting.debug.fail')
+                              : c.status === 'running'
+                                ? $t('setting.debug.statusRunning')
+                                : $t('setting.debug.statusPending')
+                        }}
                       </Badge>
-                      <span v-if="c.error" class="text-destructive text-xs max-w-xs truncate" :title="c.error">{{ c.error }}</span>
+                      <span
+                        v-if="c.error"
+                        class="text-destructive text-xs max-w-xs truncate"
+                        :title="c.error"
+                        >{{ c.error }}</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -1448,7 +1505,11 @@
                         class="flex-1 max-w-2xl font-mono text-xs"
                         :placeholder="$t('setting.debug.exportFixtureFixturesDir')"
                       />
-                      <Button variant="outline" size="default" @click="handleExportFixtureChooseFixturesDir">
+                      <Button
+                        variant="outline"
+                        size="default"
+                        @click="handleExportFixtureChooseFixturesDir"
+                      >
                         {{ $t('setting.debug.selectDir') }}
                       </Button>
                     </div>
@@ -1460,7 +1521,11 @@
                         class="flex-1 max-w-2xl font-mono text-xs"
                         :placeholder="$t('setting.debug.exportFixtureOutputDir')"
                       />
-                      <Button variant="outline" size="default" @click="handleExportFixtureChooseOutputDir">
+                      <Button
+                        variant="outline"
+                        size="default"
+                        @click="handleExportFixtureChooseOutputDir"
+                      >
                         {{ $t('setting.debug.selectDir') }}
                       </Button>
                     </div>
@@ -1468,7 +1533,9 @@
                   <FormField name="runFixture">
                     <Button
                       variant="default"
-                      :disabled="!exportFixtureFixturesDir || !exportFixtureOutputDir || exportFixtureRunning"
+                      :disabled="
+                        !exportFixtureFixturesDir || !exportFixtureOutputDir || exportFixtureRunning
+                      "
                       @click="runExportFixtureBatch"
                     >
                       <template v-if="exportFixtureRunning">
@@ -1484,7 +1551,10 @@
                       </template>
                     </Button>
                   </FormField>
-                  <div v-if="exportFixtureProgressMessage" class="text-sm text-muted-foreground mb-2">
+                  <div
+                    v-if="exportFixtureProgressMessage"
+                    class="text-sm text-muted-foreground mb-2"
+                  >
                     {{ exportFixtureProgressMessage }}
                   </div>
                   <Progress
@@ -1499,13 +1569,31 @@
                       class="flex flex-wrap items-center gap-2 py-1.5 px-2 rounded border text-sm"
                     >
                       <span class="font-mono text-xs flex-1 min-w-[200px]">{{ row.file }}</span>
-                      <Badge :variant="row.pdf === 'success' ? 'default' : row.pdf === 'fail' ? 'destructive' : 'outline'">
+                      <Badge
+                        :variant="
+                          row.pdf === 'success'
+                            ? 'default'
+                            : row.pdf === 'fail'
+                              ? 'destructive'
+                              : 'outline'
+                        "
+                      >
                         PDF: {{ row.pdf }}
                       </Badge>
-                      <Badge :variant="row.docx === 'success' ? 'default' : row.docx === 'fail' ? 'destructive' : 'outline'">
+                      <Badge
+                        :variant="
+                          row.docx === 'success'
+                            ? 'default'
+                            : row.docx === 'fail'
+                              ? 'destructive'
+                              : 'outline'
+                        "
+                      >
                         DOCX: {{ row.docx }}
                       </Badge>
-                      <span v-if="row.error" class="text-destructive text-xs w-full">{{ row.error }}</span>
+                      <span v-if="row.error" class="text-destructive text-xs w-full">{{
+                        row.error
+                      }}</span>
                     </div>
                   </div>
                 </div>
@@ -1514,7 +1602,9 @@
                 <Tabs v-model="agentSessionDebugActiveTab" class="debug-tabs">
                   <TabsList class="debug-tabs-list">
                     <TabsTrigger value="debug">{{ $t('setting.debug.sessionDebug') }}</TabsTrigger>
-                    <TabsTrigger value="replay">{{ $t('setting.debug.sessionReplay') }}</TabsTrigger>
+                    <TabsTrigger value="replay">{{
+                      $t('setting.debug.sessionReplay')
+                    }}</TabsTrigger>
                   </TabsList>
 
                   <!-- 会话调试 -->
@@ -1527,7 +1617,9 @@
                             @update:model-value="handleSessionDebugTabChange"
                           >
                             <SelectTrigger class="w-[240px]">
-                              <SelectValue :placeholder="$t('setting.debug.selectDocPlaceholder')" />
+                              <SelectValue
+                                :placeholder="$t('setting.debug.selectDocPlaceholder')"
+                              />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem
@@ -1553,7 +1645,9 @@
                               style="flex: 1"
                             >
                               <SelectTrigger class="w-[240px]">
-                                <SelectValue :placeholder="$t('setting.debug.selectSessionPlaceholder')" />
+                                <SelectValue
+                                  :placeholder="$t('setting.debug.selectSessionPlaceholder')"
+                                />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem
@@ -1564,7 +1658,11 @@
                                   <div class="flex justify-between items-center w-full">
                                     <span>{{ session.title || session.id }}</span>
                                     <Badge variant="outline" size="sm">
-                                      {{ $t('setting.debug.messagesCount', { count: session.messages?.length || 0 }) }}
+                                      {{
+                                        $t('setting.debug.messagesCount', {
+                                          count: session.messages?.length || 0
+                                        })
+                                      }}
                                     </Badge>
                                   </div>
                                 </SelectItem>
@@ -1590,9 +1688,15 @@
                       >
                         <Tabs v-model="sessionDebugActiveTab" class="debug-tabs">
                           <TabsList class="debug-tabs-list">
-                            <TabsTrigger value="nodes">{{ $t('setting.debug.executionNodes') }}</TabsTrigger>
-                            <TabsTrigger value="messages">{{ $t('setting.debug.messageList') }}</TabsTrigger>
-                            <TabsTrigger value="metadata">{{ $t('setting.debug.sessionInfo') }}</TabsTrigger>
+                            <TabsTrigger value="nodes">{{
+                              $t('setting.debug.executionNodes')
+                            }}</TabsTrigger>
+                            <TabsTrigger value="messages">{{
+                              $t('setting.debug.messageList')
+                            }}</TabsTrigger>
+                            <TabsTrigger value="metadata">{{
+                              $t('setting.debug.sessionInfo')
+                            }}</TabsTrigger>
                           </TabsList>
 
                           <!-- 执行节点列表 -->
@@ -1682,7 +1786,9 @@
                                   </div>
                                 </div>
                               </div>
-                              <div v-else class="test-empty">{{ $t('setting.debug.noExecutionNodes') }}</div>
+                              <div v-else class="test-empty">
+                                {{ $t('setting.debug.noExecutionNodes') }}
+                              </div>
                             </ScrollArea>
                           </TabsContent>
 
@@ -1782,7 +1888,9 @@
                                   </div>
                                 </div>
                               </div>
-                              <div v-else class="test-empty">{{ $t('setting.debug.noMessages') }}</div>
+                              <div v-else class="test-empty">
+                                {{ $t('setting.debug.noMessages') }}
+                              </div>
                             </ScrollArea>
                           </TabsContent>
 
@@ -1928,23 +2036,35 @@
                             </div>
                             <!-- 第二行：起始节点选择 -->
                             <div style="display: flex; gap: 8px; align-items: center">
-                              <span style="min-width: 80px">{{ $t('setting.debug.startNodeLabel') }}</span>
+                              <span style="min-width: 80px">{{
+                                $t('setting.debug.startNodeLabel')
+                              }}</span>
                               <Select
                                 v-model="replayStartIndex"
                                 :disabled="isReplaying"
                                 style="flex: 1"
                               >
                                 <SelectTrigger class="w-[240px]">
-                                  <SelectValue :placeholder="$t('setting.debug.selectReplayStartNode')" />
+                                  <SelectValue
+                                    :placeholder="$t('setting.debug.selectReplayStartNode')"
+                                  />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem :value="0">{{ $t('setting.debug.fromStart') }}</SelectItem>
+                                  <SelectItem :value="0">{{
+                                    $t('setting.debug.fromStart')
+                                  }}</SelectItem>
                                   <SelectItem
                                     v-for="(msg, index) in replayDisplayMessages"
                                     :key="msg.id"
                                     :value="index + 1"
                                   >
-                                    {{ $t('setting.debug.messageIndex', { index: index + 1, role: getMessageRoleLabel(msg.role), type: msg.type }) }}
+                                    {{
+                                      $t('setting.debug.messageIndex', {
+                                        index: index + 1,
+                                        role: getMessageRoleLabel(msg.role),
+                                        type: msg.type
+                                      })
+                                    }}
                                   </SelectItem>
                                 </SelectContent>
                               </Select>
@@ -1955,7 +2075,12 @@
                                   color: var(--el-text-color-secondary);
                                 "
                               >
-                                {{ $t('setting.debug.currentPosition', { current: replayCurrentIndex + 1, total: replayDisplayMessages.length }) }}
+                                {{
+                                  $t('setting.debug.currentPosition', {
+                                    current: replayCurrentIndex + 1,
+                                    total: replayDisplayMessages.length
+                                  })
+                                }}
                               </span>
                             </div>
                           </div>
@@ -2006,7 +2131,11 @@
                                       : `错误: ${toolCall.error || '未知错误'}`
                                   "
                                 >
-                                  {{ toolCall.isValid ? $t('setting.debug.toolLabel', { id: toolCall.tool_id }) : $t('setting.debug.parseError') }}
+                                  {{
+                                    toolCall.isValid
+                                      ? $t('setting.debug.toolLabel', { id: toolCall.tool_id })
+                                      : $t('setting.debug.parseError')
+                                  }}
                                 </Badge>
                                 <Badge
                                   v-if="getParsedToolCalls(message).length > 1"
@@ -2062,13 +2191,26 @@
               </div>
               <div v-show="activeTab === 'startupprofile'" class="tab-content">
                 <div class="test-panel" :style="testPanelStyle">
-                  <p class="text-sm text-muted-foreground mb-2">{{ $t('setting.debug.startupProfileHint') }}</p>
-                  <Button variant="outline" size="sm" class="mb-2" @click="copyStartupProfileToClipboard">
-                    {{ startupProfileCopySuccess ? $t('setting.debug.copied') : $t('setting.debug.copyToClipboard') }}
+                  <p class="text-sm text-muted-foreground mb-2">
+                    {{ $t('setting.debug.startupProfileHint') }}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    class="mb-2"
+                    @click="copyStartupProfileToClipboard"
+                  >
+                    {{
+                      startupProfileCopySuccess
+                        ? $t('setting.debug.copied')
+                        : $t('setting.debug.copyToClipboard')
+                    }}
                   </Button>
                   <div class="space-y-4">
                     <div>
-                      <h4 class="text-sm font-medium mb-2">{{ $t('setting.debug.startupProfileMain') }}</h4>
+                      <h4 class="text-sm font-medium mb-2">
+                        {{ $t('setting.debug.startupProfileMain') }}
+                      </h4>
                       <table class="w-full text-sm border-collapse">
                         <thead>
                           <tr>
@@ -2085,7 +2227,9 @@
                       </table>
                     </div>
                     <div>
-                      <h4 class="text-sm font-medium mb-2">{{ $t('setting.debug.startupProfileRenderer') }}</h4>
+                      <h4 class="text-sm font-medium mb-2">
+                        {{ $t('setting.debug.startupProfileRenderer') }}
+                      </h4>
                       <table class="w-full text-sm border-collapse">
                         <thead>
                           <tr>
@@ -2104,6 +2248,38 @@
                   </div>
                 </div>
               </div>
+              <div v-show="activeTab === 'steamcloud'" class="tab-content">
+                <div class="test-panel" :style="testPanelStyle">
+                  <p class="text-sm text-muted-foreground mb-3">
+                    {{ $t('setting.debug.steamCloudDebugHint') }}
+                  </p>
+                  <p class="text-xs font-mono break-all mb-2">
+                    VITE_METADOC_CLOUD_API_URL: {{ metadocCloudBase || '(none)' }}
+                  </p>
+                  <p class="text-xs font-mono mb-4">JWT: {{ steamDebugJwtHint }}</p>
+                  <div class="flex flex-wrap gap-2 mb-4">
+                    <Button size="sm" variant="secondary" @click="simulateSteamInsufficientCredits">
+                      {{ $t('setting.debug.steamCloudSimulateInsufficient') }}
+                    </Button>
+                    <Button size="sm" variant="outline" @click="clearSteamCloudJwtDebug">
+                      {{ $t('setting.debug.steamCloudClearJwt') }}
+                    </Button>
+                  </div>
+                  <template v-if="isDevEnv">
+                    <p class="text-sm font-medium mb-2">
+                      {{ $t('setting.debug.steamCloudDevSimulateTitle') }}
+                    </p>
+                    <Input
+                      v-model="devMtxOrderId"
+                      class="max-w-xl mb-2"
+                      :placeholder="$t('setting.debug.steamCloudOrderIdPlaceholder')"
+                    />
+                    <Button size="sm" @click="runDevMtxSimulateComplete">
+                      {{ $t('setting.debug.steamCloudDevSimulateRun') }}
+                    </Button>
+                  </template>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -2114,11 +2290,18 @@
     <Dialog v-model:open="showSaveConfigDialog">
       <DialogContent class="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{{ selectedConfigId ? $t('setting.debug.editConfigTitle') : $t('setting.debug.newConfigTitle') }}</DialogTitle>
+          <DialogTitle>{{
+            selectedConfigId
+              ? $t('setting.debug.editConfigTitle')
+              : $t('setting.debug.newConfigTitle')
+          }}</DialogTitle>
         </DialogHeader>
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
-            <label class="text-sm font-medium">{{ $t('setting.debug.configNameRequired') }} <span class="text-red-500">*</span></label>
+            <label class="text-sm font-medium"
+              >{{ $t('setting.debug.configNameRequired') }}
+              <span class="text-red-500">*</span></label
+            >
             <Input
               v-model="saveConfigName"
               :placeholder="$t('setting.debug.configNamePlaceholder')"
@@ -2148,7 +2331,9 @@
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="showSaveConfigDialog = false">{{ $t('setting.debug.cancel') }}</Button>
+          <Button variant="outline" @click="showSaveConfigDialog = false">{{
+            $t('setting.debug.cancel')
+          }}</Button>
           <Button @click="saveCurrentConfig">{{ $t('setting.debug.save') }}</Button>
         </DialogFooter>
       </DialogContent>
@@ -2159,6 +2344,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { getMetadocCloudApiBase } from '@common/build-env'
+import { useMetadocCloudOpenAiRoute } from '../../utils/dev-ai-pipeline'
+import {
+  ensureMetadocSteamCloudJwt,
+  clearMetadocCloudJwtStorage,
+  getStoredMetadocCloudJwt
+} from '../../utils/metadoc-cloud-auth'
+import { LlmError, LlmErrorType, handleLlmError } from '../../utils/llm-errors.js'
 
 // Demo mode support
 const props = defineProps<{
@@ -2168,7 +2361,7 @@ const isDemo = computed(() => props.mode === 'demo')
 import { messageBox } from '@renderer/utils/messageBox'
 import { notifySuccess, notifyError, notifyWarning, notifyInfo } from '@renderer/utils/notify'
 import { Alert, AlertTitle, AlertDescription } from '@renderer/components/ui/alert'
-import { CheckCircle2, Info, XCircle, Timer } from 'lucide-vue-next'
+import { CheckCircle2, Info, XCircle, Timer, Cloud } from 'lucide-vue-next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@renderer/components/ui/tabs'
 import { Slider } from '@renderer/components/ui/slider'
 import { Progress } from '@renderer/components/ui/progress'
@@ -2385,6 +2578,70 @@ const handleMenuSelect = (key: string) => {
   activeTab.value = key
 }
 
+const showSteamCloudDebug = computed(() => import.meta.env.DEV || useMetadocCloudOpenAiRoute())
+const isDevEnv = computed(() => import.meta.env.DEV)
+const metadocCloudBase = computed(() => getMetadocCloudApiBase() || '')
+const steamDebugJwtHint = ref('')
+function refreshSteamJwtHint() {
+  const j = getStoredMetadocCloudJwt()
+  steamDebugJwtHint.value = j && j.length > 12 ? `${j.slice(0, 10)}…${j.slice(-4)}` : j || '(none)'
+}
+const devMtxOrderId = ref('')
+
+function simulateSteamInsufficientCredits() {
+  const base = getMetadocCloudApiBase() || 'https://example.invalid/v1'
+  const err = new LlmError(
+    LlmErrorType.INSUFFICIENT_CREDITS,
+    t('setting.debug.steamCloudSimulateInsufficient'),
+    null,
+    {}
+  )
+  handleLlmError(err, true, {
+    llmConfig: {
+      type: 'metadoc',
+      apiUrl: base,
+      apiKey: getStoredMetadocCloudJwt() || '',
+      selectedModel: 'debug'
+    }
+  })
+}
+
+function clearSteamCloudJwtDebug() {
+  clearMetadocCloudJwtStorage()
+  refreshSteamJwtHint()
+  notifySuccess(t('setting.debug.steamCloudClearJwt'))
+}
+
+async function runDevMtxSimulateComplete() {
+  const base = getMetadocCloudApiBase()
+  const secret = import.meta.env.VITE_METADOC_CLOUD_DEV_AUTH_SECRET as string | undefined
+  const oid = devMtxOrderId.value.trim()
+  if (!base || !secret || !oid) {
+    notifyWarning(t('setting.debug.steamCloudOrderIdPlaceholder'))
+    return
+  }
+  try {
+    const jwt = await ensureMetadocSteamCloudJwt()
+    const res = await fetch(`${base}/dev/steam/mtx/simulate-complete`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${jwt}`,
+        'X-Dev-Secret': secret
+      },
+      body: JSON.stringify({ order_id: oid })
+    })
+    const j = (await res.json()) as { credits_added?: number; message?: string }
+    if (!res.ok) {
+      notifyError(j.message || `HTTP ${res.status}`)
+      return
+    }
+    notifySuccess(`credits_added: ${j.credits_added ?? 0}`)
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+  }
+}
+
 // 获取当前Tab标题
 const getCurrentTabTitle = () => {
   const titles: Record<string, string> = {
@@ -2397,7 +2654,8 @@ const getCurrentTabTitle = () => {
     agentsessiondebug: t('setting.debug.agentSessionDebug'),
     exportregression: t('setting.debug.exportRegression'),
     exportfixturebatch: t('setting.debug.exportFixtureBatch'),
-    startupprofile: t('setting.debug.startupProfile')
+    startupprofile: t('setting.debug.startupProfile'),
+    steamcloud: t('setting.debug.steamCloudDebug')
   }
   return titles[activeTab.value] || t('setting.debug.title')
 }
@@ -2409,7 +2667,11 @@ const startupProfileRenderer = ref<{ phase: string; deltaMs: number }[]>([])
 const startupProfileCopySuccess = ref(false)
 async function loadStartupProfile() {
   try {
-    const api = (window as Window & { api?: { getStartupProfile: () => Promise<{ phase: string; deltaMs: number }[]> } }).api
+    const api = (
+      window as Window & {
+        api?: { getStartupProfile: () => Promise<{ phase: string; deltaMs: number }[]> }
+      }
+    ).api
     if (typeof window !== 'undefined' && api?.getStartupProfile) {
       startupProfileMain.value = (await api.getStartupProfile()) || []
     } else {
@@ -2440,6 +2702,7 @@ function copyStartupProfileToClipboard() {
 }
 watch(activeTab, (tab) => {
   if (tab === 'startupprofile') loadStartupProfile()
+  if (tab === 'steamcloud') refreshSteamJwtHint()
 })
 
 // EventBus 表单
@@ -2498,13 +2761,57 @@ const EXPORT_REGRESSION_CASES_MD: Array<{
   description: string
   options: Record<string, any>
 }> = [
-  { name: 'pdf-default', format: 'pdf', description: 'PDF 默认', options: { margins: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 }, pageSize: 'A4', printBackground: true } },
-  { name: 'docx-cover-toc', format: 'docx', description: 'DOCX 封面+目录+公式', options: { generateCover: true, generateToc: true, processFormula: true, enableStyleMapping: true } },
-  { name: 'tex-images-folder', format: 'tex', description: 'TEX 图片存文件夹', options: { documentClass: 'article', includePackages: true, imageProcessing: 'folder' } },
-  { name: 'tex-images-original', format: 'tex', description: 'TEX 图片保留原链接', options: { documentClass: 'article', includePackages: true, imageProcessing: 'original' } },
-  { name: 'html-images-folder', format: 'html', description: 'HTML 图片存文件夹', options: { inlineStyles: true, imageProcessing: 'folder' } },
-  { name: 'html-images-original', format: 'html', description: 'HTML 图片保留原链接', options: { inlineStyles: true, imageProcessing: 'original' } },
-  { name: 'md-export', format: 'md', description: 'Markdown', options: { imageProcessing: 'original' } }
+  {
+    name: 'pdf-default',
+    format: 'pdf',
+    description: 'PDF 默认',
+    options: {
+      margins: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
+      pageSize: 'A4',
+      printBackground: true
+    }
+  },
+  {
+    name: 'docx-cover-toc',
+    format: 'docx',
+    description: 'DOCX 封面+目录+公式',
+    options: {
+      generateCover: true,
+      generateToc: true,
+      processFormula: true,
+      enableStyleMapping: true
+    }
+  },
+  {
+    name: 'tex-images-folder',
+    format: 'tex',
+    description: 'TEX 图片存文件夹',
+    options: { documentClass: 'article', includePackages: true, imageProcessing: 'folder' }
+  },
+  {
+    name: 'tex-images-original',
+    format: 'tex',
+    description: 'TEX 图片保留原链接',
+    options: { documentClass: 'article', includePackages: true, imageProcessing: 'original' }
+  },
+  {
+    name: 'html-images-folder',
+    format: 'html',
+    description: 'HTML 图片存文件夹',
+    options: { inlineStyles: true, imageProcessing: 'folder' }
+  },
+  {
+    name: 'html-images-original',
+    format: 'html',
+    description: 'HTML 图片保留原链接',
+    options: { inlineStyles: true, imageProcessing: 'original' }
+  },
+  {
+    name: 'md-export',
+    format: 'md',
+    description: 'Markdown',
+    options: { imageProcessing: 'original' }
+  }
 ]
 const EXPORT_REGRESSION_CASES_TEX: Array<{
   name: string
@@ -2524,7 +2831,9 @@ const exportRegressionRunning = ref(false)
 const exportRegressionCurrent = ref(0)
 const exportRegressionProgressPercent = ref(0)
 const exportRegressionProgressMessage = ref('')
-const exportRegressionCaseStatus = ref<Record<string, { status: 'idle' | 'running' | 'success' | 'fail'; error?: string }>>({})
+const exportRegressionCaseStatus = ref<
+  Record<string, { status: 'idle' | 'running' | 'success' | 'fail'; error?: string }>
+>({})
 
 // Agent Tool测试相关
 const toolTestForm = reactive({
@@ -2640,7 +2949,7 @@ const documentTabs = computed(() => {
 // 导出回归测试：所选文档与用例列表（不依赖当前活跃 tab；固定推荐 debug/export-test.md）
 const exportRegressionDoc = computed(() => {
   const id = exportRegressionSelectedTabId.value
-  return id ? workspace.documents[id] ?? null : null
+  return id ? (workspace.documents[id] ?? null) : null
 })
 const exportRegressionSourceFormat = computed(() => {
   const doc = exportRegressionDoc.value
@@ -2720,7 +3029,12 @@ async function runExportRegression() {
     md: 'md'
   }
   const eventBus = (await import('../../utils/event-bus')).default
-  const onProgress = (p: { percentage?: number; message?: string; subMessage?: string; params?: Record<string, unknown> }) => {
+  const onProgress = (p: {
+    percentage?: number
+    message?: string
+    subMessage?: string
+    params?: Record<string, unknown>
+  }) => {
     exportRegressionProgressPercent.value = p?.percentage ?? 0
     const params = p?.params ?? {}
     const msg1 = p?.message ? t(p.message, params) : ''
@@ -2762,16 +3076,7 @@ async function runExportRegression() {
   }
 }
 
-const EXPORT_FIXTURE_EXT = new Set([
-  '.md',
-  '.json',
-  '.py',
-  '.vue',
-  '.html',
-  '.htm',
-  '.png',
-  '.tex'
-])
+const EXPORT_FIXTURE_EXT = new Set(['.md', '.json', '.py', '.vue', '.html', '.htm', '.png', '.tex'])
 
 function getDebugExportDefaultDirs(): { fixturesDir: string; outputDir: string } {
   try {
@@ -2804,9 +3109,9 @@ const exportFixtureCurrent = ref(0)
 const exportFixtureTotalJobs = ref(0)
 const exportFixtureProgressPercent = ref(0)
 const exportFixtureProgressMessage = ref('')
-const exportFixtureRows = ref<
-  Array<{ file: string; pdf: string; docx: string; error?: string }>
->([])
+const exportFixtureRows = ref<Array<{ file: string; pdf: string; docx: string; error?: string }>>(
+  []
+)
 
 async function handleExportFixtureChooseFixturesDir() {
   const msg = await import('../../bridge/message-bridge').then((m) => m.default)
@@ -2932,10 +3237,13 @@ async function runExportFixtureBatch() {
         })
         const r2 = await messageBridge.invoke('perform-export-to-path', payloadDocx, docxPath)
         row.docx = r2?.success ? 'success' : 'fail'
-        if (!r2?.success) row.error = [row.error, String(r2?.error ?? 'docx')].filter(Boolean).join(' | ')
+        if (!r2?.success)
+          row.error = [row.error, String(r2?.error ?? 'docx')].filter(Boolean).join(' | ')
       } catch (e) {
         row.docx = 'fail'
-        row.error = [row.error, e instanceof Error ? e.message : String(e)].filter(Boolean).join(' | ')
+        row.error = [row.error, e instanceof Error ? e.message : String(e)]
+          .filter(Boolean)
+          .join(' | ')
       }
       bump()
     }
@@ -3219,7 +3527,9 @@ const getToolDisplayName = (config: any): string => {
 
   // 使用 locales 中的 toolLabels 以支持界面本地化
   const fallback =
-    typeof config.name === 'string' ? config.name : (config.name as any)?.en_us?.name ?? config.id ?? ''
+    typeof config.name === 'string'
+      ? config.name
+      : ((config.name as any)?.en_us?.name ?? config.id ?? '')
   return agentToolManager.getLocalizedToolName(config.id, String(fallback))
 }
 
@@ -5472,11 +5782,9 @@ const handleImportSessionJson = () => {
       if (existingIndex !== -1) {
         // 询问是否覆盖
         try {
-          await messageBox.confirm(
-            `会话 "${legacySession.title}" 已存在，是否覆盖？`,
-            '确认覆盖',
-            { type: 'warning' }
-          )
+          await messageBox.confirm(`会话 "${legacySession.title}" 已存在，是否覆盖？`, '确认覆盖', {
+            type: 'warning'
+          })
           doc.agentSessions[existingIndex] = legacySession
         } catch {
           // 用户取消

@@ -159,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { PopoverRoot, PopoverTrigger, PopoverPortal } from 'reka-ui'
 import { PopoverContent } from '@renderer/components/ui/popover'
@@ -192,6 +192,7 @@ import {
   type SteamUserPayload
 } from '../services/steam-client'
 import { focusOrOpenSystemRoute } from '../utils/steam-system-tab-open'
+import eventBus from '../utils/event-bus.js'
 
 defineProps<{
   collapsed: boolean
@@ -467,8 +468,18 @@ watch(open, (v) => {
   }
 })
 
+function onOpenRechargeFromEvent() {
+  if (!hasMetadocCloud.value) return
+  rechargeDialogOpen.value = true
+}
+
 onMounted(() => {
   void refreshSteamState()
+  eventBus.on('steam-cloud-open-recharge', onOpenRechargeFromEvent)
+})
+
+onUnmounted(() => {
+  eventBus.off('steam-cloud-open-recharge', onOpenRechargeFromEvent)
 })
 </script>
 

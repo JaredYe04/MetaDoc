@@ -9,7 +9,8 @@ database_name = "metadoc-billing"
 database_id = "cceae00f-2adf-4177-99a2-cef06a871c6f"
 
 [triggers]
-crons = ["0 * * * *"]
+# 每小时 GetReport；每日 02:15 UTC 对账邮件（与 index.ts scheduled 内 cron 字符串一致）
+crons = ["0 * * * *", "15 2 * * *"]
 
 [vars]
 # 覆盖为真实 App ID；也可 wrangler secret / 环境覆盖
@@ -21,3 +22,4 @@ ALLOW_DEV_AUTH = "false"
 
 # 以下通过 wrangler secret put 设置：
 # JWT_SECRET, OPENAI_API_KEY, STEAM_WEB_API_KEY, DEV_AUTH_SECRET (optional)
+# BREVO_API_KEY, BREVO_SENDER_EMAIL, BREVO_SENDER_NAME (optional) — 对账日报邮件

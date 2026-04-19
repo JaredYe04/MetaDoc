@@ -17,15 +17,27 @@ export async function sendNonStreamRequest(url, payload, headers = {}, signal = 
 
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`
+    let errorCode
+    let errorDetail
     try {
       const errorData = await response.json()
-      const msg = errorData.error?.message ?? errorData.message ?? errorData.code
+      if (typeof errorData.error === 'string') {
+        errorCode = errorData.error
+      }
+      errorDetail = errorData.detail
+      const msg =
+        errorData.message ?? (typeof errorData.error === 'object' ? errorData.error?.message : null)
       if (msg) errorMessage = typeof msg === 'string' ? msg : JSON.stringify(msg)
       if (errorData.request_id) errorMessage += ` (request_id: ${errorData.request_id})`
     } catch {
       // 忽略 JSON 解析错误
     }
-    throw createLlmError(new Error(errorMessage), { status: response.status, url })
+    throw createLlmError(new Error(errorMessage), {
+      status: response.status,
+      url,
+      errorCode,
+      errorDetail
+    })
   }
 
   return await response.json()
@@ -57,13 +69,26 @@ export async function sendStreamRequest(
 
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`
+    let errorCode
+    let errorDetail
     try {
       const errorData = await response.json()
-      errorMessage = errorData.error?.message || errorMessage
+      if (typeof errorData.error === 'string') {
+        errorCode = errorData.error
+      }
+      errorDetail = errorData.detail
+      if (typeof errorData.message === 'string' && errorData.message.length > 0) {
+        errorMessage = errorData.message
+      }
     } catch {
       // 忽略 JSON 解析错误
     }
-    throw createLlmError(new Error(errorMessage), { status: response.status, url })
+    throw createLlmError(new Error(errorMessage), {
+      status: response.status,
+      url,
+      errorCode,
+      errorDetail
+    })
   }
 
   const reader = response.body.getReader()

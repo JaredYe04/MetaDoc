@@ -50,7 +50,9 @@ export const LlmErrorType = {
   /** 响应解析错误 */
   PARSE_ERROR: 'PARSE_ERROR',
   /** 未知错误 */
-  UNKNOWN_ERROR: 'UNKNOWN_ERROR'
+  UNKNOWN_ERROR: 'UNKNOWN_ERROR',
+  /** Steam 官方云：Credits 不足（Worker 返回 INSUFFICIENT_CREDITS / 402） */
+  INSUFFICIENT_CREDITS: 'INSUFFICIENT_CREDITS'
 }
 
 /**
@@ -79,7 +81,9 @@ export class LlmError extends Error {
       [LlmErrorType.ABORTED]: '请求已取消',
       [LlmErrorType.API_ERROR]: this.message || 'API 返回错误',
       [LlmErrorType.PARSE_ERROR]: '响应解析失败',
-      [LlmErrorType.UNKNOWN_ERROR]: this.message || '未知错误'
+      [LlmErrorType.UNKNOWN_ERROR]: this.message || '未知错误',
+      [LlmErrorType.INSUFFICIENT_CREDITS]:
+        this.message || '账户 Credits 不足，请充值后继续使用官方云 AI'
     }
     return messages[this.type] || this.message
   }
@@ -131,6 +135,30 @@ export function createLlmError(error, context = {}) {
   if (error?.name === 'AI_APICallError') {
     const status = error?.statusCode ?? error?.status ?? error?.response?.status
     const rawMessage = error?.message || error?.cause?.message || ''
+    let workerError = null
+    let workerDetail = null
+    const rb = error?.responseBody
+    if (typeof rb === 'string' && rb.length > 0) {
+      try {
+        const j = JSON.parse(rb)
+        if (typeof j.error === 'string') workerError = j.error
+        if (j.detail !== undefined) workerDetail = j.detail
+      } catch {
+        /* ignore */
+      }
+    }
+    if (workerError === 'INSUFFICIENT_CREDITS' || context?.errorCode === 'INSUFFICIENT_CREDITS') {
+      const msg =
+        typeof error?.responseBody === 'string' && error.responseBody.includes('Not enough credits')
+          ? '账户 Credits 不足，请充值后继续使用官方云 AI'
+          : rawMessage || '账户 Credits 不足，请充值后继续使用官方云 AI'
+      return new LlmError(LlmErrorType.INSUFFICIENT_CREDITS, msg, error, {
+        ...context,
+        status: status || 402,
+        workerDetail,
+        errorCode: 'INSUFFICIENT_CREDITS'
+      })
+    }
     if (status === 402 || /insufficient balance|余额不足|quota|余额|欠费/i.test(rawMessage)) {
       return new LlmError(LlmErrorType.API_ERROR, 'API 余额不足，请充值后重试', error, {
         ...context,
@@ -166,6 +194,14 @@ export function createLlmError(error, context = {}) {
 
   // 处理 HTTP 错误（包括从 context 中获取的 status）
   if (status !== undefined) {
+    if (context?.errorCode === 'INSUFFICIENT_CREDITS') {
+      return new LlmError(
+        LlmErrorType.INSUFFICIENT_CREDITS,
+        error?.message || '账户 Credits 不足，请充值后继续使用官方云 AI',
+        error,
+        { ...context, status }
+      )
+    }
     if (status === 401 || status === 403) {
       return new LlmError(
         LlmErrorType.AUTH_ERROR,

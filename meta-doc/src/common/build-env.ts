@@ -20,3 +20,21 @@ export function getMetadocCloudApiBase(): string {
     return ''
   }
 }
+
+/**
+ * Steam 微交易结账方式：`auto`（默认，有公网 IP 则 Web）、`web`（强制网页）、`client`（仅 Steam 客户端覆盖层，不打开 checkout.steampowered.com）。
+ * 网页授权反复「站点错误 / Site Error」时可设 `client` 绕过浏览器支付页（需从 Steam 启动且 Greenworks 支持覆盖层内购）。
+ */
+export type MetadocSteamMtxCheckoutPref = 'auto' | 'web' | 'client'
+
+export function getMetadocSteamMtxCheckoutPref(): MetadocSteamMtxCheckoutPref {
+  try {
+    const v = (import.meta.env.VITE_METADOC_STEAM_MTX_CHECKOUT as string | undefined)
+      ?.trim()
+      .toLowerCase()
+    if (v === 'client' || v === 'web' || v === 'auto') return v
+  } catch {
+    /* ignore */
+  }
+  return 'auto'
+}

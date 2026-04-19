@@ -5673,6 +5673,7 @@
     "errorDetails": "오류 정보",
     "errorType": "오류 유형",
     "learnHowToConfigure": "구성 튜토리얼 보기",
+    "rechargeCredits": "크레딧 충전",
     "message": "안내",
     "title": "LLM 호출 실패",
     "titleBuiltinFree": "무료 모델 일시적으로 사용 불가",

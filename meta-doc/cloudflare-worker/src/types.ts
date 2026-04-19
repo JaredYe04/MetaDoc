@@ -11,6 +11,10 @@ export type Env = {
   STEAM_MICROTX_SANDBOX?: string
   ALLOW_DEV_AUTH?: string
   DEV_AUTH_SECRET?: string
+  /** Brevo transactional email（对账日报） */
+  BREVO_API_KEY?: string
+  BREVO_SENDER_EMAIL?: string
+  BREVO_SENDER_NAME?: string
 }
 
 export type JWTPayload = {

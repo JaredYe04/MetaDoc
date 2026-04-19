@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "mtx:verify": "node scripts/mtx-verify.mjs",
+    "mtx:query-txn": "node scripts/mtx-verify.mjs query-txn",
+    "mtx:match-url": "node scripts/mtx-verify.mjs match-checkout-url",
+    "mtx:d1-recent": "node scripts/mtx-verify.mjs d1-recent"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251125.0",

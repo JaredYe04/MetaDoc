@@ -1753,6 +1753,13 @@
       "agentSessionDebug": "Agent Session Debug",
       "exportRegression": "Export Regression Test",
       "startupProfile": "Startup Profile",
+      "steamCloudDebug": "Steam Cloud / MTX",
+      "steamCloudDebugHint": "Simulate insufficient-credits dialog, clear cached cloud JWT; in dev, call Worker dev simulate-complete for an init order (requires ALLOW_DEV_AUTH and X-Dev-Secret).",
+      "steamCloudSimulateInsufficient": "Simulate insufficient credits error",
+      "steamCloudClearJwt": "Clear cloud JWT cache",
+      "steamCloudDevSimulateTitle": "DEV: simulate payment complete",
+      "steamCloudOrderIdPlaceholder": "order_id (after real init)",
+      "steamCloudDevSimulateRun": "Call simulate-complete API",
       "startupProfileHint": "Set ENABLE_STARTUP_PROFILE=1 at launch to record phase timings. Main process data via IPC; renderer from this load.",
       "startupProfileMain": "Main Process",
       "startupProfileRenderer": "Renderer Process",
@@ -5955,6 +5962,7 @@
     "message": "Message",
     "originalException": "Original exception (expand)",
     "dontShowAgain": "Don't show again",
-    "learnHowToConfigure": "Open configuration tutorial"
+    "learnHowToConfigure": "Open configuration tutorial",
+    "rechargeCredits": "Recharge credits"
   }
 }

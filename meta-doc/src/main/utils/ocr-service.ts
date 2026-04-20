@@ -208,8 +208,11 @@ const I18N_TO_TESSERACT_LANG_MAP: Record<string, string> = {
   ko_KR: 'kor',
   fr_FR: 'fra',
   de_DE: 'deu',
-  es_ES: 'spa', // 西班牙语（如果将来支持）
-  ru_RU: 'rus' // 俄语（如果将来支持）
+  es_ES: 'spa',
+  es_419: 'spa',
+  pt_BR: 'por',
+  pt_PT: 'por',
+  ru_RU: 'rus'
 }
 
 /**

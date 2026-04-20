@@ -15,7 +15,9 @@
         "ja_JP": "クイックスタート",
         "ko_KR": "빠른 시작",
         "de_DE": "Schnellstart",
-        "fr_FR": "Démarrage rapide"
+        "fr_FR": "Démarrage rapide",
+        "es_419": "Inicio rápido",
+        "pt_PT": "Início Rápido"
       },
       "icon": "🚀",
       "articles": [
@@ -31,7 +33,9 @@
             "ja_JP": "クイックスタートガイド",
             "ko_KR": "빠른 시작 가이드",
             "de_DE": "Schnellstart-Anleitung",
-            "fr_FR": "Guide de démarrage rapide"
+            "fr_FR": "Guide de démarrage rapide",
+            "es_419": "Guía de inicio rápido",
+            "pt_PT": "Guia de Início Rápido"
           },
           "tags": [
             "基础",
@@ -59,7 +63,9 @@
             "ja_JP": "ベストプラクティス手順書",
             "ko_KR": "모범 사례 안내서",
             "de_DE": "Leitfaden zu Best Practices",
-            "fr_FR": "Guide des bonnes pratiques"
+            "fr_FR": "Guide des bonnes pratiques",
+            "es_419": "Manual de buenas prácticas",
+            "pt_PT": "Manual de boas práticas"
           },
           "tags": [
             "工作流",
@@ -95,7 +101,9 @@
         "ja_JP": "基本操作",
         "ko_KR": "핵심 작업",
         "de_DE": "Kernoperationen",
-        "fr_FR": "Opérations principales"
+        "fr_FR": "Opérations principales",
+        "es_419": "Operaciones principales",
+        "pt_PT": "Operações Principais"
       },
       "icon": "📝",
       "articles": [
@@ -111,7 +119,9 @@
             "ja_JP": "ファイル操作",
             "ko_KR": "파일 작업",
             "de_DE": "Dateioperationen",
-            "fr_FR": "Opérations sur les fichiers"
+            "fr_FR": "Opérations sur les fichiers",
+            "es_419": "Operaciones con archivos",
+            "pt_PT": "Operações com Arquivos"
           },
           "tags": [
             "文件",
@@ -138,7 +148,9 @@
             "ja_JP": "エディタ基本操作",
             "ko_KR": "편집기 기본 작업",
             "de_DE": "Grundlegende Editor-Bedienung",
-            "fr_FR": "Opérations de base de l'éditeur"
+            "fr_FR": "Opérations de base de l'éditeur",
+            "es_419": "Operaciones básicas del editor",
+            "pt_PT": "Operações Básicas do Editor"
           },
           "tags": [
             "编辑器",
@@ -168,7 +180,9 @@
             "ja_JP": "テキストエディタ",
             "ko_KR": "텍스트 편집기",
             "de_DE": "Texteditor",
-            "fr_FR": "Éditeur de texte brut"
+            "fr_FR": "Éditeur de texte brut",
+            "es_419": "Editor de texto plano",
+            "pt_PT": "Editor de Texto Simples"
           },
           "tags": [
             "编辑器",
@@ -198,7 +212,9 @@
             "ja_JP": "エディタ設定",
             "ko_KR": "편집기 설정",
             "de_DE": "Editor-Einstellungen",
-            "fr_FR": "Paramètres de l'éditeur"
+            "fr_FR": "Paramètres de l'éditeur",
+            "es_419": "Configuración del editor",
+            "pt_PT": "Configurações do Editor"
           },
           "tags": [
             "编辑器",
@@ -226,7 +242,9 @@
             "ja_JP": "タブ管理",
             "ko_KR": "다중 탭 관리",
             "de_DE": "Verwaltung mehrerer Tabs",
-            "fr_FR": "Gestion des onglets multiples"
+            "fr_FR": "Gestion des onglets multiples",
+            "es_419": "Gestión de pestañas múltiples",
+            "pt_PT": "Gerenciamento de Múltiplas Abas"
           },
           "tags": [
             "标签页",
@@ -254,7 +272,9 @@
             "ja_JP": "マルチウィンドウ管理",
             "ko_KR": "다중 창 관리",
             "de_DE": "Verwaltung mehrerer Fenster",
-            "fr_FR": "Gestion des fenêtres multiples"
+            "fr_FR": "Gestion des fenêtres multiples",
+            "es_419": "Gestión de múltiples ventanas",
+            "pt_PT": "Gerenciamento de Múltiplas Janelas"
           },
           "tags": [
             "窗口",
@@ -282,7 +302,9 @@
             "ja_JP": "エクスポート機能",
             "ko_KR": "내보내기 기능",
             "de_DE": "Exportfunktion",
-            "fr_FR": "Fonction d'exportation"
+            "fr_FR": "Fonction d'exportation",
+            "es_419": "Funcionalidad de exportación",
+            "pt_PT": "Funcionalidade de Exportação"
           },
           "tags": [
             "导出",
@@ -312,7 +334,9 @@
             "ja_JP": "ドキュメントメタ情報",
             "ko_KR": "문서 메타정보",
             "de_DE": "Dokument-Metadaten",
-            "fr_FR": "Métadonnées du document"
+            "fr_FR": "Métadonnées du document",
+            "es_419": "Metadatos del documento",
+            "pt_PT": "Metadados do Documento"
           },
           "tags": [
             "元信息",
@@ -342,7 +366,9 @@
         "ja_JP": "Markdownエディタ",
         "ko_KR": "Markdown 편집기",
         "de_DE": "Markdown-Editor",
-        "fr_FR": "Éditeur Markdown"
+        "fr_FR": "Éditeur Markdown",
+        "es_419": "Editor Markdown",
+        "pt_PT": "Editor Markdown"
       },
       "icon": "📄",
       "articles": [
@@ -358,7 +384,9 @@
             "ja_JP": "Markdownエディタ利用ガイド",
             "ko_KR": "Markdown 편집기 사용 가이드",
             "de_DE": "Anleitung zur Verwendung des Markdown-Editors",
-            "fr_FR": "Guide d'utilisation de l'éditeur Markdown"
+            "fr_FR": "Guide d'utilisation de l'éditeur Markdown",
+            "es_419": "Guía de uso del editor Markdown",
+            "pt_PT": "Guia de Uso do Editor Markdown"
           },
           "tags": [
             "Markdown",
@@ -388,7 +416,9 @@
             "ja_JP": "Markdown構文",
             "ko_KR": "Markdown 문법",
             "de_DE": "Markdown-Syntax",
-            "fr_FR": "Syntaxe Markdown"
+            "fr_FR": "Syntaxe Markdown",
+            "es_419": "Sintaxis de Markdown",
+            "pt_PT": "Sintaxe Markdown"
           },
           "tags": [
             "Markdown",
@@ -417,7 +447,9 @@
             "ja_JP": "Markdown高度な機能",
             "ko_KR": "Markdown 고급 기능",
             "de_DE": "Erweiterte Markdown-Funktionen",
-            "fr_FR": "Fonctions avancées Markdown"
+            "fr_FR": "Fonctions avancées Markdown",
+            "es_419": "Funciones avanzadas de Markdown",
+            "pt_PT": "Funcionalidades Avançadas do Markdown"
           },
           "tags": [
             "Markdown",
@@ -446,7 +478,9 @@
             "ja_JP": "Markdownエディタ機能",
             "ko_KR": "Markdown 편집기 기능",
             "de_DE": "Funktionen des Markdown-Editors",
-            "fr_FR": "Fonctionnalités de l'éditeur Markdown"
+            "fr_FR": "Fonctionnalités de l'éditeur Markdown",
+            "es_419": "Funciones del editor Markdown",
+            "pt_PT": "Funcionalidades do Editor Markdown"
           },
           "tags": [
             "Markdown",
@@ -477,7 +511,9 @@
         "ja_JP": "LaTeXエディタ",
         "ko_KR": "LaTeX 편집기",
         "de_DE": "LaTeX-Editor",
-        "fr_FR": "Éditeur LaTeX"
+        "fr_FR": "Éditeur LaTeX",
+        "es_419": "Editor LaTeX",
+        "pt_PT": "Editor LaTeX"
       },
       "icon": "📐",
       "articles": [
@@ -493,7 +529,9 @@
             "ja_JP": "LaTeXエディタ利用ガイド",
             "ko_KR": "LaTeX 편집기 사용 가이드",
             "de_DE": "Anleitung zur Verwendung des LaTeX-Editors",
-            "fr_FR": "Guide d'utilisation de l'éditeur LaTeX"
+            "fr_FR": "Guide d'utilisation de l'éditeur LaTeX",
+            "es_419": "Guía de uso del editor LaTeX",
+            "pt_PT": "Guia de Uso do Editor LaTeX"
           },
           "tags": [
             "LaTeX",
@@ -523,7 +561,9 @@
             "ja_JP": "LaTeX構文",
             "ko_KR": "LaTeX 문법",
             "de_DE": "LaTeX-Syntax",
-            "fr_FR": "Syntaxe LaTeX"
+            "fr_FR": "Syntaxe LaTeX",
+            "es_419": "Sintaxis de LaTeX",
+            "pt_PT": "Sintaxe LaTeX"
           },
           "tags": [
             "LaTeX",
@@ -552,7 +592,9 @@
             "ja_JP": "LaTeXコンパイルとプレビュー",
             "ko_KR": "LaTeX 컴파일 및 미리보기",
             "de_DE": "LaTeX-Kompilierung und -Vorschau",
-            "fr_FR": "Compilation et prévisualisation LaTeX"
+            "fr_FR": "Compilation et prévisualisation LaTeX",
+            "es_419": "Compilación y vista previa de LaTeX",
+            "pt_PT": "Compilação e Visualização LaTeX"
           },
           "tags": [
             "LaTeX",
@@ -581,7 +623,9 @@
             "ja_JP": "PDFプレビュー機能",
             "ko_KR": "PDF 미리보기 기능",
             "de_DE": "PDF-Vorschaufunktion",
-            "fr_FR": "Fonction de prévisualisation PDF"
+            "fr_FR": "Fonction de prévisualisation PDF",
+            "es_419": "Funcionalidad de vista previa PDF",
+            "pt_PT": "Funcionalidade de Visualização de PDF"
           },
           "tags": [
             "PDF",
@@ -610,7 +654,9 @@
             "ja_JP": "コンソール出力",
             "ko_KR": "콘솔 출력",
             "de_DE": "Konsolenausgabe",
-            "fr_FR": "Sortie de la console"
+            "fr_FR": "Sortie de la console",
+            "es_419": "Salida de la consola",
+            "pt_PT": "Saída do Console"
           },
           "tags": [
             "控制台",
@@ -640,7 +686,9 @@
         "ja_JP": "AI機能",
         "ko_KR": "AI 기능",
         "de_DE": "KI-Funktionen",
-        "fr_FR": "Fonctionnalités IA"
+        "fr_FR": "Fonctionnalités IA",
+        "es_419": "Funciones de IA",
+        "pt_PT": "Funcionalidades de IA"
       },
       "icon": "🤖",
       "articles": [
@@ -656,7 +704,9 @@
             "ja_JP": "AIチャット機能",
             "ko_KR": "AI 대화 기능",
             "de_DE": "KI-Chat-Funktion",
-            "fr_FR": "Fonction de dialogue IA"
+            "fr_FR": "Fonction de dialogue IA",
+            "es_419": "Funcionalidad de diálogo con IA",
+            "pt_PT": "Funcionalidade de Diálogo com IA"
           },
           "tags": [
             "AI",
@@ -683,7 +733,9 @@
             "ja_JP": "AIオートコンプリート",
             "ko_KR": "AI 자동 완성",
             "de_DE": "KI-Autovervollständigung",
-            "fr_FR": "Auto-complétion IA"
+            "fr_FR": "Auto-complétion IA",
+            "es_419": "Autocompletado con IA",
+            "pt_PT": "Auto-completar com IA"
           },
           "tags": [
             "AI",
@@ -712,7 +764,9 @@
             "ja_JP": "AI校正機能",
             "ko_KR": "AI 교정 기능",
             "de_DE": "KI-Korrekturlesefunktion",
-            "fr_FR": "Fonction de relecture IA"
+            "fr_FR": "Fonction de relecture IA",
+            "es_419": "Funcionalidad de corrección con IA",
+            "pt_PT": "Funcionalidade de Revisão com IA"
           },
           "tags": [
             "AI",
@@ -741,7 +795,9 @@
             "ja_JP": "AIタスクキュー",
             "ko_KR": "AI 작업 큐",
             "de_DE": "KI-Aufgabenwarteschlange",
-            "fr_FR": "File d'attente des tâches IA"
+            "fr_FR": "File d'attente des tâches IA",
+            "es_419": "Cola de tareas de IA",
+            "pt_PT": "Fila de Tarefas de IA"
           },
           "tags": [
             "AI",
@@ -770,7 +826,9 @@
             "ja_JP": "LLM設定",
             "ko_KR": "LLM 설정",
             "de_DE": "LLM-Konfiguration",
-            "fr_FR": "Configuration LLM"
+            "fr_FR": "Configuration LLM",
+            "es_419": "Configuración de LLM",
+            "pt_PT": "Configuração de LLM"
           },
           "tags": [
             "AI",
@@ -798,7 +856,9 @@
             "ja_JP": "AIアシスタント機能",
             "ko_KR": "AI 어시스턴트 기능",
             "de_DE": "KI-Assistentenfunktion",
-            "fr_FR": "Fonction d'assistant IA"
+            "fr_FR": "Fonction d'assistant IA",
+            "es_419": "Funciones del asistente de IA",
+            "pt_PT": "Funcionalidade de Assistente de IA"
           },
           "tags": [
             "AI",
@@ -829,7 +889,9 @@
         "ja_JP": "Agentフレームワーク",
         "ko_KR": "에이전트 프레임워크",
         "de_DE": "Agenten-Framework",
-        "fr_FR": "Cadre Agent"
+        "fr_FR": "Cadre Agent",
+        "es_419": "Marco de Agentes",
+        "pt_PT": "Estrutura de Agentes"
       },
       "icon": "⚙️",
       "articles": [
@@ -845,7 +907,9 @@
             "ja_JP": "Agentフレームワーク概要",
             "ko_KR": "에이전트 프레임워크 개요",
             "de_DE": "Überblick über das Agenten-Framework",
-            "fr_FR": "Aperçu du cadre Agent"
+            "fr_FR": "Aperçu du cadre Agent",
+            "es_419": "Descripción general del marco de Agentes",
+            "pt_PT": "Visão Geral da Estrutura de Agentes"
           },
           "tags": [
             "Agent",
@@ -875,7 +939,9 @@
             "ja_JP": "Agentセッション管理",
             "ko_KR": "에이전트 세션 관리",
             "de_DE": "Verwaltung von Agenten-Sitzungen",
-            "fr_FR": "Gestion des sessions Agent"
+            "fr_FR": "Gestion des sessions Agent",
+            "es_419": "Gestión de sesiones de Agentes",
+            "pt_PT": "Gerenciamento de Sessões de Agente"
           },
           "tags": [
             "Agent",
@@ -904,7 +970,9 @@
             "ja_JP": "ツールセット管理",
             "ko_KR": "도구 집합 관리",
             "de_DE": "Verwaltung des Werkzeugsatzes",
-            "fr_FR": "Gestion de la boîte à outils"
+            "fr_FR": "Gestion de la boîte à outils",
+            "es_419": "Gestión de conjuntos de herramientas",
+            "pt_PT": "Gerenciamento de Conjunto de Ferramentas"
           },
           "tags": [
             "Agent",
@@ -933,7 +1001,9 @@
             "ja_JP": "ルール、スキル、MCP管理",
             "ko_KR": "규칙, 스킬 및 MCP 관리",
             "de_DE": "Regeln, Skills & MCP-Verwaltung",
-            "fr_FR": "Règles, compétences et gestion MCP"
+            "fr_FR": "Règles, compétences et gestion MCP",
+            "es_419": "Reglas, habilidades y gestión MCP",
+            "pt_PT": "Regras, habilidades e gerenciamento MCP"
           },
           "tags": [
             "Agent",
@@ -964,7 +1034,9 @@
         "ja_JP": "ナレッジベース",
         "ko_KR": "지식 베이스",
         "de_DE": "Wissensdatenbank",
-        "fr_FR": "Base de connaissances"
+        "fr_FR": "Base de connaissances",
+        "es_419": "Base de conocimientos",
+        "pt_PT": "Base de Conhecimento"
       },
       "icon": "📚",
       "articles": [
@@ -980,7 +1052,9 @@
             "ja_JP": "ナレッジベースの利用",
             "ko_KR": "지식 베이스 사용",
             "de_DE": "Nutzung der Wissensdatenbank",
-            "fr_FR": "Utilisation de la base de connaissances"
+            "fr_FR": "Utilisation de la base de connaissances",
+            "es_419": "Uso de la base de conocimientos",
+            "pt_PT": "Uso da Base de Conhecimento"
           },
           "tags": [
             "知识库",
@@ -1008,7 +1082,9 @@
             "ja_JP": "ナレッジベース管理",
             "ko_KR": "지식 베이스 관리",
             "de_DE": "Verwaltung der Wissensdatenbank",
-            "fr_FR": "Gestion de la base de connaissances"
+            "fr_FR": "Gestion de la base de connaissances",
+            "es_419": "Gestión de la base de conocimientos",
+            "pt_PT": "Gerenciamento da Base de Conhecimento"
           },
           "tags": [
             "知识库",
@@ -1035,7 +1111,9 @@
             "ja_JP": "ナレッジベース設定",
             "ko_KR": "지식 베이스 설정",
             "de_DE": "Konfiguration der Wissensdatenbank",
-            "fr_FR": "Configuration de la base de connaissances"
+            "fr_FR": "Configuration de la base de connaissances",
+            "es_419": "Configuración de la base de conocimientos",
+            "pt_PT": "Configuração da Base de Conhecimento"
           },
           "tags": [
             "知识库",
@@ -1066,7 +1144,9 @@
         "ja_JP": "システム設定",
         "ko_KR": "시스템 설정",
         "de_DE": "Systemeinstellungen",
-        "fr_FR": "Paramètres système"
+        "fr_FR": "Paramètres système",
+        "es_419": "Configuración del sistema",
+        "pt_PT": "Configurações do Sistema"
       },
       "icon": "⚙️",
       "articles": [
@@ -1082,7 +1162,9 @@
             "ja_JP": "基本設定",
             "ko_KR": "기본 설정",
             "de_DE": "Grundeinstellungen",
-            "fr_FR": "Paramètres de base"
+            "fr_FR": "Paramètres de base",
+            "es_419": "Configuración básica",
+            "pt_PT": "Configurações Básicas"
           },
           "tags": [
             "设置",
@@ -1109,7 +1191,9 @@
             "ja_JP": "テーマ設定",
             "ko_KR": "테마 구성",
             "de_DE": "Themenkonfiguration",
-            "fr_FR": "Configuration du thème"
+            "fr_FR": "Configuration du thème",
+            "es_419": "Configuración del tema",
+            "pt_PT": "Configuração de Tema"
           },
           "tags": [
             "设置",
@@ -1136,7 +1220,9 @@
             "ja_JP": "カスタムテーマ管理",
             "ko_KR": "사용자 정의 테마 관리",
             "de_DE": "Verwaltung benutzerdefinierter Themen",
-            "fr_FR": "Gestion des thèmes personnalisés"
+            "fr_FR": "Gestion des thèmes personnalisés",
+            "es_419": "Gestión de temas personalizados",
+            "pt_PT": "Gerenciamento de Temas Personalizados"
           },
           "tags": [
             "设置",
@@ -1165,7 +1251,9 @@
             "ja_JP": "画像アップロード設定",
             "ko_KR": "이미지 업로드 설정",
             "de_DE": "Bildupload-Konfiguration",
-            "fr_FR": "Configuration du téléchargement d'images"
+            "fr_FR": "Configuration du téléchargement d'images",
+            "es_419": "Configuración de carga de imágenes",
+            "pt_PT": "Configuração de Upload de Imagens"
           },
           "tags": [
             "设置",
@@ -1192,7 +1280,9 @@
             "ja_JP": "アップロードサービス設定",
             "ko_KR": "업로드 서비스 설정",
             "de_DE": "Einstellungen für Upload-Dienste",
-            "fr_FR": "Paramètres du service de téléchargement"
+            "fr_FR": "Paramètres du service de téléchargement",
+            "es_419": "Configuración del servicio de carga",
+            "pt_PT": "Configuração do Serviço de Upload"
           },
           "tags": [
             "设置",
@@ -1221,7 +1311,9 @@
             "ja_JP": "ログ設定",
             "ko_KR": "로그 구성",
             "de_DE": "Protokollkonfiguration",
-            "fr_FR": "Configuration des journaux"
+            "fr_FR": "Configuration des journaux",
+            "es_419": "Configuración de registros",
+            "pt_PT": "Configuração de Logs"
           },
           "tags": [
             "设置",
@@ -1248,7 +1340,9 @@
             "ja_JP": "バージョン情報",
             "ko_KR": "정보",
             "de_DE": "Über-Informationen",
-            "fr_FR": "Informations sur"
+            "fr_FR": "Informations sur",
+            "es_419": "Información sobre",
+            "pt_PT": "Informações Sobre"
           },
           "tags": [
             "设置",
@@ -1274,7 +1368,9 @@
             "ja_JP": "LLM設定",
             "ko_KR": "LLM 설정",
             "de_DE": "LLM-Konfiguration",
-            "fr_FR": "Configuration LLM"
+            "fr_FR": "Configuration LLM",
+            "es_419": "Configuración de LLM",
+            "pt_PT": "Configuração de LLM"
           },
           "tags": [
             "设置",
@@ -1303,7 +1399,9 @@
             "ja_JP": "LLM API 設定ガイド",
             "ko_KR": "LLM API 설정 가이드",
             "de_DE": "LLM-API einrichten",
-            "fr_FR": "Configurer l’API LLM"
+            "fr_FR": "Configurer l’API LLM",
+            "es_419": "Guía rápida: API LLM",
+            "pt_PT": "Guia rápido: API LLM"
           },
           "tags": [
             "设置",
@@ -1335,7 +1433,9 @@
             "ja_JP": "LLM設定管理",
             "ko_KR": "LLM 설정 관리",
             "de_DE": "Verwaltung der LLM-Konfiguration",
-            "fr_FR": "Gestion de la configuration LLM"
+            "fr_FR": "Gestion de la configuration LLM",
+            "es_419": "Gestión de configuración de LLM",
+            "pt_PT": "Gerenciamento de Configuração de LLM"
           },
           "tags": [
             "设置",
@@ -1365,7 +1465,9 @@
             "ja_JP": "LLMタイプ設定",
             "ko_KR": "LLM 유형 구성",
             "de_DE": "Konfiguration der LLM-Typen",
-            "fr_FR": "Configuration du type LLM"
+            "fr_FR": "Configuration du type LLM",
+            "es_419": "Configuración de tipos de LLM",
+            "pt_PT": "Configuração de Tipo de LLM"
           },
           "tags": [
             "设置",
@@ -1395,7 +1497,9 @@
             "ja_JP": "多言語対応",
             "ko_KR": "다국어 지원",
             "de_DE": "Mehrsprachige Unterstützung",
-            "fr_FR": "Prise en charge multilingue"
+            "fr_FR": "Prise en charge multilingue",
+            "es_419": "Soporte multilingüe",
+            "pt_PT": "Suporte a Múltiplos Idiomas"
           },
           "tags": [
             "设置",
@@ -1421,7 +1525,9 @@
             "ja_JP": "メニュー設定",
             "ko_KR": "메뉴 구성",
             "de_DE": "Menükonfiguration",
-            "fr_FR": "Configuration du menu"
+            "fr_FR": "Configuration du menu",
+            "es_419": "Configuración del menú",
+            "pt_PT": "Configuração de Menu"
           },
           "tags": [
             "设置",
@@ -1449,7 +1555,9 @@
         "ja_JP": "ホーム機能",
         "ko_KR": "홈 기능",
         "de_DE": "Startseitenfunktionen",
-        "fr_FR": "Fonctionnalités de la page d'accueil"
+        "fr_FR": "Fonctionnalités de la page d'accueil",
+        "es_419": "Funciones de la página principal",
+        "pt_PT": "Funcionalidade da Página Inicial"
       },
       "icon": "🏠",
       "articles": [
@@ -1465,7 +1573,9 @@
             "ja_JP": "ホーム機能",
             "ko_KR": "홈 기능",
             "de_DE": "Startseitenfunktionen",
-            "fr_FR": "Fonctionnalités de la page d'accueil"
+            "fr_FR": "Fonctionnalités de la page d'accueil",
+            "es_419": "Funciones de la página de inicio",
+            "pt_PT": "Funcionalidade da Página Inicial"
           },
           "tags": [
             "主页",
@@ -1494,7 +1604,9 @@
         "ja_JP": "ユーザー機能",
         "ko_KR": "사용자 기능",
         "de_DE": "Benutzerfunktionen",
-        "fr_FR": "Fonctionnalités utilisateur"
+        "fr_FR": "Fonctionnalités utilisateur",
+        "es_419": "Funciones del usuario",
+        "pt_PT": "Funcionalidade do Usuário"
       },
       "icon": "👤",
       "articles": [
@@ -1510,7 +1622,9 @@
             "ja_JP": "ユーザープロフィール",
             "ko_KR": "사용자 프로필",
             "de_DE": "Benutzerprofil",
-            "fr_FR": "Profil utilisateur"
+            "fr_FR": "Profil utilisateur",
+            "es_419": "Perfil de usuario",
+            "pt_PT": "Perfil do Usuário"
           },
           "tags": [
             "用户",
@@ -1537,7 +1651,9 @@
             "ja_JP": "ユーザーフィードバック",
             "ko_KR": "사용자 피드백",
             "de_DE": "Benutzerfeedback",
-            "fr_FR": "Retour d'expérience utilisateur"
+            "fr_FR": "Retour d'expérience utilisateur",
+            "es_419": "Comentarios de usuarios",
+            "pt_PT": "Feedback do Usuário"
           },
           "tags": [
             "用户",
@@ -1566,7 +1682,9 @@
         "ja_JP": "作業ディレクトリ",
         "ko_KR": "작업 디렉토리",
         "de_DE": "Arbeitsverzeichnis",
-        "fr_FR": "Répertoire de travail"
+        "fr_FR": "Répertoire de travail",
+        "es_419": "Directorio de trabajo",
+        "pt_PT": "Diretório de Trabalho"
       },
       "icon": "📁",
       "articles": [
@@ -1582,7 +1700,9 @@
             "ja_JP": "作業ディレクトリ管理",
             "ko_KR": "작업 디렉토리 관리",
             "de_DE": "Verwaltung des Arbeitsverzeichnisses",
-            "fr_FR": "Gestion du répertoire de travail"
+            "fr_FR": "Gestion du répertoire de travail",
+            "es_419": "Gestión del directorio de trabajo",
+            "pt_PT": "Gerenciamento do Diretório de Trabalho"
           },
           "tags": [
             "工作目录",
@@ -1611,7 +1731,9 @@
         "ja_JP": "ショートカットキー",
         "ko_KR": "단축키",
         "de_DE": "Tastenkombinationen",
-        "fr_FR": "Raccourcis clavier"
+        "fr_FR": "Raccourcis clavier",
+        "es_419": "Atajos de teclado",
+        "pt_PT": "Atalhos de Teclado"
       },
       "icon": "⌨️",
       "articles": [
@@ -1627,7 +1749,9 @@
             "ja_JP": "グローバルショートカットキー",
             "ko_KR": "전역 단축키",
             "de_DE": "Globale Tastenkombinationen",
-            "fr_FR": "Raccourcis globaux"
+            "fr_FR": "Raccourcis globaux",
+            "es_419": "Atajos de teclado globales",
+            "pt_PT": "Atalhos Globais"
           },
           "tags": [
             "快捷键",
@@ -1654,7 +1778,9 @@
             "ja_JP": "エディタショートカットキー",
             "ko_KR": "편집기 단축키",
             "de_DE": "Editor-Tastenkombinationen",
-            "fr_FR": "Raccourcis de l'éditeur"
+            "fr_FR": "Raccourcis de l'éditeur",
+            "es_419": "Atajos de teclado del editor",
+            "pt_PT": "Atalhos do Editor"
           },
           "tags": [
             "快捷键",
@@ -1685,7 +1811,9 @@
         "ja_JP": "ビュー切り替え",
         "ko_KR": "뷰 전환",
         "de_DE": "Ansichtsumschaltung",
-        "fr_FR": "Changement de vue"
+        "fr_FR": "Changement de vue",
+        "es_419": "Cambio de vista",
+        "pt_PT": "Alternância de Visualização"
       },
       "icon": "👁️",
       "articles": [
@@ -1701,7 +1829,9 @@
             "ja_JP": "ビュータイプ",
             "ko_KR": "뷰 유형",
             "de_DE": "Ansichtstypen",
-            "fr_FR": "Types de vue"
+            "fr_FR": "Types de vue",
+            "es_419": "Tipos de vista",
+            "pt_PT": "Tipos de Visualização"
           },
           "tags": [
             "视图",
@@ -1730,7 +1860,9 @@
         "ja_JP": "アウトラインビュー",
         "ko_KR": "개요 뷰",
         "de_DE": "Gliederungsansicht",
-        "fr_FR": "Vue hiérarchique"
+        "fr_FR": "Vue hiérarchique",
+        "es_419": "Vista de esquema",
+        "pt_PT": "Visualização de Estrutura"
       },
       "icon": "📑",
       "articles": [
@@ -1746,7 +1878,9 @@
             "ja_JP": "アウトラインビュー機能",
             "ko_KR": "개요 뷰 기능",
             "de_DE": "Funktionen der Gliederungsansicht",
-            "fr_FR": "Fonctionnalités de la vue hiérarchique"
+            "fr_FR": "Fonctionnalités de la vue hiérarchique",
+            "es_419": "Funciones de la vista de esquema",
+            "pt_PT": "Funcionalidade da Visualização de Estrutura"
           },
           "tags": [
             "大纲",
@@ -1776,7 +1910,9 @@
             "ja_JP": "アウトラインAI機能",
             "ko_KR": "개요 AI 기능",
             "de_DE": "KI-Funktionen der Gliederungsansicht",
-            "fr_FR": "Fonction IA de la vue hiérarchique"
+            "fr_FR": "Fonction IA de la vue hiérarchique",
+            "es_419": "Funciones de IA en el esquema",
+            "pt_PT": "Funcionalidade de IA na Estrutura"
           },
           "tags": [
             "大纲",
@@ -1809,7 +1945,9 @@
         "ja_JP": "統計とモニタリング",
         "ko_KR": "통계 및 모니터링",
         "de_DE": "Statistiken und Überwachung",
-        "fr_FR": "Statistiques et surveillance"
+        "fr_FR": "Statistiques et surveillance",
+        "es_419": "Estadísticas y monitoreo",
+        "pt_PT": "Estatísticas e Monitoramento"
       },
       "icon": "📊",
       "articles": [
@@ -1825,7 +1963,9 @@
             "ja_JP": "LLM統計",
             "ko_KR": "LLM 통계",
             "de_DE": "LLM-Statistiken",
-            "fr_FR": "Statistiques LLM"
+            "fr_FR": "Statistiques LLM",
+            "es_419": "Estadísticas de LLM",
+            "pt_PT": "Estatísticas de LLM"
           },
           "tags": [
             "统计",
@@ -1853,7 +1993,9 @@
             "ja_JP": "校正ツール統計",
             "ko_KR": "교정 도구 통계",
             "de_DE": "Statistiken des Korrekturlesewerkzeugs",
-            "fr_FR": "Statistiques de l'outil de relecture"
+            "fr_FR": "Statistiques de l'outil de relecture",
+            "es_419": "Estadísticas de la herramienta de corrección",
+            "pt_PT": "Estatísticas da Ferramenta de Revisão"
           },
           "tags": [
             "统计",
@@ -1882,7 +2024,9 @@
         "ja_JP": "機能特性",
         "ko_KR": "기능 특성",
         "de_DE": "Funktionen und Eigenschaften",
-        "fr_FR": "Caractéristiques des fonctionnalités"
+        "fr_FR": "Caractéristiques des fonctionnalités",
+        "es_419": "Características de la funcionalidad",
+        "pt_PT": "Características e Funcionalidades"
       },
       "icon": "✨",
       "articles": [
@@ -1898,7 +2042,9 @@
             "ja_JP": "段落最適化機能",
             "ko_KR": "문단 최적화 기능",
             "de_DE": "Absatzoptimierungsfunktion",
-            "fr_FR": "Fonction d'optimisation de paragraphe"
+            "fr_FR": "Fonction d'optimisation de paragraphe",
+            "es_419": "Funcionalidad de optimización de párrafos",
+            "pt_PT": "Funcionalidade de Otimização de Parágrafos"
           },
           "tags": [
             "功能",
@@ -1929,7 +2075,9 @@
         "ja_JP": "ドキュメントフォーマット",
         "ko_KR": "문서 형식",
         "de_DE": "Dokumentformate",
-        "fr_FR": "Format de document"
+        "fr_FR": "Format de document",
+        "es_419": "Formato del documento",
+        "pt_PT": "Formato do Documento"
       },
       "icon": "📄",
       "articles": [
@@ -1945,7 +2093,9 @@
             "ja_JP": "サポートフォーマット",
             "ko_KR": "지원 형식",
             "de_DE": "Unterstützte Formate",
-            "fr_FR": "Formats pris en charge"
+            "fr_FR": "Formats pris en charge",
+            "es_419": "Formatos admitidos",
+            "pt_PT": "Formatos Suportados"
           },
           "tags": [
             "格式",
@@ -1974,7 +2124,9 @@
         "ja_JP": "開発ツール",
         "ko_KR": "개발 도구",
         "de_DE": "Entwicklungswerkzeuge",
-        "fr_FR": "Outils de développement"
+        "fr_FR": "Outils de développement",
+        "es_419": "Herramientas de desarrollo",
+        "pt_PT": "Ferramentas de Desenvolvimento"
       },
       "icon": "🔧",
       "articles": [
@@ -1990,7 +2142,9 @@
             "ja_JP": "デバッグツール",
             "ko_KR": "디버깅 도구",
             "de_DE": "Debugging-Werkzeuge",
-            "fr_FR": "Outils de débogage"
+            "fr_FR": "Outils de débogage",
+            "es_419": "Herramientas de depuración",
+            "pt_PT": "Ferramentas de Depuração"
           },
           "tags": [
             "开发",
@@ -2018,7 +2172,9 @@
         "ja_JP": "グラフ機能",
         "ko_KR": "차트 기능",
         "de_DE": "Diagrammfunktionen",
-        "fr_FR": "Fonctionnalités graphiques"
+        "fr_FR": "Fonctionnalités graphiques",
+        "es_419": "Funciones de gráficos",
+        "pt_PT": "Funcionalidade de Gráficos"
       },
       "icon": "📊",
       "articles": [
@@ -2034,7 +2190,9 @@
             "ja_JP": "グラフ機能の紹介",
             "ko_KR": "차트 기능 소개",
             "de_DE": "Einführung in Diagrammfunktionen",
-            "fr_FR": "Présentation des fonctionnalités graphiques"
+            "fr_FR": "Présentation des fonctionnalités graphiques",
+            "es_419": "Introducción a las funciones de gráficos",
+            "pt_PT": "Introdução à Funcionalidade de Gráficos"
           },
           "tags": [
             "图表"
@@ -2063,7 +2221,9 @@
             "ja_JP": "Mermaid図",
             "ko_KR": "Mermaid 차트",
             "de_DE": "Mermaid-Diagramme",
-            "fr_FR": "Diagrammes Mermaid"
+            "fr_FR": "Diagrammes Mermaid",
+            "es_419": "Gráficos Mermaid",
+            "pt_PT": "Gráficos Mermaid"
           },
           "tags": [
             "图表",
@@ -2091,7 +2251,9 @@
             "ja_JP": "PlantUML図",
             "ko_KR": "PlantUML 차트",
             "de_DE": "PlantUML-Diagramme",
-            "fr_FR": "Diagrammes PlantUML"
+            "fr_FR": "Diagrammes PlantUML",
+            "es_419": "Gráficos PlantUML",
+            "pt_PT": "Gráficos PlantUML"
           },
           "tags": [
             "图表",
@@ -2119,7 +2281,9 @@
             "ja_JP": "ECharts図",
             "ko_KR": "ECharts 차트",
             "de_DE": "ECharts-Diagramme",
-            "fr_FR": "Diagrammes ECharts"
+            "fr_FR": "Diagrammes ECharts",
+            "es_419": "Gráficos ECharts",
+            "pt_PT": "Gráficos ECharts"
           },
           "tags": [
             "图表",

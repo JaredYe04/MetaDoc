@@ -154,7 +154,14 @@
     "steamStatChars": "累計入力文字数",
     "steamStatPlaytime": "累計使用時間",
     "steamTrayLevel": "レベル",
-    "steamTrayTooltip": "Steam"
+    "steamTrayTooltip": "Steam",
+    "steamManageCloudDocs": "クラウド保存データの管理",
+    "steamManageWorkshop": "Steamワークショップの管理",
+    "steamTrayCreditsUnavailable": "一時的に利用できません",
+    "steamTrayLlmCredits": "アカウント Credits 残高",
+    "steamTrayMtxCatalogEmpty": "販売中のプランは現在ありません。ネットワークを確認するか、後でもう一度お試しください。",
+    "steamTrayRecharge": "チャージ",
+    "steamTrayRefreshCloudCredits": "クレジットを更新"
   },
   "llmDialog": {
     "aiAssistant": "AIアシスタント",
@@ -448,6 +455,20 @@
       "emailRequired": "メールアドレスを入力してください",
       "emailPattern": "有効なメールアドレスを入力してください",
       "newPasswordRequired": "新しいパスワードを入力してください"
+    },
+    "manageSteamCloud": "クラウドセーブ…",
+    "manageWorkshop": "ワークショップ…",
+    "steamCloudDialog": {
+      "description": "クラウドドキュメントライブラリは、Steamアカウントと同期するドキュメントを管理します。「設定 → 概要」のSteamセクションで、設定、履歴、ユーザーテンプレート、Agentクラウドパッケージなどのプッシュ/プル設定が可能です。",
+      "openAboutSteam": "設定を開く（Steam同期）",
+      "openCloudDocs": "クラウドドキュメントライブラリを開く",
+      "title": "クラウドセーブとSteam同期"
+    },
+    "workshopDialog": {
+      "description": "ワークショップハブで購読したアイテムを表示してアプリにインストールするか、公開ウィザードでドキュメントテンプレートをアップロードできます。",
+      "openMarket": "ワークショップハブを開く",
+      "openPublish": "ドキュメントテンプレートを公開",
+      "title": "ワークショップ"
     }
   },
   "voiceInput": {
@@ -1616,7 +1637,20 @@
       "exportFixtureReadDirFail": "サンプルディレクトリを読み取れません：{msg}",
       "exportFixtureResolveFail": "このファイルをエクスポートドキュメントとして解析できません",
       "exportFixtureRun": "PDF + DOCX をワンクリックでエクスポート",
-      "exportFixtureRunning": "エクスポート中… ({current} / {total})"
+      "exportFixtureRunning": "エクスポート中… ({current} / {total})",
+      "aiPipeline": {
+        "hint": "正式Steamパッケージはこの設定の影響を受けません。Steam配信が未選択の場合、ステージングWorkerに接続するために使用します（VITE_METADOC_CLOUD_API_URLが必要です）。",
+        "legacy": "従来のBYOK（ユーザーがAPI Keyを入力）",
+        "steamCloud": "公式クラウド + n1n（Worker + DEV認証）",
+        "title": "AIパイプライン（開発用のみ）"
+      },
+      "steamCloudClearJwt": "クラウドJWTキャッシュをクリア",
+      "steamCloudDebug": "Steamクラウド / MTX",
+      "steamCloudDebugHint": "公式クラウドのCredits不足ポップアップをシミュレート、ローカルのJWTをクリアします。開発環境では、init済みの注文に対してWorkerを呼び出して入金をシミュレートできます（ALLOW_DEV_AUTHとX-Dev-Secretが必要です）。",
+      "steamCloudDevSimulateRun": "シミュレート入金インターフェースを呼び出す",
+      "steamCloudDevSimulateTitle": "DEV：支払い完了をシミュレート",
+      "steamCloudOrderIdPlaceholder": "order_id（先に実際にinitしてください）",
+      "steamCloudSimulateInsufficient": "Credits不足エラーをシミュレート"
     },
     "autoCompletionMaxTokens": "自動的に最高を完了して下さい トークン",
     "autoCompletionMaxTokensHint": "AIの自動補完のためのトークンの最大数を制限します。, 最小で 20,0 無制限の",
@@ -1709,7 +1743,12 @@
       "steamTab": "Steam",
       "steamUser": "Steam ユーザー",
       "steamUserId": "Steam ID",
-      "steamUserName": "表示名"
+      "steamUserName": "表示名",
+      "steamOpenCloudDocs": "クラウドドキュメント管理",
+      "steamSyncAgentPull": "クラウドからAgent設定パッケージを取得",
+      "steamSyncAgentPush": "Agent設定パッケージをクラウドにプッシュ",
+      "steamSyncTemplatesPull": "クラウドからユーザーテンプレートを取得",
+      "steamSyncTemplatesPush": "ユーザーテンプレートをクラウドにプッシュ"
     },
     "agentTerminalExecutionAllowed": "デフォルトでターミナル実行を許可",
     "agentTerminalExecutionAllowedHint": "オンにすると、Agentがターミナルツールを呼び出した際に毎回確認せず実行します。オフにすると実行のたびに確認ダイアログが表示されます。",
@@ -2009,6 +2048,32 @@
       "pickMd": "Markdown(.md)をデフォルトでMetaDocで開く",
       "pickTex": "LaTeX(.tex)をデフォルトでMetaDocで開く",
       "sectionTitle": "デフォルトの開き方を設定"
+    },
+    "llmSteamCloud": {
+      "mtxWebCredited": "支払い完了、{n} クレジットが入金されました（注文 {order}）。",
+      "noCloudUrl": "VITE_METADOC_CLOUD_API_URL が設定されていません。",
+      "recharge": "チャージ",
+      "rechargeCurrentBalance": "現在の残高",
+      "rechargeNeedsSteam": "現在アプリ内購入を開始できません：Steamを起動し、本アプリがSteam経由で起動され、かつGreenworksが初期化されていることを確認してください（またはSteam配布チャネルでビルドされたものを使用してください）。",
+      "refreshCredits": "更新",
+      "sortByPrice": "並べ替え",
+      "sortPriceAsc": "安い順",
+      "sortPriceDesc": "高い順",
+      "title": "MetaDoc 公式クラウド（Steam）",
+      "credits": "残高（credits）",
+      "developerModeConfirmBody": "このオプションは実験的なものであり、予期しない動作や追加費用が発生する可能性があります。すべてのリスクを自己負担することを確認しますか？",
+      "developerModeConfirmTitle": "有効化を確認？",
+      "developerModeHint": "安定性に影響を与えたり、本番環境と一致しない可能性があります。テスト目的のみで、ご注意してお使いください。",
+      "developerModeLabel": "実験的接続を有効化",
+      "developerModeTitle": "実験的オプション",
+      "firstPurchaseGranted": "初回購入特典が付与されました：{n} credits。",
+      "model": "モデル",
+      "mtxInitOk": "注文が作成されました：{order}。支払いウィンドウが表示されない場合は、Steamライブラリから本アプリを起動していることを確認してください。",
+      "mtxInitOkOverlay": "注文 {order} が作成されました。Steamクライアント内でマイクロトランザクション承認ポップアップを確認し、承認を完了してください。表示されない場合は、本アプリまたはゲームウィンドウに切り替え、Steamが実行中であることを確認してください。",
+      "mtxNoPublicIp": "ネットワーク情報を取得できません。ネットワーク接続を確認してから再試行してください。",
+      "mtxPackCreditsLabel": "クレジット（credits）",
+      "mtxPollTimeout": "Steamの確認待ちがタイムアウトしました。支払い済みの場合は、後ほど「残高を更新」をクリックしてください。支払いが完了していない場合は、再試行してください。",
+      "mtxSteamAuthFailed": "Steamがこの承認を受け入れませんでした（一般的な原因：注文時のIPとブラウザの出口IPが一致していない）。支払いページを閉じてから再試行してください。VPN/プロキシを使用している場合は、ブラウザと一致するようにしてください。"
     }
   },
   "visualize": {
@@ -2786,7 +2851,17 @@
     "title": "新しい文書",
     "useTemplate": "このテンプレートを使用する",
     "removeTemplateConfirm": "テンプレート「{name}」を削除しますか？削除後は復元できません。",
-    "removeTemplateTitle": "テンプレート削除"
+    "removeTemplateTitle": "テンプレート削除",
+    "clearTemplateThumb": "デフォルトプレビューに戻す",
+    "publishWorkshop": "クリエイティブワークショップに公開…",
+    "setTemplateThumb": "画像を選択…",
+    "setTemplateThumbDialogTitle": "テンプレートのサムネイルを選択",
+    "steamPullTemplates": "Steamクラウドからユーザーテンプレートを取得",
+    "steamPushTemplates": "ユーザーテンプレートをSteamクラウドにプッシュ",
+    "steamTemplatesFailed": "同期に失敗しました",
+    "steamTemplatesPullOk": "ユーザーテンプレートがクラウドから更新されました",
+    "steamTemplatesPushOk": "ユーザーテンプレートがアップロードされました",
+    "templateThumbMenu": "サムネイル"
   },
   "agent": {
     "contextBreakdown": {
@@ -3680,7 +3755,14 @@
         "syncSkills": "ワークスペースからスキルインデックスを同期",
         "tabMcp": "MCP ツール",
         "tabRules": "ルール",
-        "tabSkills": "スキル"
+        "tabSkills": "スキル",
+        "steamAgentFailed": "操作失敗",
+        "steamAgentPullOk": "クラウドからAgentパッケージをマージしました",
+        "steamAgentPushOk": "Agentクラウドパッケージをアップロードしました",
+        "steamCloudBar": "Steamクラウド（プライベート）とクリエイティブワークショップ：",
+        "steamPublishWorkshop": "ドキュメントテンプレートを公開（ワークショップ）",
+        "steamPullAgent": "Agentクラウドパッケージをプル",
+        "steamPushAgent": "Agentクラウドパッケージをプッシュ"
       },
       "settingsMenu": "Agent設定"
     },
@@ -5811,9 +5893,11 @@
         "ko_KR": "한국어",
         "fr_FR": "Français",
         "de_DE": "Deutsch",
-        "es_ES": "Español",
-        "pt_BR": "Português (BR)",
-        "ru_RU": "Русский"
+        "es_ES": "スペイン語（スペイン）",
+        "pt_BR": "ポルトガル語（ブラジル）",
+        "ru_RU": "Русский",
+        "es_419": "スペイン語（ラテンアメリカ）",
+        "pt_PT": "ポルトガル語（ポルトガル）"
       },
       "welcome": {
         "zh_CN": "欢迎使用 MetaDoc！",
@@ -5825,7 +5909,9 @@
         "de_DE": "Willkommen bei MetaDoc!",
         "es_ES": "¡Bienvenido a MetaDoc!",
         "pt_BR": "Bem-vindo ao MetaDoc!",
-        "ru_RU": "Добро пожаловать в MetaDoc!"
+        "ru_RU": "Добро пожаловать в MetaDoc!",
+        "es_419": "¡Bienvenido a MetaDoc!",
+        "pt_PT": "Bem-vindo ao MetaDoc!"
       }
     },
     "welcome": {
@@ -5890,7 +5976,43 @@
     "loading": "読み込み中…",
     "pickFolder": "ダウンロードディレクトリを選択",
     "refresh": "リストを更新",
-    "title": "ワークショップ / テンプレートマーケット"
+    "title": "ワークショップ / テンプレートマーケット",
+    "browsePlaceholder": "公開閲覧と高度なフィルタリングは、Steam UGC クエリまたは Web API に依存しており、今後のバージョンで対応予定です。「マイ」で購読済みアイテムを管理できます。",
+    "centerTitle": "クリエイティブワークショップセンター",
+    "defaultLocale": "デフォルト言語",
+    "detail": "詳細",
+    "detailPickHint": "左側のカードをクリックして詳細を表示。「購読して同期」をクリックすると、Steamから取得して本アプリにインストールされます。",
+    "emptyFiltered": "現在の検索条件に一致するアイテムはありません。",
+    "fieldAuthor": "作者 Steam ID",
+    "fieldCreated": "作成日時",
+    "fieldFile": "メインファイル",
+    "fieldSubscribed": "リスト追加日時",
+    "fieldTags": "タグ",
+    "fieldType": "パッケージタイプ",
+    "fieldUpdated": "最終更新",
+    "filterSearch": "検索",
+    "filtersComingSoon": "期間、並び替えなどのフィルターは、バックエンドの機能に合わせて順次対応予定です。",
+    "filtersToggle": "フィルター",
+    "installDone": "ユーザーテンプレートにインストール済み",
+    "installFailed": "インストール失敗",
+    "installToLibrary": "アプリにインストール",
+    "installing": "インストール中…",
+    "kindDocumentTemplate": "ドキュメントテンプレート",
+    "kindUnknown": "不明",
+    "manifestKind": "タイプ",
+    "missingFileHandle": "Steamがこのアイテムのファイルハンドルを返していないため、ダウンロードできません。Steamクライアントを更新して再試行してください。",
+    "previewPlaceholder": "プレビュー画像なし（同期成功後、パッケージ内のサムネイルを表示可能）",
+    "publishFromApp": "ローカルからテンプレートを公開",
+    "segmentBrowse": "閲覧",
+    "segmentMine": "マイ",
+    "subscribeSync": "購読して同期",
+    "subscribeSyncFailed": "同期失敗",
+    "subscribeSyncOk": "ユーザーテンプレートライブラリに同期済み",
+    "subscribeSyncing": "Steamから取得してインストール中…",
+    "syncSubscribed": "購読を同期",
+    "syncSubscribedHint": "近日公開予定",
+    "tabHelp": "説明",
+    "tabSubscriptions": "購読済み"
   },
   "steamAch": {
     "ACH_DOCX_LATEX_EXPORT_DESC": "MarkdownからDOCXへの初回エクスポート。",
@@ -5944,6 +6066,67 @@
     "ACH_OUTLINE_FORMAT_TITLES_NAME": "見出し整形",
     "ACH_OUTLINE_FORMAT_TITLES_DESC": "アウトラインの見出し整形ウィザードを成功させる。",
     "ACH_MATERIAL_BASKET_ADD_NAME": "素材バスケット",
-    "ACH_MATERIAL_BASKET_ADD_DESC": "素材バスケットに項目を追加（新規またはノードから）。"
+    "ACH_MATERIAL_BASKET_ADD_DESC": "素材バスケットに項目を追加（新規またはノードから）。",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_DESC": "初めてドキュメントテンプレートをSteamワークショップに公開しました。",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_NAME": "ワークショップ作者",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_DESC": "初めてワークショップで購読したアイテムをアプリにインストールしました。",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_NAME": "ワークショップ収蔵",
+    "ACH_CLOUD_DOC_SAVE_DESC": "クラウドドキュメントライブラリ内のドキュメントを初めて保存しました。",
+    "ACH_CLOUD_DOC_SAVE_NAME": "クラウドドキュメント入門",
+    "ACH_WORKSHOP_PUBLISH_MCP_DESC": "初めてMCPパッケージをSteamワークショップに公開しました。",
+    "ACH_WORKSHOP_PUBLISH_MCP_NAME": "MCPパッケージ公開",
+    "ACH_WORKSHOP_PUBLISH_RULES_DESC": "初めてルールパッケージをSteamワークショップに公開しました。",
+    "ACH_WORKSHOP_PUBLISH_RULES_NAME": "ルールパッケージ公開",
+    "ACH_WORKSHOP_PUBLISH_SKILL_DESC": "初めてスキルパッケージをSteamワークショップに公開しました。",
+    "ACH_WORKSHOP_PUBLISH_SKILL_NAME": "スキルパッケージ公開"
+  },
+  "steamCloudDocs": {
+    "body": "本文",
+    "colActions": "操作",
+    "colSize": "サイズ",
+    "colTitle": "タイトル",
+    "colUpdated": "更新日時",
+    "deleteConfirm": "クラウドドキュメント「{name}」を削除してもよろしいですか？",
+    "deleted": "削除しました",
+    "edit": "クラウドドキュメントを編集",
+    "empty": "クラウドドキュメントはありません。",
+    "loadFailed": "読み込みに失敗しました",
+    "loading": "読み込み中…",
+    "newDoc": "新規クラウドドキュメント",
+    "refresh": "更新",
+    "rename": "名前を変更",
+    "saveFailed": "保存に失敗しました",
+    "saveOk": "Steamクラウドに保存しました",
+    "subtitle": "Steamクラウドスペースで、アカウントと同期するドキュメントアイテムを管理します（使用量は推定値であり、実際の割り当てはSteamworksの設定に準じます）。",
+    "title": "Steamクラウドドキュメント",
+    "usage": "クラウドドキュメント推定使用量",
+    "usageHint": "推定値であり、参考情報です"
+  },
+  "workshopPublish": {
+    "defaultLocale": "デフォルト言語",
+    "description": "説明",
+    "failed": "公開に失敗しました",
+    "localeNames": {
+      "de_de": "ドイツ語",
+      "en_us": "英語（アメリカ）",
+      "es_es": "スペイン語（スペイン）",
+      "fr_fr": "フランス語",
+      "ja_jp": "日本語",
+      "ko_kr": "韓国語",
+      "pt_br": "ポルトガル語（ブラジル）",
+      "ru_ru": "ロシア語",
+      "zh_cn": "中国語（簡体字）",
+      "zh_tw": "中国語（繁体字）",
+      "es_419": "スペイン語（ラテンアメリカ）",
+      "pt_pt": "ポルトガル語（ポルトガル）"
+    },
+    "ok": "送信しました。アイテムID: {id}",
+    "optionalEn": "オプションの英語（en_us）",
+    "publishing": "公開中…",
+    "submit": "Steamワークショップに公開",
+    "subtitle": "現在のUI言語をデフォルト言語およびフォールバックとして使用します。追加で英語のタイトル、説明、本文を入力できます。",
+    "templateNotFound": "ユーザーテンプレートが見つかりません。削除されたか、同期されていない可能性があります。",
+    "thumbnail": "サムネイル（オプション、空欄の場合はプレースホルダー画像を使用）",
+    "title": "ドキュメントテンプレートをワークショップに公開"
   }
 }

@@ -9,7 +9,9 @@ import koKR from '../renderer/src/locales/ko_KR.json'
 import deDE from '../renderer/src/locales/de_DE.json'
 import frFR from '../renderer/src/locales/fr_FR.json'
 import esES from '../renderer/src/locales/es_ES.json'
+import es419 from '../renderer/src/locales/es_419.json'
 import ptBR from '../renderer/src/locales/pt_BR.json'
+import ptPT from '../renderer/src/locales/pt_PT.json'
 import ruRU from '../renderer/src/locales/ru_RU.json'
 
 type LocaleCode =
@@ -21,7 +23,9 @@ type LocaleCode =
   | 'de_DE'
   | 'fr_FR'
   | 'es_ES'
+  | 'es_419'
   | 'pt_BR'
+  | 'pt_PT'
   | 'ru_RU'
 
 type Messages = Record<string, any>
@@ -35,7 +39,9 @@ const LOCALE_MESSAGES: Record<LocaleCode, Messages> = {
   de_DE: deDE,
   fr_FR: frFR,
   es_ES: esES,
+  es_419: es419,
   pt_BR: ptBR,
+  pt_PT: ptPT,
   ru_RU: ruRU
 }
 

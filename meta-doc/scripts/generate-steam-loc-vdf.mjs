@@ -32,6 +32,7 @@ const STEAM_LANG_ORDER = [
   'italian',
   'koreana',
   'spanish',
+  'latam',
   'tchinese',
   'russian',
   'thai',
@@ -62,9 +63,11 @@ const LOCALE_FILE_BY_STEAM_LANG = {
   german: 'de_DE.json',
   french: 'fr_FR.json',
   spanish: 'es_ES.json',
+  latam: 'es_419.json',
   russian: 'ru_RU.json',
   japanese: 'ja_JP.json',
   koreana: 'ko_KR.json',
+  portuguese: 'pt_PT.json',
   brazilian: 'pt_BR.json'
 }
 

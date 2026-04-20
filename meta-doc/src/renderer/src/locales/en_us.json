@@ -46,9 +46,11 @@
         "ko_KR": "한국어",
         "fr_FR": "Français",
         "de_DE": "Deutsch",
-        "es_ES": "Español",
-        "pt_BR": "Português (BR)",
-        "ru_RU": "Русский"
+        "es_ES": "Spanish (Spain)",
+        "pt_BR": "Portuguese (Brazil)",
+        "ru_RU": "Русский",
+        "es_419": "Spanish (Latin America)",
+        "pt_PT": "Portuguese (Portugal)"
       },
       "welcome": {
         "zh_CN": "欢迎使用 MetaDoc！",
@@ -60,7 +62,9 @@
         "de_DE": "Willkommen bei MetaDoc!",
         "es_ES": "¡Bienvenido a MetaDoc!",
         "pt_BR": "Bem-vindo ao MetaDoc!",
-        "ru_RU": "Добро пожаловать в MetaDoc!"
+        "ru_RU": "Добро пожаловать в MetaDoc!",
+        "es_419": "¡Bienvenido a MetaDoc!",
+        "pt_PT": "Bem-vindo ao MetaDoc!"
       }
     },
     "welcome": {
@@ -5511,9 +5515,11 @@
       "ko_kr": "Korean",
       "de_de": "German",
       "fr_fr": "French",
-      "es_es": "Spanish",
+      "es_es": "Spanish (Spain)",
       "pt_br": "Portuguese (Brazil)",
-      "ru_ru": "Russian"
+      "ru_ru": "Russian",
+      "es_419": "Spanish (Latin America)",
+      "pt_pt": "Portuguese (Portugal)"
     },
     "defaultLocale": "Default locale",
     "description": "Description",

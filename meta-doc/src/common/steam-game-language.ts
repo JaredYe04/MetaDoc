@@ -13,10 +13,12 @@ export const STEAM_GAME_LANG_TO_METADOC_LOCALE: Record<string, string> = {
   german: 'de_DE',
   french: 'fr_FR',
   spanish: 'es_ES',
+  /** Steam 拉丁美洲西班牙语 */
+  latam: 'es_419',
   /** Steam 巴西葡语 */
   brazilian: 'pt_BR',
-  /** 欧洲葡语：界面仅有 pt_BR，归入巴西葡语资源 */
-  portuguese: 'pt_BR',
+  /** Steam 欧洲葡萄牙语（葡萄牙） */
+  portuguese: 'pt_PT',
   russian: 'ru_RU'
 }
 
@@ -29,8 +31,10 @@ export const METADOC_LOCALE_NATIVE_LABEL: Record<string, string> = {
   ko_KR: '한국어',
   de_DE: 'Deutsch',
   fr_FR: 'Français',
-  es_ES: 'Español',
-  pt_BR: 'Português',
+  es_ES: 'Español (España)',
+  es_419: 'Español (Latinoamérica)',
+  pt_BR: 'Português (BR)',
+  pt_PT: 'Português (PT)',
   ru_RU: 'Русский'
 }
 

@@ -15,7 +15,9 @@ const LOCALE_IMPORTS = {
   de_DE: () => import('./locales/de_DE.json'),
   fr_FR: () => import('./locales/fr_FR.json'),
   es_ES: () => import('./locales/es_ES.json'),
+  es_419: () => import('./locales/es_419.json'),
   pt_BR: () => import('./locales/pt_BR.json'),
+  pt_PT: () => import('./locales/pt_PT.json'),
   ru_RU: () => import('./locales/ru_RU.json')
 }
 

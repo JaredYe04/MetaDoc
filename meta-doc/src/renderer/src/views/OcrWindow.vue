@@ -893,8 +893,10 @@ onMounted(() => {
     de_DE: 'deu',
     fr_FR: 'fra',
     es_ES: 'spa',
-    ru_RU: 'rus',
-    pt_PT: 'por'
+    es_419: 'spa',
+    pt_BR: 'por',
+    pt_PT: 'por',
+    ru_RU: 'rus'
   }
 
   const currentLang = localeMap[locale] || 'eng'

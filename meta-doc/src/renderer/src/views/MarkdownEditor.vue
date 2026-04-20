@@ -2965,8 +2965,10 @@ async function runMarkdownVditorInit() {
     const supportedLang = [
       'en_US',
       'es_ES',
+      'es_419',
       'fr_FR',
       'pt_BR',
+      'pt_PT',
       'ja_JP',
       'ko_KR',
       'ru_RU',

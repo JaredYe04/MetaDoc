@@ -35,7 +35,7 @@
             :class="{ 'frw-lang-card--selected': selectedLocale === opt.id }"
             @click="selectLanguage(opt.id)"
           >
-            <span class="frw-lang-card-label">{{ t(opt.labelKey) }}</span>
+            <span class="frw-lang-card-label">{{ localeNativeLabel(opt.id) }}</span>
             <span class="frw-lang-card-welcome">{{ t(opt.welcomeKey) }}</span>
           </button>
         </div>
@@ -207,6 +207,7 @@ import {
 import { saveUserProfile } from '../../utils/user-profile'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile } from '../../stores/userManual'
+import { METADOC_LOCALE_NATIVE_LABEL } from '@common/steam-game-language'
 
 const STEP_COUNT = 7
 
@@ -261,57 +262,24 @@ const vditorModeChoice = ref<'wysiwyg' | 'ir' | 'sv'>('ir')
 const profileStepsRef = ref<InstanceType<typeof UserProfileWizardSteps> | null>(null)
 const llmOnboardingSaved = ref(false)
 
+/** 卡片主标题：各语言自称，不随当前界面语言翻译（否则在中文界面下西/葡四种会全是中文） */
+function localeNativeLabel(localeId: string): string {
+  return METADOC_LOCALE_NATIVE_LABEL[localeId] ?? localeId
+}
+
 const languageOptions = [
-  {
-    id: 'zh_CN',
-    labelKey: 'onboarding.language.labels.zh_CN',
-    welcomeKey: 'onboarding.language.welcome.zh_CN'
-  },
-  {
-    id: 'zh_TW',
-    labelKey: 'onboarding.language.labels.zh_TW',
-    welcomeKey: 'onboarding.language.welcome.zh_TW'
-  },
-  {
-    id: 'en_US',
-    labelKey: 'onboarding.language.labels.en_US',
-    welcomeKey: 'onboarding.language.welcome.en_US'
-  },
-  {
-    id: 'ja_JP',
-    labelKey: 'onboarding.language.labels.ja_JP',
-    welcomeKey: 'onboarding.language.welcome.ja_JP'
-  },
-  {
-    id: 'ko_KR',
-    labelKey: 'onboarding.language.labels.ko_KR',
-    welcomeKey: 'onboarding.language.welcome.ko_KR'
-  },
-  {
-    id: 'fr_FR',
-    labelKey: 'onboarding.language.labels.fr_FR',
-    welcomeKey: 'onboarding.language.welcome.fr_FR'
-  },
-  {
-    id: 'de_DE',
-    labelKey: 'onboarding.language.labels.de_DE',
-    welcomeKey: 'onboarding.language.welcome.de_DE'
-  },
-  {
-    id: 'es_ES',
-    labelKey: 'onboarding.language.labels.es_ES',
-    welcomeKey: 'onboarding.language.welcome.es_ES'
-  },
-  {
-    id: 'pt_BR',
-    labelKey: 'onboarding.language.labels.pt_BR',
-    welcomeKey: 'onboarding.language.welcome.pt_BR'
-  },
-  {
-    id: 'ru_RU',
-    labelKey: 'onboarding.language.labels.ru_RU',
-    welcomeKey: 'onboarding.language.welcome.ru_RU'
-  }
+  { id: 'zh_CN', welcomeKey: 'onboarding.language.welcome.zh_CN' },
+  { id: 'zh_TW', welcomeKey: 'onboarding.language.welcome.zh_TW' },
+  { id: 'en_US', welcomeKey: 'onboarding.language.welcome.en_US' },
+  { id: 'ja_JP', welcomeKey: 'onboarding.language.welcome.ja_JP' },
+  { id: 'ko_KR', welcomeKey: 'onboarding.language.welcome.ko_KR' },
+  { id: 'fr_FR', welcomeKey: 'onboarding.language.welcome.fr_FR' },
+  { id: 'de_DE', welcomeKey: 'onboarding.language.welcome.de_DE' },
+  { id: 'es_ES', welcomeKey: 'onboarding.language.welcome.es_ES' },
+  { id: 'es_419', welcomeKey: 'onboarding.language.welcome.es_419' },
+  { id: 'pt_BR', welcomeKey: 'onboarding.language.welcome.pt_BR' },
+  { id: 'pt_PT', welcomeKey: 'onboarding.language.welcome.pt_PT' },
+  { id: 'ru_RU', welcomeKey: 'onboarding.language.welcome.ru_RU' }
 ]
 
 const showPrimaryFooter = computed(() => {

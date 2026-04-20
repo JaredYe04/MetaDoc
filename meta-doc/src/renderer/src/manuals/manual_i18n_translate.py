@@ -36,7 +36,19 @@ if sys.platform == "win32":
 
 MANUALS_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_LOCALE = "zh_CN"
-TARGET_LOCALES = ["en_US", "zh_TW", "ja_JP", "ko_KR", "de_DE", "fr_FR", "es_ES", "pt_BR", "ru_RU"]
+TARGET_LOCALES = [
+    "en_US",
+    "zh_TW",
+    "ja_JP",
+    "ko_KR",
+    "de_DE",
+    "fr_FR",
+    "es_ES",
+    "es_419",
+    "pt_BR",
+    "pt_PT",
+    "ru_RU",
+]
 PROGRESS_FILE = ".manual_i18n_progress.txt"  # 每行: locale\trelative_path 或 locale\trelative_path\tsource_hash
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-chat"
@@ -236,7 +248,19 @@ def main():
         print("已为 %d 项写入/更新源哈希到进度文件。" % len(lines), flush=True)
         return 0
 
-    lang_names = {"en_US": "English", "zh_TW": "Traditional Chinese", "ja_JP": "Japanese", "ko_KR": "Korean", "de_DE": "German", "fr_FR": "French", "es_ES": "Spanish", "pt_BR": "Portuguese (Brazil)", "ru_RU": "Russian"}
+    lang_names = {
+        "en_US": "English",
+        "zh_TW": "Traditional Chinese",
+        "ja_JP": "Japanese",
+        "ko_KR": "Korean",
+        "de_DE": "German",
+        "fr_FR": "French",
+        "es_ES": "Spanish (Spain)",
+        "es_419": "Spanish (Latin America)",
+        "pt_BR": "Portuguese (Brazil)",
+        "pt_PT": "Portuguese (Portugal)",
+        "ru_RU": "Russian",
+    }
     tasks = []
     for locale in locales:
         for rel in zh_paths:

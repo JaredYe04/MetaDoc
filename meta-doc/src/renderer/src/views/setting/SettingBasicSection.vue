@@ -34,8 +34,10 @@
             <SelectItem value="ko_KR">한국어</SelectItem>
             <SelectItem value="fr_FR">Français</SelectItem>
             <SelectItem value="de_DE">Deutsch</SelectItem>
-            <SelectItem value="es_ES">Español</SelectItem>
+            <SelectItem value="es_ES">Español (España)</SelectItem>
+            <SelectItem value="es_419">Español (Latinoamérica)</SelectItem>
             <SelectItem value="pt_BR">Português (BR)</SelectItem>
+            <SelectItem value="pt_PT">Português (PT)</SelectItem>
             <SelectItem value="ru_RU">Русский</SelectItem>
           </SelectContent>
         </Select>

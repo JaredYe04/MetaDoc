@@ -115,7 +115,9 @@ async function loadArticleContent(articleId: string, locale: string): Promise<st
       fr_fr: 'fr_FR',
       de_de: 'de_DE',
       es_es: 'es_ES',
+      es_419: 'es_ES',
       pt_br: 'pt_BR',
+      pt_pt: 'pt_BR',
       ru_ru: 'ru_RU'
     }
     const targetLocale = localeMap[normalizedLocale] || 'zh_CN'

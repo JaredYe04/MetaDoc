@@ -34,7 +34,9 @@ const I18N_TO_TESSERACT_LANG_MAP: Record<string, string> = {
   fr_FR: 'fra',
   de_DE: 'deu',
   es_ES: 'spa',
+  es_419: 'spa',
   pt_BR: 'por',
+  pt_PT: 'por',
   ru_RU: 'rus'
 }
 

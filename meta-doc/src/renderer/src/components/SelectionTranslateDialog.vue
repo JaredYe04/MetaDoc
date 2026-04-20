@@ -153,7 +153,9 @@ function defaultTargetLanguageForLocale(): string {
     de_DE: 'Deutsch',
     fr_FR: 'Français',
     es_ES: 'Español',
+    es_419: 'Español',
     pt_BR: 'Português',
+    pt_PT: 'Português',
     ru_RU: 'Русский'
   }
   return map[loc] || 'English'

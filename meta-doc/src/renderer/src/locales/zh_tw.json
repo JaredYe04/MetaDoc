@@ -714,7 +714,14 @@
         "syncSkills": "從工作區同步技能索引",
         "tabMcp": "MCP 工具",
         "tabRules": "規則",
-        "tabSkills": "技能"
+        "tabSkills": "技能",
+        "steamAgentFailed": "操作失敗",
+        "steamAgentPullOk": "已從雲端合併 Agent 包",
+        "steamAgentPushOk": "已上傳 Agent 雲包",
+        "steamCloudBar": "Steam 雲（私有）與創意工坊：",
+        "steamPublishWorkshop": "發布文件範本（工坊）",
+        "steamPullAgent": "拉取 Agent 雲包",
+        "steamPushAgent": "推送 Agent 雲包"
       },
       "settingsMenu": "Agent 設定"
     },
@@ -3079,7 +3086,7 @@
     "recentTooltip": "最近開啟的位置",
     "recentWorkspaces": "最近工作區",
     "recentWorkspacesTooltip": "最近開啟的工作區資料夾",
-    "steamOpenAchievementsOverlay": "查看成就",
+    "steamOpenAchievementsOverlay": "檢視成就",
     "steamOpenProfileOverlay": "開啟個人資料",
     "steamPlaytimeDays": "{n} 天",
     "steamPlaytimeHoursMinutes": "{h} 小時 {m} 分",
@@ -3089,7 +3096,14 @@
     "steamStatChars": "累計輸入字元",
     "steamStatPlaytime": "累計使用時長",
     "steamTrayLevel": "等級",
-    "steamTrayTooltip": "Steam"
+    "steamTrayTooltip": "Steam",
+    "steamManageCloudDocs": "管理雲端存檔",
+    "steamManageWorkshop": "管理創意工坊",
+    "steamTrayCreditsUnavailable": "暫不可用",
+    "steamTrayLlmCredits": "帳戶 Credits 餘額",
+    "steamTrayMtxCatalogEmpty": "暫無可售檔位，請檢查網路或稍後重試。",
+    "steamTrayRecharge": "儲值",
+    "steamTrayRefreshCloudCredits": "重新整理額度"
   },
   "llm-adapter": {
     "failed": "配置失敗",
@@ -3388,7 +3402,7 @@
         "blank": {
           "label": "空白文件",
           "description": "建立一個空白的 Markdown 文件",
-          "content": ""
+          "content": "空白文件"
         },
         "article": {
           "label": "文章範本",
@@ -3494,7 +3508,17 @@
       }
     },
     "title": "新增文件",
-    "useTemplate": "使用此範本"
+    "useTemplate": "使用此範本",
+    "clearTemplateThumb": "恢復預設預覽",
+    "publishWorkshop": "發佈到創意工坊…",
+    "setTemplateThumb": "選擇圖片…",
+    "setTemplateThumbDialogTitle": "選擇範本縮圖",
+    "steamPullTemplates": "從 Steam 雲端拉取使用者範本",
+    "steamPushTemplates": "推送使用者範本到 Steam 雲端",
+    "steamTemplatesFailed": "同步失敗",
+    "steamTemplatesPullOk": "使用者範本已從雲端更新",
+    "steamTemplatesPushOk": "使用者範本已上傳",
+    "templateThumbMenu": "縮圖"
   },
   "notification": {
     "clearAll": "清除全部",
@@ -4005,7 +4029,12 @@
       "steamTab": "Steam",
       "steamUser": "Steam 用戶",
       "steamUserId": "Steam ID",
-      "steamUserName": "顯示名稱"
+      "steamUserName": "顯示名稱",
+      "steamOpenCloudDocs": "雲端文件管理",
+      "steamSyncAgentPull": "從雲端拉取 Agent 設定包",
+      "steamSyncAgentPush": "將 Agent 設定包推送到雲端",
+      "steamSyncTemplatesPull": "從雲端拉取使用者範本",
+      "steamSyncTemplatesPush": "將使用者範本推送到雲端"
     },
     "allChangesSaved": "所有變更已儲存",
     "apiBaseUrl": "API BaseURL",
@@ -4393,7 +4422,20 @@
       "exportFixtureReadDirFail": "無法讀取範例目錄：{msg}",
       "exportFixtureResolveFail": "無法將此檔案解析為匯出文件",
       "exportFixtureRun": "一鍵匯出 PDF + DOCX",
-      "exportFixtureRunning": "匯出中… ({current} / {total})"
+      "exportFixtureRunning": "匯出中… ({current} / {total})",
+      "aiPipeline": {
+        "hint": "正式 Steam 套件不受此項影響。用於在未勾選 Steam 分發時連接 staging Worker（需 VITE_METADOC_CLOUD_API_URL）。",
+        "legacy": "傳統 BYOK（用戶自填 API Key）",
+        "steamCloud": "官方雲 + n1n（Worker + DEV 鑑權）",
+        "title": "AI 鏈路（僅開發）"
+      },
+      "steamCloudClearJwt": "清除雲端 JWT 快取",
+      "steamCloudDebug": "Steam 雲端 / MTX",
+      "steamCloudDebugHint": "模擬官方雲端 Credits 不足彈出視窗、清除本機 JWT；開發環境下可對已 init 訂單呼叫 Worker 模擬入帳（需 ALLOW_DEV_AUTH 與 X-Dev-Secret）。",
+      "steamCloudDevSimulateRun": "呼叫模擬入帳介面",
+      "steamCloudDevSimulateTitle": "DEV：模擬支付完成",
+      "steamCloudOrderIdPlaceholder": "order_id（先真實 init）",
+      "steamCloudSimulateInsufficient": "模擬 Credits 不足錯誤"
     },
     "deepseek": "DeepSeek",
     "deepseekHint": "DeepSeek官方提供的AI大模型，支援多種模型",
@@ -4565,7 +4607,7 @@
       "autoSaveSuccess": "自動儲存成功"
     },
     "logs": "日誌設定",
-    "lowPrecision": "低精度",
+    "lowPrecision": "低精確度",
     "manual": "手動（開發模式）",
     "manualConfigHint": "手動模式：透過Express伺服器的模擬介面手動輸入API回應",
     "manualHint": "手動輸入模擬API回應，僅開發環境可用",
@@ -4719,6 +4761,32 @@
       "pickMd": "預設用MetaDoc開啟Markdown(.md)",
       "pickTex": "預設用MetaDoc開啟LaTeX(.tex)",
       "sectionTitle": "設定預設開啟方式"
+    },
+    "llmSteamCloud": {
+      "mtxWebCredited": "支付完成，已入帳 {n} credits（訂單 {order}）。",
+      "noCloudUrl": "未配置 VITE_METADOC_CLOUD_API_URL。",
+      "recharge": "儲值",
+      "rechargeCurrentBalance": "目前餘額",
+      "rechargeNeedsSteam": "目前無法發起內購：請啟動 Steam，並確保本應用已透過 Steam 啟動且 Greenworks 已初始化（或使用 Steam 分發渠道建置）。",
+      "refreshCredits": "重新整理",
+      "sortByPrice": "排序",
+      "sortPriceAsc": "從低到高",
+      "sortPriceDesc": "從高到低",
+      "title": "MetaDoc 官方雲（Steam）",
+      "credits": "剩餘額度（credits）",
+      "developerModeConfirmBody": "此選項為實驗性質，可能產生非預期的行為或額外費用。是否確認自行承擔所有風險？",
+      "developerModeConfirmTitle": "確認啟用？",
+      "developerModeHint": "可能影響穩定性或與正式環境不一致。僅供測試，請謹慎使用。",
+      "developerModeLabel": "啟用實驗性連線",
+      "developerModeTitle": "實驗性選項",
+      "firstPurchaseGranted": "首購贈送已發放：{n} credits。",
+      "model": "模型",
+      "mtxInitOk": "訂單已建立：{order}。若未彈出支付視窗，請確認已從 Steam 庫啟動本應用。",
+      "mtxInitOkOverlay": "訂單 {order} 已建立。請在 Steam 用戶端內查看微交易授權彈出視窗並完成確認；若未出現，請切換到本應用或遊戲視窗，並確認 Steam 正在執行。",
+      "mtxNoPublicIp": "無法取得網路資訊，請檢查網路連線後重試。",
+      "mtxPackCreditsLabel": "額度（credits）",
+      "mtxPollTimeout": "等待 Steam 確認逾時。若已付款，請稍後點選「重新整理額度」；若未完成支付，請重試。",
+      "mtxSteamAuthFailed": "Steam 未接受本次授權（常見原因：下單 IP 與瀏覽器出口 IP 不一致）。請關閉支付頁面後重試；若使用 VPN/代理，請保持與瀏覽器一致。"
     }
   },
   "settingBasicSection": {
@@ -5202,7 +5270,21 @@
     "title": "資料卡",
     "tokenBalance": "餘額",
     "username": "使用者名稱",
-    "usernamePlaceholder": "請輸入使用者名稱"
+    "usernamePlaceholder": "請輸入使用者名稱",
+    "manageSteamCloud": "雲端存檔…",
+    "manageWorkshop": "創意工坊…",
+    "steamCloudDialog": {
+      "description": "雲端文件庫管理隨 Steam 帳號同步的文件；在「設定 → 關於」的 Steam 區域可推拉設定、歷史、使用者範本與 Agent 雲端套件等。",
+      "openAboutSteam": "開啟設定（Steam 同步）",
+      "openCloudDocs": "開啟雲端文件庫",
+      "title": "雲端存檔與 Steam 同步"
+    },
+    "workshopDialog": {
+      "description": "在工坊中心檢視訂閱並安裝到應用程式，或透過發佈精靈上傳文件範本。",
+      "openMarket": "開啟工坊中心",
+      "openPublish": "發佈文件範本",
+      "title": "創意工坊"
+    }
   },
   "versionInfoPanel": {
     "buildEnvironment": "建置環境",
@@ -5448,9 +5530,11 @@
         "ko_KR": "한국어",
         "fr_FR": "Français",
         "de_DE": "Deutsch",
-        "es_ES": "Español",
-        "pt_BR": "Português (BR)",
-        "ru_RU": "Русский"
+        "es_ES": "西班牙語（西班牙）",
+        "pt_BR": "葡萄牙語（巴西）",
+        "ru_RU": "Русский",
+        "es_419": "西班牙語（拉丁美洲）",
+        "pt_PT": "葡萄牙語（葡萄牙）"
       },
       "welcome": {
         "zh_CN": "欢迎使用 MetaDoc！",
@@ -5462,7 +5546,9 @@
         "de_DE": "Willkommen bei MetaDoc!",
         "es_ES": "¡Bienvenido a MetaDoc!",
         "pt_BR": "Bem-vindo ao MetaDoc!",
-        "ru_RU": "Добро пожаловать в MetaDoc!"
+        "ru_RU": "Добро пожаловать в MetaDoc!",
+        "es_419": "¡Bienvenido a MetaDoc!",
+        "pt_PT": "Bem-vindo ao MetaDoc!"
       }
     },
     "welcome": {
@@ -5527,7 +5613,43 @@
     "loading": "載入中…",
     "pickFolder": "選擇下載目錄",
     "refresh": "重新整理清單",
-    "title": "創意工坊 / 範本市場"
+    "title": "創意工坊 / 範本市場",
+    "browsePlaceholder": "公開瀏覽與進階篩選依賴 Steam UGC 查詢或 Web API，後續版本接入。您可在「我的」中管理已訂閱項目。",
+    "centerTitle": "創意工坊中心",
+    "defaultLocale": "預設語言",
+    "detail": "詳情",
+    "detailPickHint": "點擊左側卡片查看詳情；點「訂閱並同步」從 Steam 拉取並安裝到本應用。",
+    "emptyFiltered": "沒有符合目前搜尋的項目。",
+    "fieldAuthor": "作者 Steam ID",
+    "fieldCreated": "建立時間",
+    "fieldFile": "主檔案",
+    "fieldSubscribed": "加入清單時間",
+    "fieldTags": "標籤",
+    "fieldType": "套件類型",
+    "fieldUpdated": "最近更新",
+    "filterSearch": "搜尋",
+    "filtersComingSoon": "時間範圍、排序等篩選將逐步與後端能力對齊。",
+    "filtersToggle": "篩選",
+    "installDone": "已安裝至使用者範本",
+    "installFailed": "安裝失敗",
+    "installToLibrary": "安裝到應用程式",
+    "installing": "安裝中…",
+    "kindDocumentTemplate": "文件範本",
+    "kindUnknown": "未知",
+    "manifestKind": "類型",
+    "missingFileHandle": "Steam 未回傳該項目的檔案控制代碼，無法下載。請更新 Steam 用戶端後重試。",
+    "previewPlaceholder": "無預覽圖（同步成功後可顯示套件內縮圖）",
+    "publishFromApp": "從本機發佈範本",
+    "segmentBrowse": "瀏覽",
+    "segmentMine": "我的",
+    "subscribeSync": "訂閱並同步",
+    "subscribeSyncFailed": "同步失敗",
+    "subscribeSyncOk": "已同步至使用者範本庫",
+    "subscribeSyncing": "正在從 Steam 拉取並安裝…",
+    "syncSubscribed": "同步訂閱",
+    "syncSubscribedHint": "即將推出",
+    "tabHelp": "說明",
+    "tabSubscriptions": "已訂閱"
   },
   "steamAch": {
     "ACH_DOCX_LATEX_EXPORT_DESC": "首次從 Markdown 匯出 DOCX。",
@@ -5581,6 +5703,67 @@
     "ACH_OUTLINE_FORMAT_TITLES_NAME": "標題格式化",
     "ACH_OUTLINE_FORMAT_TITLES_DESC": "在大綱檢視中成功使用格式化標題精靈。",
     "ACH_MATERIAL_BASKET_ADD_NAME": "素材入籃",
-    "ACH_MATERIAL_BASKET_ADD_DESC": "向素材籃新增素材（新建或從節點匯入）。"
+    "ACH_MATERIAL_BASKET_ADD_DESC": "向素材籃新增素材（新建或從節點匯入）。",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_DESC": "首次成功將文件範本發佈至創意工坊。",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_NAME": "工坊作者",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_DESC": "首次將已訂閱的工坊內容安裝至應用程式。",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_NAME": "工坊入庫",
+    "ACH_CLOUD_DOC_SAVE_DESC": "首次成功儲存一份雲端文件庫中的文件。",
+    "ACH_CLOUD_DOC_SAVE_NAME": "雲端文件起步",
+    "ACH_WORKSHOP_PUBLISH_MCP_DESC": "首次成功將 MCP 包發佈至創意工坊。",
+    "ACH_WORKSHOP_PUBLISH_MCP_NAME": "發佈 MCP 包",
+    "ACH_WORKSHOP_PUBLISH_RULES_DESC": "首次成功將規則包發佈至創意工坊。",
+    "ACH_WORKSHOP_PUBLISH_RULES_NAME": "發佈規則包",
+    "ACH_WORKSHOP_PUBLISH_SKILL_DESC": "首次成功將技能包發佈至創意工坊。",
+    "ACH_WORKSHOP_PUBLISH_SKILL_NAME": "發佈技能包"
+  },
+  "steamCloudDocs": {
+    "body": "正文",
+    "colActions": "操作",
+    "colSize": "大小",
+    "colTitle": "标题",
+    "colUpdated": "更新時間",
+    "deleteConfirm": "確定刪除雲端文件「{name}」嗎？",
+    "deleted": "已刪除",
+    "edit": "編輯雲端文件",
+    "empty": "暫無雲端文件。",
+    "loadFailed": "載入失敗",
+    "loading": "載入中…",
+    "newDoc": "新增雲端文件",
+    "refresh": "重新整理",
+    "rename": "重新命名",
+    "saveFailed": "儲存失敗",
+    "saveOk": "已儲存至 Steam 雲端",
+    "subtitle": "在 Steam 雲端空間內管理隨帳號同步的文件項目（估算用量，實際配額以 Steamworks 設定為準）。",
+    "title": "Steam 雲端文件",
+    "usage": "雲端文件估算用量",
+    "usageHint": "估算值，僅供參考"
+  },
+  "workshopPublish": {
+    "defaultLocale": "預設語言",
+    "description": "描述",
+    "failed": "發布失敗",
+    "localeNames": {
+      "de_de": "德語",
+      "en_us": "英語（美國）",
+      "es_es": "西班牙語（西班牙）",
+      "fr_fr": "法語",
+      "ja_jp": "日語",
+      "ko_kr": "韓語",
+      "pt_br": "葡萄牙語（巴西）",
+      "ru_ru": "俄語",
+      "zh_cn": "中文（簡體）",
+      "zh_tw": "中文（繁體）",
+      "es_419": "西班牙語（拉丁美洲）",
+      "pt_pt": "葡萄牙語（葡萄牙）"
+    },
+    "ok": "已提交，物品 ID：{id}",
+    "optionalEn": "可選英文（en_us）",
+    "publishing": "發布中…",
+    "submit": "發布到 Steam",
+    "subtitle": "使用當前介面語言作為預設語言與 fallback；可額外填寫英文標題、描述與內文。",
+    "templateNotFound": "未找到該使用者範本，可能已刪除或未同步。",
+    "thumbnail": "預覽圖（可選，留空則使用佔位圖）",
+    "title": "發布文件範本到創意工坊"
   }
 }

@@ -803,7 +803,14 @@
     "steamStatChars": "Caractères saisis (total)",
     "steamStatPlaytime": "Durée d'utilisation (total)",
     "steamTrayLevel": "Niveau",
-    "steamTrayTooltip": "Steam"
+    "steamTrayTooltip": "Steam",
+    "steamManageCloudDocs": "Gérer les documents cloud",
+    "steamManageWorkshop": "Gérer l'Atelier",
+    "steamTrayCreditsUnavailable": "Temporairement indisponible",
+    "steamTrayLlmCredits": "Crédits du compte",
+    "steamTrayMtxCatalogEmpty": "Aucun forfait disponible pour le moment. Vérifiez votre connexion ou réessayez plus tard.",
+    "steamTrayRecharge": "Recharger",
+    "steamTrayRefreshCloudCredits": "Actualiser les crédits"
   },
   "llmDialog": {
     "acceptTooltip": "Accepter",
@@ -1535,7 +1542,20 @@
       "exportFixtureReadDirFail": "Impossible de lire le répertoire des fixtures : {msg}",
       "exportFixtureResolveFail": "Impossible de parser ce fichier en tant que document à exporter",
       "exportFixtureRun": "Exporter PDF + DOCX en un clic",
-      "exportFixtureRunning": "Exportation en cours… ({current} / {total})"
+      "exportFixtureRunning": "Exportation en cours… ({current} / {total})",
+      "aiPipeline": {
+        "hint": "Les packages Steam officiels ne sont pas affectés par ce paramètre. Utilisé pour se connecter au Worker de staging lorsque la distribution Steam n'est pas cochée (nécessite VITE_METADOC_CLOUD_API_URL).",
+        "legacy": "BYOK traditionnel (l'utilisateur renseigne sa propre clé API)",
+        "steamCloud": "Cloud officiel + n1n (Worker + authentification DEV)",
+        "title": "Pipeline IA (développement uniquement)"
+      },
+      "steamCloudClearJwt": "Effacer le cache JWT du cloud",
+      "steamCloudDebug": "Steam Cloud / MTX",
+      "steamCloudDebugHint": "Simule la fenêtre contextuelle officielle d'insuffisance de crédits cloud, efface le JWT local ; en environnement de développement, peut appeler le Worker pour simuler un crédit sur une commande déjà init (nécessite ALLOW_DEV_AUTH et X-Dev-Secret).",
+      "steamCloudDevSimulateRun": "Appeler l'interface de simulation de crédit",
+      "steamCloudDevSimulateTitle": "DEV : Simuler l'achèvement du paiement",
+      "steamCloudOrderIdPlaceholder": "order_id (d'abord init réel)",
+      "steamCloudSimulateInsufficient": "Simuler l'erreur d'insuffisance de crédits"
     },
     "autoCompletionMaxTokens": "Nombre maximum de tokens pour la complétion",
     "autoCompletionMaxTokensHint": "Limite le nombre maximum de tokens pour la complétion automatique par IA. Minimum : 20, 0 = illimité.",
@@ -1587,7 +1607,12 @@
       "steamTab": "Steam",
       "steamUser": "Utilisateur Steam",
       "steamUserId": "ID Steam",
-      "steamUserName": "Nom d'affichage"
+      "steamUserName": "Nom d'affichage",
+      "steamOpenCloudDocs": "Gestion des documents cloud",
+      "steamSyncAgentPull": "Récupérer le pack de configuration Agent depuis le cloud",
+      "steamSyncAgentPush": "Envoyer le pack de configuration Agent vers le cloud",
+      "steamSyncTemplatesPull": "Récupérer les modèles utilisateur depuis le cloud",
+      "steamSyncTemplatesPush": "Envoyer les modèles utilisateur vers le cloud"
     },
     "agentTerminalExecutionAllowed": "Exécution terminal autorisée par défaut",
     "agentTerminalExecutionAllowedHint": "Si activé, l'Agent exécutera les commandes terminal sans confirmation. Si désactivé, une confirmation s'affichera avant chaque exécution.",
@@ -1985,6 +2010,32 @@
       "pickMd": "Ouvrir les fichiers Markdown (.md) par défaut avec MetaDoc",
       "pickTex": "Ouvrir les fichiers LaTeX (.tex) par défaut avec MetaDoc",
       "sectionTitle": "Définir l'application d'ouverture par défaut"
+    },
+    "llmSteamCloud": {
+      "mtxWebCredited": "Paiement effectué, {n} crédits ont été crédités (commande {order}).",
+      "noCloudUrl": "VITE_METADOC_CLOUD_API_URL n'est pas configuré.",
+      "recharge": "Recharger",
+      "rechargeCurrentBalance": "Solde actuel",
+      "rechargeNeedsSteam": "Impossible d'initier un achat intégré pour le moment : veuillez lancer Steam, vous assurer que cette application a été lancée via Steam et que Greenworks est initialisé (ou utilisez le canal de distribution Steam).",
+      "refreshCredits": "Actualiser",
+      "sortByPrice": "Trier",
+      "sortPriceAsc": "Du moins cher au plus cher",
+      "sortPriceDesc": "Du plus cher au moins cher",
+      "title": "MetaDoc Cloud officiel (Steam)",
+      "credits": "Crédits restants",
+      "developerModeConfirmBody": "Cette option est expérimentale et peut entraîner des comportements inattendus ou des frais supplémentaires. Confirmez-vous assumer tous les risques ?",
+      "developerModeConfirmTitle": "Confirmer l'activation ?",
+      "developerModeHint": "Peut affecter la stabilité ou différer de l'environnement de production. À utiliser avec prudence, uniquement pour les tests.",
+      "developerModeLabel": "Activer la connexion expérimentale",
+      "developerModeTitle": "Option expérimentale",
+      "firstPurchaseGranted": "Crédit offert pour le premier achat : {n} crédits.",
+      "model": "Modèle",
+      "mtxInitOk": "Commande créée : {order}. Si la fenêtre de paiement n'apparaît pas, assurez-vous d'avoir lancé l'application depuis votre bibliothèque Steam.",
+      "mtxInitOkOverlay": "Commande {order} créée. Veuillez vérifier la fenêtre d'autorisation de microtransaction dans le client Steam et confirmer ; si elle n'apparaît pas, revenez à la fenêtre de cette application/jeu et assurez-vous que Steam est en cours d'exécution.",
+      "mtxNoPublicIp": "Impossible d'obtenir les informations réseau. Veuillez vérifier votre connexion et réessayer.",
+      "mtxPackCreditsLabel": "Crédits",
+      "mtxPollTimeout": "Délai d'attente dépassé pour la confirmation Steam. Si vous avez déjà payé, cliquez sur « Actualiser les crédits » plus tard ; sinon, réessayez.",
+      "mtxSteamAuthFailed": "Steam n'a pas accepté cette autorisation (raison courante : l'adresse IP de commande ne correspond pas à celle du navigateur). Fermez la page de paiement et réessayez ; si vous utilisez un VPN/proxy, assurez-vous qu'il est cohérent avec celui du navigateur."
     }
   },
   "titleMenu": {
@@ -2089,7 +2140,21 @@
     "title": "Profil",
     "tokenBalance": "Solde",
     "username": "Nom d'utilisateur",
-    "usernamePlaceholder": "Veuillez saisir un nom d'utilisateur"
+    "usernamePlaceholder": "Veuillez saisir un nom d'utilisateur",
+    "manageSteamCloud": "Cloud Save…",
+    "manageWorkshop": "Atelier créatif…",
+    "steamCloudDialog": {
+      "description": "La bibliothèque de documents cloud gère les documents synchronisés avec votre compte Steam. Dans la section Steam de « Paramètres → À propos », vous pouvez configurer les paramètres de push/pull, l'historique, les modèles utilisateur et les packs cloud d'Agent.",
+      "openAboutSteam": "Ouvrir les paramètres (Synchronisation Steam)",
+      "openCloudDocs": "Ouvrir la bibliothèque de documents cloud",
+      "title": "Synchronisation du Cloud Save avec Steam"
+    },
+    "workshopDialog": {
+      "description": "Consultez vos abonnements et installez-les dans l'application via l'Atelier central, ou téléchargez des modèles de documents via l'assistant de publication.",
+      "openMarket": "Ouvrir l'Atelier central",
+      "openPublish": "Publier un modèle de document",
+      "title": "Atelier créatif"
+    }
   },
   "visualize": {
     "articleOutline": "Plan de l'article",
@@ -2744,7 +2809,7 @@
         "blank": {
           "description": "Créer un document Markdown vierge",
           "label": "Document vierge",
-          "content": ""
+          "content": "Contenu"
         },
         "technicalDoc": {
           "label": "Documentation technique",
@@ -2781,7 +2846,17 @@
     "title": "Nouveau document",
     "useTemplate": "Utiliser ce modèle",
     "removeTemplateConfirm": "Voulez-vous vraiment supprimer le modèle \"{name}\" ? Cette action est irréversible.",
-    "removeTemplateTitle": "Supprimer le modèle"
+    "removeTemplateTitle": "Supprimer le modèle",
+    "clearTemplateThumb": "Restaurer l'aperçu par défaut",
+    "publishWorkshop": "Publier sur l'Atelier…",
+    "setTemplateThumb": "Choisir une image…",
+    "setTemplateThumbDialogTitle": "Choisir la miniature du modèle",
+    "steamPullTemplates": "Récupérer les modèles utilisateur depuis le cloud Steam",
+    "steamPushTemplates": "Envoyer les modèles utilisateur vers le cloud Steam",
+    "steamTemplatesFailed": "Échec de la synchronisation",
+    "steamTemplatesPullOk": "Modèles utilisateur mis à jour depuis le cloud",
+    "steamTemplatesPushOk": "Modèles utilisateur envoyés",
+    "templateThumbMenu": "Miniature"
   },
   "agent": {
     "contextBreakdown": {
@@ -3623,7 +3698,14 @@
         "syncSkills": "Synchroniser l'index des compétences depuis l'espace de travail",
         "tabMcp": "Outils MCP",
         "tabRules": "Règles",
-        "tabSkills": "Compétences"
+        "tabSkills": "Compétences",
+        "steamAgentFailed": "Échec de l'opération",
+        "steamAgentPullOk": "Package d'agent fusionné depuis le cloud",
+        "steamAgentPushOk": "Package d'agent cloud téléchargé",
+        "steamCloudBar": "Steam Cloud (privé) et Atelier :",
+        "steamPublishWorkshop": "Publier un modèle de document (Atelier)",
+        "steamPullAgent": "Tirer le package d'agent cloud",
+        "steamPushAgent": "Pousser le package d'agent cloud"
       },
       "settingsMenu": "Paramètres de l'Agent"
     },
@@ -5694,9 +5776,11 @@
         "ko_KR": "한국어",
         "fr_FR": "Français",
         "de_DE": "Deutsch",
-        "es_ES": "Español",
-        "pt_BR": "Português (BR)",
-        "ru_RU": "Русский"
+        "es_ES": "Espagnol (Espagne)",
+        "pt_BR": "Portugais (Brésil)",
+        "ru_RU": "Русский",
+        "es_419": "Espagnol (Amérique latine)",
+        "pt_PT": "Portugais (Portugal)"
       },
       "welcome": {
         "zh_CN": "欢迎使用 MetaDoc！",
@@ -5708,7 +5792,9 @@
         "de_DE": "Willkommen bei MetaDoc!",
         "es_ES": "¡Bienvenido a MetaDoc!",
         "pt_BR": "Bem-vindo ao MetaDoc!",
-        "ru_RU": "Добро пожаловать в MetaDoc!"
+        "ru_RU": "Добро пожаловать в MetaDoc!",
+        "es_419": "¡Bienvenido a MetaDoc!",
+        "pt_PT": "Bem-vindo ao MetaDoc!"
       }
     },
     "welcome": {
@@ -5773,7 +5859,43 @@
     "loading": "Chargement en cours…",
     "pickFolder": "Choisir le répertoire de téléchargement",
     "refresh": "Actualiser la liste",
-    "title": "Atelier Steam / Marché des modèles"
+    "title": "Atelier Steam / Marché des modèles",
+    "browsePlaceholder": "La navigation publique et les filtres avancés dépendent des requêtes Steam UGC ou de l'API Web, intégration prévue dans les versions ultérieures. Vous pouvez gérer vos abonnements dans « Mes abonnements ».",
+    "centerTitle": "Centre d'Atelier Créatif",
+    "defaultLocale": "Langue par défaut",
+    "detail": "Détails",
+    "detailPickHint": "Cliquez sur une carte à gauche pour voir les détails ; cliquez sur « S'abonner et synchroniser » pour récupérer depuis Steam et installer dans l'application.",
+    "emptyFiltered": "Aucun élément ne correspond à la recherche actuelle.",
+    "fieldAuthor": "Auteur (ID Steam)",
+    "fieldCreated": "Date de création",
+    "fieldFile": "Fichier principal",
+    "fieldSubscribed": "Date d'ajout à la liste",
+    "fieldTags": "Étiquettes",
+    "fieldType": "Type de package",
+    "fieldUpdated": "Dernière mise à jour",
+    "filterSearch": "Rechercher",
+    "filtersComingSoon": "Les filtres (plage de dates, tri, etc.) seront progressivement alignés sur les capacités du backend.",
+    "filtersToggle": "Filtrer",
+    "installDone": "Installé dans les modèles utilisateur",
+    "installFailed": "Échec de l'installation",
+    "installToLibrary": "Installer dans l'application",
+    "installing": "Installation en cours…",
+    "kindDocumentTemplate": "Modèle de document",
+    "kindUnknown": "Inconnu",
+    "manifestKind": "Type",
+    "missingFileHandle": "Steam n'a pas renvoyé le descripteur de fichier pour cet élément, téléchargement impossible. Veuillez mettre à jour le client Steam et réessayer.",
+    "previewPlaceholder": "Aucune image d'aperçu (l'aperçu interne du package sera affiché après synchronisation réussie)",
+    "publishFromApp": "Publier un modèle depuis cet appareil",
+    "segmentBrowse": "Parcourir",
+    "segmentMine": "Mes abonnements",
+    "subscribeSync": "S'abonner et synchroniser",
+    "subscribeSyncFailed": "Échec de la synchronisation",
+    "subscribeSyncOk": "Synchronisé avec la bibliothèque de modèles utilisateur",
+    "subscribeSyncing": "Récupération depuis Steam et installation en cours…",
+    "syncSubscribed": "Synchroniser les abonnements",
+    "syncSubscribedHint": "Bientôt disponible",
+    "tabHelp": "Instructions",
+    "tabSubscriptions": "Abonnements"
   },
   "steamAch": {
     "ACH_DOCX_LATEX_EXPORT_DESC": "Première exportation d'un document DOCX depuis Markdown.",
@@ -5827,6 +5949,67 @@
     "ACH_OUTLINE_FORMAT_TITLES_NAME": "Titres formatés",
     "ACH_OUTLINE_FORMAT_TITLES_DESC": "Utiliser l'assistant de formatage des titres dans le plan avec succès.",
     "ACH_MATERIAL_BASKET_ADD_NAME": "Panier de matériaux",
-    "ACH_MATERIAL_BASKET_ADD_DESC": "Ajouter un élément au panier de matériaux (nouveau ou depuis un nœud)."
+    "ACH_MATERIAL_BASKET_ADD_DESC": "Ajouter un élément au panier de matériaux (nouveau ou depuis un nœud).",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_DESC": "Première publication réussie d'un modèle de document dans l'Atelier.",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_NAME": "Auteur de l'Atelier",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_DESC": "Première installation d'un contenu de l'Atelier dans l'application.",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_NAME": "Contenu de l'Atelier ajouté",
+    "ACH_CLOUD_DOC_SAVE_DESC": "Enregistrer pour la première fois un document dans la bibliothèque de documents cloud.",
+    "ACH_CLOUD_DOC_SAVE_NAME": "Début des documents cloud",
+    "ACH_WORKSHOP_PUBLISH_MCP_DESC": "Publier pour la première fois un pack MCP sur l'Atelier.",
+    "ACH_WORKSHOP_PUBLISH_MCP_NAME": "Publier un pack MCP",
+    "ACH_WORKSHOP_PUBLISH_RULES_DESC": "Publier pour la première fois un pack de règles sur l'Atelier.",
+    "ACH_WORKSHOP_PUBLISH_RULES_NAME": "Publier un pack de règles",
+    "ACH_WORKSHOP_PUBLISH_SKILL_DESC": "Publier pour la première fois un pack de compétences sur l'Atelier.",
+    "ACH_WORKSHOP_PUBLISH_SKILL_NAME": "Publier un pack de compétences"
+  },
+  "steamCloudDocs": {
+    "body": "Corps",
+    "colActions": "Actions",
+    "colSize": "Taille",
+    "colTitle": "Titre",
+    "colUpdated": "Dernière mise à jour",
+    "deleteConfirm": "Confirmer la suppression du document cloud « {name} » ?",
+    "deleted": "Supprimé",
+    "edit": "Modifier le document cloud",
+    "empty": "Aucun document cloud pour le moment.",
+    "loadFailed": "Échec du chargement",
+    "loading": "Chargement…",
+    "newDoc": "Nouveau document cloud",
+    "refresh": "Actualiser",
+    "rename": "Renommer",
+    "saveFailed": "Échec de l'enregistrement",
+    "saveOk": "Enregistré sur le Steam Cloud",
+    "subtitle": "Gérez les entrées de documents synchronisées avec votre compte dans l'espace Steam Cloud (estimation de l'utilisation, le quota réel dépend de la configuration Steamworks).",
+    "title": "Documents Steam Cloud",
+    "usage": "Estimation de l'utilisation des documents cloud",
+    "usageHint": "Valeur estimée, à titre indicatif uniquement"
+  },
+  "workshopPublish": {
+    "defaultLocale": "Langue par défaut",
+    "description": "Description",
+    "failed": "Échec de la publication",
+    "localeNames": {
+      "de_de": "Allemand",
+      "en_us": "Anglais (États-Unis)",
+      "es_es": "Espagnol (Espagne)",
+      "fr_fr": "Français",
+      "ja_jp": "Japonais",
+      "ko_kr": "Coréen",
+      "pt_br": "Portugais (Brésil)",
+      "ru_ru": "Russe",
+      "zh_cn": "Chinois (simplifié)",
+      "zh_tw": "Chinois (traditionnel)",
+      "es_419": "Espagnol (Amérique latine)",
+      "pt_pt": "Portugais (Portugal)"
+    },
+    "ok": "Soumis, ID de l'objet : {id}",
+    "optionalEn": "Anglais optionnel (en_us)",
+    "publishing": "Publication en cours…",
+    "submit": "Publier sur Steam",
+    "subtitle": "Utilise la langue de l'interface comme langue par défaut et de secours ; vous pouvez ajouter un titre, une description et un corps en anglais.",
+    "templateNotFound": "Modèle utilisateur introuvable, peut-être supprimé ou non synchronisé.",
+    "thumbnail": "Image d'aperçu (optionnelle, laisser vide pour utiliser une image par défaut)",
+    "title": "Publier un modèle de document dans l'Atelier"
   }
 }

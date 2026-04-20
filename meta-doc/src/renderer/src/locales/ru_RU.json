@@ -714,7 +714,14 @@
         "syncSkills": "Синхронизировать индекс навыков из рабочей области",
         "tabMcp": "MCP-инструменты",
         "tabRules": "Правила",
-        "tabSkills": "Навыки"
+        "tabSkills": "Навыки",
+        "steamAgentFailed": "Операция не выполнена",
+        "steamAgentPullOk": "Пакет агента объединён из облака",
+        "steamAgentPushOk": "Пакет агента загружен в облако",
+        "steamCloudBar": "Steam Cloud (приватный) и Мастерская:",
+        "steamPublishWorkshop": "Опубликовать шаблон документа (Мастерская)",
+        "steamPullAgent": "Загрузить облачный пакет агента",
+        "steamPushAgent": "Отправить облачный пакет агента"
       },
       "settingsMenu": "Настройки агента"
     },
@@ -3071,7 +3078,14 @@
     "steamStatChars": "Всего введено символов",
     "steamStatPlaytime": "Общее время использования",
     "steamTrayLevel": "Уровень",
-    "steamTrayTooltip": "Steam"
+    "steamTrayTooltip": "Steam",
+    "steamManageCloudDocs": "Управление облачными документами",
+    "steamManageWorkshop": "Управление мастерской",
+    "steamTrayCreditsUnavailable": "Временно недоступно",
+    "steamTrayLlmCredits": "Баланс Credits на аккаунте",
+    "steamTrayMtxCatalogEmpty": "Нет доступных тарифов. Проверьте подключение к сети или повторите попытку позже.",
+    "steamTrayRecharge": "Пополнить",
+    "steamTrayRefreshCloudCredits": "Обновить баланс"
   },
   "llm-adapter": {
     "failed": "Ошибка конфигурации",
@@ -3370,7 +3384,7 @@
         "blank": {
           "label": "Пустой документ",
           "description": "Создать пустой документ Markdown",
-          "content": ""
+          "content": "Содержимое"
         },
         "article": {
           "label": "Шаблон статьи",
@@ -3476,7 +3490,17 @@
       }
     },
     "title": "Новый документ",
-    "useTemplate": "Использовать этот шаблон"
+    "useTemplate": "Использовать этот шаблон",
+    "clearTemplateThumb": "Восстановить стандартный предпросмотр",
+    "publishWorkshop": "Опубликовать в Мастерской…",
+    "setTemplateThumb": "Выбрать изображение…",
+    "setTemplateThumbDialogTitle": "Выбор миниатюры шаблона",
+    "steamPullTemplates": "Загрузить пользовательские шаблоны из Steam Облака",
+    "steamPushTemplates": "Отправить пользовательские шаблоны в Steam Облако",
+    "steamTemplatesFailed": "Ошибка синхронизации",
+    "steamTemplatesPullOk": "Пользовательские шаблоны обновлены из облака",
+    "steamTemplatesPushOk": "Пользовательские шаблоны загружены",
+    "templateThumbMenu": "Миниатюра"
   },
   "notification": {
     "clearAll": "Очистить все",
@@ -3987,7 +4011,12 @@
       "steamTab": "Steam",
       "steamUser": "Пользователь Steam",
       "steamUserId": "Steam ID",
-      "steamUserName": "Отображаемое имя"
+      "steamUserName": "Отображаемое имя",
+      "steamOpenCloudDocs": "Управление облачными документами",
+      "steamSyncAgentPull": "Загрузить пакет конфигурации Agent из облака",
+      "steamSyncAgentPush": "Отправить пакет конфигурации Agent в облако",
+      "steamSyncTemplatesPull": "Загрузить пользовательские шаблоны из облака",
+      "steamSyncTemplatesPush": "Отправить пользовательские шаблоны в облако"
     },
     "allChangesSaved": "Все изменения сохранены",
     "apiBaseUrl": "Базовый URL API",
@@ -4341,7 +4370,20 @@
       "exportFixtureReadDirFail": "Не удалось прочитать каталог образцов: {msg}",
       "exportFixtureResolveFail": "Не удалось разобрать файл как документ для экспорта",
       "exportFixtureRun": "Экспорт PDF + DOCX в один клик",
-      "exportFixtureRunning": "Экспорт… ({current} / {total})"
+      "exportFixtureRunning": "Экспорт… ({current} / {total})",
+      "aiPipeline": {
+        "hint": "Настройка не влияет на официальные сборки Steam. Используется для подключения к staging Worker при отключенной дистрибуции через Steam (требуется VITE_METADOC_CLOUD_API_URL).",
+        "legacy": "Устаревший BYOK (пользователь вводит собственный API-ключ)",
+        "steamCloud": "Официальное облако + n1n (Worker + DEV-аутентификация)",
+        "title": "AI-конвейер (только для разработки)"
+      },
+      "steamCloudClearJwt": "Очистить кэш JWT облака",
+      "steamCloudDebug": "Steam Cloud / MTX",
+      "steamCloudDebugHint": "Симулировать официальное всплывающее окно о недостатке облачных Credits, очистить локальный JWT; в среде разработки можно вызвать Worker для симуляции зачисления средств по уже init-заказу (требуются ALLOW_DEV_AUTH и X-Dev-Secret).",
+      "steamCloudDevSimulateRun": "Вызвать интерфейс симуляции зачисления",
+      "steamCloudDevSimulateTitle": "DEV: Симуляция завершения оплаты",
+      "steamCloudOrderIdPlaceholder": "order_id (сначала реальный init)",
+      "steamCloudSimulateInsufficient": "Симулировать ошибку недостатка Credits"
     },
     "deepseek": "DeepSeek",
     "deepseekHint": "Большая языковая модель AI от DeepSeek, поддерживает несколько моделей",
@@ -4701,6 +4743,32 @@
       "pickMd": "Открывать Markdown (.md) в MetaDoc по умолчанию",
       "pickTex": "Открывать LaTeX (.tex) в MetaDoc по умолчанию",
       "sectionTitle": "Настройка способа открытия по умолчанию"
+    },
+    "llmSteamCloud": {
+      "mtxWebCredited": "Оплата завершена, зачислено {n} кредитов (заказ {order}).",
+      "noCloudUrl": "Не настроен VITE_METADOC_CLOUD_API_URL.",
+      "recharge": "Пополнить",
+      "rechargeCurrentBalance": "Текущий баланс",
+      "rechargeNeedsSteam": "Внутренние покупки сейчас недоступны: запустите Steam, убедитесь, что приложение запущено через Steam и Greenworks инициализирован (или используйте сборку через канал распространения Steam).",
+      "refreshCredits": "Обновить",
+      "sortByPrice": "Сортировать",
+      "sortPriceAsc": "По возрастанию цены",
+      "sortPriceDesc": "По убыванию цены",
+      "title": "Официальное облако MetaDoc (Steam)",
+      "credits": "Остаток (credits)",
+      "developerModeConfirmBody": "Эта опция является экспериментальной и может привести к непредсказуемому поведению или дополнительным расходам. Вы подтверждаете, что принимаете на себя все риски?",
+      "developerModeConfirmTitle": "Подтвердить включение?",
+      "developerModeHint": "Может повлиять на стабильность или не соответствовать рабочей среде. Только для тестирования, используйте с осторожностью.",
+      "developerModeLabel": "Включить экспериментальное подключение",
+      "developerModeTitle": "Экспериментальные опции",
+      "firstPurchaseGranted": "Бонус за первую покупку начислен: {n} credits.",
+      "model": "Модель",
+      "mtxInitOk": "Заказ создан: {order}. Если окно оплаты не появилось, убедитесь, что приложение запущено из библиотеки Steam.",
+      "mtxInitOkOverlay": "Заказ {order} создан. Проверьте всплывающее окно авторизации микроплатежа в клиенте Steam и подтвердите его; если оно не появилось, переключитесь на окно этого приложения или игры и убедитесь, что Steam запущен.",
+      "mtxNoPublicIp": "Не удалось получить сетевую информацию. Проверьте подключение к сети и повторите попытку.",
+      "mtxPackCreditsLabel": "Кредиты (credits)",
+      "mtxPollTimeout": "Время ожидания подтверждения от Steam истекло. Если вы уже оплатили, нажмите «Обновить баланс» позже; если оплата не завершена, повторите попытку.",
+      "mtxSteamAuthFailed": "Steam не принял эту авторизацию (частая причина: IP-адрес заказа не совпадает с IP-адресом выхода браузера). Закройте страницу оплаты и повторите попытку; если используете VPN/прокси, убедитесь, что он совпадает с настройками браузера."
     }
   },
   "settingBasicSection": {
@@ -5184,7 +5252,21 @@
     "title": "Профиль",
     "tokenBalance": "Баланс",
     "username": "Имя пользователя",
-    "usernamePlaceholder": "Введите имя пользователя"
+    "usernamePlaceholder": "Введите имя пользователя",
+    "manageSteamCloud": "Облачные сохранения…",
+    "manageWorkshop": "Мастерская…",
+    "steamCloudDialog": {
+      "description": "Облачная библиотека документов синхронизируется с вашей учётной записью Steam. В разделе Steam «Настройки → О программе» можно управлять настройками, историей, пользовательскими шаблонами и облачными пакетами Agent.",
+      "openAboutSteam": "Открыть настройки (синхронизация Steam)",
+      "openCloudDocs": "Открыть облачную библиотеку документов",
+      "title": "Облачные сохранения и синхронизация Steam"
+    },
+    "workshopDialog": {
+      "description": "В центре мастерской можно просматривать подписки и устанавливать их в приложение, а также загружать шаблоны документов через мастер публикации.",
+      "openMarket": "Открыть центр мастерской",
+      "openPublish": "Опубликовать шаблон документа",
+      "title": "Мастерская"
+    }
   },
   "versionInfoPanel": {
     "buildEnvironment": "Среда сборки",
@@ -5429,9 +5511,11 @@
         "ko_KR": "한국어",
         "fr_FR": "Français",
         "de_DE": "Deutsch",
-        "es_ES": "Español",
-        "pt_BR": "Português (BR)",
-        "ru_RU": "Русский"
+        "es_ES": "Испанский (Испания)",
+        "pt_BR": "Португальский (Бразилия)",
+        "ru_RU": "Русский",
+        "es_419": "Испанский (Латинская Америка)",
+        "pt_PT": "Португальский (Португалия)"
       },
       "welcome": {
         "zh_CN": "欢迎使用 MetaDoc！",
@@ -5443,7 +5527,9 @@
         "de_DE": "Willkommen bei MetaDoc!",
         "es_ES": "¡Bienvenido a MetaDoc!",
         "pt_BR": "Bem-vindo ao MetaDoc!",
-        "ru_RU": "Добро пожаловать в MetaDoc!"
+        "ru_RU": "Добро пожаловать в MetaDoc!",
+        "es_419": "¡Bienvenido a MetaDoc!",
+        "pt_PT": "Bem-vindo ao MetaDoc!"
       }
     },
     "welcome": {
@@ -5508,7 +5594,43 @@
     "loading": "Загрузка…",
     "pickFolder": "Выберите папку для загрузки",
     "refresh": "Обновить список",
-    "title": "Мастерская / Маркет шаблонов"
+    "title": "Мастерская / Маркет шаблонов",
+    "browsePlaceholder": "Публичный просмотр и расширенная фильтрация зависят от запросов Steam UGC или Web API, будут подключены в следующих версиях. Вы можете управлять подписками в разделе «Мои».",
+    "centerTitle": "Центр мастерской",
+    "defaultLocale": "Язык по умолчанию",
+    "detail": "Подробности",
+    "detailPickHint": "Нажмите на карточку слева, чтобы увидеть подробности; нажмите «Подписаться и синхронизировать», чтобы загрузить из Steam и установить в приложение.",
+    "emptyFiltered": "Нет элементов, соответствующих текущему поиску.",
+    "fieldAuthor": "Steam ID автора",
+    "fieldCreated": "Дата создания",
+    "fieldFile": "Основной файл",
+    "fieldSubscribed": "Дата добавления в список",
+    "fieldTags": "Теги",
+    "fieldType": "Тип пакета",
+    "fieldUpdated": "Последнее обновление",
+    "filterSearch": "Поиск",
+    "filtersComingSoon": "Фильтры по диапазону дат, сортировке и другие будут постепенно согласованы с возможностями серверной части.",
+    "filtersToggle": "Фильтры",
+    "installDone": "Установлено в пользовательские шаблоны",
+    "installFailed": "Ошибка установки",
+    "installToLibrary": "Установить в приложение",
+    "installing": "Установка…",
+    "kindDocumentTemplate": "Шаблон документа",
+    "kindUnknown": "Неизвестно",
+    "manifestKind": "Тип",
+    "missingFileHandle": "Steam не вернул файловый дескриптор для этого предмета, загрузка невозможна. Обновите клиент Steam и повторите попытку.",
+    "previewPlaceholder": "Нет изображения для предпросмотра (после успешной синхронизации будет показана миниатюра из пакета)",
+    "publishFromApp": "Опубликовать шаблон с этого устройства",
+    "segmentBrowse": "Обзор",
+    "segmentMine": "Мои",
+    "subscribeSync": "Подписаться и синхронизировать",
+    "subscribeSyncFailed": "Ошибка синхронизации",
+    "subscribeSyncOk": "Синхронизировано с библиотекой пользовательских шаблонов",
+    "subscribeSyncing": "Загрузка из Steam и установка…",
+    "syncSubscribed": "Синхронизировать подписки",
+    "syncSubscribedHint": "Скоро будет",
+    "tabHelp": "Инструкция",
+    "tabSubscriptions": "Подписки"
   },
   "steamAch": {
     "ACH_DOCX_LATEX_EXPORT_DESC": "Впервые экспортировали DOCX из Markdown.",
@@ -5562,6 +5684,67 @@
     "ACH_OUTLINE_FORMAT_TITLES_NAME": "Формат заголовков",
     "ACH_OUTLINE_FORMAT_TITLES_DESC": "Успешно применить мастер форматирования заголовков в структуре.",
     "ACH_MATERIAL_BASKET_ADD_NAME": "Корзина материалов",
-    "ACH_MATERIAL_BASKET_ADD_DESC": "Добавить элемент в корзину материалов (новый или из узла)."
+    "ACH_MATERIAL_BASKET_ADD_DESC": "Добавить элемент в корзину материалов (новый или из узла).",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_DESC": "Впервые успешно опубликовал(а) шаблон документа в Мастерской.",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_NAME": "Автор Мастерской",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_DESC": "Впервые установил(а) подписанный контент из Мастерской в приложение.",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_NAME": "Контент из Мастерской",
+    "ACH_CLOUD_DOC_SAVE_DESC": "Впервые успешно сохранили документ в облачной библиотеке.",
+    "ACH_CLOUD_DOC_SAVE_NAME": "Начало работы с облачными документами",
+    "ACH_WORKSHOP_PUBLISH_MCP_DESC": "Впервые успешно опубликовали MCP-пакет в Мастерской.",
+    "ACH_WORKSHOP_PUBLISH_MCP_NAME": "Опубликовать MCP-пакет",
+    "ACH_WORKSHOP_PUBLISH_RULES_DESC": "Впервые успешно опубликовали пакет правил в Мастерской.",
+    "ACH_WORKSHOP_PUBLISH_RULES_NAME": "Опубликовать пакет правил",
+    "ACH_WORKSHOP_PUBLISH_SKILL_DESC": "Впервые успешно опубликовали пакет навыков в Мастерской.",
+    "ACH_WORKSHOP_PUBLISH_SKILL_NAME": "Опубликовать пакет навыков"
+  },
+  "steamCloudDocs": {
+    "body": "Текст",
+    "colActions": "Действия",
+    "colSize": "Размер",
+    "colTitle": "Название",
+    "colUpdated": "Обновлено",
+    "deleteConfirm": "Удалить облачный документ «{name}»?",
+    "deleted": "Удалено",
+    "edit": "Редактировать облачный документ",
+    "empty": "Облачные документы отсутствуют.",
+    "loadFailed": "Ошибка загрузки",
+    "loading": "Загрузка…",
+    "newDoc": "Создать облачный документ",
+    "refresh": "Обновить",
+    "rename": "Переименовать",
+    "saveFailed": "Ошибка сохранения",
+    "saveOk": "Сохранено в Steam Cloud",
+    "subtitle": "Управление документами, синхронизируемыми с вашей учетной записью в Steam Cloud (использование является оценочным, фактическая квота зависит от конфигурации Steamworks).",
+    "title": "Документы Steam Cloud",
+    "usage": "Оценочное использование облачных документов",
+    "usageHint": "Оценочные данные, только для справки"
+  },
+  "workshopPublish": {
+    "defaultLocale": "Язык по умолчанию",
+    "description": "Описание",
+    "failed": "Ошибка публикации",
+    "localeNames": {
+      "de_de": "Немецкий",
+      "en_us": "Английский (США)",
+      "es_es": "Испанский (Испания)",
+      "fr_fr": "Французский",
+      "ja_jp": "Японский",
+      "ko_kr": "Корейский",
+      "pt_br": "Португальский (Бразилия)",
+      "ru_ru": "Русский",
+      "zh_cn": "Китайский (упрощ.)",
+      "zh_tw": "Китайский (трад.)",
+      "es_419": "Испанский (Латинская Америка)",
+      "pt_pt": "Португальский (Португалия)"
+    },
+    "ok": "Отправлено, ID предмета: {id}",
+    "optionalEn": "Английский (en_us, опционально)",
+    "publishing": "Публикация…",
+    "submit": "Опубликовать в Steam Workshop",
+    "subtitle": "Текущий язык интерфейса используется как язык по умолчанию и запасной вариант. Дополнительно можно заполнить заголовок, описание и текст на английском.",
+    "templateNotFound": "Шаблон пользователя не найден. Возможно, он был удален или не синхронизирован.",
+    "thumbnail": "Превью (опционально, если оставить пустым, будет использовано изображение-заглушка)",
+    "title": "Опубликовать шаблон документа в Steam Workshop"
   }
 }

@@ -341,8 +341,10 @@ def main():
         "ko_KR.json": "Korean",
         "de_DE.json": "German",
         "fr_FR.json": "French",
-        "es_ES.json": "Spanish",
+        "es_ES.json": "Spanish (Spain)",
+        "es_419.json": "Spanish (Latin America)",
         "pt_BR.json": "Portuguese (Brazil)",
+        "pt_PT.json": "Portuguese (Portugal)",
         "ru_RU.json": "Russian",
     }
 

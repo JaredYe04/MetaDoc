@@ -177,7 +177,14 @@
     "steamStatChars": "누적 입력 문자",
     "steamStatPlaytime": "누적 사용 시간",
     "steamTrayLevel": "레벨",
-    "steamTrayTooltip": "Steam"
+    "steamTrayTooltip": "Steam",
+    "steamManageCloudDocs": "클라우드 문서 관리",
+    "steamManageWorkshop": "워크샵 관리",
+    "steamTrayCreditsUnavailable": "일시적으로 사용 불가",
+    "steamTrayLlmCredits": "계정 Credits 잔액",
+    "steamTrayMtxCatalogEmpty": "현재 판매 중인 상품이 없습니다. 네트워크를 확인하거나 잠시 후 다시 시도해 주세요.",
+    "steamTrayRecharge": "충전",
+    "steamTrayRefreshCloudCredits": "크레딧 새로 고침"
   },
   "llmDialog": {
     "aiAssistant": "AI 어시스턴트",
@@ -474,6 +481,20 @@
       "emailRequired": "이메일을 입력하세요",
       "emailPattern": "유효한 이메일을 입력하세요",
       "newPasswordRequired": "새 비밀번호를 입력하세요"
+    },
+    "manageSteamCloud": "클라우드 저장…",
+    "manageWorkshop": "창작 공방…",
+    "steamCloudDialog": {
+      "description": "클라우드 문서 라이브러리는 Steam 계정과 동기화된 문서를 관리합니다. '설정 → 정보'의 Steam 영역에서 설정, 기록, 사용자 템플릿 및 Agent 클라우드 패키지 등을 푸시/풀할 수 있습니다.",
+      "openAboutSteam": "설정 열기 (Steam 동기화)",
+      "openCloudDocs": "클라우드 문서 라이브러리 열기",
+      "title": "클라우드 저장 및 Steam 동기화"
+    },
+    "workshopDialog": {
+      "description": "공방 센터에서 구독을 확인하고 앱에 설치하거나, 게시 마법사를 통해 문서 템플릿을 업로드하세요.",
+      "openMarket": "공방 센터 열기",
+      "openPublish": "문서 템플릿 게시",
+      "title": "창작 공방"
     }
   },
   "voiceInput": {
@@ -1620,7 +1641,20 @@
       "exportFixtureReadDirFail": "예제 디렉토리를 읽을 수 없습니다: {msg}",
       "exportFixtureResolveFail": "이 파일을 내보낼 문서로 해석할 수 없습니다",
       "exportFixtureRun": "PDF + DOCX 일괄 내보내기",
-      "exportFixtureRunning": "내보내는 중… ({current} / {total})"
+      "exportFixtureRunning": "내보내는 중… ({current} / {total})",
+      "aiPipeline": {
+        "hint": "정식 Steam 패키지는 이 항목의 영향을 받지 않습니다. Steam 배포를 선택하지 않았을 때 staging Worker에 연결하는 데 사용됩니다(VITE_METADOC_CLOUD_API_URL 필요).",
+        "legacy": "기존 BYOK(사용자가 직접 API Key 입력)",
+        "steamCloud": "공식 클라우드 + n1n(Worker + DEV 인증)",
+        "title": "AI 파이프라인(개발 전용)"
+      },
+      "steamCloudClearJwt": "클라우드 JWT 캐시 지우기",
+      "steamCloudDebug": "Steam 클라우드 / MTX",
+      "steamCloudDebugHint": "공식 클라우드 Credits 부족 팝업 시뮬레이션, 로컬 JWT 지우기; 개발 환경에서는 init된 주문에 대해 Worker를 호출하여 입금을 시뮬레이션할 수 있습니다 (ALLOW_DEV_AUTH 및 X-Dev-Secret 필요).",
+      "steamCloudDevSimulateRun": "시뮬레이션 입금 인터페이스 호출",
+      "steamCloudDevSimulateTitle": "DEV: 결제 완료 시뮬레이션",
+      "steamCloudOrderIdPlaceholder": "order_id (먼저 실제 init 필요)",
+      "steamCloudSimulateInsufficient": "Credits 부족 오류 시뮬레이션"
     },
     "autoCompletionMaxTokens": "자동 완성 최대 토큰 수",
     "autoCompletionMaxTokensHint": "AI 자동 완성의 최대 토큰 수를 제한합니다. 최소 20, 0은 제한 없음을 의미합니다.",
@@ -1711,7 +1745,12 @@
       "steamTab": "Steam",
       "steamUser": "Steam 사용자",
       "steamUserId": "Steam ID",
-      "steamUserName": "표시 이름"
+      "steamUserName": "표시 이름",
+      "steamOpenCloudDocs": "클라우드 문서 관리",
+      "steamSyncAgentPull": "클라우드에서 에이전트 설정 패키지 가져오기",
+      "steamSyncAgentPush": "에이전트 설정 패키지를 클라우드로 푸시하기",
+      "steamSyncTemplatesPull": "클라우드에서 사용자 템플릿 가져오기",
+      "steamSyncTemplatesPush": "사용자 템플릿을 클라우드로 푸시하기"
     },
     "agentTerminalExecutionAllowed": "기본적으로 터미널 실행 허용",
     "agentTerminalExecutionAllowedHint": "켜면 Agent가 터미널 도구를 호출할 때 확인 없이 실행합니다. 끄면 실행 전에 매번 확인 대화상자가 표시됩니다.",
@@ -2010,6 +2049,32 @@
       "pickMd": "Markdown(.md) 파일을 MetaDoc으로 기본 열기",
       "pickTex": "LaTeX(.tex) 파일을 MetaDoc으로 기본 열기",
       "sectionTitle": "기본 열기 방식 설정"
+    },
+    "llmSteamCloud": {
+      "mtxWebCredited": "결제 완료, {n} credits가 적립되었습니다 (주문 {order}).",
+      "noCloudUrl": "VITE_METADOC_CLOUD_API_URL이 구성되지 않았습니다.",
+      "recharge": "충전",
+      "rechargeCurrentBalance": "현재 잔액",
+      "rechargeNeedsSteam": "현재 인앱 구매를 시작할 수 없습니다: Steam을 실행하고, 이 애플리케이션이 Steam을 통해 실행되었으며 Greenworks가 초기화되었는지 확인하세요 (또는 Steam 배포 채널 빌드를 사용하세요).",
+      "refreshCredits": "새로 고침",
+      "sortByPrice": "정렬",
+      "sortPriceAsc": "낮은 가격순",
+      "sortPriceDesc": "높은 가격순",
+      "title": "MetaDoc 공식 클라우드 (Steam)",
+      "credits": "잔여 크레딧(credits)",
+      "developerModeConfirmBody": "이 옵션은 실험적 기능으로 예상치 못한 동작이나 추가 비용이 발생할 수 있습니다. 모든 위험을 스스로 감수하는 데 동의하시겠습니까?",
+      "developerModeConfirmTitle": "활성화를 확인하시겠습니까?",
+      "developerModeHint": "안정성에 영향을 주거나 정식 환경과 일치하지 않을 수 있습니다. 테스트 전용으로 신중하게 사용하세요.",
+      "developerModeLabel": "실험적 연결 활성화",
+      "developerModeTitle": "실험적 옵션",
+      "firstPurchaseGranted": "첫 구매 보너스가 지급되었습니다: {n} credits.",
+      "model": "모델",
+      "mtxInitOk": "주문이 생성되었습니다: {order}. 결제 창이 팝업되지 않으면 Steam 라이브러리에서 이 앱을 실행했는지 확인하세요.",
+      "mtxInitOkOverlay": "주문 {order}이(가) 생성되었습니다. Steam 클라이언트 내에서 마이크로트랜잭션 승인 팝업을 확인하고 완료해 주세요. 팝업이 나타나지 않으면 이 앱이나 게임 창으로 전환하고 Steam이 실행 중인지 확인하세요.",
+      "mtxNoPublicIp": "네트워크 정보를 가져올 수 없습니다. 네트워크 연결을 확인한 후 다시 시도하세요.",
+      "mtxPackCreditsLabel": "크레딧(credits)",
+      "mtxPollTimeout": "Steam 확인 대기 시간이 초과되었습니다. 결제를 완료했다면 잠시 후 '크레딧 새로고침'을 클릭하세요. 결제를 완료하지 않았다면 다시 시도하세요.",
+      "mtxSteamAuthFailed": "Steam이 이번 승인을 수락하지 않았습니다(일반적인 원인: 주문 IP와 브라우저 출구 IP가 일치하지 않음). 결제 페이지를 닫고 다시 시도하세요. VPN/프록시를 사용 중이라면 브라우저와 동일하게 유지하세요."
     }
   },
   "visualize": {
@@ -2720,7 +2785,7 @@
         "blank": {
           "description": "빈 Markdown 문서를 생성합니다.",
           "label": "빈 문서",
-          "content": ""
+          "content": "빈 문서"
         },
         "technicalDoc": {
           "label": "기술 문서",
@@ -2757,7 +2822,17 @@
     "title": "새 문서",
     "useTemplate": "이 템플릿 사용",
     "removeTemplateConfirm": "템플릿 「{name}」을(를) 제거하시겠습니까? 제거 후에는 복구할 수 없습니다.",
-    "removeTemplateTitle": "템플릿 제거"
+    "removeTemplateTitle": "템플릿 제거",
+    "clearTemplateThumb": "기본 미리보기로 복원",
+    "publishWorkshop": "창작마당에 게시…",
+    "setTemplateThumb": "이미지 선택…",
+    "setTemplateThumbDialogTitle": "템플릿 썸네일 선택",
+    "steamPullTemplates": "Steam 클라우드에서 사용자 템플릿 가져오기",
+    "steamPushTemplates": "사용자 템플릿을 Steam 클라우드로 푸시",
+    "steamTemplatesFailed": "동기화 실패",
+    "steamTemplatesPullOk": "사용자 템플릿이 클라우드에서 업데이트됨",
+    "steamTemplatesPushOk": "사용자 템플릿이 업로드됨",
+    "templateThumbMenu": "썸네일"
   },
   "agent": {
     "contextBreakdown": {
@@ -3622,7 +3697,14 @@
         "syncSkills": "작업 공간에서 스킬 인덱스 동기화",
         "tabMcp": "MCP 도구",
         "tabRules": "규칙",
-        "tabSkills": "스킬"
+        "tabSkills": "스킬",
+        "steamAgentFailed": "작업 실패",
+        "steamAgentPullOk": "클라우드에서 에이전트 패키지를 병합했습니다",
+        "steamAgentPushOk": "에이전트 클라우드 패키지를 업로드했습니다",
+        "steamCloudBar": "Steam 클라우드(비공개) 및 창작마당:",
+        "steamPublishWorkshop": "문서 템플릿 게시(창작마당)",
+        "steamPullAgent": "에이전트 클라우드 패키지 가져오기",
+        "steamPushAgent": "에이전트 클라우드 패키지 푸시"
       },
       "settingsMenu": "Agent 설정"
     },
@@ -5696,9 +5778,11 @@
         "ko_KR": "한국어",
         "fr_FR": "Français",
         "de_DE": "Deutsch",
-        "es_ES": "Español",
-        "pt_BR": "Português (BR)",
-        "ru_RU": "Русский"
+        "es_ES": "스페인어(스페인)",
+        "pt_BR": "포르투갈어(브라질)",
+        "ru_RU": "Русский",
+        "es_419": "스페인어(라틴아메리카)",
+        "pt_PT": "포르투갈어(포르투갈)"
       },
       "welcome": {
         "zh_CN": "MetaDoc에 오신 것을 환영합니다!",
@@ -5710,7 +5794,9 @@
         "de_DE": "MetaDoc에 오신 것을 환영합니다!",
         "es_ES": "MetaDoc에 오신 것을 환영합니다!",
         "pt_BR": "MetaDoc에 오신 것을 환영합니다!",
-        "ru_RU": "MetaDoc에 오신 것을 환영합니다!"
+        "ru_RU": "MetaDoc에 오신 것을 환영합니다!",
+        "es_419": "MetaDoc에 오신 것을 환영합니다!",
+        "pt_PT": "MetaDoc에 오신 것을 환영합니다!"
       }
     },
     "welcome": {
@@ -5775,7 +5861,43 @@
     "loading": "로딩 중…",
     "pickFolder": "다운로드 디렉토리 선택",
     "refresh": "목록 새로고침",
-    "title": "창작마당 / 템플릿 마켓"
+    "title": "창작마당 / 템플릿 마켓",
+    "browsePlaceholder": "공개 검색 및 고급 필터링은 Steam UGC 쿼리 또는 Web API에 의존하며, 이후 버전에서 통합될 예정입니다. '내 작업실'에서 구독한 항목을 관리할 수 있습니다.",
+    "centerTitle": "워크샵 센터",
+    "defaultLocale": "기본 언어",
+    "detail": "상세 정보",
+    "detailPickHint": "왼쪽 카드를 클릭하여 상세 정보를 확인하세요. '구독 및 동기화'를 클릭하면 Steam에서 가져와 이 애플리케이션에 설치됩니다.",
+    "emptyFiltered": "현재 검색 조건에 맞는 항목이 없습니다.",
+    "fieldAuthor": "작성자 Steam ID",
+    "fieldCreated": "생성 시간",
+    "fieldFile": "주 파일",
+    "fieldSubscribed": "목록 추가 시간",
+    "fieldTags": "태그",
+    "fieldType": "패키지 유형",
+    "fieldUpdated": "최근 업데이트",
+    "filterSearch": "검색",
+    "filtersComingSoon": "시간 범위, 정렬 등의 필터 기능은 점차 백엔드 기능과 연동될 예정입니다.",
+    "filtersToggle": "필터",
+    "installDone": "사용자 템플릿에 설치됨",
+    "installFailed": "설치 실패",
+    "installToLibrary": "애플리케이션에 설치",
+    "installing": "설치 중…",
+    "kindDocumentTemplate": "문서 템플릿",
+    "kindUnknown": "알 수 없음",
+    "manifestKind": "유형",
+    "missingFileHandle": "Steam에서 해당 아이템의 파일 핸들을 반환하지 않아 다운로드할 수 없습니다. Steam 클라이언트를 업데이트한 후 다시 시도해 주세요.",
+    "previewPlaceholder": "미리보기 이미지 없음 (동기화 성공 후 패키지 내 썸네일 표시 가능)",
+    "publishFromApp": "로컬에서 템플릿 게시",
+    "segmentBrowse": "둘러보기",
+    "segmentMine": "내 작업실",
+    "subscribeSync": "구독 및 동기화",
+    "subscribeSyncFailed": "동기화 실패",
+    "subscribeSyncOk": "사용자 템플릿 라이브러리에 동기화됨",
+    "subscribeSyncing": "Steam에서 가져와 설치 중…",
+    "syncSubscribed": "구독 동기화",
+    "syncSubscribedHint": "곧 출시 예정",
+    "tabHelp": "설명",
+    "tabSubscriptions": "구독한 항목"
   },
   "steamAch": {
     "ACH_DOCX_LATEX_EXPORT_DESC": "Markdown에서 DOCX로 처음 내보내기.",
@@ -5829,6 +5951,67 @@
     "ACH_OUTLINE_FORMAT_TITLES_NAME": "제목 서식",
     "ACH_OUTLINE_FORMAT_TITLES_DESC": "개요 보기에서 제목 서식 마법사를 성공적으로 사용합니다.",
     "ACH_MATERIAL_BASKET_ADD_NAME": "재료 바구니",
-    "ACH_MATERIAL_BASKET_ADD_DESC": "재료 바구니에 항목을 추가합니다(새로 만들기 또는 노드에서)."
+    "ACH_MATERIAL_BASKET_ADD_DESC": "재료 바구니에 항목을 추가합니다(새로 만들기 또는 노드에서).",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_DESC": "처음으로 문서 템플릿을 창작마당에 성공적으로 게시했습니다.",
+    "ACH_WORKSHOP_PUBLISH_TEMPLATE_NAME": "창작마당 작가",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_DESC": "처음으로 구독한 창작마당 콘텐츠를 앱에 설치했습니다.",
+    "ACH_WORKSHOP_SUBSCRIBE_ITEM_NAME": "창작마당 입고",
+    "ACH_CLOUD_DOC_SAVE_DESC": "클라우드 문서 라이브러리에 있는 문서를 처음으로 성공적으로 저장했습니다.",
+    "ACH_CLOUD_DOC_SAVE_NAME": "클라우드 문서 시작",
+    "ACH_WORKSHOP_PUBLISH_MCP_DESC": "MCP 패키지를 Steam 창작마당에 처음으로 성공적으로 게시했습니다.",
+    "ACH_WORKSHOP_PUBLISH_MCP_NAME": "MCP 패키지 게시",
+    "ACH_WORKSHOP_PUBLISH_RULES_DESC": "규칙 패키지를 Steam 창작마당에 처음으로 성공적으로 게시했습니다.",
+    "ACH_WORKSHOP_PUBLISH_RULES_NAME": "규칙 패키지 게시",
+    "ACH_WORKSHOP_PUBLISH_SKILL_DESC": "스킬 패키지를 Steam 창작마당에 처음으로 성공적으로 게시했습니다.",
+    "ACH_WORKSHOP_PUBLISH_SKILL_NAME": "스킬 패키지 게시"
+  },
+  "steamCloudDocs": {
+    "body": "본문",
+    "colActions": "작업",
+    "colSize": "크기",
+    "colTitle": "제목",
+    "colUpdated": "업데이트 시간",
+    "deleteConfirm": "클라우드 문서 「{name}」을(를) 삭제하시겠습니까?",
+    "deleted": "삭제됨",
+    "edit": "클라우드 문서 편집",
+    "empty": "클라우드 문서가 없습니다.",
+    "loadFailed": "로드 실패",
+    "loading": "로드 중…",
+    "newDoc": "새 클라우드 문서",
+    "refresh": "새로 고침",
+    "rename": "이름 바꾸기",
+    "saveFailed": "저장 실패",
+    "saveOk": "Steam 클라우드에 저장됨",
+    "subtitle": "Steam 클라우드 공간에서 계정과 동기화되는 문서 항목을 관리합니다 (사용량은 추정치이며, 실제 할당량은 Steamworks 설정에 따릅니다).",
+    "title": "Steam 클라우드 문서",
+    "usage": "클라우드 문서 추정 사용량",
+    "usageHint": "참고용 추정치입니다"
+  },
+  "workshopPublish": {
+    "defaultLocale": "기본 언어",
+    "description": "설명",
+    "failed": "게시 실패",
+    "localeNames": {
+      "de_de": "독일어",
+      "en_us": "영어(미국)",
+      "es_es": "스페인어(스페인)",
+      "fr_fr": "프랑스어",
+      "ja_jp": "일본어",
+      "ko_kr": "한국어",
+      "pt_br": "포르투갈어(브라질)",
+      "ru_ru": "러시아어",
+      "zh_cn": "중국어(간체)",
+      "zh_tw": "중국어(번체)",
+      "es_419": "스페인어(라틴아메리카)",
+      "pt_pt": "포르투갈어(포르투갈)"
+    },
+    "ok": "제출 완료, 아이템 ID: {id}",
+    "optionalEn": "선택적 영어(en_us)",
+    "publishing": "게시 중…",
+    "submit": "Steam에 게시",
+    "subtitle": "현재 인터페이스 언어를 기본 언어 및 폴백으로 사용합니다. 추가로 영어 제목, 설명 및 본문을 입력할 수 있습니다.",
+    "templateNotFound": "해당 사용자 템플릿을 찾을 수 없습니다. 삭제되었거나 동기화되지 않았을 수 있습니다.",
+    "thumbnail": "미리보기 이미지(선택 사항, 비워두면 플레이스홀더 이미지 사용)",
+    "title": "문서 템플릿을 창작마당에 게시"
   }
 }

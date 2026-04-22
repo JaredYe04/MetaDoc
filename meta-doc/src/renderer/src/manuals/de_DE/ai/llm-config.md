@@ -4,6 +4,8 @@
 
 LLM (Large Language Models) bilden die gemeinsame Grundlage für KI-Funktionen in MetaDoc wie KI-Chat, Korrekturlesen, Vervollständigung, Assistenten und Agenten. Dieser Artikel erklärt, warum eine LLM-Konfiguration notwendig ist, welche Funktionen davon betroffen sind und wie Sie zur spezifischen Konfigurationsoberfläche gelangen.
 
+**Vertriebskanal**: Wenn Sie MetaDoc über **Steam** nutzen, lesen Sie zuerst den Abschnitt **Steam / MetaDoc Cloud** in **[[settings.llm|LLM-Konfiguration]]** (Aufladung, Guthaben, Modellwechsel). Nur wenn Sie eine **eigene Drittanbieter-API** benötigen, aktivieren Sie **experimentelle Konnektivität** unter **Experimentellen Optionen** und lesen Sie dann weiter sowie **[[settings.llm-types|LLM-Anbietertypen]]**.
+
 <Demo component="SettingLlmSection" mode="demo" />
 
 ## Warum eine LLM-Konfiguration notwendig ist

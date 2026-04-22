@@ -4,6 +4,8 @@
 
 LLM（大语言模型）是 MetaDoc 中 AI 对话、校对、补全、助手与 Agent 等功能的共同基础。本文说明为何需要配置 LLM、配置会影响哪些功能，以及如何进入具体配置界面。
 
+**分发渠道**：若您通过 **Steam** 使用 MetaDoc，推荐先阅读「[[settings.llm|LLM配置]]」中的 **Steam / MetaDoc 官方云**（充值、余额、模型切换）；只有需要 **自备第三方 API** 时，才在 **实验性选项** 中开启 **启用实验性连接**，并继续阅读下文与 [[settings.llm-types|LLM类型配置]]。
+
 <Demo component="SettingLlmSection" mode="demo" />
 
 ## 为何要配置 LLM

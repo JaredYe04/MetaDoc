@@ -1,8 +1,56 @@
 ﻿# LLM-Konfiguration
 
-## Übersicht
+## Überblick
 
-Die LLM-Konfiguration (Large Language Model) ist die Kerneinstellung der MetaDoc AI-Funktionen. Durch die Konfiguration des LLM können Sie intelligente Funktionen wie KI-Chat, KI-Korrekturlesen, KI-Vervollständigung und mehr aktivieren. MetaDoc unterstützt mehrere LLM-Dienstanbieter, Sie können je nach Bedarf das passende Modell auswählen.
+Die LLM-Einstellungen (Large Language Model) sind zentral für die KI-Funktionen von MetaDoc. **Über Steam verteilte Versionen** unterscheiden sich in der empfohlenen Vorgehensweise von älteren Testkanälen:
+
+- **Steam (empfohlen)**: Nutzen Sie den von MetaDoc betriebenen **LLM-API-Proxy auf Basis von Cloudflare** (in der App als **„MetaDoc Cloud (Steam)“** o. Ä. beschriftet). Kaufen Sie **Credits** per **Steam-Aufladung** und nutzen Sie die KI – in der Regel **ohne** eigene Drittanbieter-API-Schlüssel.
+- **Eigenes API (BYOK)**: **Entwickler-/Experimentell**. Erst wenn Sie unter **LLM** die **Experimentellen Optionen** öffnen und **„Experimentelle Konnektivität aktivieren“** einschalten, erscheint der klassische Workflow mit **mehreren Profilen und benutzerdefinierten APIs**. Siehe unten und die verlinkten Artikel.
+
+Zuerst: **Steam / MetaDoc Cloud** (Guthaben, Aufladung, Modellwechsel), dann **Experimentelle Optionen**, danach das **gesamte UI** (LLM aktivieren, Temperatur, Kartenraster usw.).
+
+---
+
+## Steam: MetaDoc Cloud und Credits (empfohlen)
+
+Für MetaDoc, installiert und gestartet über **Steam**.
+
+### Kurzablauf
+
+1. **LLM-Einstellungen öffnen**: **Einstellungen** → **LLM** (oder **Einstellungen** über die Menüleiste).
+2. **„MetaDoc Cloud (Steam)“** finden: **Guthaben (Credits)**, **Modell**, **Guthaben hinzufügen** / Aufladen, **Aktualisieren**.
+3. **Aufladen**: Über **Guthaben hinzufügen** den **Steam-In-App-Kauf** abschließen. Start aus der Steam-Bibliothek, Steam-Client erforderlich (Hinweise zu Steam/Greenworks erscheinen in der UI).
+4. **Guthaben prüfen**: Credits werden auf der Seite angezeigt; auch über das **Steam**-Tray: **Kontostand (Credits)** und Aufladung.
+5. **Preise**: Unterschiedliche **Modelle** können Credits unterschiedlich abbuchen – Details in der App.
+6. **Modelle wechseln**: Nach Wahl unter MetaDoc Cloud nutzen **KI-Chat, Vervollständigung, Korrektur, Agent** dieses Modell; jederzeit änderbar.
+
+<SettingLlmSection mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+### Hinweise
+
+- Endpunkt und Proxy werden von MetaDoc betrieben; **keine** manuelle Eingabe von OpenAI-/DeepSeek-URLs und -Keys für diesen Pfad (anders als BYOK).
+- Bei zu geringem Guthaben oder Netzproblemen können KI-Funktionen ausfallen – **aufladen** oder **Guthaben aktualisieren**.
+
+---
+
+## Entwickleroptionen: Experimentelle Konnektivität und BYOK (eigenes API)
+
+In **Steam**-Builds ist der frühere **„eigenes LLM-API konfigurieren“**-Pfad **experimentell**: **Experimentelle Optionen** auf der **LLM**-Seite öffnen, **„Experimentelle Konnektivität aktivieren“** einschalten (mit Bestätigung). Erst dann erscheinen **Konfigurationskarten, API-Basis-URL, API-Key, Anbietertypen** wie früher.
+
+**Wichtig**:
+
+- **Experimentell** – kann vom Standard-Erlebnis abweichen; **direkte Kosten bei Drittanbietern** und zusätzliche Risiken.
+- **Sie sind allein verantwortlich** für Schlüssel, Abrechnung, Verfügbarkeit und Nutzungsbedingungen Dritter. MetaDoc stellt nur Client-Konfiguration bereit.
+
+Ausführliche Schritte wie in der bisherigen Dokumentation:
+
+- [[settings.llm-management|LLM-Konfigurationsverwaltung]]
+- [[settings.llm-types|LLM-Anbietertypen]]
+- [[ai.llm-config|LLM-Konfigurationsleitfaden]]
+
+---
 
 ## LLM aktivieren
 
@@ -10,119 +58,57 @@ Die LLM-Konfiguration (Large Language Model) ist die Kerneinstellung der MetaDoc
 
 ### KI-Funktionen einschalten
 
-Auf der LLM-Einstellungsseite müssen Sie zunächst die LLM-Funktion aktivieren:
-
-1.  Finden Sie den Schalter "LLM aktivieren".
-2.  Schalten Sie den Schalter in den Zustand "Aktiviert".
-3.  Das System lädt automatisch die Standard-LLM-Konfiguration.
-
-Sie können über die obere Menüleiste auf die Einstellungen zugreifen:
+1. Schalter „LLM aktivieren“ finden
+2. Auf „Aktiviert“ stellen
+3. Standardkonfiguration wird geladen
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-### LLM-Einstellungsoberfläche
-
-Die folgende Abbildung zeigt die Hauptfunktionsbereiche der LLM-Konfigurationsseite:
+### Oberfläche
 
 <SettingLlmSection mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-Die obige Abbildung zeigt die Hauptkomponenten der LLM-Einstellungsoberfläche:
+- **Globale Einstellungen**: LLM-Schalter, Temperatur, Reasoning-Tags entfernen, Terminal-Standard usw.
+- **Konfigurationsraster**: Karten mit Name/Typ; Klick wechselt die aktive Konfiguration (grüner Rahmen)
+- **Kartenaktionen**: Prüfen, Rechtsklick: Kopieren, Bearbeiten, Exportieren, Löschen
+- **Oben**: Neue Konfiguration, Import aus Datei
 
--   **Globale Einstellungen**: LLM-Aktivierungsschalter, Temperatur-Reglerschieber, Option zum Entfernen von Think-Tags, Standarderlaubnis für Terminalausführung usw.
--   **Konfigurationsraster**: Zeigt alle Konfigurationen in Kartenform an, jede Karte zeigt den Konfigurationsnamen und den Typ (z.B. OpenAI, Tongyi Qianwen, DeepSeek, Ollama usw.); Klicken Sie auf eine Karte, um sie zu verwenden, die aktuelle Konfiguration wird mit einem grünen Rahmen hervorgehoben.
--   **Kartenaktionen**: Rechts auf der Karte können Sie die Frage-Antwort- und Chat-Streaming-Fähigkeit dieser Konfiguration "prüfen"; Das Kontextmenü unterstützt Kopieren, Bearbeiten, Exportieren und Löschen.
--   **Aktionen oben**: Rechts oben im Raster können Sie eine neue Konfiguration erstellen oder Konfigurationen stapelweise aus einer Datei importieren.
+Im Demo-Modus werden keine Änderungen gespeichert.
 
-Im Demo-Modus können Sie das Layout der Oberfläche interaktiv betrachten, Änderungen werden jedoch nicht tatsächlich gespeichert.
+Nach Aktivierung: KI-Chat, Korrektur, Vervollständigung, Assistent, Agent.
 
-Nachdem Sie das LLM aktiviert haben, können Sie die folgenden KI-Funktionen nutzen:
+**Hinweis**: API-Aufrufe können Kosten verursachen.
 
--   KI-Chat
--   KI-Korrekturlesen
--   KI-Autovervollständigung
--   KI-Assistenten-Funktionen
--   Agent-Framework
-
-**Wichtige Hinweise**:
-
--   Nach Aktivierung des LLM können bestimmte Funktionen API-Aufrufe tätigen und Kosten verursachen.
--   Es wird empfohlen, den LLM-Dienst zu konfigurieren, bevor Sie ihn aktivieren.
--   Wenn Sie keine KI-Funktionen benötigen, können Sie ihn deaktiviert lassen, um Ressourcen zu sparen.
-
-## LLM-Temperatureinstellung
+## Temperatur
 
 <SettingLlmSection mode="demo" />
 
-### Den Temperaturparameter verstehen
+Niedrige Werte (0–0,5): deterministischer. Mittel (0,5–1): ausgewogen. Hoch (1–2): kreativer. Empfehlungen: Technik 0,3–0,5; Kreativ 0,7–1; Code 0,2–0,4; Dialog 0,7–0,9.
 
-Die Temperatur (Temperature) ist ein Parameter, der die Zufälligkeit des von der KI generierten Textes steuert:
+## Reasoning-Tags automatisch entfernen
 
--   **Niedrige Temperatur (0-0,5)**: Die Ergebnisse sind deterministischer und konsistenter, geeignet für Szenarien, die genaue Antworten erfordern.
--   **Mittlere Temperatur (0,5-1,0)**: Ein Gleichgewicht zwischen Kreativität und Genauigkeit, geeignet für die meisten Szenarien.
--   **Hohe Temperatur (1,0-2,0)**: Die Ergebnisse sind vielfältiger und kreativer, geeignet für kreatives Schreiben.
-
-### Einstellungsempfehlungen
-
--   **Technische Dokumentation**: Empfohlen 0,3-0,5, um inhaltliche Genauigkeit sicherzustellen.
--   **Kreatives Schreiben**: Empfohlen 0,7-1,0, um die Inhaltsvielfalt zu erhöhen.
--   **Code-Generierung**: Empfohlen 0,2-0,4, um die Code-Genauigkeit zu gewährleisten.
--   **Dialog/Kommunikation**: Empfohlen 0,7-0,9, um einen natürlichen und flüssigen Dialog zu erhalten.
-
-Die Temperatureinstellung beeinflusst alle Funktionen, die das LLM nutzen, einschließlich KI-Chat, KI-Vervollständigung, KI-Korrekturlesen usw.
-
-## Automatisches Entfernen von Denk-Tags
-
-### Funktionsbeschreibung
-
-Einige LLMs können beim Generieren von Inhalten Denkprozesse (thinking process) enthalten, die normalerweise mit speziellen Tags gekennzeichnet sind. Wenn Sie "Denk-Tags automatisch entfernen" aktivieren, filtert MetaDoc diese Tags automatisch heraus und behält nur den endgültig generierten Inhalt bei.
-
-**Anwendungsfälle**:
-
--   Verwendung von LLMs, die Denkprozesse unterstützen (wie einige Open-Source-Modelle).
--   Wenn die Ausgabeergebnisse prägnanter sein sollen.
--   Wenn der Denkprozess der KI nicht eingesehen werden muss.
-
-**Wichtige Hinweise**:
-
--   Wenn Ihr LLM keine Denk-Tags unterstützt, hat diese Option keine Auswirkung.
--   In manchen Fällen kann das Beibehalten des Denkprozesses helfen, die Entscheidungslogik der KI zu verstehen.
+Entfernt modellspezifische Denk-Prozess-Tags aus der Ausgabe, wenn unterstützt.
 
 ## Konfigurationsverwaltung
 
 <SettingLlmSection mode="demo" />
 
-### Unterstützung mehrerer Konfigurationen
-
-MetaDoc unterstützt die Erstellung mehrerer LLM-Konfigurationen, um Ihnen die Verwendung verschiedener Modelle in verschiedenen Szenarien zu erleichtern:
-
--   **Arbeitskonfiguration**: Für die tägliche Arbeit, mit einem stabilen und zuverlässigen Modell.
--   **Experimentelle Konfiguration**: Zum Testen neuer Modelle oder Funktionen.
--   **Verschiedene Anbieter**: Erstellen Sie unabhängige Konfigurationen für verschiedene LLM-Dienste.
-
-### Konfiguration wechseln
-
-Im Konfigurationsraster auf der LLM-Einstellungsseite können Sie:
-
-1.  **Konfiguration auswählen**: Klicken Sie auf eine beliebige Konfigurationskarte, um zu dieser Konfiguration zu wechseln.
-2.  **Konfigurationsinformationen anzeigen**: Jede Karte zeigt den Konfigurationsnamen und den Typ an.
-3.  **Aktuelle Konfiguration erkennen**: Die aktuell verwendete Konfigurationskarte wird mit einem grünen Rahmen hervorgehoben.
-
-Nach dem Wechseln der Konfiguration verwenden alle KI-Funktionen sofort den LLM-Dienst der neuen Konfiguration. Um eine Konfiguration zu bearbeiten, öffnen Sie den Dialog über "Konfiguration bearbeiten" im Kontextmenü der Karte. Nehmen Sie im Dialogfeld Ihre Änderungen vor und klicken Sie auf "OK" zum Speichern oder auf "Abbrechen", um nicht zu speichern; Die Oberfläche unterscheidet nicht mehr zwischen "ungespeichertem" Zustand.
+Mehrere Konfigurationen für Arbeit, Tests oder verschiedene Anbieter. Wechsel per Klick; Bearbeiten über Kontextmenü.
 
 ## Wichtige Hinweise
 
-1.  **API-Schlüsselsicherheit**: Bewahren Sie Ihre API-Schlüssel sicher auf und teilen Sie sie nicht mit anderen.
-2.  **Kostenkontrolle**: Die Nutzung von LLM-Diensten kann Kosten verursachen, achten Sie auf Ihr Nutzungsvolumen.
-3.  **Netzwerkverbindung**: Die Nutzung externer APIs erfordert eine stabile Netzwerkverbindung.
-4.  **Konfigurationssicherung**: Wichtige Konfigurationen sollten exportiert und gesichert werden, um Verlust zu vermeiden.
-5.  **Modellauswahl**: Unterschiedliche Modelle haben unterschiedliche Fähigkeiten und Einschränkungen, wählen Sie entsprechend Ihren Anforderungen.
+1. **API-Schlüssel**: Nur bei BYOK – nicht weitergeben
+2. **Kosten**: MetaDoc Cloud = **Credits**; BYOK = Anbieterabrechnung
+3. **Netzwerk**: Stabile Verbindung zu externen APIs
+4. **Backup**: Konfiguration exportieren
+5. **Modelle**: Unterschiedliche Fähigkeiten und Grenzen
 
-## Verwandte Dokumentation
+## Weitere Dokumentation
 
--   [[settings.llm-management|LLM-Konfigurationsverwaltung]]
--   [[settings.llm-types|LLM-Typkonfiguration]]
--   [[ai.chat|KI-Chat-Funktion]]
--   [[ai.completion|KI-Autovervollständigung]]
--   [[ai.proofread|KI-Korrekturlesen-Funktion]]
+- [[settings.llm-management|LLM-Konfigurationsverwaltung]]
+- [[settings.llm-types|LLM-Anbietertypen]]
+- [[ai.chat|KI-Chat]]
+- [[ai.completion|KI-Vervollständigung]]
+- [[ai.proofread|KI-Korrektur]]

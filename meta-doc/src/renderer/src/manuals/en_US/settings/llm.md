@@ -2,7 +2,55 @@
 
 ## Overview
 
-LLM (Large Language Model) configuration is the core setting for MetaDoc AI features. By configuring LLM, you can enable intelligent functions such as AI chat, AI proofreading, and AI completion. MetaDoc supports multiple LLM service providers, allowing you to choose the appropriate model based on your needs.
+LLM (large language model) settings are central to MetaDoc’s AI features. **Retail builds distributed via Steam** differ from older test channels in what we recommend by default:
+
+- **Steam (recommended)**: Use our **Cloudflare-based LLM API proxy** operated by MetaDoc (labeled **“MetaDoc Cloud (Steam)”** in the app). Purchase **credits** through **Steam top-up**, then use AI features—usually **without** supplying third-party API keys yourself.
+- **Bring your own API (BYOK)**: This is a **developer / experimental** path. Only after you expand **Experimental options** on the **LLM** settings page and enable **“Enable experimental connectivity”** will you see the legacy **multi-profile + custom API** workflow. See “Experimental connectivity and BYOK” below and the linked articles.
+
+The following sections first explain **Steam / MetaDoc Cloud** (balance, top-up, model switching), then **experimental options**, then the **full UI behavior** (enable LLM, temperature, configuration grid, etc.).
+
+---
+
+## Steam: MetaDoc Cloud and credits (recommended)
+
+For MetaDoc installed and run through **Steam**.
+
+### Quick steps
+
+1. **Open LLM settings**: **Settings** → **LLM** (or open **Settings** from the menu bar).
+2. **Find “MetaDoc Cloud (Steam)”**: There you can see **Balance (credits)**, pick a **Model**, use **Add credits** / **Top up**, and **Refresh** the balance from the server.
+3. **Top up**: Use **Add credits** and complete the **Steam in-app purchase** flow. Launch the app from your Steam library and keep the Steam client available (if purchase cannot start, the UI will explain Steam / Greenworks requirements).
+4. **Check balance**: Credits are shown on this page. You can also use the **Steam** tray entry to see **Account credits balance** and start a top-up (wording matches the in-app UI).
+5. **Pricing**: Different **models** may debit **credits** at different rates. Exact rules are shown in the app.
+6. **Switch models anytime**: After you choose a model under MetaDoc Cloud, **AI chat, completion, proofreading, Agent**, etc. use that model; you can change it whenever you like.
+
+<SettingLlmSection mode="demo" />
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+### Notes
+
+- The service endpoint and proxy are operated by MetaDoc—you **do not** need to paste OpenAI / DeepSeek URLs and keys for this path (unlike BYOK below).
+- If your balance is insufficient or the network fails, AI features may be unavailable or show errors—**top up** or **refresh balance** and try again.
+
+---
+
+## Developer options: experimental connectivity and BYOK (custom API)
+
+On **Steam** builds, the older **“configure your own LLM API”** flow is under **developer / experimental** controls: open **Experimental options** on the **LLM** settings page, then enable **“Enable experimental connectivity”** (you will be asked to confirm). Only then will you see the **multi-configuration cards, API base URL, API key, provider types**, etc., as in legacy test builds.
+
+**Important**:
+
+- This is **experimental** and may **differ** from the standard Steam / MetaDoc Cloud experience, and may cause **charges directly with third-party providers** plus extra network and compliance considerations.
+- **You are solely responsible** for API key handling, billing, availability, and compliance with third-party terms when using your own APIs. MetaDoc only provides client-side configuration and connectivity.
+
+For step-by-step details (same as the historical docs):
+
+- [[settings.llm-management|LLM configuration management]]
+- [[settings.llm-types|LLM provider types]]
+- [[ai.llm-config|LLM configuration guide]]
+
+---
 
 ## Enabling LLM
 
@@ -113,8 +161,8 @@ After switching configurations, all AI features will immediately use the LLM ser
 
 ## Important Notes
 
-1.  **API Key Security**: Please keep your API keys secure and do not share them with others.
-2.  **Cost Control**: Using LLM services may incur costs; please monitor your usage.
+1.  **API Key Security**: Please keep your API keys secure and do not share them with others (only relevant when using BYOK / experimental connectivity).
+2.  **Cost Control**: Using LLM services may incur costs—monitor usage. MetaDoc Cloud uses **credits**; BYOK follows your provider’s billing.
 3.  **Network Connection**: Using external APIs requires a stable network connection.
 4.  **Configuration Backup**: It is recommended to export and back up important configurations to avoid loss.
 5.  **Model Selection**: Different models have different capabilities and limitations; choose based on your needs.

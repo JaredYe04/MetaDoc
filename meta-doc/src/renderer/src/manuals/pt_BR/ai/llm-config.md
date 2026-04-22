@@ -4,6 +4,8 @@
 
 O LLM (Modelo de Linguagem Grande) é a base comum para funções como conversa com IA, revisão, conclusão, assistentes e Agent no MetaDoc. Este documento explica por que é necessário configurar o LLM, quais funcionalidades são afetadas pela configuração e como acessar a interface de configuração específica.
 
+**Canal de distribuição**: se você usa o MetaDoc pelo **Steam**, leia primeiro a seção **Steam / MetaDoc Cloud** em **[[settings.llm|Configuração de LLM]]** (recarga, saldo, troca de modelo). Somente se precisar de uma **API de terceiros própria**, ative a **conectividade experimental** em **Opções experimentais** e continue abaixo; veja também **[[settings.llm-types|Tipos de provedor LLM]]**.
+
 <Demo component="SettingLlmSection" mode="demo" />
 
 ## Por que Configurar o LLM

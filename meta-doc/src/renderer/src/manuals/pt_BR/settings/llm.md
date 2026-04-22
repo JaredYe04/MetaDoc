@@ -1,128 +1,114 @@
 ﻿# Configuração de LLM
 
-## Visão Geral
+## Visão geral
 
-A configuração de LLM (Modelo de Linguagem Grande) é a configuração central para os recursos de IA do MetaDoc. Ao configurar o LLM, você pode habilitar funções inteligentes como diálogo com IA, revisão por IA, preenchimento automático por IA, entre outros. O MetaDoc suporta vários provedores de serviços de LLM, permitindo que você escolha o modelo mais adequado às suas necessidades.
+A configuração de LLM (grande modelo de linguagem) é central para os recursos de IA do MetaDoc. As **versões distribuídas pelo Steam** seguem um caminho recomendado diferente dos antigos canais de teste:
 
-## Habilitar LLM
+- **Steam (recomendado)**: use o **proxy de API LLM baseado em Cloudflare** operado pela MetaDoc (rotulado como **«MetaDoc Cloud (Steam)»** no app). Compre **créditos** com **recarga pelo Steam** e use a IA — em geral **sem** fornecer chaves de API de terceiros.
+- **API própria (BYOK)**: fluxo **de desenvolvedor / experimental**. Somente depois de abrir **Opções experimentais** em **LLM** e ativar **«Habilitar conectividade experimental»** o fluxo clássico de **vários perfis + API personalizada** aparece. Veja abaixo e os artigos vinculados.
+
+Primeiro: **Steam / MetaDoc Cloud** (saldo, recarga, troca de modelo); depois **opções experimentais**; em seguida o **resto da interface** (ativar LLM, temperatura, grade de cartões, etc.).
+
+---
+
+## Steam: MetaDoc Cloud e créditos (recomendado)
+
+Para o MetaDoc instalado e executado pelo **Steam**.
+
+### Passos rápidos
+
+1. **Abrir configurações de LLM**: **Configurações** → **LLM** (ou **Configurações** pela barra de menus).
+2. Localizar **«MetaDoc Cloud (Steam)»**: **saldo (credits)**, **modelo**, **Adicionar créditos** / recarga, **Atualizar** o saldo.
+3. **Recarregar**: use **Adicionar créditos** e conclua a **compra no app do Steam**. Inicie o app pela biblioteca Steam; o cliente Steam deve estar disponível (a interface explica requisitos Steam/Greenworks se falhar).
+4. **Ver saldo**: os créditos aparecem na página; a entrada **Steam** na bandeja também mostra o **saldo de créditos** e permite iniciar recarga.
+5. **Preços**: **modelos** diferentes podem debitar créditos de forma distinta — veja o app.
+6. **Trocar modelo**: ao escolher no MetaDoc Cloud, **chat IA, conclusão, revisão, Agent**, etc. usam esse modelo; pode mudar a qualquer momento.
 
 <SettingLlmSection mode="demo" />
-
-### Ativar Funções de IA
-
-Na página de configurações de LLM, primeiro é necessário habilitar a função LLM:
-
-1.  Encontre o interruptor "Habilitar LLM"
-2.  Mude o interruptor para o estado "Habilitado"
-3.  O sistema carregará automaticamente a configuração padrão de LLM
-
-Você pode acessar as configurações através da barra de menu superior:
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-### Interface de Configuração de LLM
+### Observações
 
-A figura abaixo mostra as principais áreas funcionais da página de configuração de LLM:
+- O endpoint e o proxy são operados pela MetaDoc: **não** é preciso colar URL/chaves OpenAI ou DeepSeek neste modo (diferente do BYOK).
+- Saldo insuficiente ou rede instável: os recursos de IA podem falhar — **recarregue** ou **atualize o saldo**.
+
+---
+
+## Opções de desenvolvedor: conectividade experimental e BYOK (API própria)
+
+Nos builds **Steam**, o fluxo antigo de **«configurar sua própria API LLM»** é **experimental**: abra **Opções experimentais** na página **LLM**, ative **«Habilitar conectividade experimental»** (com confirmação). Só então aparecem **cartões de configuração, URL base, chave de API, tipos de provedor**, como nos builds de teste.
+
+**Importante**:
+
+- É **experimental** e pode **diferir** da experiência padrão; pode haver **cobrança direta** junto a terceiros e outros riscos.
+- **Você é o único responsável** por chaves, cobrança, disponibilidade e termos de terceiros. O MetaDoc oferece apenas configuração no cliente.
+
+Passos detalhados (como a documentação histórica):
+
+- [[settings.llm-management|Gerenciamento de configurações LLM]]
+- [[settings.llm-types|Tipos de provedor LLM]]
+- [[ai.llm-config|Guia de configuração LLM]]
+
+---
+
+## Ativar LLM
+
+<SettingLlmSection mode="demo" />
+
+### Ativar recursos de IA
+
+1. Localize o interruptor «Ativar LLM»
+2. Ative-o
+3. A configuração padrão é carregada
+
+<MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
+
+### Interface
 
 <SettingLlmSection mode="demo" />
 
 <MenuItemsDemo mode="demo" :items='[{"id": "settings"}]' />
 
-A figura acima mostra os principais componentes da interface de configuração de LLM:
+- **Configurações globais**: interruptor LLM, temperatura, remover tags de raciocínio, execução no terminal padrão, etc.
+- **Grade**: cartões com nome e tipo; clique para mudar a configuração ativa (borda verde)
+- **Ações**: verificar fluxo; menu de contexto: copiar, editar, exportar, excluir
+- **Canto superior direito**: nova configuração, importar de arquivo
 
--   **Configurações Globais**: Interruptor de habilitação do LLM, controle deslizante de ajuste de Temperatura (Temperature), opção de remoção de tags de pensamento (think), permissão padrão para execução de terminal, etc.
--   **Grade de Configurações**: Exibe todas as configurações na forma de cartões, cada um mostrando o nome e o tipo da configuração (como OpenAI, Tongyi Qianwen, DeepSeek, Ollama, etc.); clique em um cartão para alternar para seu uso, a configuração atual é destacada com uma borda verde.
--   **Operações no Cartão**: No lado direito do cartão, é possível "Verificar" a capacidade de fluxo de perguntas/respostas e diálogo dessa configuração; o menu de contexto (botão direito) suporta copiar, editar, exportar e excluir.
--   **Operações Superiores**: No canto superior direito da grade, é possível criar uma nova configuração ou importar configurações em lote a partir de um arquivo.
+No modo demo, alterações não são salvas.
 
-No modo de demonstração, você pode visualizar o layout da interface de forma interativa, mas as modificações não serão salvas de fato.
+Após ativar: chat IA, revisão, conclusão, assistente, Agent.
 
-Após habilitar o LLM, você poderá usar as seguintes funções de IA:
+**Nota**: chamadas de API podem gerar custos.
 
--   Diálogo com IA
--   Revisão por IA
--   Preenchimento Automático por IA
--   Funções do Assistente de IA
--   Framework de Agentes
-
-**Atenção**:
-
--   Após habilitar o LLM, algumas funções podem chamar APIs, gerando custos.
--   Recomenda-se configurar o serviço de LLM antes de habilitá-lo.
--   Se as funções de IA não forem necessárias, você pode mantê-las desativadas para economizar recursos.
-
-## Configuração de Temperatura do LLM
+## Temperatura
 
 <SettingLlmSection mode="demo" />
 
-### Entendendo o Parâmetro Temperatura
+Baixa (0–0,5): mais determinística. Média (0,5–1): equilibrada. Alta (1–2): mais criativa. Recomendações: documentação 0,3–0,5; criativo 0,7–1; código 0,2–0,4; diálogo 0,7–0,9.
 
-A Temperatura (Temperature) é um parâmetro que controla a aleatoriedade do texto gerado pela IA:
+## Remover tags de raciocínio
 
--   **Temperatura Baixa (0-0.5)**: Resultados mais determinísticos e consistentes, adequados para cenários que exigem respostas precisas.
--   **Temperatura Média (0.5-1.0)**: Equilíbrio entre criatividade e precisão, adequado para a maioria dos cenários.
--   **Temperatura Alta (1.0-2.0)**: Resultados mais diversos e criativos, adequados para escrita criativa.
+Filtra tags de processo de raciocínio quando o modelo as inclui.
 
-### Sugestões de Configuração
-
--   **Documentação Técnica**: Recomenda-se 0.3-0.5 para garantir precisão do conteúdo.
--   **Escrita Criativa**: Recomenda-se 0.7-1.0 para aumentar a diversidade do conteúdo.
--   **Geração de Código**: Recomenda-se 0.2-0.4 para garantir precisão do código.
--   **Conversação**: Recomenda-se 0.7-0.9 para manter o diálogo natural e fluido.
-
-A configuração de temperatura afeta todas as funções que utilizam o LLM, incluindo diálogo com IA, preenchimento por IA, revisão por IA, etc.
-
-## Remoção Automática de Tags de Raciocínio
-
-### Descrição da Função
-
-Alguns LLMs podem incluir o processo de raciocínio (thinking process) ao gerar conteúdo, geralmente marcado com tags especiais. Ao habilitar a "Remoção Automática de Tags de Raciocínio", o MetaDoc filtrará automaticamente essas tags, mantendo apenas o conteúdo final gerado.
-
-**Cenários de Aplicação**:
-
--   Uso de LLMs que suportam processo de raciocínio (como alguns modelos de código aberto).
--   Desejo de resultados de saída mais concisos.
--   Não há necessidade de visualizar o processo de pensamento da IA.
-
-**Atenção**:
-
--   Se o seu LLM não suportar tags de raciocínio, esta opção não terá efeito.
--   Em alguns casos, manter o processo de raciocínio pode ajudar a entender a lógica de decisão da IA.
-
-## Gerenciamento de Configurações
+## Gerenciamento de configurações
 
 <SettingLlmSection mode="demo" />
 
-### Suporte a Múltiplas Configurações
+Várias configurações para diferentes cenários. Clique no cartão para alternar; edição pelo menu de contexto.
 
-O MetaDoc suporta a criação de múltiplas configurações de LLM, facilitando o uso de diferentes modelos em diversos cenários:
+## Avisos importantes
 
--   **Configuração de Trabalho**: Para uso diário, utilizando modelos estáveis e confiáveis.
--   **Configuração Experimental**: Para testar novos modelos ou funcionalidades.
--   **Provedores Diferentes**: Crie configurações independentes para diferentes serviços de LLM.
+1. **Chaves API**: apenas com BYOK — não compartilhe
+2. **Custos**: MetaDoc Cloud = **créditos**; BYOK = cobrança do provedor
+3. **Rede**: conexão estável com APIs externas
+4. **Backup**: exporte configurações importantes
+5. **Modelos**: capacidades e limites diferentes
 
-### Alternar Configuração
+## Documentação relacionada
 
-Na grade de configurações da página de configurações de LLM, você pode:
-
-1.  **Selecionar Configuração**: Clique em qualquer cartão de configuração para alternar para ela.
-2.  **Visualizar Informações da Configuração**: Cada cartão exibe o nome e o tipo da configuração.
-3.  **Identificar a Configuração Atual**: O cartão da configuração em uso será destacado com uma borda verde.
-
-Após alternar a configuração, todas as funções de IA usarão imediatamente o serviço de LLM da nova configuração. Para editar uma configuração, abra a caixa de diálogo através da opção "Editar Configuração" no menu de contexto (botão direito) do cartão; na caixa de diálogo, faça as modificações e clique em "OK" para salvar, ou em "Cancelar" para não salvar; a interface não distingue mais o estado "Não Salvo".
-
-## Atenção
-
-1.  **Segurança da Chave de API**: Guarde suas chaves de API com segurança e não as compartilhe com outras pessoas.
-2.  **Controle de Custos**: O uso de serviços de LLM pode gerar custos; fique atento ao consumo.
-3.  **Conexão de Rede**: O uso de APIs externas requer uma conexão de rede estável.
-4.  **Backup de Configurações**: Recomenda-se exportar e fazer backup de configurações importantes para evitar perdas.
-5.  **Escolha do Modelo**: Diferentes modelos têm capacidades e limitações distintas; escolha de acordo com suas necessidades.
-
-## Documentação Relacionada
-
--   [[settings.llm-management|Gerenciamento de Configurações de LLM]]
--   [[settings.llm-types|Configuração de Tipos de LLM]]
--   [[ai.chat|Função de Diálogo com IA]]
--   [[ai.completion|Preenchimento Automático por IA]]
--   [[ai.proofread|Função de Revisão por IA]]
+- [[settings.llm-management|Gerenciamento de configurações LLM]]
+- [[settings.llm-types|Tipos de provedor LLM]]
+- [[ai.chat|Chat IA]]
+- [[ai.completion|Conclusão IA]]
+- [[ai.proofread|Revisão IA]]

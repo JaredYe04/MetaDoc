@@ -4,6 +4,8 @@
 
 LLM(대형 언어 모델)은 MetaDoc에서 AI 대화, 교정, 자동 완성, 어시스턴트 및 에이전트 등의 기능을 위한 공통 기반입니다. 본 문서는 왜 LLM을 설정해야 하는지, 설정이 어떤 기능에 영향을 미치는지, 그리고 구체적인 설정 화면에 어떻게 접근하는지 설명합니다.
 
+**배포 채널**: **Steam**으로 MetaDoc을 사용하는 경우 **[[settings.llm|LLM 설정]]**의 **Steam / MetaDoc Cloud**(충전, 잔액, 모델 전환)를 먼저 읽으세요. **서드파티 API를 직접 써야 할 때만** **실험적 옵션**에서 **실험적 연결 사용**을 켠 뒤 아래 내용과 [[settings.llm-types|LLM 유형 설정]]을 이어서 보세요.
+
 <Demo component="SettingLlmSection" mode="demo" />
 
 ## 왜 LLM을 설정해야 하나요

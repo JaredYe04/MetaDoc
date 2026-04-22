@@ -152,7 +152,7 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'normal',
-    validator: (value) => ['normal', 'demo'].includes(value)
+    validator: (value: string) => ['normal', 'demo'].includes(value)
   }
 })
 
@@ -706,6 +706,20 @@ const createEditor = async () => {
 
       // Ctrl+C: 发送中断信号
       if (modifierKey && e.keyCode === monaco.KeyCode.KeyC && currentInvocationId.value) {
+        // 如果用户有选中文本，优先走“复制”，不要中断进程（符合大多数终端习惯）
+        const selection = editor.getSelection()
+        if (selection && !selection.isEmpty()) {
+          const selectedText: string = editor.getModel()?.getValueInRange(selection) || ''
+          if (selectedText) {
+            e.preventDefault()
+            e.stopPropagation()
+            void navigator.clipboard.writeText(selectedText).catch((err) => {
+              console.error('复制失败:', err)
+            })
+            return
+          }
+        }
+
         e.preventDefault()
         e.stopPropagation()
 

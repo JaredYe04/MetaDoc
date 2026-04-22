@@ -93,7 +93,7 @@ const props = defineProps({
   mode: {
     type: String,
     default: 'normal',
-    validator: (value) => ['normal', 'demo'].includes(value)
+    validator: (value: string) => ['normal', 'demo'].includes(value)
   },
   /** 由父组件（如 LaTeXEditor）控制的 AI 分析开关，传入时与父组件保持同步 */
   parentEnableAiAnalysis: {
@@ -323,6 +323,30 @@ const createEditor = async () => {
   editorId = editor.getId()
   applyConsoleTheme()
   renderConsole()
+
+  // 右键复制：该控制台禁用了 Monaco 默认菜单（contextmenu: false），需要补一个最小可用的复制行为
+  editor.onContextMenu(async (e) => {
+    e.event.preventDefault()
+    e.event.stopPropagation()
+    const selection = editor.getSelection()
+    if (!selection || selection.isEmpty()) return
+    const selectedText: string = editor.getModel()?.getValueInRange(selection) || ''
+    if (!selectedText) return
+    try {
+      await navigator.clipboard.writeText(selectedText)
+      // 复制后取消选中，避免误以为“还在选区里”
+      editor.setSelection(
+        new monaco.Selection(
+          selection.startLineNumber,
+          selection.startColumn,
+          selection.startLineNumber,
+          selection.startColumn
+        )
+      )
+    } catch (err) {
+      console.error('复制失败:', err)
+    }
+  })
 }
 
 const applyHistory = (history: HistoryLine[]) => {

@@ -18,9 +18,9 @@
         <p class="editor-mode-card-desc">{{ t(opt.descKey) }}</p>
       </div>
     </div>
-    <p v-if="showChangeLaterHint" class="editor-mode-change-later">
+    <!-- <p v-if="showChangeLaterHint" class="editor-mode-change-later">
       {{ t('editorModeFirstTime.changeLaterHint') }}
-    </p>
+    </p> -->
     <div v-if="showConfirm" class="editor-mode-panel-footer">
       <Button variant="default" size="lg" @click="emit('confirm')">
         {{ t('common.confirm') }}

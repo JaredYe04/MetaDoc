@@ -136,9 +136,42 @@ const initTerminal = () => {
   fitAddon = new FitAddon()
   term.loadAddon(fitAddon)
 
+  // Ctrl+C / Cmd+C：只读终端里用于复制选中内容（xterm 默认通常是 Ctrl+Shift+C）
+  term.attachCustomKeyEventHandler((ev: KeyboardEvent) => {
+    const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
+    const mod = isMac ? ev.metaKey : ev.ctrlKey
+    if (mod && (ev.key === 'c' || ev.key === 'C')) {
+      const selection = term?.getSelection?.() || ''
+      if (selection && selection.trim().length > 0) {
+        if (ev.type === 'keydown') {
+          ev.preventDefault()
+          void navigator.clipboard.writeText(selection).catch((err) => {
+            console.error('复制失败:', err)
+          })
+        }
+        return false
+      }
+    }
+    return true
+  })
+
   term.open(terminalContainer.value)
   applyTheme()
   fitAddon.fit()
+
+  // 右键：有选中则复制，无选中则不处理（只读区不做“右键粘贴”）
+  const ctxHandler = (e: MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const selection = term?.getSelection?.() || ''
+    if (selection && selection.trim().length > 0) {
+      void navigator.clipboard.writeText(selection).catch((err) => {
+        console.error('复制失败:', err)
+      })
+    }
+  }
+  terminalContainer.value.addEventListener('contextmenu', ctxHandler, { capture: true })
+  ;(terminalContainer.value as any).__xtermReadonlyCtxHandler = ctxHandler
 }
 
 onMounted(() => {
@@ -160,6 +193,14 @@ onBeforeUnmount(() => {
   if (el?.__resizeObserver) {
     el.__resizeObserver.disconnect()
     el.__resizeObserver = null
+  }
+  if (terminalContainer.value && (terminalContainer.value as any).__xtermReadonlyCtxHandler) {
+    terminalContainer.value.removeEventListener(
+      'contextmenu',
+      (terminalContainer.value as any).__xtermReadonlyCtxHandler,
+      true
+    )
+    ;(terminalContainer.value as any).__xtermReadonlyCtxHandler = null
   }
   if (term) {
     term.dispose()

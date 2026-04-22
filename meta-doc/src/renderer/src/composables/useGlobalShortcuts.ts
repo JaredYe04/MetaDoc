@@ -50,6 +50,14 @@ function isNativeTextInputOutsideEditor(target: HTMLElement): boolean {
   return !target.closest('.vditor, .monaco-editor, .editor, [data-editor]')
 }
 
+/**
+ * 控制台/终端（ConsoleOutput / ConsoleTerminal）使用 Monaco 渲染，但不应被当作“文档正文编辑器”来劫持
+ * copy/cut/paste/undo/redo 等全局快捷键。否则会把 Ctrl+C 转发到正文编辑器，导致控制台无法复制。
+ */
+function isInConsoleSurface(target: HTMLElement): boolean {
+  return !!target.closest('.console-container, .console-editor, .console-editor-wrapper')
+}
+
 const EDITABLE_DOC_SURFACE_SELECTORS = [
   '.monaco-editor',
   '.vditor-wysiwyg',
@@ -126,6 +134,8 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
         // 焦点在 Xterm 终端内时，不拦截：Ctrl+C 发 SIGINT，Ctrl+V 粘贴，Ctrl+Z 发 SIGTSTP
         const inTerminal = target.closest('.xterm, .xterm-instance')
         if (inTerminal) return
+        // 焦点在 ConsoleOutput/ConsoleTerminal（Monaco）内时，不拦截：让 Monaco/浏览器处理复制粘贴
+        if (isInConsoleSurface(target)) return
         if (isNativeTextInputOutsideEditor(target)) return
         if (!inDialog && inEditor && !isFocusInEditableDocumentEditorSurface(target, e)) return
         if (!inDialog && inEditor) {
@@ -140,6 +150,7 @@ export function useGlobalShortcuts(options: UseGlobalShortcutsOptions) {
       case 'undo':
       case 'redo':
         if (target.closest('.xterm, .xterm-instance')) return
+        if (isInConsoleSurface(target)) return
         if (isNativeTextInputOutsideEditor(target)) return
         if (!inDialog && inEditor && !isFocusInEditableDocumentEditorSurface(target, e)) return
         if (!inDialog && inEditor) {

@@ -124,6 +124,19 @@ const initTerminal = async () => {
     term.attachCustomKeyEventHandler((ev: KeyboardEvent) => {
       const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
       const mod = isMac ? ev.metaKey : ev.ctrlKey
+      // Ctrl+C / Cmd+C：有选中则复制，无选中交给终端（通常是 ^C）
+      if (mod && (ev.key === 'c' || ev.key === 'C')) {
+        const selection = term?.getSelection?.() || ''
+        if (selection && selection.trim().length > 0) {
+          if (ev.type === 'keydown') {
+            ev.preventDefault()
+            void navigator.clipboard.writeText(selection).catch((err) => {
+              console.error('复制失败:', err)
+            })
+          }
+          return false
+        }
+      }
       if (mod && ev.key === 'v') {
         if (ev.type === 'keydown') {
           ev.preventDefault()

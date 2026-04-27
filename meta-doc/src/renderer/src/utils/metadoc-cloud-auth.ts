@@ -337,7 +337,9 @@ export async function startSteamMtxInit(body: {
   }
 
   if (!openedCheckout && lastSteamUrl.length > 0) {
-    devLog?.warn('[MTX] opening embedded checkout failed after retries, falling back to system browser')
+    devLog?.warn(
+      '[MTX] opening embedded checkout failed after retries, falling back to system browser'
+    )
     eventBus.emit('open-link', lastSteamUrl)
   }
 

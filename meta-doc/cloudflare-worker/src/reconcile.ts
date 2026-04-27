@@ -219,7 +219,9 @@ function parseSteamGetReportPayload(raw: Record<string, unknown>): {
   const params = r.response?.params
   const orders = Array.isArray(params?.orders) ? params!.orders! : []
   const count =
-    typeof params?.count === 'number' && Number.isFinite(params.count) ? params.count : orders.length
+    typeof params?.count === 'number' && Number.isFinite(params.count)
+      ? params.count
+      : orders.length
   return { count, orders }
 }
 

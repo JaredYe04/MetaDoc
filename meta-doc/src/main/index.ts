@@ -76,7 +76,14 @@ if (app.isPackaged) {
   // 开发环境：从项目根目录加载
   envPath = path.resolve(__dirname, '../../.env')
 }
-dotenv.config({ path: envPath })
+if (!fs.existsSync(envPath)) {
+  // 注意：Steam/安装包场景如果缺失 resources/.env，几乎所有依赖 process.env 的配置都会“键找不到”
+  // 这里给出明确路径，方便定位是否漏跑 prebuild（copy-env.js）或 resources 未被正确打包/解包。
+  // eslint-disable-next-line no-console
+  console.warn(`[env] .env 文件不存在，已跳过加载: ${envPath}`)
+} else {
+  dotenv.config({ path: envPath })
+}
 
 // 关键修复：在应用启动时设置 Java 环境变量，确保 PlantUML 使用 UTF-8 编码
 // 这必须在所有其他初始化之前设置，确保全局生效
@@ -942,6 +949,12 @@ function attachShortcutHandler(win: BrowserWindow): void {
     const ctrl = input.control || input.meta
     const key = input.key.toLowerCase()
     const shift = input.shift
+
+    // 禁用 Chromium 默认的 F11 全屏行为（避免像浏览器一样进入全屏）
+    if (key === 'f11') {
+      event.preventDefault()
+      return
+    }
 
     // 两键序列：Ctrl+K 后按 S → 保存全部
     if (pendingSaveAllUntil > 0) {

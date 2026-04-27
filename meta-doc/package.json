@@ -35,6 +35,7 @@
     "greenworks:rebuild": "node scripts/prepare-steamworks-sdk.mjs && node scripts/rebuild-greenworks-if-present.mjs --require",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build:only && electron-builder --win",
+    "build:steam:win": "set VITE_STEAM_DISTRIBUTION=true&& npm run build:only && electron-builder --win",
     "temp-build:win": "npm run temp-build && electron-builder --win",
     "build:mac": "npm run build:only && electron-builder --mac",
     "build:linux": "npm run build:only && electron-builder --linux",

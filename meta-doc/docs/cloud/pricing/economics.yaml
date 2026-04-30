@@ -2,8 +2,8 @@
 version: "1"
 
 economics:
-  # MetaDoc 自留服务费 3%
-  metadoc_service_fee_pct: 0.03
+  # MetaDoc 溢价利润（固定 10%）
+  metadoc_service_fee_pct: 0.10
   # Steam MTX 有效平台扣率（占位：须替换为财务/Valve 结算确认值）
   steam_mtx_effective_fee_pct: 0.30
   # 每 1 USD 成本池对应 credits 数量

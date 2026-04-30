@@ -17,8 +17,9 @@ crons = ["0 * * * *", "15 2 * * *"]
 STEAM_APP_ID = "4359310"
 # 沙盒 MTX：partner.steam-api.com/ISteamMicroTxnSandbox
 STEAM_MICROTX_SANDBOX = "false"
+
 # 开发时可 true，生产必须 false
-ALLOW_DEV_AUTH = "false"
+ALLOW_DEV_AUTH = "true"
 
 # 以下通过 wrangler secret put 设置：
 # JWT_SECRET, OPENAI_API_KEY, STEAM_WEB_API_KEY, DEV_AUTH_SECRET (optional)

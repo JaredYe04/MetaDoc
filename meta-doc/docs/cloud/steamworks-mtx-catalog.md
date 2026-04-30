@@ -1,4 +1,6 @@
-# Steam 微交易（MTX）与仓库配置对齐
+# [已废弃] Steam 微交易（MTX）与仓库配置对齐
+
+> 状态：**已废弃（仅保留历史参考）**。当前充值主链路已切换为 Steam Item Store Inventory 卡兑换，不再依赖 MicroTxn `InitTxn/FinalizeTxn` 完成入账。
 
 ## 为什么在 partner.steamgames.com 找不到「逐条注册商品」入口？
 

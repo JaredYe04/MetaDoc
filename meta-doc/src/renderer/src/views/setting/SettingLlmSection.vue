@@ -922,7 +922,7 @@ import { useI18n } from 'vue-i18n'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import { getMetaDocLlmModels } from '../../utils/web-utils.ts'
-import { isSteamDistribution } from '@common/build-env'
+import { isSteamDistribution, isSteamReviewLockEnabled } from '@common/build-env'
 import { getDevAiPipelineMode } from '../../utils/dev-ai-pipeline'
 import { getSteamUiTrayReady } from '../../utils/steam-ui-ready'
 import { steamOfficialCloudEligible } from '../../utils/steam-official-cloud-eligible'
@@ -1046,6 +1046,8 @@ const BUILTIN_FREE_OPENROUTER_API_KEY =
 const SHOW_METADOC_LLM_PROVIDER = false
 
 const steamDistributionBuild = isSteamDistribution()
+const steamReviewLockEnabled = isSteamReviewLockEnabled()
+const forceOfficialSteamCloudForReview = steamDistributionBuild && steamReviewLockEnabled
 const showMetadocLlmProvider = computed(
   () => SHOW_METADOC_LLM_PROVIDER || steamDistributionBuild
 )
@@ -1066,6 +1068,9 @@ const showSteamMinimalLlm = computed(() => {
   void steamUiTrayReady.value
   void steamOfficialCloudEligible.value
   void settings.steamDeveloperBypassByok
+  if (forceOfficialSteamCloudForReview) {
+    return true
+  }
   if (settings.steamDeveloperBypassByok === true) {
     return false
   }
@@ -1081,6 +1086,9 @@ const showSteamMinimalLlm = computed(() => {
 
 const showSteamDeveloperModeSwitch = computed(() => {
   if (isDemo.value) {
+    return false
+  }
+  if (forceOfficialSteamCloudForReview) {
     return false
   }
   void steamUiTrayReady.value
@@ -2330,6 +2338,11 @@ onMounted(async () => {
   if (isDemo.value) {
     loadDemoData()
     return
+  }
+
+  if (forceOfficialSteamCloudForReview && settings.steamDeveloperBypassByok === true) {
+    settings.steamDeveloperBypassByok = false
+    await setSetting('steamDeveloperBypassByok', false)
   }
 
   isDev.value = await isDevEnvironment()

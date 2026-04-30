@@ -1136,27 +1136,39 @@
       },
       "create_dynamic_rule": {
         "description:": "Insertar reglas dinámicas del agente en la base de datos de la aplicación (escribir en el prompt del sistema), no usar archivos del espacio de trabajo en su lugar",
-        "name:": "Crear regla dinámica"
+        "name:": "Crear regla dinámica",
+        "description": "Inserta reglas dinámicas de Agent en la base de datos de la aplicación (escribe en el prompt del sistema), no uses archivos del espacio de trabajo como reemplazo",
+        "name": "Crear regla dinámica"
       },
       "create_workspace_skill": {
         "description:": "Escribir en .metadoc/skills/<directorio>/SKILL.md e indexar e incrustar inmediatamente",
-        "name:": "Crear habilidad del espacio de trabajo"
+        "name:": "Crear habilidad del espacio de trabajo",
+        "description": "Escribe en .metadoc/skills/<directorio>/SKILL.md y lo ingresa inmediatamente en la base de datos y embedding",
+        "name": "Crear habilidad del espacio de trabajo"
       },
       "load_skill": {
         "description:": "Cargar el texto completo de SKILL.md de una habilidad activada por su skillId",
-        "name:": "Cargar habilidad"
+        "name:": "Cargar habilidad",
+        "description": "Carga el texto completo de SKILL.md de una habilidad activada según su skillId",
+        "name": "Cargar habilidad"
       },
       "search_skill": {
         "description:": "Búsqueda vectorial en habilidades activadas bajo .metadoc/skills del espacio de trabajo, solo devuelve resúmenes",
-        "name:": "Búsqueda de habilidades"
+        "name:": "Búsqueda de habilidades",
+        "description": "Realiza una búsqueda vectorial en las habilidades activadas bajo .metadoc/skills del espacio de trabajo, solo devuelve resúmenes",
+        "name": "Búsqueda de habilidades"
       },
       "sync_workspace_skills": {
         "description:": "Escanear .metadoc/skills de cada espacio de trabajo y actualizar SQLite y vectores (habilidades activas)",
-        "name:": "Sincronizar índice de habilidades del espacio de trabajo"
+        "name:": "Sincronizar índice de habilidades del espacio de trabajo",
+        "description": "Escanea .metadoc/skills de cada espacio de trabajo y actualiza SQLite y vectores (habilidades activas)",
+        "name": "Sincronizar índice de habilidades del espacio de trabajo"
       },
       "update_dynamic_rule": {
         "description:": "Actualizar título, contenido o prioridad de una regla dinámica existente por su ruleId",
-        "name:": "Actualizar regla dinámica"
+        "name:": "Actualizar regla dinámica",
+        "description": "Actualiza el título, contenido o prioridad de una regla dinámica existente según su ruleId",
+        "name": "Actualizar regla dinámica"
       }
     },
     "jsonExplorer": {
@@ -4731,7 +4743,7 @@
       "sortByPrice": "Ordenar",
       "sortPriceAsc": "De menor a mayor",
       "sortPriceDesc": "De mayor a menor",
-      "title": "MetaDoc Cloud oficial (Steam)",
+      "title": "Servicio de modelos de IA de MetaDoc",
       "credits": "Créditos restantes (credits)",
       "developerModeConfirmBody": "Esta opción es experimental y puede provocar comportamientos inesperados o costes adicionales. ¿Confirmas que asumes todos los riesgos?",
       "developerModeConfirmTitle": "¿Confirmar activación?",
@@ -4745,7 +4757,26 @@
       "mtxNoPublicIp": "No se puede obtener la información de red. Comprueba tu conexión e inténtalo de nuevo.",
       "mtxPackCreditsLabel": "Créditos (credits)",
       "mtxPollTimeout": "Tiempo de espera agotado para la confirmación de Steam. Si ya has pagado, haz clic en «Actualizar créditos» más tarde; si no has completado el pago, inténtalo de nuevo.",
-      "mtxSteamAuthFailed": "Steam no ha aceptado esta autorización (motivo común: la IP del pedido no coincide con la IP de salida del navegador). Cierra la página de pago e inténtalo de nuevo; si usas VPN/proxy, asegúrate de que sea la misma que la del navegador."
+      "mtxSteamAuthFailed": "Steam no ha aceptado esta autorización (motivo común: la IP del pedido no coincide con la IP de salida del navegador). Cierra la página de pago e inténtalo de nuevo; si usas VPN/proxy, asegúrate de que sea la misma que la del navegador.",
+      "confirmUse": "Confirmar habilitación",
+      "inventoryEmpty": "No hay tarjetas de crédito disponibles por el momento",
+      "inventoryRefreshedHint": "Se ha actualizado el inventario. Consulte en \"Mi inventario (tarjetas de crédito)\".",
+      "inventorySectionTitle": "Mi inventario (tarjetas de crédito)",
+      "missingPurchasedTier": "No se encontró la información del nivel recién comprado. Actualice el inventario primero.",
+      "openedSteamPurchasePage": "Página de compra de Steam abierta: {order}",
+      "packExpectedCredits": "Se esperan aproximadamente {n} créditos",
+      "packSectionTitle": "Paquetes de recarga",
+      "purchaseDetectedDesc": "Puedes revisar tu inventario o usar esta tarjeta de crédito ahora. Una vez usada, no se puede revertir ni reembolsar.",
+      "purchaseDetectedTitle": "Compra completada",
+      "purchaseRecordedUseInventory": "Compra registrada. Puedes verla y activarla en \"Mi inventario (tarjetas de crédito)\".",
+      "purchasedCardNotFound": "No se encontró esta tarjeta de crédito en el inventario. Por favor, haz clic en \"Actualizar estado/inventario\" más tarde.",
+      "redeemAction": "Activar",
+      "redeemConfirmBody": "Al activar, se consumirá la tarjeta de inmediato y se acreditarán los créditos. Esta acción es irreversible y no admite reembolsos.",
+      "redeemConfirmTitle": "¿Confirmar activación de la tarjeta de crédito?",
+      "refreshStoreStatus": "Actualizar estado/inventario",
+      "storeStatusRefreshed": "Estado del inventario y de la compra actualizado",
+      "useNow": "Usar ahora",
+      "viewInventory": "Ver inventario"
     }
   },
   "settingBasicSection": {
@@ -5734,6 +5765,7 @@
     "subtitle": "Usa el idioma de la interfaz actual como predeterminado y de respaldo; puedes añadir título, descripción y contenido en inglés adicionalmente.",
     "templateNotFound": "No se encontró la plantilla de usuario, puede haber sido eliminada o no sincronizada.",
     "thumbnail": "Miniatura (opcional, dejar en blanco para usar una imagen de marcador de posición)",
-    "title": "Publicar plantilla de documento en el Taller"
+    "title": "Publicar plantilla de documento en el Taller",
+    "description": "Descripción"
   }
 }

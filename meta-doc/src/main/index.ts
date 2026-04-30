@@ -97,6 +97,20 @@ if (!process.env._JAVA_OPTIONS || !process.env._JAVA_OPTIONS.includes('-Dfile.en
 // GPU 兼容性检测：根据环境自动决定是否禁用 GPU 硬件加速
 // 这必须在 app.whenReady() 之前执行
 function shouldDisableGPU(): boolean {
+  /**
+   * Steam Overlay 在 Electron/Chromium 上依赖 D3D/GPU 合成链路注入。
+   * 若禁用 GPU（disable-gpu / software rendering），常见现象是：
+   * - Shift+Tab 无法呼出覆盖层
+   * - greenworks activateGameOverlay* 退化为打开 Steam 客户端页面
+   *
+   * 因此：检测到 Steam 运行时环境时，优先保持 GPU 启用（尤其是 Windows）。
+   */
+  const isSteamRuntime =
+    Boolean(process.env.SteamAppId || process.env.SteamGameId) || Boolean(process.env.STEAM_APP_ID)
+  if (isSteamRuntime && os.platform() === 'win32') {
+    return false
+  }
+
   // 无显示器 / CI / Linux server / WSL
   if (process.env.CI) return true
   if (process.env.WSL_DISTRO_NAME) return true

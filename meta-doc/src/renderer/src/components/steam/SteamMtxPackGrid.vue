@@ -7,23 +7,18 @@
       v-for="row in rows"
       :key="row.pack.item_id"
       type="button"
-      class="steam-mtx-card group relative flex min-h-[5.5rem] flex-col justify-between rounded-xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/35 p-4 text-left shadow-sm transition-all hover:border-primary/45 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+      class="steam-mtx-card group relative flex min-h-[6rem] flex-col justify-between rounded-xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/35 p-4 text-left shadow-sm transition-all hover:border-primary/45 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
       :disabled="loading || disabled"
       @click="$emit('select', row.pack)"
     >
-      <div class="pr-16">
-        <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {{ t('setting.llmSteamCloud.mtxPackCreditsLabel') }}
-        </div>
-        <div
-          class="mt-0.5 font-mono text-2xl font-semibold tabular-nums leading-none text-foreground"
-        >
-          {{ row.pack.credits_amount }}
+      <div class="pr-12">
+        <div class="text-sm font-medium tracking-wide text-foreground whitespace-nowrap">
+          {{ row.pack.label }}
         </div>
       </div>
       <div class="mt-3 flex items-end justify-between gap-2">
-        <span class="text-base font-medium text-foreground">{{
-          formatUsd(row.pack.usd_price)
+        <span class="text-lg font-semibold text-foreground">{{
+          formatLocalPrice(row.pack)
         }}</span>
       </div>
       <span
@@ -44,7 +39,10 @@ export type SteamMtxPackRow = {
   item_id: string
   amount_cents: number
   usd_price: number
+  cny_price?: number
   credits_amount: number
+  label: string
+  subtitle?: string
 }
 
 const props = defineProps<{
@@ -59,9 +57,19 @@ defineEmits<{
 
 const { t } = useI18n()
 
-function formatUsd(usd: number): string {
-  const s = usd.toFixed(2)
-  return s.endsWith('.00') ? `$${usd.toFixed(0)}` : `$${s}`
+function formatMoney(value: number, currency: 'CNY' | 'USD'): string {
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: currency === 'CNY' ? 0 : 2
+  }).format(value)
+}
+
+function formatLocalPrice(pack: SteamMtxPackRow): string {
+  if (typeof pack.cny_price === 'number' && Number.isFinite(pack.cny_price)) {
+    return formatMoney(pack.cny_price, 'CNY')
+  }
+  return formatMoney(pack.usd_price, 'USD')
 }
 
 const rows = computed(() => {
@@ -80,7 +88,7 @@ const rows = computed(() => {
       return { pack, discountPct: null as number | null }
     }
     const pct = Math.round((1 - pack.usd_price / naiveUsd) * 100)
-    return { pack, discountPct: pct > 0 ? pct : null }
+    return { pack, discountPct: pct >= 2 ? pct : null }
   })
 })
 </script>

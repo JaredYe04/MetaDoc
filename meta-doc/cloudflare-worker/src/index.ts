@@ -12,6 +12,7 @@ import { insertCreditLedger, insertUsageLedger } from './ledger'
 import {
   actualCostFromUsageForModel,
   cloudModelsPayload,
+  creditsOnRedeemForItemId,
   creditsFromUsdGross,
   firstPurchaseCreditsGrant,
   getSteamMtxItemById,
@@ -27,14 +28,18 @@ import {
 import {
   authenticateSteamTicket,
   checkAppOwnership,
+  consumeInventoryItem,
   finalizeTxn,
   getReport,
+  getInventoryService,
+  getSteamMicroTxnUserInfo,
   initTxn,
   mtxInitSteamUrl,
   mtxInitTransId,
   mtxQueryOrderStatus,
   newSteamMtxOrderId,
   queryTxn,
+  steamMicroTxnSandboxEnabled,
   type MtxCheckoutSession
 } from './steam'
 import { runDailyReconciliation } from './reconcile'
@@ -143,11 +148,244 @@ async function runGetReportCron(env: Env): Promise<void> {
   try {
     const data = await getReport(env, 'GAMESALES')
     const str = JSON.stringify(data).slice(0, 8000)
-    console.log('[cron GetReport]', str)
+    console.log('[cron GetReport:GAMESALES]', str)
     // 生产：解析 status=Refunded 等并 claw-back credits（按 order_id 查 mtx_orders）
   } catch (e) {
-    console.error('[cron GetReport] failed', e)
+    console.error('[cron GetReport:GAMESALES] failed', e)
   }
+  try {
+    const data = await getReport(env, 'STEAMSTORESALES')
+    const str = JSON.stringify(data).slice(0, 8000)
+    console.log('[cron GetReport:STEAMSTORESALES]', str)
+    await ingestSteamStoreSalesReport(env, data, 'STEAMSTORESALES')
+  } catch (e) {
+    console.error('[cron GetReport:STEAMSTORESALES] failed', e)
+  }
+}
+
+type SteamReportOrderRow = {
+  orderid?: string
+  transid?: string
+  steamid?: string
+  status?: string
+  currency?: string
+  time?: string
+  country?: string
+  usstate?: string
+  timecreated?: string
+  items?: Array<{
+    itemid?: number
+    qty?: number
+    amount?: number
+    vat?: number
+    itemstatus?: string
+  }>
+}
+
+function parseSteamGetReportOrders(raw: Record<string, unknown>): SteamReportOrderRow[] {
+  const r = raw as { response?: { params?: { orders?: SteamReportOrderRow[] } } }
+  const orders = r.response?.params?.orders
+  return Array.isArray(orders) ? orders : []
+}
+
+function looksSucceededStatus(s: string | undefined): boolean {
+  const t = String(s ?? '').trim().toLowerCase()
+  if (!t) return false
+  return t === 'succeeded' || t.includes('succeed')
+}
+
+function steamResultOk(data: Record<string, unknown>): boolean {
+  if ((data as { parse_error?: boolean }).parse_error) return false
+  const r = data as { response?: { result?: string } }
+  const rErr = (data as { response?: { error?: unknown } }).response?.error
+  if (rErr != null) return false
+  const topErr = (data as { error?: unknown }).error
+  if (topErr != null) return false
+  const top = data as { result?: string }
+  const s = String(r.response?.result ?? top.result ?? '').toLowerCase()
+  if (s === 'ok' || s === 'success') return true
+  // Inventory Service responses (e.g. GetInventory) may not contain `result`,
+  // but are still successful when `response` exists and has no explicit error.
+  if (r.response && s.length === 0) return true
+  return false
+}
+
+type InventoryServiceItem = {
+  itemid: string
+  itemdefid: string
+  quantity: number
+  acquired?: number | null
+  state?: string | null
+}
+
+function parseInventoryServiceItems(raw: Record<string, unknown>): InventoryServiceItem[] {
+  const r = raw as {
+    response?: {
+      item_json?: unknown
+      items?: unknown
+    }
+  }
+  let arr: unknown[] = []
+  const itemJson = r.response?.item_json
+  if (typeof itemJson === 'string') {
+    try {
+      const parsed = JSON.parse(itemJson) as unknown
+      if (Array.isArray(parsed)) arr = parsed
+    } catch {
+      /* ignore */
+    }
+  } else if (Array.isArray(itemJson)) {
+    arr = itemJson
+  } else if (Array.isArray(r.response?.items)) {
+    arr = r.response?.items as unknown[]
+  }
+
+  const out: InventoryServiceItem[] = []
+  for (const x of arr) {
+    const o = x as Record<string, unknown>
+    const itemid = typeof o.itemid === 'string' ? o.itemid : String(o.itemid ?? '')
+    const itemdefid =
+      typeof o.itemdefid === 'string' ? o.itemdefid : Number.isFinite(Number(o.itemdefid)) ? String(Math.trunc(Number(o.itemdefid))) : ''
+    const quantityNum =
+      typeof o.quantity === 'number' ? o.quantity : Number.isFinite(Number(o.quantity)) ? Number(o.quantity) : 1
+    if (!itemid || !itemdefid || !Number.isFinite(quantityNum) || quantityNum <= 0) continue
+    out.push({
+      itemid,
+      itemdefid,
+      quantity: Math.max(1, Math.trunc(quantityNum)),
+      acquired:
+        typeof o.acquired === 'number'
+          ? Math.trunc(o.acquired)
+          : Number.isFinite(Number(o.acquired))
+            ? Math.trunc(Number(o.acquired))
+            : null,
+      state: typeof o.state === 'string' ? o.state : null
+    })
+  }
+  return out
+}
+
+function newInventoryConsumeRequestId(): string {
+  const t = BigInt(Date.now())
+  const r = BigInt(Math.floor(Math.random() * 1_000_000))
+  const id = t * 1_000_000n + r
+  const max = 18446744073709551615n
+  return (id > max ? id % max : id).toString()
+}
+
+async function ingestSteamStoreSalesReport(
+  env: Env,
+  raw: Record<string, unknown>,
+  reportType: string
+): Promise<void> {
+  const orders = parseSteamGetReportOrders(raw)
+  if (orders.length === 0) return
+
+  for (const o of orders) {
+    const steamId = typeof o.steamid === 'string' ? o.steamid : String(o.steamid ?? '')
+    const transId = typeof o.transid === 'string' ? o.transid : String(o.transid ?? '')
+    const currency = typeof o.currency === 'string' ? o.currency : 'USD'
+    const timecreated = typeof o.timecreated === 'string' ? o.timecreated : ''
+    if (!steamId || !transId) continue
+    const orderStatus = typeof o.status === 'string' ? o.status : ''
+    if (!looksSucceededStatus(orderStatus)) continue
+
+    const items = Array.isArray(o.items) ? o.items : []
+    for (const it of items) {
+      const itemIdNum = typeof it?.itemid === 'number' ? it.itemid : Number(it?.itemid)
+      const itemId = Number.isFinite(itemIdNum) ? String(Math.trunc(itemIdNum)) : ''
+      if (!itemId) continue
+      const itemStatus = typeof it?.itemstatus === 'string' ? it.itemstatus : ''
+      if (!looksSucceededStatus(itemStatus)) continue
+
+      const amountCents =
+        typeof it?.amount === 'number' && Number.isFinite(it.amount) ? Math.trunc(it.amount) : null
+
+      const grantId = `store:${transId}:${itemId}`
+      try {
+        // Idempotency guard: insert first; if exists, skip.
+        await env.DB.prepare(
+          `INSERT INTO store_sales_grants (id, steam_id, trans_id, item_id, amount_cents, currency, report_type, report_timecreated)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+          .bind(grantId, steamId, transId, itemId, amountCents, currency, reportType, timecreated || null)
+          .run()
+      } catch {
+        continue
+      }
+    }
+  }
+}
+
+type InventoryRedeemRow = {
+  id: string
+  steam_id: string
+  item_instance_id: string
+  itemdefid: string
+  quantity: number
+  status: string
+  credits_added: number | null
+}
+
+async function applyInventoryRedeemGrant(
+  env: Env,
+  row: InventoryRedeemRow
+): Promise<{ granted: boolean; credits_added: number }> {
+  if (row.status === 'granted') {
+    return { granted: false, credits_added: Number(row.credits_added ?? 0) }
+  }
+
+  const claim = await env.DB.prepare(
+    `UPDATE inventory_redeems
+     SET status = 'granting', updated_at = unixepoch()
+     WHERE id = ? AND status = 'consumed'`
+  )
+    .bind(row.id)
+    .run()
+  if ((claim.meta.changes ?? 0) === 0) {
+    const cur = await env.DB.prepare(
+      `SELECT id, steam_id, item_instance_id, itemdefid, quantity, status, credits_added
+       FROM inventory_redeems WHERE id = ?`
+    )
+      .bind(row.id)
+      .first<InventoryRedeemRow>()
+    if (cur?.status === 'granted') {
+      return { granted: false, credits_added: Number(cur.credits_added ?? 0) }
+    }
+    return { granted: false, credits_added: 0 }
+  }
+
+  const add = creditsOnRedeemForItemId(row.itemdefid)
+
+  await env.DB.prepare(
+    `INSERT INTO users (steam_id, credits, updated_at) VALUES (?, ?, unixepoch())
+     ON CONFLICT(steam_id) DO UPDATE SET credits = users.credits + excluded.credits, updated_at = unixepoch()`
+  )
+    .bind(row.steam_id, add)
+    .run()
+
+  await insertCreditLedger(env, {
+    steamId: row.steam_id,
+    kind: 'purchase',
+    deltaCredits: add,
+    meta: {
+      source: 'inventory_redeem',
+      redeem_id: row.id,
+      item_instance_id: row.item_instance_id,
+      itemdefid: row.itemdefid,
+      quantity: row.quantity
+    }
+  })
+
+  await env.DB.prepare(
+    `UPDATE inventory_redeems
+     SET status = 'granted', credits_added = ?, updated_at = unixepoch(), error = NULL
+     WHERE id = ?`
+  )
+    .bind(add, row.id)
+    .run()
+
+  return { granted: true, credits_added: add }
 }
 
 async function handle(
@@ -205,12 +443,40 @@ async function handle(
     return handleMtxSyncWeb(req, env, c)
   }
 
+  if (path === '/steam/store/sync' && req.method === 'POST') {
+    return handleSteamStoreSync(req, env, c)
+  }
+
+  if (path === '/steam/store/inventory' && req.method === 'GET') {
+    return handleSteamStoreInventory(req, env, c)
+  }
+
+  if (path === '/steam/store/redeem' && req.method === 'POST') {
+    return handleSteamStoreRedeem(req, env, c)
+  }
+
   if (path === '/dev/steam/mtx/simulate-complete' && req.method === 'POST') {
     return handleDevMtxSimulate(req, env, c)
   }
 
   if (path === '/dev/reconciliation/run' && req.method === 'POST') {
     return handleDevReconciliationRun(req, env, c)
+  }
+
+  if (path === '/dev/steam/getreport' && req.method === 'POST') {
+    return handleDevSteamGetReport(req, env, c)
+  }
+
+  if (path === '/dev/steam/store/ingest' && req.method === 'POST') {
+    return handleDevSteamStoreIngest(req, env, c)
+  }
+
+  if (path === '/dev/steam/mtx/query' && req.method === 'POST') {
+    return handleDevSteamQueryTxn(req, env, c)
+  }
+
+  if (path === '/dev/steam/mtx/userinfo' && req.method === 'POST') {
+    return handleDevSteamUserInfo(req, env, c)
   }
 
   return jsonError(404, { request_id: newRequestId(), error: 'NOT_FOUND', message: 'Not found' }, c)
@@ -863,15 +1129,51 @@ async function handleMtxInit(req: Request, env: Env, c: Record<string, string>):
     )
   }
 
+  /**
+   * IMPORTANT (web checkout):
+   * We currently only have a USD cents price source of truth (steam-mtx-items.yaml).
+   * Converting to wallet currency via rough FX can easily cause Steam authorization failures.
+   *
+   * To keep the authorization flow reliable, force USD for web checkout.
+   * If/when we introduce per-currency price tables, we can re-enable wallet-currency init.
+   */
+  let currencyForInit = 'USD'
+  if (checkoutMode !== 'web') {
+    // Client (overlay) checkout can still try wallet currency.
+    currencyForInit = (body.currency || 'USD').toUpperCase()
+    try {
+      const ui = (await getSteamMicroTxnUserInfo(env, u.steamId)) as {
+        response?: { params?: { currency?: string } }
+      }
+      const cur = ui?.response?.params?.currency
+      if (typeof cur === 'string' && cur.trim()) {
+        currencyForInit = cur.trim().toUpperCase()
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // For web checkout, always use exact USD cents from YAML.
+  // For client checkout, we allow amount override (still validated above).
+  let amountCentsForInit =
+    checkoutMode === 'web'
+      ? Number(item.amount_cents_usd)
+      : (() => {
+          let v = Number(body.amount_cents)
+          if (!Number.isFinite(v) || v <= 0) v = Number(item.amount_cents_usd)
+          return v
+        })()
+
   const orderId = newSteamMtxOrderId()
   const data = await initTxn(env, {
     orderId,
     steamId: u.steamId,
     itemId: Number(itemKey),
     itemCount: 1,
-    amountCents: Number(body.amount_cents),
+    amountCents: amountCentsForInit,
     language: body.language || 'en',
-    currency: body.currency || 'USD',
+    currency: currencyForInit,
     description: body.description || item.label,
     userSession: checkoutMode,
     ipAddress: checkoutMode === 'web' ? explicitIp : undefined
@@ -920,7 +1222,7 @@ async function handleMtxInit(req: Request, env: Env, c: Record<string, string>):
   await env.DB.prepare(
     `INSERT INTO mtx_orders (order_id, steam_id, item_id, status, amount_cents, currency, created_at) VALUES (?, ?, ?, 'init', ?, ?, unixepoch())`
   )
-    .bind(orderId, u.steamId, itemKey, body.amount_cents, cur)
+    .bind(orderId, u.steamId, itemKey, amountCentsForInit, currencyForInit)
     .run()
 
   return new Response(
@@ -929,6 +1231,10 @@ async function handleMtxInit(req: Request, env: Env, c: Record<string, string>):
       checkout: checkoutMode,
       steam_url: checkoutMode === 'web' ? mtxInitSteamUrl(data) : null,
       trans_id: mtxInitTransId(data),
+      currency_used: currencyForInit,
+      amount_cents_used: amountCentsForInit,
+      steam_sandbox_enabled: steamMicroTxnSandboxEnabled(env),
+      steam_sandbox_raw: String(env.STEAM_MICROTX_SANDBOX ?? ''),
       steam_response: data
     }),
     {
@@ -1048,10 +1354,15 @@ async function handleMtxSyncWeb(
 
   const raw = mtxQueryOrderStatus(q)
   const norm = (raw ?? '').toLowerCase()
+  const syncMeta = {
+    steam_status: raw,
+    steam_status_norm: norm || null,
+    query_txn: q
+  }
 
   if (norm === 'init') {
     return new Response(
-      JSON.stringify({ ok: true, completed: false, steam_status: raw, pending: true }),
+      JSON.stringify({ ok: true, completed: false, pending: true, ...syncMeta }),
       { headers: { 'content-type': 'application/json', ...c } }
     )
   }
@@ -1062,8 +1373,8 @@ async function handleMtxSyncWeb(
         ok: true,
         completed: false,
         failed: true,
-        steam_status: raw,
-        pending: false
+        pending: false,
+        ...syncMeta
       }),
       { headers: { 'content-type': 'application/json', ...c } }
     )
@@ -1080,13 +1391,13 @@ async function handleMtxSyncWeb(
       recovered: true
     })
     return new Response(
-      JSON.stringify({ ok: true, completed: true, credits_added: add, recovered: true }),
+      JSON.stringify({ ok: true, completed: true, credits_added: add, recovered: true, ...syncMeta }),
       { headers: { 'content-type': 'application/json', ...c } }
     )
   }
 
   return new Response(
-    JSON.stringify({ ok: true, completed: false, steam_status: raw, pending: true }),
+    JSON.stringify({ ok: true, completed: false, pending: true, ...syncMeta }),
     { headers: { 'content-type': 'application/json', ...c } }
   )
 }
@@ -1128,6 +1439,283 @@ async function handleMtxFinalize(
   }
 
   return finalizeMtxOrderAndGrantCredits(env, u.steamId, orderId, c)
+}
+
+/**
+ * Steam Inventory Item Store purchase sync (JWT).
+ * Ingest only records succeeded purchases idempotently; no direct credits grant here.
+ */
+async function handleSteamStoreSync(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
+  const u = await requireJwt(req, env, c)
+  if (u instanceof Response) return u
+
+  const body = (await readJson(req)) as { time?: string } | null
+  const time =
+    typeof body?.time === 'string' && body.time.trim().length > 0
+      ? body.time.trim()
+      : undefined
+
+  try {
+    const raw = (await getReport(env, 'STEAMSTORESALES', time ? { timeRfc3339Utc: time } : undefined)) as Record<
+      string,
+      unknown
+    >
+    await ingestSteamStoreSalesReport(env, raw, 'STEAMSTORESALES')
+    const credits = await getCredits(env, u.steamId)
+    const rec = await env.DB.prepare(`SELECT COUNT(*) as c FROM store_sales_grants WHERE steam_id = ?`)
+      .bind(u.steamId)
+      .first<{ c: number }>()
+    return new Response(JSON.stringify({ ok: true, credits, recorded_purchases: Number(rec?.c ?? 0) }), {
+      headers: { 'content-type': 'application/json', ...c }
+    })
+  } catch (e) {
+    return jsonError(
+      500,
+      { request_id: newRequestId(), error: 'INTERNAL', message: e instanceof Error ? e.message : String(e) },
+      c
+    )
+  }
+}
+
+/**
+ * JWT: list user's redeemable inventory cards (itemdefid from pricing yaml).
+ */
+async function handleSteamStoreInventory(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
+  const u = await requireJwt(req, env, c)
+  if (u instanceof Response) return u
+  const raw = await getInventoryService(env, u.steamId)
+  if (!steamResultOk(raw)) {
+    return jsonError(
+      502,
+      {
+        request_id: newRequestId(),
+        error: 'STORE_INVENTORY_FAILED',
+        message: 'GetInventory failed',
+        detail: raw as Record<string, unknown>
+      },
+      c
+    )
+  }
+  const items = parseInventoryServiceItems(raw)
+    .map((it) => {
+      const def = getSteamMtxItemById(it.itemdefid)
+      if (!def) return null
+      const credits = creditsOnRedeemForItemId(it.itemdefid)
+      return {
+        item_instance_id: it.itemid,
+        itemdefid: it.itemdefid,
+        quantity: it.quantity,
+        acquired: it.acquired ?? null,
+        label: def.label,
+        credits_on_redeem: credits
+      }
+    })
+    .filter(Boolean)
+  return new Response(JSON.stringify({ ok: true, items }), {
+    headers: { 'content-type': 'application/json', ...c }
+  })
+}
+
+/**
+ * JWT: redeem (consume) one inventory card and grant credits atomically.
+ */
+async function handleSteamStoreRedeem(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
+  const u = await requireJwt(req, env, c)
+  if (u instanceof Response) return u
+  const body = (await readJson(req)) as { item_instance_id?: string; quantity?: number } | null
+  const itemInstanceId =
+    typeof body?.item_instance_id === 'string' ? body.item_instance_id.trim() : ''
+  const quantity =
+    typeof body?.quantity === 'number' && Number.isFinite(body.quantity)
+      ? Math.max(1, Math.trunc(body.quantity))
+      : 1
+  if (!itemInstanceId) {
+    return jsonError(
+      400,
+      { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'item_instance_id required' },
+      c
+    )
+  }
+
+  // If already redeemed, return idempotent success.
+  const existed = await env.DB.prepare(
+    `SELECT id, steam_id, item_instance_id, itemdefid, quantity, status, credits_added
+     FROM inventory_redeems
+     WHERE steam_id = ? AND item_instance_id = ?`
+  )
+    .bind(u.steamId, itemInstanceId)
+    .first<InventoryRedeemRow>()
+  if (existed?.status === 'granted') {
+    const credits = await getCredits(env, u.steamId)
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        already_redeemed: true,
+        credits_added: Number(existed.credits_added ?? 0),
+        credits
+      }),
+      { headers: { 'content-type': 'application/json', ...c } }
+    )
+  }
+  if (existed?.status === 'consumed') {
+    const grant = await applyInventoryRedeemGrant(env, existed)
+    const credits = await getCredits(env, u.steamId)
+    return new Response(
+      JSON.stringify({ ok: true, credits_added: grant.credits_added, resumed: true, credits }),
+      { headers: { 'content-type': 'application/json', ...c } }
+    )
+  }
+
+  const invRaw = await getInventoryService(env, u.steamId)
+  if (!steamResultOk(invRaw)) {
+    return jsonError(
+      502,
+      {
+        request_id: newRequestId(),
+        error: 'STORE_INVENTORY_FAILED',
+        message: 'GetInventory failed',
+        detail: invRaw as Record<string, unknown>
+      },
+      c
+    )
+  }
+  const invItems = parseInventoryServiceItems(invRaw)
+  const inv = invItems.find((x) => x.itemid === itemInstanceId)
+  if (!inv) {
+    return jsonError(
+      400,
+      { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'item_instance_id not found in inventory' },
+      c
+    )
+  }
+  const pricingDef = getSteamMtxItemById(inv.itemdefid)
+  if (!pricingDef) {
+    return jsonError(
+      400,
+      {
+        request_id: newRequestId(),
+        error: 'BAD_REQUEST',
+        message: `itemdefid ${inv.itemdefid} is not configured in pricing`
+      },
+      c
+    )
+  }
+  if (inv.quantity < quantity) {
+    return jsonError(
+      400,
+      { request_id: newRequestId(), error: 'BAD_REQUEST', message: `insufficient quantity (${inv.quantity})` },
+      c
+    )
+  }
+
+  const redeemId = existed?.id ?? crypto.randomUUID()
+  if (!existed) {
+    try {
+      await env.DB.prepare(
+        `INSERT INTO inventory_redeems
+         (id, steam_id, item_instance_id, itemdefid, quantity, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 'pending', unixepoch(), unixepoch())`
+      )
+        .bind(redeemId, u.steamId, itemInstanceId, inv.itemdefid, quantity)
+        .run()
+    } catch {
+      const again = await env.DB.prepare(
+        `SELECT id, steam_id, item_instance_id, itemdefid, quantity, status, credits_added
+         FROM inventory_redeems
+         WHERE steam_id = ? AND item_instance_id = ?`
+      )
+        .bind(u.steamId, itemInstanceId)
+        .first<InventoryRedeemRow>()
+      if (again?.status === 'granted') {
+        const credits = await getCredits(env, u.steamId)
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            already_redeemed: true,
+            credits_added: Number(again.credits_added ?? 0),
+            credits
+          }),
+          { headers: { 'content-type': 'application/json', ...c } }
+        )
+      }
+    }
+  }
+
+  const consumeRequestId = newInventoryConsumeRequestId()
+  const consumeRaw = await consumeInventoryItem(env, {
+    steamId: u.steamId,
+    itemId: itemInstanceId,
+    quantity,
+    requestId: consumeRequestId
+  })
+  if (!steamResultOk(consumeRaw)) {
+    await env.DB.prepare(
+      `UPDATE inventory_redeems
+       SET status = 'failed', consume_requestid = ?, error = ?, updated_at = unixepoch()
+       WHERE steam_id = ? AND item_instance_id = ?`
+    )
+      .bind(
+        consumeRequestId,
+        JSON.stringify(consumeRaw).slice(0, 1800),
+        u.steamId,
+        itemInstanceId
+      )
+      .run()
+    return jsonError(
+      502,
+      {
+        request_id: newRequestId(),
+        error: 'STORE_REDEEM_CONSUME_FAILED',
+        message: 'ConsumeItem failed',
+        detail: consumeRaw as Record<string, unknown>
+      },
+      c
+    )
+  }
+
+  await env.DB.prepare(
+    `UPDATE inventory_redeems
+     SET status = 'consumed', consume_requestid = ?, error = NULL, updated_at = unixepoch()
+     WHERE steam_id = ? AND item_instance_id = ?`
+  )
+    .bind(consumeRequestId, u.steamId, itemInstanceId)
+    .run()
+
+  const toGrant = await env.DB.prepare(
+    `SELECT id, steam_id, item_instance_id, itemdefid, quantity, status, credits_added
+     FROM inventory_redeems
+     WHERE steam_id = ? AND item_instance_id = ?`
+  )
+    .bind(u.steamId, itemInstanceId)
+    .first<InventoryRedeemRow>()
+  if (!toGrant) {
+    return jsonError(500, { request_id: newRequestId(), error: 'INTERNAL', message: 'redeem row missing' }, c)
+  }
+  const grant = await applyInventoryRedeemGrant(env, toGrant)
+  const credits = await getCredits(env, u.steamId)
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      redeemed: true,
+      item_instance_id: itemInstanceId,
+      itemdefid: inv.itemdefid,
+      credits_added: grant.credits_added,
+      credits
+    }),
+    { headers: { 'content-type': 'application/json', ...c } }
+  )
 }
 
 /** DEV：跳过 Steam FinalizeTxn，对已 init 订单按定价入账（需 ALLOW_DEV_AUTH + X-Dev-Secret） */
@@ -1211,7 +1799,7 @@ async function handleDevMtxSimulate(
   )
 }
 
-/** DEV：手动跑一轮「每日对账」（与定时任务相同逻辑，会发 Brevo 邮件并写 reconciliation_runs） */
+/** DEV：手动跑一轮「每日对账」（默认会发 Brevo 邮件；可 send_email=false 跳过） */
 async function handleDevReconciliationRun(
   req: Request,
   env: Env,
@@ -1232,10 +1820,204 @@ async function handleDevReconciliationRun(
     )
   }
   try {
-    const outcome = await runDailyReconciliation(env)
+    const body = (await readJson(req)) as { send_email?: boolean } | null
+    const sendEmail = body?.send_email !== false
+    const outcome = await runDailyReconciliation(env, { sendEmail })
     return new Response(JSON.stringify({ ok: true, ...outcome }), {
       headers: { 'content-type': 'application/json', ...c }
     })
+  } catch (e) {
+    return jsonError(
+      500,
+      {
+        request_id: newRequestId(),
+        error: 'INTERNAL',
+        message: e instanceof Error ? e.message : String(e)
+      },
+      c
+    )
+  }
+}
+
+/**
+ * DEV：手动触发一次 Steam GetReport（用于送审取证）。
+ * - 需要 ALLOW_DEV_AUTH=true 且 X-Dev-Secret 匹配
+ * - 返回原始 JSON（可能包含 steamid/orderid/transid 等）
+ */
+async function handleDevSteamGetReport(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
+  const devSecret = req.headers.get('X-Dev-Secret')
+  const allowDev =
+    env.ALLOW_DEV_AUTH === 'true' && env.DEV_AUTH_SECRET && devSecret === env.DEV_AUTH_SECRET
+  if (!allowDev) {
+    return jsonError(
+      403,
+      {
+        request_id: newRequestId(),
+        error: 'FORBIDDEN',
+        message: 'Dev GetReport requires ALLOW_DEV_AUTH and matching X-Dev-Secret'
+      },
+      c
+    )
+  }
+
+  const body = (await readJson(req)) as { type?: string; time_rfc3339_utc?: string } | null
+  const type = typeof body?.type === 'string' && body.type.trim() ? body.type.trim() : 'GAMESALES'
+  const timeRfc3339UtcRaw =
+    typeof body?.time_rfc3339_utc === 'string' ? body.time_rfc3339_utc.trim() : ''
+  const timeRfc3339Utc = timeRfc3339UtcRaw.length > 0 ? timeRfc3339UtcRaw : undefined
+
+  try {
+    const raw = await getReport(env, type, timeRfc3339Utc ? { timeRfc3339Utc } : undefined)
+    return new Response(JSON.stringify(raw), {
+      headers: { 'content-type': 'application/json', ...c }
+    })
+  } catch (e) {
+    return jsonError(
+      500,
+      {
+        request_id: newRequestId(),
+        error: 'INTERNAL',
+        message: e instanceof Error ? e.message : String(e)
+      },
+      c
+    )
+  }
+}
+
+/**
+ * DEV：拉取 STEAMSTORESALES 报表并入账到 credits（幂等）。
+ * - 需要 ALLOW_DEV_AUTH=true 且 X-Dev-Secret 匹配
+ * - 用于验证“Item Store 购买 → Worker 入账”链路
+ */
+async function handleDevSteamStoreIngest(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
+  const devSecret = req.headers.get('X-Dev-Secret')
+  const allowDev =
+    env.ALLOW_DEV_AUTH === 'true' && env.DEV_AUTH_SECRET && devSecret === env.DEV_AUTH_SECRET
+  if (!allowDev) {
+    return jsonError(
+      403,
+      {
+        request_id: newRequestId(),
+        error: 'FORBIDDEN',
+        message: 'Dev store ingest requires ALLOW_DEV_AUTH and matching X-Dev-Secret'
+      },
+      c
+    )
+  }
+  const body = (await readJson(req)) as { time?: string } | null
+  try {
+    const raw = (await getReport(env, 'STEAMSTORESALES', {
+      timeRfc3339Utc: typeof body?.time === 'string' && body.time.trim() ? body.time.trim() : undefined
+    })) as Record<string, unknown>
+    await ingestSteamStoreSalesReport(env, raw, 'STEAMSTORESALES')
+    return new Response(JSON.stringify({ ok: true, report: raw }), {
+      headers: { 'content-type': 'application/json', ...c }
+    })
+  } catch (e) {
+    return jsonError(
+      500,
+      { request_id: newRequestId(), error: 'INTERNAL', message: e instanceof Error ? e.message : String(e) },
+      c
+    )
+  }
+}
+
+/**
+ * DEV：手动 QueryTxn（用于定位“交易授权错误”的真实状态/错误码）。
+ * - 需要 ALLOW_DEV_AUTH=true 且 X-Dev-Secret 匹配
+ */
+async function handleDevSteamQueryTxn(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
+  const devSecret = req.headers.get('X-Dev-Secret')
+  const allowDev =
+    env.ALLOW_DEV_AUTH === 'true' && env.DEV_AUTH_SECRET && devSecret === env.DEV_AUTH_SECRET
+  if (!allowDev) {
+    return jsonError(
+      403,
+      {
+        request_id: newRequestId(),
+        error: 'FORBIDDEN',
+        message: 'Dev QueryTxn requires ALLOW_DEV_AUTH and matching X-Dev-Secret'
+      },
+      c
+    )
+  }
+
+  const body = (await readJson(req)) as { order_id?: string; trans_id?: string } | null
+  const orderId = body?.order_id ? String(body.order_id).trim() : ''
+  const transId = body?.trans_id ? String(body.trans_id).trim() : ''
+  if (!orderId) {
+    return jsonError(
+      400,
+      { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'order_id required' },
+      c
+    )
+  }
+
+  try {
+    const raw = await queryTxn(env, orderId, transId || undefined)
+    return new Response(JSON.stringify(raw), { headers: { 'content-type': 'application/json', ...c } })
+  } catch (e) {
+    return jsonError(
+      500,
+      {
+        request_id: newRequestId(),
+        error: 'INTERNAL',
+        message: e instanceof Error ? e.message : String(e)
+      },
+      c
+    )
+  }
+}
+
+/**
+ * DEV：GetUserInfo（用于判断账户是否 Locked/Active/Trusted，以及币种/国家信息）。
+ * - 需要 ALLOW_DEV_AUTH=true 且 X-Dev-Secret 匹配
+ */
+async function handleDevSteamUserInfo(
+  req: Request,
+  env: Env,
+  c: Record<string, string>
+): Promise<Response> {
+  const devSecret = req.headers.get('X-Dev-Secret')
+  const allowDev =
+    env.ALLOW_DEV_AUTH === 'true' && env.DEV_AUTH_SECRET && devSecret === env.DEV_AUTH_SECRET
+  if (!allowDev) {
+    return jsonError(
+      403,
+      {
+        request_id: newRequestId(),
+        error: 'FORBIDDEN',
+        message: 'Dev GetUserInfo requires ALLOW_DEV_AUTH and matching X-Dev-Secret'
+      },
+      c
+    )
+  }
+
+  const body = (await readJson(req)) as { steam_id?: string } | null
+  const steamId = body?.steam_id ? String(body.steam_id).trim() : ''
+  if (!steamId) {
+    return jsonError(
+      400,
+      { request_id: newRequestId(), error: 'BAD_REQUEST', message: 'steam_id required' },
+      c
+    )
+  }
+
+  try {
+    const raw = await getSteamMicroTxnUserInfo(env, steamId)
+    return new Response(JSON.stringify(raw), { headers: { 'content-type': 'application/json', ...c } })
   } catch (e) {
     return jsonError(
       500,

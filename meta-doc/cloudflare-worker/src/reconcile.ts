@@ -7,6 +7,10 @@ function isoDayUtc(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
+function isoSecondUtc(d: Date): string {
+  return d.toISOString().replace(/\.\d{3}Z$/, 'Z')
+}
+
 /** 从 D1 汇总「昨日」完成的 MTX 订单（UTC 日界） */
 export async function summarizeD1MtxCompleted(
   env: Env,
@@ -46,6 +50,66 @@ export async function summarizeD1PurchaseLedger(
   return {
     row_count: Number(row?.c ?? 0),
     total_delta_credits: Number(row?.sum_d ?? 0)
+  }
+}
+
+/** Item Store 购买记录（STEAMSTORESALES ingest 后写入 store_sales_grants） */
+export async function summarizeD1StoreSalesPurchases(
+  env: Env,
+  startUnix: number,
+  endUnix: number
+): Promise<{ row_count: number; total_amount_cents: number }> {
+  const row = await env.DB.prepare(
+    `SELECT COUNT(*) as c, COALESCE(SUM(amount_cents), 0) as sum_c
+     FROM store_sales_grants
+     WHERE created_at >= ?
+       AND created_at < ?`
+  )
+    .bind(startUnix, endUnix)
+    .first<{ c: number; sum_c: number }>()
+  return {
+    row_count: Number(row?.c ?? 0),
+    total_amount_cents: Number(row?.sum_c ?? 0)
+  }
+}
+
+/** 额度卡兑换状态汇总（inventory_redeems） */
+export async function summarizeD1InventoryRedeems(
+  env: Env,
+  startUnix: number,
+  endUnix: number
+): Promise<{
+  total_count: number
+  granted_count: number
+  consumed_count: number
+  failed_count: number
+  total_credits_added: number
+}> {
+  const row = await env.DB.prepare(
+    `SELECT
+        COUNT(*) as total_count,
+        COALESCE(SUM(CASE WHEN status = 'granted' THEN 1 ELSE 0 END), 0) as granted_count,
+        COALESCE(SUM(CASE WHEN status = 'consumed' OR status = 'granting' THEN 1 ELSE 0 END), 0) as consumed_count,
+        COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END), 0) as failed_count,
+        COALESCE(SUM(credits_added), 0) as credits_sum
+     FROM inventory_redeems
+     WHERE created_at >= ?
+       AND created_at < ?`
+  )
+    .bind(startUnix, endUnix)
+    .first<{
+      total_count: number
+      granted_count: number
+      consumed_count: number
+      failed_count: number
+      credits_sum: number
+    }>()
+  return {
+    total_count: Number(row?.total_count ?? 0),
+    granted_count: Number(row?.granted_count ?? 0),
+    consumed_count: Number(row?.consumed_count ?? 0),
+    failed_count: Number(row?.failed_count ?? 0),
+    total_credits_added: Number(row?.credits_sum ?? 0)
   }
 }
 
@@ -93,43 +157,107 @@ export async function fetchSteamMicroTxnReportSnapshot(
   }
 }
 
+export async function fetchSteamStoreSalesReportSnapshot(
+  env: Env,
+  options?: { reportStartUnix?: number }
+): Promise<{ ok: true; raw: Record<string, unknown> } | { ok: false; reason: string }> {
+  try {
+    const timeRfc3339Utc =
+      options?.reportStartUnix != null
+        ? rfc3339UtcFromUnixSeconds(options.reportStartUnix)
+        : undefined
+    const raw = (await getReport(env, 'STEAMSTORESALES', { timeRfc3339Utc })) as Record<string, unknown>
+    if (
+      raw &&
+      typeof raw === 'object' &&
+      'parse_error' in raw &&
+      (raw as { parse_error?: boolean }).parse_error
+    ) {
+      const snippet = String((raw as { raw?: string }).raw ?? '').slice(0, 400)
+      return { ok: false, reason: `steamstoresales_response_not_json: ${snippet}` }
+    }
+    const rsp = raw as {
+      response?: { result?: string; error?: { errorcode?: number; errordesc?: string } }
+    }
+    if (rsp.response?.result !== 'OK') {
+      const err = rsp.response?.error
+      const code = err?.errorcode
+      const desc = (err?.errordesc ?? '').slice(0, 300)
+      const tail = [code != null ? `code=${code}` : '', desc ? `desc=${desc}` : '']
+        .filter(Boolean)
+        .join(' ')
+      return {
+        ok: false,
+        reason: tail ? `steamstoresales_getreport_failure: ${tail}` : 'steamstoresales_getreport_failure'
+      }
+    }
+    return { ok: true, raw }
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) }
+  }
+}
+
 export type ReconcileOutcome = {
   status: 'ok' | 'warn'
   d1_mtx: { order_count: number; total_amount_cents: number }
   d1_ledger: { row_count: number; total_delta_credits: number }
+  d1_store_sales: { row_count: number; total_amount_cents: number }
+  d1_inventory_redeems: {
+    total_count: number
+    granted_count: number
+    consumed_count: number
+    failed_count: number
+    total_credits_added: number
+  }
   steam_report_ok: boolean
+  steam_store_report_ok: boolean
+  email_requested: boolean
+  email_sent: boolean
+  email_note?: string
   steam_report_note?: string
+  steam_store_report_note?: string
 }
 
-export async function runDailyReconciliation(env: Env): Promise<ReconcileOutcome> {
+export async function runDailyReconciliation(
+  env: Env,
+  options?: { sendEmail?: boolean }
+): Promise<ReconcileOutcome> {
   const now = new Date()
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  // Rolling 24h window to avoid skipping recently created transactions.
+  const end = now
   const start = new Date(end.getTime() - 86400_000)
   const startUnix = Math.floor(start.getTime() / 1000)
   const endUnix = Math.floor(end.getTime() / 1000)
 
   const d1_mtx = await summarizeD1MtxCompleted(env, startUnix, endUnix)
   const d1_ledger = await summarizeD1PurchaseLedger(env, startUnix, endUnix)
+  const d1_store_sales = await summarizeD1StoreSalesPurchases(env, startUnix, endUnix)
+  const d1_inventory_redeems = await summarizeD1InventoryRedeems(env, startUnix, endUnix)
 
   const steam = await fetchSteamMicroTxnReportSnapshot(env, { reportStartUnix: startUnix })
+  const steamStore = await fetchSteamStoreSalesReportSnapshot(env, { reportStartUnix: startUnix })
   const steam_report_ok = steam.ok
+  const steam_store_report_ok = steamStore.ok
 
   let status: 'ok' | 'warn' = 'ok'
-  if (!steam.ok) {
+  if (!steam.ok || !steamStore.ok) {
     status = 'warn'
   }
   if (d1_mtx.order_count !== d1_ledger.row_count) {
     status = 'warn'
   }
 
-  const periodLabel = `${isoDayUtc(start)} → ${isoDayUtc(end)} (UTC)`
+  const periodLabel = `${isoSecondUtc(start)} → ${isoSecondUtc(end)} (UTC, rolling 24h)`
 
   const html = buildReconcileEmailHtml({
     periodLabel,
     status,
     d1_mtx,
     d1_ledger,
+    d1_store_sales,
+    d1_inventory_redeems,
     steam,
+    steamStore,
     recipient: RECONCILE_EMAIL_TO
   })
 
@@ -138,14 +266,28 @@ export async function runDailyReconciliation(env: Env): Promise<ReconcileOutcome
     `status=${status}`,
     `d1_mtx=${JSON.stringify(d1_mtx)}`,
     `d1_ledger=${JSON.stringify(d1_ledger)}`,
-    `steam=${steam.ok ? 'ok' : steam.reason}`
+    `d1_store_sales=${JSON.stringify(d1_store_sales)}`,
+    `d1_inventory_redeems=${JSON.stringify(d1_inventory_redeems)}`,
+    `steam=${steam.ok ? 'ok' : steam.reason}`,
+    `steamstoresales=${steamStore.ok ? 'ok' : steamStore.reason}`
   ].join('\n')
 
-  const email = await sendBrevoTransactionalEmail(env, {
-    subject: `[MetaDoc Cloud] 对账 ${isoDayUtc(start)} ${status.toUpperCase()}`,
-    htmlBody: html,
-    textBody: text
-  })
+  const emailRequested = options?.sendEmail !== false
+  let email:
+    | { ok: true }
+    | {
+        ok: false
+        reason?: string
+      }
+  if (emailRequested) {
+    email = await sendBrevoTransactionalEmail(env, {
+      subject: `[MetaDoc Cloud] 对账 ${isoDayUtc(start)} ${status.toUpperCase()}`,
+      htmlBody: html,
+      textBody: text
+    })
+  } else {
+    email = { ok: false, reason: 'skipped_by_request' }
+  }
 
   const id = newRequestId()
   await env.DB.prepare(
@@ -160,14 +302,19 @@ export async function runDailyReconciliation(env: Env): Promise<ReconcileOutcome
       JSON.stringify({
         d1_mtx,
         d1_ledger,
+        d1_store_sales,
+        d1_inventory_redeems,
         steam_report_ok,
+        steam_store_report_ok,
+        email_requested: emailRequested,
+        email_note: emailRequested ? (email.ok ? 'sent' : email.reason ?? 'failed') : 'skipped_by_request',
         brevo: email.ok ? 'sent' : 'failed'
       }),
-      email.ok ? 1 : 0
+      emailRequested && email.ok ? 1 : 0
     )
     .run()
 
-  if (!email.ok && 'reason' in email) {
+  if (emailRequested && !email.ok && 'reason' in email) {
     console.error('[reconcile] brevo failed', email.reason)
   }
 
@@ -175,8 +322,15 @@ export async function runDailyReconciliation(env: Env): Promise<ReconcileOutcome
     status,
     d1_mtx,
     d1_ledger,
+    d1_store_sales,
+    d1_inventory_redeems,
     steam_report_ok,
-    steam_report_note: steam.ok ? undefined : steam.reason
+    steam_store_report_ok,
+    email_requested: emailRequested,
+    email_sent: emailRequested && email.ok,
+    email_note: emailRequested ? (email.ok ? 'sent' : email.reason ?? 'failed') : 'skipped_by_request',
+    steam_report_note: steam.ok ? undefined : steam.reason,
+    steam_store_report_note: steamStore.ok ? undefined : steamStore.reason
   }
 }
 
@@ -253,7 +407,7 @@ function formatItemsSummary(o: SteamReportOrder): string {
 }
 
 /** GetReport 成功：汇总表 + 状态分布条 + 订单明细（邮件客户端友好，无脚本） */
-function buildSteamGetReportVisualizationHtml(raw: Record<string, unknown>): string {
+function buildSteamGetReportVisualizationHtml(raw: Record<string, unknown>, reportType: string): string {
   const { count, orders } = parseSteamGetReportPayload(raw)
   const statusCounts = new Map<string, number>()
   for (const o of orders) {
@@ -266,7 +420,7 @@ function buildSteamGetReportVisualizationHtml(raw: Record<string, unknown>): str
   const metaTable = `<table style="${EMAIL_TABLE}" cellpadding="0" cellspacing="0">
 <tbody>
 <tr><th style="${EMAIL_TH}">说明</th><th style="${EMAIL_TH}">内容</th></tr>
-<tr><td style="${EMAIL_TD}">报表类型</td><td style="${EMAIL_TD}">GAMESALES（GetReport/v5 GET，time = RFC 3339 UTC）</td></tr>
+<tr><td style="${EMAIL_TD}">报表类型</td><td style="${EMAIL_TD}">${escapeHtml(reportType)}（GetReport/v5 GET，time = RFC 3339 UTC）</td></tr>
 <tr><td style="${EMAIL_TD_MUTE}" colspan="2">以下为接口返回订单的结构化摘要；金额按 Steam 字段理解为「分」。</td></tr>
 </tbody></table>`
 
@@ -347,7 +501,30 @@ ${orderRows}
 ${summaryRows}
 </tbody></table>
 ${statusSection}
-${detailSection}`
+${detailSection}
+${buildSteamGetReportRawJsonHtml(raw, reportType)}`
+}
+
+function buildSteamGetReportRawJsonHtml(raw: Record<string, unknown>, reportType: string): string {
+  let s = ''
+  try {
+    s = JSON.stringify(raw, null, 2)
+  } catch {
+    s = String(raw)
+  }
+  /**
+   * 送审/取证：附上原始 JSON（截断）便于 Valve 复核。
+   * 避免邮件过大，保留前后片段；对账系统仍以结构化表格为主。
+   */
+  const max = 120_000
+  const trimmed =
+    s.length <= max ? s : `${s.slice(0, 80_000)}\n\n…(truncated)…\n\n${s.slice(-35_000)}`
+  return `<h4 style="margin:16px 0 8px 0;font-size:14px;color:#24292f;">原始 GetReport JSON（${escapeHtml(
+    reportType
+  )}，截断）</h4>
+<pre style="white-space:pre-wrap;word-break:break-word;border:1px solid #d0d7de;border-radius:8px;padding:12px;background:#0b1020;color:#e6edf3;font-size:12px;line-height:1.35;max-height:520px;overflow:auto;">${escapeHtml(
+    trimmed
+  )}</pre>`
 }
 
 function buildReconcileEmailHtml(args: {
@@ -355,7 +532,16 @@ function buildReconcileEmailHtml(args: {
   status: 'ok' | 'warn'
   d1_mtx: { order_count: number; total_amount_cents: number }
   d1_ledger: { row_count: number; total_delta_credits: number }
+  d1_store_sales: { row_count: number; total_amount_cents: number }
+  d1_inventory_redeems: {
+    total_count: number
+    granted_count: number
+    consumed_count: number
+    failed_count: number
+    total_credits_added: number
+  }
   steam: { ok: true; raw: Record<string, unknown> } | { ok: false; reason: string }
+  steamStore: { ok: true; raw: Record<string, unknown> } | { ok: false; reason: string }
   recipient: string
 }): string {
   const statusLabel = args.status === 'ok' ? 'OK' : 'WARN（需人工核对）'
@@ -364,12 +550,22 @@ function buildReconcileEmailHtml(args: {
 
   const steamBlock = args.steam.ok
     ? `<p style="margin:8px 0 4px 0;color:#57606a;font-size:13px">接口状态：<strong style="color:#116329">成功</strong></p>
-${buildSteamGetReportVisualizationHtml(args.steam.raw)}`
+${buildSteamGetReportVisualizationHtml(args.steam.raw, 'GAMESALES')}`
     : `<p style="margin:8px 0 4px 0">接口状态：<strong style="color:#cf222e">失败</strong></p>
 <table style="${EMAIL_TABLE}" cellpadding="0" cellspacing="0">
 <tbody>
 <tr><th style="${EMAIL_TH}">错误说明</th></tr>
 <tr><td style="${EMAIL_TD}">${escapeHtml(args.steam.reason)}</td></tr>
+</tbody></table>`
+
+  const steamStoreBlock = args.steamStore.ok
+    ? `<p style="margin:8px 0 4px 0;color:#57606a;font-size:13px">接口状态：<strong style="color:#116329">成功</strong></p>
+${buildSteamGetReportVisualizationHtml(args.steamStore.raw, 'STEAMSTORESALES')}`
+    : `<p style="margin:8px 0 4px 0">接口状态：<strong style="color:#cf222e">失败</strong></p>
+<table style="${EMAIL_TABLE}" cellpadding="0" cellspacing="0">
+<tbody>
+<tr><th style="${EMAIL_TH}">错误说明</th></tr>
+<tr><td style="${EMAIL_TD}">${escapeHtml(args.steamStore.reason)}</td></tr>
 </tbody></table>`
 
   return `<!DOCTYPE html>
@@ -396,11 +592,33 @@ ${buildSteamGetReportVisualizationHtml(args.steam.raw)}`
 <tr><td style="${EMAIL_TD}">Credits 增量合计</td><td style="${EMAIL_TD}">${args.d1_ledger.total_delta_credits}</td></tr>
 </tbody></table>
 
+<h3 style="margin:20px 0 8px 0;font-size:15px;color:#24292f;">D1 · store_sales_grants（购买记录，UTC 昨日）</h3>
+<table style="${EMAIL_TABLE}" cellpadding="0" cellspacing="0">
+<tbody>
+<tr><th style="${EMAIL_TH}">指标</th><th style="${EMAIL_TH}">数值</th></tr>
+<tr><td style="${EMAIL_TD}">购买记录笔数</td><td style="${EMAIL_TD}">${args.d1_store_sales.row_count}</td></tr>
+<tr><td style="${EMAIL_TD}">金额合计（分）</td><td style="${EMAIL_TD}">${args.d1_store_sales.total_amount_cents}</td></tr>
+</tbody></table>
+
+<h3 style="margin:20px 0 8px 0;font-size:15px;color:#24292f;">D1 · inventory_redeems（额度卡兑换，UTC 昨日）</h3>
+<table style="${EMAIL_TABLE}" cellpadding="0" cellspacing="0">
+<tbody>
+<tr><th style="${EMAIL_TH}">指标</th><th style="${EMAIL_TH}">数值</th></tr>
+<tr><td style="${EMAIL_TD}">兑换请求总数</td><td style="${EMAIL_TD}">${args.d1_inventory_redeems.total_count}</td></tr>
+<tr><td style="${EMAIL_TD}">已入账（granted）</td><td style="${EMAIL_TD}">${args.d1_inventory_redeems.granted_count}</td></tr>
+<tr><td style="${EMAIL_TD}">已消耗待完成（consumed/granting）</td><td style="${EMAIL_TD}">${args.d1_inventory_redeems.consumed_count}</td></tr>
+<tr><td style="${EMAIL_TD}">失败（failed）</td><td style="${EMAIL_TD}">${args.d1_inventory_redeems.failed_count}</td></tr>
+<tr><td style="${EMAIL_TD}">兑换入账 Credits 合计</td><td style="${EMAIL_TD}">${args.d1_inventory_redeems.total_credits_added}</td></tr>
+</tbody></table>
+
 <h3 style="margin:20px 0 8px 0;font-size:15px;color:#24292f;">Steam · GetReport（GAMESALES）</h3>
 ${steamBlock}
 
+<h3 style="margin:20px 0 8px 0;font-size:15px;color:#24292f;">Steam · GetReport（STEAMSTORESALES）</h3>
+${steamStoreBlock}
+
 <p style="margin:24px 0 0 0;font-size:12px;color:#6e7781;">收件人：${escapeHtml(args.recipient)}</p>
-<p style="margin:12px 0 0 0;font-size:11px;color:#aeb8c1;">MetaDoc reconcile · <strong>template-v3-steam-structured</strong> · Steam GetReport = <strong>HTTP GET</strong>（成功时以表格展示订单；若仍见整段 JSON 或 405，说明 Worker 未部署最新构建）</p>
+<p style="margin:12px 0 0 0;font-size:11px;color:#aeb8c1;">MetaDoc reconcile · <strong>template-v4-steam-structured-store</strong> · Steam GetReport = <strong>HTTP GET</strong>（已同时包含 GAMESALES 与 STEAMSTORESALES，附结构化摘要 + 原始 JSON 截断）</p>
 </div>
 </body></html>`
 }

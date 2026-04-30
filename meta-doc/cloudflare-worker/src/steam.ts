@@ -5,6 +5,13 @@ function steamWebApiKey(env: Env): string {
   return (env.STEAM_WEB_API_KEY ?? '').trim()
 }
 
+function parseTruthy(v: string | undefined): boolean {
+  const s = String(v ?? '')
+    .trim()
+    .toLowerCase()
+  return s === '1' || s === 'true' || s === 'yes' || s === 'on'
+}
+
 const AUTH_TICKET_PATH = '/ISteamUserAuth/AuthenticateUserTicket/v1/'
 
 /** Steam 文档：GET；部分环境对无 UA 的请求更敏感 */
@@ -134,8 +141,12 @@ Root cause (most common): STEAM_WEB_API_KEY must be the Publisher Web API Key fr
   return { ok: false, reason: parsed.reason }
 }
 
+export function steamMicroTxnSandboxEnabled(env: Env): boolean {
+  return parseTruthy(env.STEAM_MICROTX_SANDBOX)
+}
+
 function mtxBase(env: Env): string {
-  return env.STEAM_MICROTX_SANDBOX === 'true'
+  return steamMicroTxnSandboxEnabled(env)
     ? 'https://partner.steam-api.com/ISteamMicroTxnSandbox'
     : 'https://partner.steam-api.com/ISteamMicroTxn'
 }
@@ -317,6 +328,32 @@ export async function checkAppOwnership(
   return { ok: true, owns: data.appownership?.ownsapp === true }
 }
 
+export async function getSteamMicroTxnUserInfo(
+  env: Env,
+  steamId: string
+): Promise<Record<string, unknown>> {
+  const key = steamWebApiKey(env)
+  const appid = Number(env.STEAM_APP_ID)
+  const base = mtxBase(env)
+  const url = new URL(`${base}/GetUserInfo/v2/`)
+  url.searchParams.set('key', key)
+  url.searchParams.set('appid', String(appid))
+  url.searchParams.set('steamid', String(steamId))
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'MetaDocCloudWorker/1.0 (+https://partner.steamgames.com/doc/webapi/ISteamMicroTxn)'
+    }
+  })
+  const text = await res.text()
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch {
+    return { parse_error: true, raw: text.slice(0, 2000), http_status: res.status }
+  }
+}
+
 /** Steam GetReport：`time` 须为 RFC 3339 UTC（如 `2010-01-01T00:00:00Z`），不能传 Unix 秒数字符串 */
 export function rfc3339UtcFromUnixSeconds(unixSec: number): string {
   return new Date(unixSec * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z')
@@ -355,6 +392,66 @@ export async function getReport(
       'User-Agent':
         'MetaDocCloudWorker/1.0 (+https://partner.steamgames.com/doc/webapi/ISteamMicroTxn)'
     }
+  })
+  const text = await res.text()
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch {
+    return { parse_error: true, raw: text.slice(0, 2000), http_status: res.status }
+  }
+}
+
+/**
+ * Steam Inventory Service (trusted server): list user's inventory items.
+ * API: GET https://partner.steam-api.com/IInventoryService/GetInventory/v1/
+ */
+export async function getInventoryService(env: Env, steamId: string): Promise<Record<string, unknown>> {
+  const key = steamWebApiKey(env)
+  const appid = Number(env.STEAM_APP_ID)
+  const url = new URL('https://partner.steam-api.com/IInventoryService/GetInventory/v1/')
+  url.searchParams.set('key', key)
+  url.searchParams.set('appid', String(appid))
+  url.searchParams.set('steamid', String(steamId))
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'MetaDocCloudWorker/1.0 (+https://partner.steamgames.com/doc/webapi/iinventoryservice)'
+    }
+  })
+  const text = await res.text()
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch {
+    return { parse_error: true, raw: text.slice(0, 2000), http_status: res.status }
+  }
+}
+
+/**
+ * Steam Inventory Service (trusted server): consume an item instance.
+ * API: POST https://partner.steam-api.com/IInventoryService/ConsumeItem/v1/
+ */
+export async function consumeInventoryItem(
+  env: Env,
+  args: { steamId: string; itemId: string; quantity: number; requestId: string }
+): Promise<Record<string, unknown>> {
+  const key = steamWebApiKey(env)
+  const appid = Number(env.STEAM_APP_ID)
+  const body = new URLSearchParams()
+  body.set('key', key)
+  body.set('appid', String(appid))
+  body.set('steamid', String(args.steamId))
+  body.set('itemid', String(args.itemId))
+  body.set('quantity', String(args.quantity))
+  body.set('requestid', String(args.requestId))
+  const res = await fetch('https://partner.steam-api.com/IInventoryService/ConsumeItem/v1/', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'MetaDocCloudWorker/1.0 (+https://partner.steamgames.com/doc/webapi/iinventoryservice)'
+    },
+    body: body.toString()
   })
   const text = await res.text()
   try {

@@ -12,6 +12,17 @@ export function creditsFromUsdGross(grossUsd: number): number {
   return Math.max(0, Math.floor(P * credits_per_usd_pool))
 }
 
+function consumptionFeeMultiplier(): number {
+  // 单一口径：扣费端承担渠道手续费与服务费，充值端 credits_on_redeem 固定。
+  return 1 + ECONOMICS.steam_mtx_effective_fee_pct + ECONOMICS.metadoc_service_fee_pct
+}
+
+function modelCreditsPer1k(model: string | undefined): number {
+  const m = N1N_MODEL_RATES.models.find((x) => x.id === model)
+  const base = m?.credits_per_1k_tokens_est ?? 50
+  return Math.max(1, Math.ceil(base * consumptionFeeMultiplier()))
+}
+
 /** 非 USD 或缺失分币时回退到商品 YAML 中的 usd_price（见 economics.md） */
 export function usdGrossForMtxOrder(
   amountCents: number | null | undefined,
@@ -48,8 +59,7 @@ export function estimateFreezeByModel(
   model: string | undefined,
   maxTokens: number | undefined
 ): number {
-  const m = N1N_MODEL_RATES.models.find((x) => x.id === model)
-  const per1k = m?.credits_per_1k_tokens_est ?? 50
+  const per1k = modelCreditsPer1k(model)
   const estTok = maxTokens && maxTokens > 0 ? maxTokens : 2048
   return Math.max(8, Math.ceil((estTok / 1000) * per1k))
 }
@@ -63,9 +73,22 @@ export function actualCostFromUsageForModel(
   model: string | undefined
 ): number {
   const t = usage.total_tokens ?? (usage.prompt_tokens ?? 0) + (usage.completion_tokens ?? 0)
-  const m = N1N_MODEL_RATES.models.find((x) => x.id === model)
-  const per1k = m?.credits_per_1k_tokens_est ?? 50
+  const per1k = modelCreditsPer1k(model)
   return Math.max(1, Math.ceil((t / 1000) * per1k))
+}
+
+export function creditsOnRedeemForItemId(itemId: string | null | undefined): number {
+  if (!itemId) return 0
+  const item = getSteamMtxItemById(itemId) as
+    | ((typeof STEAM_MTX_ITEMS)[number] & { credits_on_redeem?: number; volume_bonus_credits?: number })
+    | undefined
+  if (typeof item?.credits_on_redeem === 'number' && Number.isFinite(item.credits_on_redeem)) {
+    return Math.max(0, Math.trunc(item.credits_on_redeem))
+  }
+  const fallback =
+    creditsFromUsdGross(item?.usd_price ?? 0) +
+    (typeof item?.volume_bonus_credits === 'number' ? Math.max(0, Math.trunc(item.volume_bonus_credits)) : 0)
+  return Math.max(0, fallback)
 }
 
 /**
@@ -87,7 +110,7 @@ export function cloudModelsPayload(): {
     models: N1N_MODEL_RATES.models.map((m) => ({
       id: m.id,
       label: m.id,
-      credits_per_1k_tokens_est: m.credits_per_1k_tokens_est
+      credits_per_1k_tokens_est: modelCreditsPer1k(m.id)
     }))
   }
 }
@@ -102,8 +125,12 @@ export function steamMtxCatalogPayload(): {
   items: Array<{
     steam_item_id: string
     label: string
+    subtitle?: string
+    description?: string
+    cny_price?: number
     usd_price: number
     amount_cents_usd: number
+    credits_on_redeem: number
     volume_bonus_credits?: number
   }>
 } {
@@ -113,14 +140,32 @@ export function steamMtxCatalogPayload(): {
     const entry: {
       steam_item_id: string
       label: string
+      subtitle?: string
+      description?: string
+      cny_price?: number
       usd_price: number
       amount_cents_usd: number
+      credits_on_redeem: number
       volume_bonus_credits?: number
     } = {
       steam_item_id: String(i.steam_item_id),
       label: String(i.label),
       usd_price: i.usd_price,
-      amount_cents_usd: i.amount_cents_usd
+      amount_cents_usd: i.amount_cents_usd,
+      credits_on_redeem:
+        typeof (i as { credits_on_redeem?: unknown }).credits_on_redeem === 'number'
+          ? Math.max(0, Math.trunc((i as { credits_on_redeem?: number }).credits_on_redeem ?? 0))
+          : creditsFromUsdGross(i.usd_price) +
+            (typeof i.volume_bonus_credits === 'number' ? Math.floor(i.volume_bonus_credits) : 0)
+    }
+    if (typeof (i as { subtitle?: unknown }).subtitle === 'string') {
+      entry.subtitle = String((i as { subtitle?: string }).subtitle)
+    }
+    if (typeof (i as { description?: unknown }).description === 'string') {
+      entry.description = String((i as { description?: string }).description)
+    }
+    if (typeof (i as { cny_price?: unknown }).cny_price === 'number') {
+      entry.cny_price = Number((i as { cny_price?: number }).cny_price)
     }
     if (typeof i.volume_bonus_credits === 'number' && i.volume_bonus_credits > 0) {
       entry.volume_bonus_credits = i.volume_bonus_credits

@@ -5,6 +5,7 @@ export type SteamStatusPayload = {
   initialized: boolean
   available: boolean
   reason?: string
+  diagnostic?: Record<string, unknown>
 }
 
 export type SteamUserPayload = {
@@ -65,6 +66,10 @@ export async function openSteamOverlayToUser(
   dialog: 'steamid' | 'achievements'
 ): Promise<SteamInvokeResult> {
   return invokeSteam('steam:overlay:to-user', { dialog })
+}
+
+export async function isSteamOverlayEnabled(): Promise<SteamInvokeResult<{ enabled: boolean }>> {
+  return invokeSteam<{ enabled: boolean }>('steam:overlay:is-enabled')
 }
 
 export async function unlockSteamAchievement(apiName: string): Promise<SteamInvokeResult> {

@@ -62,10 +62,10 @@ export const saveWorkspaceDocument = async (
     !sessionStorage.getItem(USERDATA_META_WARN_KEY)
   ) {
     sessionStorage.setItem(USERDATA_META_WARN_KEY, '1')
-    notifyWarning(
-      '文档元数据已保存到应用数据目录（当前文件不在已添加的工作区文件夹内）。将文件所在文件夹加入侧栏工作区后，元数据会写入该项目下的 .metadoc 目录。',
-      { duration: 8000 }
-    )
+    // notifyWarning(
+    //   '文档元数据已保存到应用数据目录（当前文件不在已添加的工作区文件夹内）。将文件所在文件夹加入侧栏工作区后，元数据会写入该项目下的 .metadoc 目录。',
+    //   { duration: 8000 }
+    // )
   }
 
   return {

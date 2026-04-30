@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import type { IpcMainInvokeEvent } from 'electron'
 import { ipcBridge } from '../bridge/ipc-bridge'
 import { assertAllowedSteamCloudPath, readTextFromCloud, saveTextToCloud } from './steam-cloud'
@@ -53,6 +53,89 @@ import { createMainLogger } from '../logger'
 
 type SteamResult<T = unknown> = { success: true; data?: T } | { success: false; error: string }
 
+// #region agent log (debug-68ece7)
+function agentDebugLog(location: string, message: string, data: Record<string, unknown>): void {
+  if (process.env.NODE_ENV !== 'development') return
+  try {
+    const f = (globalThis as unknown as { fetch?: typeof fetch }).fetch
+    if (typeof f !== 'function') return
+    f('http://127.0.0.1:7420/ingest/f298dd8f-3d1a-44fd-852c-9a2266805594', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '68ece7'
+      },
+      body: JSON.stringify({
+        sessionId: '68ece7',
+        runId: 'overlay-debug',
+        hypothesisId: 'H-main',
+        location,
+        message,
+        data,
+        timestamp: Date.now()
+      })
+    }).catch(() => {})
+  } catch {
+    /* ignore */
+  }
+}
+// #endregion agent log (debug-68ece7)
+
+function greenworksDiagnostics(): Record<string, unknown> {
+  const st = getSteamInitResult()
+  const gw = getGreenworksOrNull() as Record<string, unknown> | null
+  const hasGw = Boolean(gw)
+  const fn = (name: string) => (gw ? typeof gw[name] === 'function' : false)
+  const diag: Record<string, unknown> = {
+    steam_initialized: st.initialized,
+    steam_available: st.available,
+    steam_reason: st.reason,
+    greenworks_loaded: hasGw,
+    greenworks_has_on: fn('on'),
+    greenworks_has_activateGameOverlay: fn('activateGameOverlay'),
+    greenworks_has_activateGameOverlayToUser: fn('activateGameOverlayToUser'),
+    greenworks_has_isGameOverlayEnabled: fn('isGameOverlayEnabled') || fn('IsGameOverlayEnabled'),
+    greenworks_has_isOverlayEnabled: fn('isOverlayEnabled') || fn('IsOverlayEnabled')
+  }
+  if (gw) {
+    try {
+      const isEnabled =
+        typeof gw.isGameOverlayEnabled === 'function'
+          ? (gw.isGameOverlayEnabled as () => unknown)()
+          : typeof gw.IsGameOverlayEnabled === 'function'
+            ? (gw.IsGameOverlayEnabled as () => unknown)()
+            : undefined
+      if (typeof isEnabled === 'boolean') {
+        diag.greenworks_game_overlay_enabled = isEnabled
+      } else if (isEnabled !== undefined) {
+        diag.greenworks_game_overlay_enabled = String(isEnabled)
+      }
+    } catch (e) {
+      diag.greenworks_game_overlay_enabled = `throw:${e instanceof Error ? e.message : String(e)}`
+    }
+  }
+  if (gw) {
+    try {
+      const keys = Object.keys(gw)
+      diag.greenworks_key_count = keys.length
+      diag.greenworks_keys_sample = keys.slice(0, 80)
+    } catch {
+      /* ignore */
+    }
+  }
+  try {
+    diag.process_arch = process.arch
+    diag.exec_path = process.execPath
+    diag.steam_env = {
+      SteamAppId: process.env.SteamAppId,
+      SteamGameId: process.env.SteamGameId
+    }
+  } catch {
+    /* ignore */
+  }
+  return diag
+}
+
 /**
  * Steam Web 结账：InitTxn 的 ipaddress 必须与**打开 steam_url 的浏览器**出口 IP 一致。
  * Node 的 fetch 与 Electron Chromium 的出口可能不同（代理/双栈等），因此在**同一 BrowserWindow**
@@ -61,6 +144,31 @@ type SteamResult<T = unknown> = { success: true; data?: T } | { success: false; 
 const MTX_CHECKOUT_PARTITION = 'persist:steam-mtx-checkout'
 
 let mtxCheckoutBrowserWindow: BrowserWindow | null = null
+
+/** 最近一次 Steam web 支付窗诊断（供渲染进程 toast / 排障） */
+type MtxCheckoutDiagnostic = {
+  updated_at_ms: number
+  mode?: 'embedded' | 'external'
+  steam_url?: string
+  expected_ip?: string
+  ip_before_load_url?: string | null
+  ip_match?: boolean | null
+  page_url?: string
+  page_title?: string
+  page_snippet?: string
+  fail_load?: { errorCode: number; errorDescription: string; url: string }
+  open_error?: string
+}
+
+let lastMtxCheckoutDiagnostic: MtxCheckoutDiagnostic | null = null
+
+function mergeMtxCheckoutDiagnostic(patch: Partial<Omit<MtxCheckoutDiagnostic, 'updated_at_ms'>>): void {
+  lastMtxCheckoutDiagnostic = {
+    ...(lastMtxCheckoutDiagnostic ?? { updated_at_ms: Date.now() }),
+    ...patch,
+    updated_at_ms: Date.now()
+  }
+}
 
 function ensureMtxCheckoutBrowserWindow(): BrowserWindow {
   if (mtxCheckoutBrowserWindow && !mtxCheckoutBrowserWindow.isDestroyed()) {
@@ -81,6 +189,88 @@ function ensureMtxCheckoutBrowserWindow(): BrowserWindow {
       partition: MTX_CHECKOUT_PARTITION
     }
   })
+  // #region agent log (debug-68ece7)
+  try {
+    mtxCheckoutBrowserWindow.webContents.on('did-start-navigation', (_e, url, _isInPlace, _isMainFrame) => {
+      try {
+        const u = new URL(url)
+        agentDebugLog('register-steam-ipc.ts:mtxWindow', 'mtx:nav_start', {
+          origin: u.origin,
+          path: u.pathname
+        })
+      } catch {
+        agentDebugLog('register-steam-ipc.ts:mtxWindow', 'mtx:nav_start', { url: String(url).slice(0, 120) })
+      }
+    })
+    mtxCheckoutBrowserWindow.webContents.on('did-navigate', (_e, url) => {
+      try {
+        const u = new URL(url)
+        agentDebugLog('register-steam-ipc.ts:mtxWindow', 'mtx:navigate', { origin: u.origin, path: u.pathname })
+      } catch {
+        agentDebugLog('register-steam-ipc.ts:mtxWindow', 'mtx:navigate', { url: String(url).slice(0, 120) })
+      }
+    })
+    mtxCheckoutBrowserWindow.webContents.on('did-finish-load', async () => {
+      try {
+        const url = mtxCheckoutBrowserWindow?.webContents.getURL?.() || ''
+        const title = mtxCheckoutBrowserWindow?.webContents.getTitle?.() || ''
+        agentDebugLog('register-steam-ipc.ts:mtxWindow', 'mtx:finish_load', {
+          title: String(title).slice(0, 120),
+          url: String(url).slice(0, 180)
+        })
+        // 尽量读取页面可见文本，用于定位“交易授权错误”根因（不含 cookie / token）。
+        try {
+          const snippet = await mtxCheckoutBrowserWindow?.webContents.executeJavaScript(
+            `
+            (() => {
+              try {
+                const t = (document.body && (document.body.innerText || document.body.textContent)) || ''
+                return String(t).replace(/\\s+/g, ' ').trim().slice(0, 600)
+              } catch (e) {
+                return ''
+              }
+            })()
+            `
+          )
+          if (typeof snippet === 'string' && snippet.trim()) {
+            agentDebugLog('register-steam-ipc.ts:mtxWindow', 'mtx:text_snippet', {
+              snippet: snippet.slice(0, 600)
+            })
+          }
+          mergeMtxCheckoutDiagnostic({
+            page_url: String(url).slice(0, 400),
+            page_title: String(title).slice(0, 200),
+            page_snippet:
+              typeof snippet === 'string' && snippet.trim() ? snippet.slice(0, 600) : undefined
+          })
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        /* ignore */
+      }
+    })
+    mtxCheckoutBrowserWindow.webContents.on('did-fail-load', (_e, errorCode, errorDescription, validatedURL) => {
+      agentDebugLog('register-steam-ipc.ts:mtxWindow', 'mtx:fail_load', {
+        errorCode,
+        errorDescription: String(errorDescription).slice(0, 160),
+        url: String(validatedURL).slice(0, 180)
+      })
+      mergeMtxCheckoutDiagnostic({
+        fail_load: {
+          errorCode,
+          errorDescription: String(errorDescription).slice(0, 240),
+          url: String(validatedURL).slice(0, 400)
+        }
+      })
+    })
+    mtxCheckoutBrowserWindow.webContents.on('page-title-updated', (_e, title) => {
+      agentDebugLog('register-steam-ipc.ts:mtxWindow', 'mtx:title', { title: String(title).slice(0, 120) })
+    })
+  } catch {
+    /* ignore */
+  }
+  // #endregion agent log (debug-68ece7)
   mtxCheckoutBrowserWindow.on('closed', () => {
     mtxCheckoutBrowserWindow = null
   })
@@ -112,6 +302,26 @@ async function fetchPublicIpViaMtxChromiumWindow(): Promise<string | null> {
             return ''
           }
         }
+        const v4_ipify_text = async () => {
+          try {
+            const r = await fetch('https://api64.ipify.org', { signal: AbortSignal.timeout(15000) })
+            const t = (await r.text()).trim()
+            return /^\\d{1,3}(\\.\\d{1,3}){3}$/.test(t) ? t : ''
+          } catch (e) {
+            return ''
+          }
+        }
+        const cf_trace = async () => {
+          try {
+            const r = await fetch('https://www.cloudflare.com/cdn-cgi/trace', { signal: AbortSignal.timeout(15000) })
+            const t = (await r.text()).trim()
+            const m = t.match(/\\nip=([^\\n]+)\\n/)
+            const ip = m ? m[1].trim() : ''
+            return /^\\d{1,3}(\\.\\d{1,3}){3}$/.test(ip) ? ip : ''
+          } catch (e) {
+            return ''
+          }
+        }
         const fallback = async () => {
           try {
             const r = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(15000) })
@@ -122,6 +332,8 @@ async function fetchPublicIpViaMtxChromiumWindow(): Promise<string | null> {
           }
         }
         let s = await v4()
+        if (!s) s = await v4_ipify_text()
+        if (!s) s = await cf_trace()
         if (!s) s = await fallback()
         if (s && s.includes(':')) {
           await new Promise((r) => setTimeout(r, 400))
@@ -165,11 +377,44 @@ function requireSteam():
 export function registerSteamIpc(): void {
   ipcBridge.registerHandle('steam:get-status', (): SteamResult => {
     const st = initSteam()
+    const diagnostic = greenworksDiagnostics()
+    agentDebugLog('register-steam-ipc.ts:steam:get-status', 'steam:get-status', {
+      initialized: st.initialized,
+      available: st.available,
+      reason: st.reason || '',
+      diagnostic
+    })
     return ok({
       initialized: st.initialized,
       available: st.available,
-      reason: st.reason
+      reason: st.reason,
+      diagnostic
     })
+  })
+
+  ipcBridge.registerHandle('steam:overlay:is-enabled', (): SteamResult<{ enabled: boolean }> => {
+    const r = requireSteam()
+    if (!('gw' in r)) {
+      agentDebugLog('register-steam-ipc.ts:steam:overlay:is-enabled', 'overlay:is-enabled:requireSteam_failed', {
+        error: (r as { error?: string }).error || 'no_gw'
+      })
+      return r
+    }
+    const gwAny = r.gw as Record<string, unknown>
+    let enabled = false
+    try {
+      const v =
+        typeof gwAny.isGameOverlayEnabled === 'function'
+          ? (gwAny.isGameOverlayEnabled as () => unknown)()
+          : typeof gwAny.IsGameOverlayEnabled === 'function'
+            ? (gwAny.IsGameOverlayEnabled as () => unknown)()
+            : undefined
+      enabled = v === true
+    } catch {
+      enabled = false
+    }
+    agentDebugLog('register-steam-ipc.ts:steam:overlay:is-enabled', 'overlay:is-enabled', { enabled })
+    return ok({ enabled })
   })
 
   ipcBridge.registerHandle('steam:user:get', (): SteamResult => {
@@ -324,14 +569,23 @@ export function registerSteamIpc(): void {
     async (_e: IpcMainInvokeEvent, payload: { dialog?: string }): Promise<SteamResult> => {
       const r = requireSteam()
       if (!('gw' in r)) {
+        agentDebugLog('register-steam-ipc.ts:steam:overlay:to-user', 'overlay:requireSteam_failed', {
+          error: (r as { error?: string }).error || 'no_gw'
+        })
         return r
       }
       const user = getSteamUserInfo(r.gw)
       if (!user) {
+        agentDebugLog('register-steam-ipc.ts:steam:overlay:to-user', 'overlay:no_user', {})
         return fail('steam_user_unavailable')
       }
       const dialog = payload?.dialog === 'achievements' ? 'achievements' : 'steamid'
       const or = activateGameOverlayToLocalUser(r.gw, dialog, user.id)
+      agentDebugLog('register-steam-ipc.ts:steam:overlay:to-user', 'overlay:activate', {
+        dialog,
+        ok: or.ok,
+        error: or.ok ? '' : (or as { error?: string }).error || ''
+      })
       return or.ok ? ok() : fail(or.error)
     }
   )
@@ -888,21 +1142,35 @@ export function registerSteamIpc(): void {
   /**
    * Worker InitTxn 成功后调用：尽快泵 Steam 回调队列（网页支付时 Greenworks 可能不可用，仍返回成功）。
    */
-  ipcBridge.registerHandle('steam:mtx:after-init', (): SteamResult => {
+  ipcBridge.registerHandle('steam:mtx:after-init', async (): Promise<SteamResult> => {
     initSteam()
     const gw = getGreenworksOrNull() as Record<string, unknown> | null
-    if (gw) {
-      for (const name of ['runCallbacks', 'runSteamAPI', 'RunCallbacks']) {
-        const fn = gw[name]
-        if (typeof fn === 'function') {
-          try {
-            ;(fn as () => void).call(gw)
-          } catch {
-            /* ignore */
-          }
+    if (!gw) {
+      return ok()
+    }
+
+    const fns = ['runCallbacks', 'runSteamAPI', 'RunCallbacks']
+      .map((name) => gw[name])
+      .filter((fn): fn is () => void => typeof fn === 'function')
+    if (fns.length === 0) {
+      return ok()
+    }
+
+    /**
+     * 覆盖层弹窗/授权结果依赖回调队列被及时泵出。
+     * 单次调用在部分环境下不稳定，因此在短时间内多次泵（不阻塞 UI，次数与间隔保守）。
+     */
+    for (let i = 0; i < 30; i++) {
+      for (const fn of fns) {
+        try {
+          fn.call(gw)
+        } catch {
+          /* ignore */
         }
       }
+      await new Promise((r) => setTimeout(r, 100))
     }
+
     return ok()
   })
 
@@ -912,9 +1180,21 @@ export function registerSteamIpc(): void {
     async (): Promise<SteamResult<{ ip: string }>> => {
       const ip = await fetchPublicIpViaMtxChromiumWindow()
       if (!ip) {
+        agentDebugLog('register-steam-ipc.ts:steam:mtx:get-public-ip', 'mtx:get-public-ip:fail', {})
         return fail('ip_unavailable')
       }
+      agentDebugLog('register-steam-ipc.ts:steam:mtx:get-public-ip', 'mtx:get-public-ip:ok', {
+        ipKind: ip.includes(':') ? 'v6' : 'v4'
+      })
       return ok({ ip })
+    }
+  )
+
+  /** 供渲染进程 toast：最近一次内嵌/外部支付窗的诊断快照 */
+  ipcBridge.registerHandle(
+    'steam:mtx:get-last-checkout-diagnostic',
+    async (): Promise<SteamResult<MtxCheckoutDiagnostic | null>> => {
+      return ok(lastMtxCheckoutDiagnostic)
     }
   )
 
@@ -939,10 +1219,31 @@ export function registerSteamIpc(): void {
           ? (payload as { expected_ip: string }).expected_ip.trim()
           : ''
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        agentDebugLog('register-steam-ipc.ts:steam:mtx:open-checkout-url', 'mtx:open:bad_url', {
+          url: url.slice(0, 120)
+        })
         return fail('bad_url')
+      }
+      lastMtxCheckoutDiagnostic = {
+        updated_at_ms: Date.now(),
+        mode: 'embedded',
+        steam_url: url.slice(0, 800),
+        expected_ip: expectedIp || undefined
       }
       try {
         const ipNow = await fetchPublicIpViaMtxChromiumWindow()
+        if (lastMtxCheckoutDiagnostic) {
+          lastMtxCheckoutDiagnostic.ip_before_load_url = ipNow ?? null
+          lastMtxCheckoutDiagnostic.ip_match =
+            expectedIp.length > 0 && ipNow
+              ? normalizeMtxIp(expectedIp) === normalizeMtxIp(ipNow)
+              : null
+        }
+        agentDebugLog('register-steam-ipc.ts:steam:mtx:open-checkout-url', 'mtx:open:ip_probe', {
+          expectedIp: expectedIp ? normalizeMtxIp(expectedIp) : '',
+          nowIp: ipNow ? normalizeMtxIp(ipNow) : '',
+          nowKind: ipNow ? (ipNow.includes(':') ? 'v6' : 'v4') : 'none'
+        })
         if (expectedIp.length > 0 && ipNow) {
           const a = normalizeMtxIp(expectedIp)
           const b = normalizeMtxIp(ipNow)
@@ -956,15 +1257,123 @@ export function registerSteamIpc(): void {
               expected: a,
               now: b
             })
+            agentDebugLog('register-steam-ipc.ts:steam:mtx:open-checkout-url', 'mtx:open:ip_mismatch', {
+              expected: a,
+              now: b
+            })
             return fail('mtx_ip_mismatch')
           }
         } else if (expectedIp.length > 0 && !ipNow) {
           mtxCheckoutLogger.warn('MTX checkout: could not re-probe IP before loadURL')
+          agentDebugLog('register-steam-ipc.ts:steam:mtx:open-checkout-url', 'mtx:open:ip_reprobe_failed', {
+            expected: normalizeMtxIp(expectedIp)
+          })
         }
         const win = ensureMtxCheckoutBrowserWindow()
+        // 先展示窗口再加载，避免用户长时间只看到任务栏闪烁
+        try {
+          win.show()
+          win.focus()
+        } catch {
+          /* ignore */
+        }
         await win.loadURL(url)
-        win.show()
-        win.focus()
+        // 检测是否未登录（页面头部出现“登录/Sign in”，常导致授权阶段直接失败）
+        try {
+          const snippet = await win.webContents.executeJavaScript(
+            `
+            (() => {
+              try {
+                const u = String(location.href || '')
+                const t = (document.body && (document.body.innerText || document.body.textContent)) || ''
+                const s = String(t).replace(/\\s+/g, ' ').trim()
+                return { url: u.slice(0, 200), text: s.slice(0, 600) }
+              } catch (e) {
+                return { url: '', text: '' }
+              }
+            })()
+            `
+          )
+          const obj =
+            snippet && typeof snippet === 'object' && snippet !== null
+              ? (snippet as { url?: unknown; text?: unknown })
+              : {}
+          const text = typeof obj.text === 'string' ? obj.text : ''
+          const pageUrl = typeof obj.url === 'string' ? obj.url : ''
+          if (text) {
+            agentDebugLog('register-steam-ipc.ts:steam:mtx:open-checkout-url', 'mtx:open:text_probe', {
+              url: pageUrl,
+              snippet: text
+            })
+          }
+          mergeMtxCheckoutDiagnostic({
+            page_url: pageUrl.slice(0, 400),
+            page_title: String(win.webContents.getTitle?.() || '').slice(0, 200),
+            page_snippet: text ? text.slice(0, 600) : undefined
+          })
+          const low = text.toLowerCase()
+          const looksLoggedOut =
+            pageUrl.toLowerCase().includes('/login') ||
+            low.includes('用帐户名称登录') ||
+            // Strong login-page signals
+            low.includes('request help, i can\'t sign in') ||
+            low.includes('qr code') ||
+            low.includes('remember me') ||
+            // "Sign in" alone is too weak (Steam header may include it in some locales);
+            // require it to co-occur with other login-specific phrases.
+            (low.includes('sign in') && (low.includes('qr code') || low.includes('account name'))) ||
+            (low.includes('登录') && (low.includes('qr code') || low.includes('用帐户名称登录'))) ||
+            low.includes('request help, i can\'t sign in') ||
+            low.includes('qr code') ||
+            low.includes('remember me')
+          if (looksLoggedOut) {
+            agentDebugLog(
+              'register-steam-ipc.ts:steam:mtx:open-checkout-url',
+              'mtx:open:likely_logged_out',
+              { url: pageUrl }
+            )
+            // 不阻止显示窗口，但让渲染进程提示用户先登录再重试
+            return fail('steam_checkout_logged_out')
+          }
+        } catch {
+          /* ignore */
+        }
+        agentDebugLog('register-steam-ipc.ts:steam:mtx:open-checkout-url', 'mtx:open:loadURL_ok', {})
+        return ok()
+      } catch (e) {
+        mergeMtxCheckoutDiagnostic({
+          open_error: (e instanceof Error ? e.message : String(e)).slice(0, 400)
+        })
+        agentDebugLog('register-steam-ipc.ts:steam:mtx:open-checkout-url', 'mtx:open:loadURL_throw', {
+          message: e instanceof Error ? e.message : String(e)
+        })
+        return fail(e instanceof Error ? e.message : String(e))
+      }
+    }
+  )
+
+  /** 用系统默认浏览器打开 Steam 结账页（用于对比内嵌窗口链路） */
+  ipcBridge.registerHandle(
+    'steam:mtx:open-checkout-url-external',
+    async (_e, payload: unknown): Promise<SteamResult> => {
+      const url =
+        payload &&
+        typeof payload === 'object' &&
+        payload !== null &&
+        'url' in payload &&
+        typeof (payload as { url: unknown }).url === 'string'
+          ? (payload as { url: string }).url.trim()
+          : ''
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        return fail('bad_url')
+      }
+      lastMtxCheckoutDiagnostic = {
+        updated_at_ms: Date.now(),
+        mode: 'external',
+        steam_url: url.slice(0, 800)
+      }
+      try {
+        await shell.openExternal(url)
         return ok()
       } catch (e) {
         return fail(e instanceof Error ? e.message : String(e))
@@ -973,6 +1382,7 @@ export function registerSteamIpc(): void {
   )
 
   trySubscribeSteamMicroTxnListener()
+  trySubscribeSteamOverlayListener()
 }
 
 /**
@@ -1004,5 +1414,30 @@ function trySubscribeSteamMicroTxnListener(): void {
     )
   } catch {
     /* 部分 greenworks 构建可能未暴露该事件 */
+  }
+}
+
+/**
+ * Steam Overlay 激活事件：用于排查 Shift+Tab / activateGameOverlay* 是否真的触发了覆盖层。
+ * 不同 greenworks 构建事件名可能不同，因此做多路订阅（失败不影响主流程）。
+ */
+function trySubscribeSteamOverlayListener(): void {
+  initSteam()
+  const gw = getGreenworksOrNull() as Record<string, unknown> | null
+  if (!gw || typeof gw.on !== 'function') {
+    return
+  }
+  const on = gw.on as (ev: string, cb: (...args: unknown[]) => void) => void
+  for (const ev of ['game-overlay-activated', 'gameOverlayActivated', 'overlay-activated']) {
+    try {
+      on.call(gw, ev, (...args: unknown[]) => {
+        agentDebugLog('register-steam-ipc.ts:overlay:event', 'overlay:event', {
+          ev,
+          args: args.map((a) => (a == null ? null : typeof a === 'object' ? '[object]' : a))
+        })
+      })
+    } catch {
+      /* ignore */
+    }
   }
 }

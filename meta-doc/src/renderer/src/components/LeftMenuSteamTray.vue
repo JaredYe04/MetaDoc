@@ -119,7 +119,7 @@
     </PopoverRoot>
 
     <Dialog v-model:open="rechargeDialogOpen">
-      <DialogContent class="sm:max-w-lg" @mousedown.stop>
+      <DialogContent class="sm:max-w-4xl" @mousedown.stop>
         <DialogHeader>
           <DialogTitle>{{ t('setting.llmSteamCloud.recharge') }}</DialogTitle>
         </DialogHeader>
@@ -131,23 +131,76 @@
           }}</span>
           <span class="font-mono font-semibold tabular-nums">{{ cloudCreditsDisplay }}</span>
         </div>
-        <div class="py-2">
-          <SteamMtxPackGrid
-            :packs="mtxPacks"
-            :loading="mtxCatalogLoading"
-            :disabled="mtxLoading || !hasMetadocCloud"
-            @select="startPack"
-          />
+        <div class="flex items-center justify-start gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            :disabled="inventoryLoading || !hasMetadocCloud"
+            @click="refreshStoreStatus"
+          >
+            {{ t('setting.llmSteamCloud.refreshStoreStatus') }}
+          </Button>
         </div>
-        <p v-if="mtxCatalogLoading" class="text-xs text-muted-foreground">
-          {{ t('common.loading') }}
-        </p>
-        <p
-          v-else-if="hasMetadocCloud && mtxPacks.length === 0"
-          class="text-xs text-muted-foreground"
+        <div
+          v-if="purchasePromptVisible"
+          class="rounded-xl border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm"
         >
-          {{ t('leftMenu.steamTrayMtxCatalogEmpty') }}
-        </p>
+          <div class="font-medium">{{ t('setting.llmSteamCloud.purchaseDetectedTitle') }}</div>
+          <div class="mt-1 text-xs text-muted-foreground">
+            {{ t('setting.llmSteamCloud.purchaseDetectedDesc') }}
+          </div>
+          <div class="mt-2 flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" @click="openPurchasedInventory">{{
+              t('setting.llmSteamCloud.viewInventory')
+            }}</Button>
+            <Button size="sm" @click="usePurchasedNow">{{ t('setting.llmSteamCloud.useNow') }}</Button>
+          </div>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="rounded-xl border border-border/60 bg-card/40 p-3">
+            <div class="mb-2 text-sm font-medium">{{ t('setting.llmSteamCloud.packSectionTitle') }}</div>
+            <SteamMtxPackGrid
+              :packs="mtxPacks"
+              :loading="mtxCatalogLoading"
+              :disabled="mtxLoading || !hasMetadocCloud"
+              @select="startPack"
+            />
+          </div>
+          <div class="rounded-xl border border-border/60 bg-card/40 p-3">
+            <div class="mb-2 text-sm font-medium">{{ t('setting.llmSteamCloud.inventorySectionTitle') }}</div>
+            <div v-if="inventoryLoading" class="text-xs text-muted-foreground">
+              {{ t('common.loading') }}
+            </div>
+            <div v-else-if="inventoryCards.length === 0" class="text-xs text-muted-foreground">
+              {{ t('setting.llmSteamCloud.inventoryEmpty') }}
+            </div>
+            <div v-else class="space-y-2">
+              <div
+                v-for="card in inventoryCards"
+                :key="card.item_instance_id"
+                class="flex items-center justify-between gap-2 rounded-md border border-border/40 px-2 py-1.5"
+              >
+                <div class="min-w-0">
+                  <div class="truncate text-xs font-medium">{{ card.label }}</div>
+                  <div class="text-[11px] text-muted-foreground">
+                    +{{ card.credits_on_redeem }} credits · x{{ card.quantity }}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  :disabled="redeemingItemId === card.item_instance_id"
+                  @click="redeemCard(card.item_instance_id)"
+                >
+                  {{
+                    redeemingItemId === card.item_instance_id
+                      ? t('common.loading')
+                      : t('setting.llmSteamCloud.redeemAction')
+                  }}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
         <DialogFooter>
           <Button variant="outline" @click="rechargeDialogOpen = false">
             {{ t('common.close') }}
@@ -155,6 +208,22 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <AlertDialog v-model:open="redeemConfirmOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{{ t('setting.llmSteamCloud.redeemConfirmTitle') }}</AlertDialogTitle>
+          <AlertDialogDescription>{{
+            t('setting.llmSteamCloud.redeemConfirmBody')
+          }}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{{ t('common.cancel') }}</AlertDialogCancel>
+          <AlertDialogAction @click="confirmRedeemCard">{{
+            t('setting.llmSteamCloud.confirmUse')
+          }}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
@@ -171,6 +240,16 @@ import {
   DialogHeader,
   DialogTitle
 } from '@renderer/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@renderer/components/ui/alert-dialog-shadcn'
 import SteamMtxPackGrid, {
   type SteamMtxPackRow
 } from '@renderer/components/steam/SteamMtxPackGrid.vue'
@@ -178,10 +257,11 @@ import { getMetadocCloudApiBase } from '@common/build-env'
 import {
   canInitSteamMtx,
   ensureMetadocSteamCloudJwt,
-  MTX_ERR_NO_PUBLIC_IP,
-  MTX_ERR_POLL_TIMEOUT,
-  MTX_ERR_STEAM_DECLINED,
-  startSteamMtxInit
+  fetchSteamInventoryCards,
+  redeemSteamInventoryCard,
+  startSteamStorePurchaseAndSync,
+  syncSteamStorePurchases,
+  type SteamInventoryCard
 } from '../utils/metadoc-cloud-auth'
 import { notifyError, notifySuccess } from '../utils/notify'
 import {
@@ -217,6 +297,13 @@ const mtxLoading = ref(false)
 const mtxCatalogLoading = ref(false)
 
 const mtxPacks = ref<SteamMtxPackRow[]>([])
+const inventoryCards = ref<SteamInventoryCard[]>([])
+const inventoryLoading = ref(false)
+const redeemingItemId = ref<string | null>(null)
+const redeemConfirmOpen = ref(false)
+const pendingRedeemItemId = ref<string | null>(null)
+const purchasePromptItemDefId = ref<string | null>(null)
+const purchasePromptVisible = ref(false)
 
 const cloudCreditsDisplay = computed(() => {
   if (!hasMetadocCloud.value) {
@@ -269,6 +356,9 @@ async function loadMtxCatalog() {
         amount_cents_usd: number
         usd_price: number
         label: string
+        subtitle?: string
+        cny_price?: number
+        credits_on_redeem?: number
       }>
     }
     if (!res.ok) {
@@ -279,12 +369,15 @@ async function loadMtxCatalog() {
       return
     }
     mtxPacks.value = j.items.map((it) => {
-      const credits = Number(it.steam_item_id)
+      const credits = typeof it.credits_on_redeem === 'number' ? it.credits_on_redeem : Number(it.steam_item_id)
       return {
         item_id: String(it.steam_item_id),
         amount_cents: it.amount_cents_usd,
         usd_price: it.usd_price,
-        credits_amount: Number.isFinite(credits) ? credits : 0
+        cny_price: typeof it.cny_price === 'number' ? it.cny_price : undefined,
+        credits_amount: Number.isFinite(credits) ? Math.trunc(credits) : 0,
+        label: String(it.label || `${Math.max(0, Math.trunc(credits))} Credit Pack`),
+        subtitle: typeof it.subtitle === 'string' ? it.subtitle : undefined
       }
     })
   } catch (e) {
@@ -293,6 +386,89 @@ async function loadMtxCatalog() {
   } finally {
     mtxCatalogLoading.value = false
   }
+}
+
+async function refreshInventoryCards() {
+  if (!hasMetadocCloud.value) return
+  inventoryLoading.value = true
+  try {
+    inventoryCards.value = await fetchSteamInventoryCards()
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+    inventoryCards.value = []
+  } finally {
+    inventoryLoading.value = false
+  }
+}
+
+async function refreshStoreStatus() {
+  if (!hasMetadocCloud.value) return
+  inventoryLoading.value = true
+  try {
+    await syncSteamStorePurchases()
+    await Promise.all([refreshCloudCredits(), refreshInventoryCards()])
+    notifySuccess(t('setting.llmSteamCloud.storeStatusRefreshed'))
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+  } finally {
+    inventoryLoading.value = false
+  }
+}
+
+async function redeemCard(itemInstanceId: string) {
+  if (!itemInstanceId) return
+  pendingRedeemItemId.value = itemInstanceId
+  redeemConfirmOpen.value = true
+}
+
+async function confirmRedeemCard() {
+  const itemInstanceId = pendingRedeemItemId.value
+  if (!itemInstanceId) return
+  redeemConfirmOpen.value = false
+  redeemingItemId.value = itemInstanceId
+  try {
+    const r = await redeemSteamInventoryCard(itemInstanceId)
+    notifySuccess(
+      t('setting.llmSteamCloud.mtxWebCredited', {
+        n: r.credits_added ?? 0,
+        order: `redeem:${itemInstanceId}`
+      })
+    )
+    await Promise.all([refreshCloudCredits(), refreshInventoryCards()])
+  } catch (e) {
+    notifyError(e instanceof Error ? e.message : String(e))
+  } finally {
+    redeemingItemId.value = null
+    pendingRedeemItemId.value = null
+  }
+}
+
+async function onPurchaseDetected(itemDefId: string) {
+  purchasePromptItemDefId.value = itemDefId
+  purchasePromptVisible.value = true
+  await refreshInventoryCards()
+}
+
+async function openPurchasedInventory() {
+  purchasePromptVisible.value = false
+  await refreshInventoryCards()
+  notifySuccess(t('setting.llmSteamCloud.inventoryRefreshedHint'))
+}
+
+async function usePurchasedNow() {
+  const itemDefId = purchasePromptItemDefId.value
+  if (!itemDefId) {
+    notifyError(t('setting.llmSteamCloud.missingPurchasedTier'))
+    return
+  }
+  await refreshInventoryCards()
+  const card = inventoryCards.value.find((x) => String(x.itemdefid) === String(itemDefId))
+  if (!card) {
+    notifyError(t('setting.llmSteamCloud.purchasedCardNotFound'))
+    return
+  }
+  purchasePromptVisible.value = false
+  await redeemCard(card.item_instance_id)
 }
 
 async function claimFirstPurchase() {
@@ -327,35 +503,17 @@ async function startPack(p: SteamMtxPackRow) {
   }
   mtxLoading.value = true
   try {
-    const r = await startSteamMtxInit({
+    const r = await startSteamStorePurchaseAndSync({
       item_id: p.item_id,
-      amount_cents: p.amount_cents,
-      currency: 'USD',
-      language: typeof navigator !== 'undefined' ? navigator.language.slice(0, 2) : 'en'
+      onPurchaseDetected: ({ item_id }) => {
+        void onPurchaseDetected(String(item_id))
+      }
     })
-    if (r.used_browser) {
-      notifySuccess(
-        t('setting.llmSteamCloud.mtxWebCredited', {
-          n: r.credits_added ?? 0,
-          order: r.order_id
-        })
-      )
-    } else if (r.checkout === 'client') {
-      notifySuccess(t('setting.llmSteamCloud.mtxInitOkOverlay', { order: r.order_id }))
-    } else {
-      notifySuccess(t('setting.llmSteamCloud.mtxInitOk', { order: r.order_id }))
-    }
-    await refreshCloudCredits()
+    notifySuccess(t('setting.llmSteamCloud.openedSteamPurchasePage', { order: r.order_id }))
+    // Purchase is now item-store based; credits are granted only after explicit redeem.
+    await refreshInventoryCards()
   } catch (e) {
-    if (e instanceof Error && e.message === MTX_ERR_NO_PUBLIC_IP) {
-      notifyError(t('setting.llmSteamCloud.mtxNoPublicIp'))
-    } else if (e instanceof Error && e.message === MTX_ERR_STEAM_DECLINED) {
-      notifyError(t('setting.llmSteamCloud.mtxSteamAuthFailed'))
-    } else if (e instanceof Error && e.message === MTX_ERR_POLL_TIMEOUT) {
-      notifyError(t('setting.llmSteamCloud.mtxPollTimeout'))
-    } else {
-      notifyError(e instanceof Error ? e.message : String(e))
-    }
+    notifyError(e instanceof Error ? e.message : String(e))
   } finally {
     mtxLoading.value = false
   }
@@ -364,6 +522,7 @@ async function startPack(p: SteamMtxPackRow) {
 watch(rechargeDialogOpen, (v) => {
   if (v) {
     void loadMtxCatalog()
+    void refreshInventoryCards()
     if (hasMetadocCloud.value) {
       void refreshCloudCredits()
     }
@@ -412,6 +571,10 @@ async function refreshSteamState() {
     avatarUrl.value = null
     summary.value = null
     return
+  }
+  if (import.meta.env.DEV && st.data?.diagnostic) {
+    // eslint-disable-next-line no-console
+    console.log('[Steam diagnostic]', st.data.diagnostic)
   }
   const r = await getSteamProfileSummary()
   if (!r.success || !r.data) {

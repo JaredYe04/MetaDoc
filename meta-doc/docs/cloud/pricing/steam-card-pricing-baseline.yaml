@@ -1,0 +1,42 @@
+version: "1"
+
+# 目标：以 CNY 成本池为底线，反推 Steam Item Store 美元定价。
+# 公式：PayUserCNY = TopUpToN1nCNY / ((1 - steam_fee_pct) * (1 - margin_pct))
+params:
+  steam_fee_pct: 0.30
+  margin_pct: 0.10
+  fx_cny_per_usd: 7.20
+  min_steam_usd_cents: 1
+  round_up_usd_cents_step: 1
+
+tiers:
+  - steam_item_id: "100"
+    target_topup_n1n_cny: 1
+    listed: true
+  - steam_item_id: "200"
+    target_topup_n1n_cny: 2
+    listed: true
+  - steam_item_id: "500"
+    target_topup_n1n_cny: 5
+    listed: true
+  - steam_item_id: "1000"
+    target_topup_n1n_cny: 10
+    listed: true
+  - steam_item_id: "2000"
+    target_topup_n1n_cny: 20
+    listed: true
+  - steam_item_id: "5000"
+    target_topup_n1n_cny: 50
+    listed: true
+  - steam_item_id: "10000"
+    target_topup_n1n_cny: 100
+    listed: true
+  - steam_item_id: "20000"
+    target_topup_n1n_cny: 200
+    listed: true
+  - steam_item_id: "50000"
+    target_topup_n1n_cny: 500
+    listed: true
+  - steam_item_id: "100000"
+    target_topup_n1n_cny: 1000
+    listed: true

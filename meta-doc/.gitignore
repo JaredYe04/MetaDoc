@@ -40,3 +40,6 @@ src/renderer/src/locales/.i18n_ai_review_progress.txt
 # 用户手册 i18n：API key 与进度（勿提交）
 src/renderer/src/manuals/.deepseek_api_key
 src/renderer/src/manuals/.manual_i18n_progress.txt
+
+# Steam Inventory 图标：上传密钥配置（勿提交）
+third-party/steam-inventory/upload-config.local.json

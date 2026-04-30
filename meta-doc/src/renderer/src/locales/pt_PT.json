@@ -344,7 +344,7 @@
         "matchesTruncatedHint": "Mais {n} correspondências não listadas (total acima)."
       },
       "subagent": {
-        "title": "Subagent",
+        "title": "Subagente",
         "messages": "mensagem(ns)",
         "result": "Resultado retornado",
         "noMessages": "Sem mensagens",
@@ -4745,7 +4745,7 @@
       "sortByPrice": "Ordenar",
       "sortPriceAsc": "Menor preço primeiro",
       "sortPriceDesc": "Maior preço primeiro",
-      "title": "MetaDoc Cloud Oficial (Steam)",
+      "title": "Servico de modelos de IA da MetaDoc",
       "credits": "Créditos restantes (credits)",
       "developerModeConfirmBody": "Esta opção é experimental e pode causar comportamentos inesperados ou custos adicionais. Confirma que assume todos os riscos?",
       "developerModeConfirmTitle": "Confirmar ativação?",
@@ -4759,7 +4759,26 @@
       "mtxNoPublicIp": "Não foi possível obter informações de rede. Verifique sua conexão e tente novamente.",
       "mtxPackCreditsLabel": "Créditos (credits)",
       "mtxPollTimeout": "Tempo limite aguardando confirmação do Steam. Se já pagou, clique em \"Atualizar créditos\" mais tarde; se não completou o pagamento, tente novamente.",
-      "mtxSteamAuthFailed": "O Steam não aceitou esta autorização (motivo comum: IP do pedido difere do IP de saída do navegador). Feche a página de pagamento e tente novamente; se usar VPN/proxy, mantenha-o consistente com o navegador."
+      "mtxSteamAuthFailed": "O Steam não aceitou esta autorização (motivo comum: IP do pedido difere do IP de saída do navegador). Feche a página de pagamento e tente novamente; se usar VPN/proxy, mantenha-o consistente com o navegador.",
+      "confirmUse": "Confirmar ativação",
+      "inventoryEmpty": "Nenhum cartão de crédito disponível para ativação",
+      "inventoryRefreshedHint": "Inventário atualizado. Consulte \"Meu Inventário (Cartões de Crédito)\".",
+      "inventorySectionTitle": "Meu Inventário (Cartões de Crédito)",
+      "missingPurchasedTier": "Informações do nível adquirido não encontradas. Atualize o inventário primeiro.",
+      "openedSteamPurchasePage": "Página de compra Steam aberta: {order}",
+      "packExpectedCredits": "Créditos previstos: cerca de {n} créditos",
+      "packSectionTitle": "Pacotes de recarga",
+      "purchaseDetectedDesc": "Pode verificar o seu inventário ou usar este cartão de crédito imediatamente. A utilização é irreversível e não reembolsável.",
+      "purchaseDetectedTitle": "Compra concluída",
+      "purchaseRecordedUseInventory": "Compra registada. Pode ver e ativar o cartão em \"O Meu Inventário (Cartões de Crédito)\".",
+      "purchasedCardNotFound": "Cartão de crédito não encontrado no inventário. Por favor, clique em \"Atualizar estado/inventário\" mais tarde.",
+      "redeemAction": "Ativar",
+      "redeemConfirmBody": "A ativação consumirá o cartão e creditará o valor imediatamente. Esta operação é irreversível e não reembolsável.",
+      "redeemConfirmTitle": "Confirma a ativação do cartão de crédito?",
+      "refreshStoreStatus": "Atualizar estado/inventário",
+      "storeStatusRefreshed": "Estado do inventário e da compra atualizado",
+      "useNow": "Usar agora",
+      "viewInventory": "Ver inventário"
     }
   },
   "settingBasicSection": {
@@ -5123,7 +5142,7 @@
         "markdownEditor": "Editor Markdown",
         "latex": "LaTeX",
         "latexEditor": "Editor LaTeX",
-        "agent": "AI Agent",
+        "agent": "Agente de IA",
         "experience": "Experiência de uso"
       },
       "markdownEditorHint": "Conte-nos sobre sua experiência com editores Markdown que você já usou",
@@ -5181,7 +5200,8 @@
     "exportPureMarkdown": "Exportar Markdown puro",
     "markdown": {
       "advanced": {
-        "title": "Recursos Avançados do Markdown"
+        "title": "Recursos Avançados do Markdown",
+        "content": "# Funcionalidades Avançadas do Markdown\\n\\n## Sobre o Vditor\\n\\nO editor Markdown do MetaDoc é baseado no [Vditor](https://b3log.org/vditor), um poderoso editor Markdown para navegador. O Vditor implementa as especificações CommonMark e GFM (GitHub Flavored Markdown), suportando várias sintaxes estendidas.\\n\\n### Capacidades do Vditor\\n\\n- ✅ Suporta as especificações CommonMark e GFM\\n- ✅ Suporta renderização de fórmulas matemáticas (KaTeX/MathJax)\\n- ✅ Suporta realce de sintaxe de código (highlight.js)\\n- ✅ Suporta sintaxes estendidas como tabelas, listas de tarefas, notas de rodapé, etc.\\n- ✅ Suporta renderização de gráficos (Mermaid, ECharts, PlantUML, etc.)\\n- ✅ Suporta três modos de edição: WYSIWYG, Renderização Instantânea (IR), Pré-visualização Dividida (SV)\\n- ✅ Suporta navegação por esboço\\n- ✅ Suporta upload e colagem de imagens\\n- ✅ Suporta emojis\\n\\n### Limitações do Vditor\\n\\n- ❌ Não suporta os delimitadores de fórmula no formato LaTeX padrão `\\\\(...\\\\)` e `\\\\[...\\\\]`\\n- ❌ Algumas sintaxes Markdown estendidas não convencionais podem não ser suportadas\\n- ❌ Algumas tags e atributos HTML podem ser filtrados\\n\\n**Solução**: Se o seu documento contiver fórmulas nos formatos `\\\\(...\\\\)` ou `\\\\[...\\\\]`, pode usar o botão \"Converter formato de fórmula LaTeX\" na barra de ferramentas para converter instantaneamente para os formatos compatíveis com Vditor `$...$` e `$$...$$`.\\n\\n## Fórmulas Matemáticas\\n\\n### Fórmulas em Linha\\n\\nUse `$fórmula$` para representar fórmulas em linha:\\n\\n```markdown\\nEsta é uma fórmula em linha: $E = mc^2$\\n```\\n\\nResultado da renderização: Esta é uma fórmula em linha: $E = mc^2$\\n\\n**Aviso Importante**: O Vditor só suporta fórmulas em linha no formato `$...$`, não suporta o formato LaTeX padrão `\\\\(...\\\\)`. Se o seu documento usar o formato `\\\\(...\\\\)`, use o botão \"Converter formato de fórmula LaTeX\" na barra de ferramentas para converter.\\n\\n### Fórmulas em Bloco\\n\\nUse `$$fórmula$$` para representar fórmulas em bloco:\\n\\n```markdown\\n$$\\\\int_{-\\\\infty}^{\\\\infty} e^{-x^2} dx = \\\\sqrt{\\\\pi}$$\\n```\\n\\nResultado da renderização:\\n\\n$$\\\\int_{-\\\\infty}^{\\\\infty} e^{-x^2} dx = \\\\sqrt{\\\\pi}$$\\n\\n**Aviso Importante**: O Vditor só suporta fórmulas em bloco no formato `$$...$$`, não suporta o formato LaTeX padrão `\\\\[...\\\\]`. Se o seu documento usar o formato `\\\\[...\\\\]`, use o botão \"Converter formato de fórmula LaTeX\" na barra de ferramentas para converter.\\n\\n### Exemplos de Fórmulas Matemáticas\\n\\n```markdown\\nFórmula em linha: $\\\\sum_{i=1}^{n} i = \\\\frac{n(n+1)}{2}$\\n\\nFórmula em bloco:\\n$$\\\\begin{pmatrix}\\na & b \\\\\\\\\\nc & d\\n\\\\end{pmatrix}$$\\n```\\n\\n## Listas de Tarefas\\n\\nUse `[ ]` ou `[x]` para criar listas de tarefas:\\n\\n```markdown\\n- [x] Tarefa concluída\\n- [ ] Tarefa não concluída\\n- [x] Outra tarefa concluída\\n```\\n\\nResultado da renderização:\\n\\n- [x] Tarefa concluída\\n- [ ] Tarefa não concluída\\n- [x] Outra tarefa concluída\\n\\n## Notas de Rodapé\\n\\nUse `[^identificador]` para criar uma referência de nota de rodapé e `[^identificador]:` para definir a nota:\\n\\n```markdown\\nAqui está uma referência de nota de rodapé[^1], e aqui está outra[^note].\\n\\n[^1]: Definição da primeira nota de rodapé.\\n[^note]: A definição da nota de rodapé pode ter vários parágrafos.\\n\\n    Parágrafos indentados também estão incluídos na nota.\\n```\\n\\n## Texto Rasurado\\n\\nUse `~~texto~~` para criar texto rasurado:\\n\\n```markdown\\n~~Este texto está rasurado~~\\n```\\n\\n## Emojis\\n\\nExistem duas formas de usar emojis:\\n\\n1. Inserir diretamente caracteres emoji: 😀 🌻 ☀️\\n2. Usar aliases: `:smile:` `:sunny:` `:heart:`\\n\\n```markdown\\nHoje o tempo está ótimo :sunny:\\nAs flores 🌻 sorriem para mim\\n```\\n\\n## Atribuir ID a Cabeçalhos\\n\\nAlguns motores Markdown permitem atribuir um ID a cabeçalhos:\\n\\n```markdown\\n### Este é um cabeçalho {#id-personalizado}\\n```\\n\\nDepois pode saltar para esse cabeçalho através de uma hiperligação:\\n\\n```markdown\\n[Saltar para o cabeçalho](#id-personalizado)\\n```\\n\\n## Gráficos\\n\\nO MetaDoc suporta vários tipos de gráficos, consulte o capítulo \"Desenho de Gráficos\" para mais detalhes:\\n\\n- **Mermaid**: Fluxogramas, diagramas de sequência, gráficos de Gantt, diagramas de classes UML, etc.\\n- **PlantUML**: Modelação UML profissional\\n- **ECharts**: Gráficos de visualização de dados\\n- **Flowchart**: Fluxogramas básicos\\n- **Mindmap**: Mapas mentais\\n\\n## Realce de Sintaxe em Blocos de Código\\n\\nSuporta realce de sintaxe para várias linguagens de programação:\\n\\n````markdown\\n```javascript\\nconst hello = () => {\\n  console.log('Hello, World!');\\n};\\n```\\n\\n```python\\ndef hello():\\n    print('Hello, World!')\\n```\\n\\n```java\\npublic class Hello {\\n    public static void main(String[] args) {\\n        System.out.println(\\\"Hello, World!\\\");\\n    }\\n}\\n```\\n````\\n\\n## Hiperligações Automáticas\\n\\nA maioria dos motores Markdown ativa o reconhecimento automático de hiperligações por predefinição:\\n\\n```markdown\\nVisite https://example.com para saber mais\\n```\\n\\nSe precisar de desativar a hiperligação automática, transforme-a em código:\\n\\n```markdown\\n`https://example.com`\\n```\\n\\n## Hiperligações em Estilo de Referência\\n\\nUsar o estilo de referência torna o texto Markdown original mais legível:\\n\\n```markdown\\nEste é um [texto de hiperligação][id1], e esta é outra [hiperligação][id2].\\n\\n[id1]: https://example.com \\\"Título opcional\\\"\\n[id2]: https://example.org\\n```\\n\\nAs definições das hiperligações podem ser colocadas em qualquer parte do documento, geralmente no final.\\n\\n## Resumo\\n\\nO editor Markdown do MetaDoc é baseado no Vditor, suporta as especificações CommonMark e GFM e oferece uma rica variedade de sintaxes estendidas. Se encontrar sintaxes incompatíveis (como fórmulas nos formatos `\\\\(...\\\\)` e `\\\\[...\\\\]`), pode usar a ferramenta de conversão na barra de ferramentas para processar.\\n\\nPara mais informações, consulte:\\n- [Documentação oficial do Vditor](https://b3log.org/vditor)\\n- [Especificação CommonMark](https://spec.commonmark.org)\\n- [Especificação GitHub Flavored Markdown](https://github.github.com/gfm)"
       },
       "basic": {
         "content": "# Sintaxe Básica do Markdown",
@@ -5734,6 +5754,7 @@
     "subtitle": "Use o idioma da interface atual como padrão e fallback; você pode preencher título, descrição e corpo em inglês adicionalmente.",
     "templateNotFound": "Modelo de usuário não encontrado. Pode ter sido excluído ou não sincronizado.",
     "thumbnail": "Imagem de visualização (opcional, deixe em branco para usar uma imagem de espaço reservado)",
-    "title": "Publicar modelo de documento na Steam Workshop"
+    "title": "Publicar modelo de documento na Steam Workshop",
+    "description": "Descrição"
   }
 }

@@ -11,6 +11,15 @@ export function isSteamDistribution(): boolean {
   }
 }
 
+/** Steam 审核阶段锁定：隐藏 BYOK/实验性入口，强制仅官方云链路。 */
+export function isSteamReviewLockEnabled(): boolean {
+  try {
+    return import.meta.env.VITE_STEAM_REVIEW_LOCK === 'true'
+  } catch {
+    return false
+  }
+}
+
 /** Cloudflare Worker 根 URL，无尾部斜杠，例如 https://metadoc-api.example.workers.dev */
 export function getMetadocCloudApiBase(): string {
   try {
@@ -37,4 +46,22 @@ export function getMetadocSteamMtxCheckoutPref(): MetadocSteamMtxCheckoutPref {
     /* ignore */
   }
   return 'auto'
+}
+
+/**
+ * Web 结账打开方式：`embedded`（默认，Electron 内嵌窗口）或 `external`（系统默认浏览器）。
+ * 当内嵌窗口长期停留在 Init / 授权页异常时，可先切到 external 做链路排查。
+ */
+export type MetadocSteamMtxWebOpenMode = 'embedded' | 'external'
+
+export function getMetadocSteamMtxWebOpenMode(): MetadocSteamMtxWebOpenMode {
+  try {
+    const v = (import.meta.env.VITE_METADOC_STEAM_MTX_WEB_OPEN as string | undefined)
+      ?.trim()
+      .toLowerCase()
+    if (v === 'external' || v === 'embedded') return v
+  } catch {
+    /* ignore */
+  }
+  return 'embedded'
 }

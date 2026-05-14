@@ -1,6 +1,34 @@
-import { resolve } from 'path'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+/** Steam / Greenworks：仅当 VITE_METADOC_STEAM=true 时编译进主进程并保留 greenworks external */
+const steamOn = process.env.VITE_METADOC_STEAM === 'true'
+
+const mainSteamAliases = {
+  '@metadoc/steam-runtime': resolve(
+    __dirname,
+    steamOn ? 'src/main/steam/steam-runtime.real.ts' : 'src/main/steam/steam-runtime.stub.ts'
+  ),
+  '@metadoc/register-steam-ipc': resolve(
+    __dirname,
+    steamOn ? 'src/main/steam/register-steam-ipc.ts' : 'src/main/steam/register-steam-ipc.stub.ts'
+  ),
+  '@metadoc/steam-first-doc-achievements': resolve(
+    __dirname,
+    steamOn ? 'src/main/steam/steam-first-doc-achievements.ts' : 'src/main/steam/steam-first-doc-achievements.stub.ts'
+  ),
+  '@metadoc/steam-app-lifecycle-hooks': resolve(
+    __dirname,
+    steamOn ? 'src/main/steam/steam-app-lifecycle-hooks.real.ts' : 'src/main/steam/steam-app-lifecycle-hooks.stub.ts'
+  ),
+  '@metadoc/user-templates-steam-push': resolve(
+    __dirname,
+    steamOn ? 'src/main/steam/user-templates-steam-push.ts' : 'src/main/steam/user-templates-steam-push.stub.ts'
+  )
+}
 
 /** Rollup 的 id 在 Windows 上也可能含反斜杠，统一后再匹配 */
 function nm(id) {
@@ -42,6 +70,12 @@ function metaDocRendererManualChunks(id) {
 
 export default defineConfig({
   main: {
+    define: {
+      __METADOC_STEAM__: JSON.stringify(steamOn)
+    },
+    resolve: {
+      alias: mainSteamAliases
+    },
     plugins: [externalizeDepsPlugin()],
     build: {
       // 关闭构建结束时的 gzip 体积统计，可显著降低内存与耗时
@@ -55,7 +89,13 @@ export default defineConfig({
         },
         // 将 node-llama-cpp 标记为 external，因为它只在 devDependencies 中
         // 将 cspell-lib 标记为 external，因为它是纯 ESM 模块，需要在运行时动态导入
-        external: ['node-llama-cpp', /^@node-llama-cpp\/./, 'cspell-lib', 'dotenv', 'greenworks']
+        external: [
+          'node-llama-cpp',
+          /^@node-llama-cpp\/./,
+          'cspell-lib',
+          'dotenv',
+          ...(steamOn ? ['greenworks'] : [])
+        ]
       },
       chunkSizeWarningLimit: 1000 // 增大警告阈值，因为monaco-editor等库本身就很大
     }

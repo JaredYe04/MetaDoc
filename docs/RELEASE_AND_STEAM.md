@@ -10,7 +10,7 @@
 |------|------|
 | **版本源** | `meta-doc/package.json` 与脚本 `meta-doc/scripts/get-version-info.js`、`get-release-info.js` 等；**两条工作流共用同一套逻辑**。 |
 | **GitHub Releases** | 工作流：`.github/workflows/release-unified.yml`；产物进入 **`{owner}/MetaDoc-Releases`**（NSIS / AppImage / deb / snap / dmg / zip 等）。 |
-| **Steam** | 工作流：`.github/workflows/release-steam.yml`；使用 **electron-builder `dir` 目标** 生成目录型产物，经 [game-ci/steam-deploy](https://github.com/game-ci/steam-deploy) 调用 SteamCMD 上传。 |
+| **Steam** | 工作流：`.github/workflows/release-steam.yml`；使用 **electron-builder `dir` 目标** 生成目录型产物，经 [game-ci/steam-deploy](https://github.com/game-ci/steam-deploy) 调用 SteamCMD 上传。构建时设置 **`VITE_METADOC_STEAM=true`** 并合并 **`electron-builder.steam.yml`** 以打入 Greenworks（默认发行构建不包含）。详见 `meta-doc/src/main/steam/README.md`。 |
 | **上架 Steam 商店** | CI **只负责上传构建**；在 Steamworks 看到「有未发布的更改」后，仍需在 **「发布」** 页提交。参见 [Uploading to Steam](https://partner.steamgames.com/doc/sdk/uploading)。 |
 
 典型分工示例：

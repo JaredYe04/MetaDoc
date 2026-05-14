@@ -3,6 +3,7 @@
  * 生产构建应死代码剔除 import.meta.env.DEV 分支。
  * Steam 生产：默认走官方云；用户可在设置中开启「开发人员模式」退回 BYOK（settings.steamDeveloperBypassByok）。
  */
+import { isSteamEnabled } from '@common/build-env'
 import eventBus from './event-bus.js'
 import { settings } from './settings.js'
 import { steamOfficialCloudEligible } from './steam-official-cloud-eligible'
@@ -38,10 +39,17 @@ export function setDevAiPipelineMode(mode: DevAiPipelineMode): void {
   }
 }
 
-/** Steam 渠道或运行时 Steam 已就绪时走官方云；DEV 非 Steam 包可选 steam_cloud 以连 staging Worker */
+/**
+ * Steam 官方云（Worker + Steam 票据 JWT）：仅 **VITE_METADOC_STEAM** 编入的包在 PROD 下可走此路；
+ * GitHub Releases 等非 Steam 构建必须为 false，否则 resolveEffectiveLlmInternal 会锁死为 metadoc、BYOK 失效。
+ * DEV 下仍可用 localStorage 切 steam_cloud 连 staging Worker。
+ */
 export function useMetadocCloudOpenAiRoute(): boolean {
   void steamOfficialCloudEligible.value
   if (settings.steamDeveloperBypassByok === true) {
+    return false
+  }
+  if (import.meta.env.PROD && !isSteamEnabled()) {
     return false
   }
   if (steamOfficialCloudEligible.value) {

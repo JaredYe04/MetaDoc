@@ -3516,6 +3516,16 @@
       "keptCurrentVersion": "已保留当前版本",
       "mergedConflicts": "冲突已合并"
     },
+    "pdfConvert": {
+      "taskTitle": "PDF 转 Markdown",
+      "running": "正在将「{file}」转为可编辑文本，页数多或体积大时可能需要较长时间…",
+      "runningSkipImages": "已跳过剩余图片上传，正在完成正文与已上传图片的引用…",
+      "skipImages": "跳过图片加载",
+      "doneTitle": "转换完成",
+      "done": "「{file}」已转为 Markdown，可在编辑器中修改。",
+      "failedLabel": "失败",
+      "failedFallback": "PDF 转换失败"
+    },
     "windows": {
       "appTitle": "MetaDoc",
       "documentTitlePattern": "{name} - {app}",

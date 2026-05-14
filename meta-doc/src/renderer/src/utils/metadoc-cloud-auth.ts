@@ -12,7 +12,8 @@ import {
   getMetadocCloudApiBase,
   getMetadocSteamMtxCheckoutPref,
   getMetadocSteamMtxWebOpenMode,
-  isSteamDistribution
+  isSteamDistribution,
+  isSteamEnabled
 } from '@common/build-env'
 import { useMetadocCloudOpenAiRoute } from './dev-ai-pipeline'
 
@@ -110,6 +111,10 @@ export async function ensureMetadocSteamCloudJwt(): Promise<string> {
     const ttl = typeof json.expires_in === 'number' ? json.expires_in : 3600
     setStoredJwt(json.token, ttl)
     return json.token
+  }
+
+  if (!isSteamEnabled()) {
+    throw new Error('当前构建未启用 Steam（VITE_METADOC_STEAM），无法通过 Steam 会话获取 MetaDoc 云 JWT')
   }
 
   const user = await getSteamUser()
@@ -759,6 +764,9 @@ export async function startSteamMtxInit(body: {
 
 /** 是否可在本机发起 Steam 内购：Steam 分发包，或运行时 Greenworks 已初始化且可用（无需仅依赖构建变量） */
 export async function canInitSteamMtx(): Promise<boolean> {
+  if (!isSteamEnabled()) {
+    return false
+  }
   if (isSteamDistribution()) {
     return true
   }

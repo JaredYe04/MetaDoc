@@ -52,8 +52,16 @@ import {
 } from './window-manager'
 import { ensureInitialized } from './database/knowledge-db'
 import { mark as startupProfileMark, getTimelineForRenderer } from './startup-profile'
-import { initSteam, shutdownSteam, getGreenworksOrNull } from './steam/steam-state'
-import { applySteamLanguageOnStartup } from './steam/steam-startup-locale'
+import {
+  initSteam,
+  shutdownSteam,
+  getGreenworksOrNull,
+  applySteamLanguageOnStartup
+} from '@metadoc/steam-runtime'
+import {
+  startSteamWhenReadyHooks,
+  runSteamBeforeQuitHooks
+} from '@metadoc/steam-app-lifecycle-hooks'
 import { registerShellMetadataOnLaunch } from './system-integration/register-shell-metadata'
 import { killAllPtys } from './utils/terminal-pty-service'
 import { isOpenableFilePath } from '../common/openable-file-extensions'
@@ -106,7 +114,9 @@ function shouldDisableGPU(): boolean {
    * 因此：检测到 Steam 运行时环境时，优先保持 GPU 启用（尤其是 Windows）。
    */
   const isSteamRuntime =
-    Boolean(process.env.SteamAppId || process.env.SteamGameId) || Boolean(process.env.STEAM_APP_ID)
+    typeof __METADOC_STEAM__ !== 'undefined' &&
+    __METADOC_STEAM__ &&
+    (Boolean(process.env.SteamAppId || process.env.SteamGameId) || Boolean(process.env.STEAM_APP_ID))
   if (isSteamRuntime && os.platform() === 'win32') {
     return false
   }
@@ -767,16 +777,7 @@ app.whenReady().then(async () => {
 
   initSteam()
   applySteamLanguageOnStartup()
-
-  void import('./steam/steam-playtime-tracker').then(({ startSteamPlaytimeTracker }) => {
-    startSteamPlaytimeTracker(() => getGreenworksOrNull())
-  })
-  void import('./steam/steam-achievement-manager').then(({ tryUnlockSteamAchievement }) => {
-    const gw = getGreenworksOrNull()
-    if (gw) {
-      tryUnlockSteamAchievement(gw, 'ACH_META_WELCOME')
-    }
-  })
+  startSteamWhenReadyHooks()
 
   // 打包版：向系统注册应用名、图标与 .md/.tex 类型信息（不写默认打开方式），便于「打开方式」中选到 MetaDoc
   setImmediate(() => {
@@ -845,15 +846,8 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isAppQuitting = true
-  void import('./steam/steam-playtime-tracker').then(({ stopSteamPlaytimeTracker }) => {
-    stopSteamPlaytimeTracker()
-  })
   const gwQuit = getGreenworksOrNull()
-  if (gwQuit) {
-    void import('./steam/steam-stats-sync').then(({ flushSteamStatsToSteam }) =>
-      flushSteamStatsToSteam(gwQuit)
-    )
-  }
+  runSteamBeforeQuitHooks(gwQuit)
   shutdownExpressServer()
   killAllPtys()
   killAllTerminalSpawnProcesses()

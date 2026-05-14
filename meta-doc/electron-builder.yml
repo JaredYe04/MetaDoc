@@ -50,11 +50,7 @@ files:
   - '!node_modules/**/HISTORY*'
   - '!node_modules/**/AUTHORS*'
   - '!node_modules/**/CONTRIBUTORS*'
-  # Greenworks：原生 .node 与 Steam API 动态库须随应用分发；SDK 源码目录无需打包
-  - 'node_modules/greenworks/greenworks.js'
-  - 'node_modules/greenworks/package.json'
-  - 'node_modules/greenworks/lib/**/*'
-  - '!node_modules/greenworks/deps/**/*'
+  - '!node_modules/greenworks/**/*'
   # Steamworks SDK 官方 zip 仅用于本地/CI 编译 greenworks，勿打入用户安装包
   - '!third-party/steamworks-sdk/**/*.zip'
 asarUnpack:
@@ -64,7 +60,6 @@ asarUnpack:
   - node_modules/node-nailgun-client/**
   - node_modules/plantuml-encoder/**
   - node_modules/node-latex-compiler/**
-  - node_modules/greenworks/**
 # 去掉 win.fileAssociations 后，builder 不再把关联图标拷到 resources；注册表 DefaultIcon 需真实路径。
 # 与 build/installer.nsh、user-file-associations-win 查找的 resources\*.ico 一致（npm run prebuild / copy-env 会保证 build 下存在）。
 extraResources:

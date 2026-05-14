@@ -1,19 +1,32 @@
 /**
  * 构建时环境（Vite `import.meta.env`）。
- * Steam 分发包设置 `VITE_STEAM_DISTRIBUTION=true` 与 `VITE_METADOC_CLOUD_API_URL`。
+ * Steam 原生与 IPC 链路：`VITE_METADOC_STEAM=true`（默认关闭，见 `src/main/steam/README.md`）。
+ * Steam 商店分发形态：`VITE_STEAM_DISTRIBUTION=true`（须与大开关同时开启方视为商店包）。
  */
 
+/** 是否编译入 Steam / Greenworks 相关代码（默认 false） */
+export function isSteamEnabled(): boolean {
+  try {
+    return import.meta.env.VITE_METADOC_STEAM === 'true'
+  } catch {
+    return false
+  }
+}
+
+/** Steam 商店渠道构建（隐藏自更新等）；无大开关时恒为 false */
 export function isSteamDistribution(): boolean {
   try {
+    if (!isSteamEnabled()) return false
     return import.meta.env.VITE_STEAM_DISTRIBUTION === 'true'
   } catch {
     return false
   }
 }
 
-/** Steam 审核阶段锁定：隐藏 BYOK/实验性入口，强制仅官方云链路。 */
+/** Steam 审核阶段锁定：隐藏 BYOK/实验性入口，强制仅官方云链路（须启用 Steam 构建）。 */
 export function isSteamReviewLockEnabled(): boolean {
   try {
+    if (!isSteamEnabled()) return false
     return import.meta.env.VITE_STEAM_REVIEW_LOCK === 'true'
   } catch {
     return false

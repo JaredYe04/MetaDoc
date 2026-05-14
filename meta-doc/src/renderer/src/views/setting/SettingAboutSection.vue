@@ -38,7 +38,7 @@
         <TabsTrigger v-if="!hideAppUpdatesUi" value="updates">{{
           $t('setting.about.updateSettings')
         }}</TabsTrigger>
-        <TabsTrigger value="steam">{{ $t('setting.about.steamTab') }}</TabsTrigger>
+        <TabsTrigger v-if="isSteamEnabled()" value="steam">{{ $t('setting.about.steamTab') }}</TabsTrigger>
         <TabsTrigger value="licenses">{{ $t('setting.about.openSourceLicenses') }}</TabsTrigger>
         <TabsTrigger value="assets">{{ $t('setting.about.thirdPartyAssets') }}</TabsTrigger>
       </TabsList>
@@ -135,7 +135,7 @@
         </div>
       </TabsContent>
 
-      <TabsContent value="steam" class="about-tabs-content">
+      <TabsContent v-if="isSteamEnabled()" value="steam" class="about-tabs-content">
         <div class="steam-section space-y-4 max-w-xl">
           <div class="text-sm space-y-1">
             <div>
@@ -231,7 +231,7 @@ import {
 } from '../../services/steam-client'
 import { focusOrOpenSystemRoute } from '../../utils/steam-system-tab-open'
 import { refreshSteamOfficialCloudEligible } from '../../utils/steam-official-cloud-eligible'
-import { isSteamDistribution } from '@common/build-env'
+import { isSteamDistribution, isSteamEnabled } from '@common/build-env'
 
 // Logo 固定配色，不随亮/暗主题变化
 const bgColor = FIXED_LOGO_COLORS.bgColor

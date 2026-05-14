@@ -922,7 +922,7 @@ import { useI18n } from 'vue-i18n'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import { getMetaDocLlmModels } from '../../utils/web-utils.ts'
-import { isSteamDistribution, isSteamReviewLockEnabled } from '@common/build-env'
+import { isSteamDistribution, isSteamEnabled, isSteamReviewLockEnabled } from '@common/build-env'
 import { getDevAiPipelineMode } from '../../utils/dev-ai-pipeline'
 import { getSteamUiTrayReady } from '../../utils/steam-ui-ready'
 import { steamOfficialCloudEligible } from '../../utils/steam-official-cloud-eligible'
@@ -1060,7 +1060,8 @@ let steamReadyPollTimer: ReturnType<typeof setInterval> | null = null
 
 async function refreshSteamUiTrayReady() {
   steamUiTrayReady.value = await getSteamUiTrayReady()
-  steamOfficialCloudEligible.value = steamDistributionBuild || steamUiTrayReady.value
+  steamOfficialCloudEligible.value =
+    isSteamEnabled() && (steamDistributionBuild || steamUiTrayReady.value)
 }
 
 const showSteamMinimalLlm = computed(() => {

@@ -21,7 +21,8 @@
       </Tooltip>
     </div>
 
-    <div v-if="isElectronApp" class="profile-steam-actions">
+    <div v-if="isElectronApp && isSteamEnabled()" class="profile-steam-block">
+    <div class="profile-steam-actions">
       <Button
         variant="outline"
         size="sm"
@@ -76,6 +77,7 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </div>
 
     <Tabs v-if="!loggedIn" v-model="activeName" class="tabs" @mousedown.stop>
       <TabsList class="grid w-full grid-cols-2">
@@ -385,6 +387,7 @@ import { useI18n } from 'vue-i18n'
 import { useWorkspace } from '../stores/workspace'
 import { focusOrOpenSystemRoute } from '../utils/steam-system-tab-open'
 import { openWorkshopPublishDocumentDialog } from '../utils/workshop-publish-document-dialog'
+import { isSteamEnabled } from '@common/build-env'
 
 const { t } = useI18n()
 const workspace = useWorkspace()

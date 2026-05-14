@@ -46,14 +46,30 @@
           <div class="toast-description">{{ toast.message }}</div>
         </div>
 
-        <button
-          v-if="isBackgroundTaskToast(toast) && toast.metadata?.canCancel"
-          type="button"
-          class="toast-export-cancel"
-          @click.stop="cancelBackgroundTask(toast)"
+        <div
+          v-if="
+            (isBackgroundTaskToast(toast) && toast.metadata?.canCancel) ||
+            isPdfConvertSkipImagesButton(toast)
+          "
+          class="toast-bg-task-actions"
         >
-          {{ $t('export.taskCancel', '中断') }}
-        </button>
+          <button
+            v-if="isPdfConvertSkipImagesButton(toast)"
+            type="button"
+            class="toast-export-cancel"
+            @click.stop="skipPdfConvertImages(toast)"
+          >
+            {{ $t('main.pdfConvert.skipImages', '跳过图片加载') }}
+          </button>
+          <button
+            v-if="isBackgroundTaskToast(toast) && toast.metadata?.canCancel"
+            type="button"
+            class="toast-export-cancel"
+            @click.stop="cancelBackgroundTask(toast)"
+          >
+            {{ $t('export.taskCancel', '中断') }}
+          </button>
+        </div>
 
         <div v-if="!toast.read" class="toast-unread" />
       </div>
@@ -80,6 +96,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, type Component } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import { useNotificationStore } from '../stores/notification'
 import eventBus from '../utils/event-bus'
@@ -88,8 +105,14 @@ import { X, CheckCircle2, XCircle, AlertCircle, Info, Loader2 } from 'lucide-vue
 import messageBridge from '../bridge/message-bridge'
 
 const store = useNotificationStore()
+const { t } = useI18n()
 
-const BACKGROUND_TASK_KINDS = ['export-task', 'knowledge-task', 'ocr-task'] as const
+const BACKGROUND_TASK_KINDS = [
+  'export-task',
+  'knowledge-task',
+  'ocr-task',
+  'pdf-convert-task'
+] as const
 
 function isBackgroundTaskToast(toast: NotificationItem): boolean {
   const k = toast.metadata?.kind as string | undefined
@@ -105,6 +128,26 @@ function isBackgroundTaskSpinner(toast: NotificationItem): boolean {
     return phase === 'pick' || phase === 'prepare'
   }
   return phase === 'pick' || phase === 'prepare' || phase === 'running'
+}
+
+function isPdfConvertSkipImagesButton(toast: NotificationItem): boolean {
+  if (toast.metadata?.kind !== 'pdf-convert-task') return false
+  if (toast.metadata?.phase !== 'running') return false
+  if (toast.type !== 'info') return false
+  const rid = toast.metadata?.requestId
+  if (typeof rid !== 'string' || !rid) return false
+  if (toast.metadata?.skipImagesPending) return false
+  return true
+}
+
+function skipPdfConvertImages(toast: NotificationItem): void {
+  const requestId = toast.metadata?.requestId as string | undefined
+  if (!requestId) return
+  void messageBridge.invoke('signal-pdf-convert-skip-images', requestId)
+  store.updateNotification(toast.id, {
+    message: t('main.pdfConvert.runningSkipImages'),
+    metadata: { skipImagesPending: true }
+  })
 }
 
 function cancelBackgroundTask(toast: NotificationItem): void {
@@ -588,6 +631,20 @@ onBeforeUnmount(() => {
 
 .stack-toast.is-read {
   opacity: 0.7;
+}
+
+.toast-bg-task-actions {
+  flex-shrink: 0;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-right: 28px;
+}
+
+.toast-bg-task-actions .toast-export-cancel {
+  margin-right: 0;
 }
 
 .toast-export-cancel {

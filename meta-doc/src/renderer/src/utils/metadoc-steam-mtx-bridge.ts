@@ -3,10 +3,13 @@
  * 此处调用 Cloudflare Worker `/steam/mtx/finalize` 完成入账。
  */
 import messageBridge from '../bridge/message-bridge'
-import { getMetadocCloudApiBase } from '@common/build-env'
+import { getMetadocCloudApiBase, isSteamEnabled } from '@common/build-env'
 import { ensureMetadocSteamCloudJwt } from './metadoc-cloud-auth'
 
 export function registerSteamMicroTxnFinalizeBridge(): void {
+  if (!isSteamEnabled()) {
+    return
+  }
   messageBridge.on(
     'steam:micro-txn-response',
     async (_event: unknown, payload: { orderId?: string; authorized?: boolean }) => {

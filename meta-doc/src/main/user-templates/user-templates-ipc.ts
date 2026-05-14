@@ -14,7 +14,7 @@ import {
   updateUserTemplate,
   mimeForImageBuffer
 } from './user-templates-store'
-import { schedulePushUserTemplatesToCloudIfSteamReady } from '../steam/sync-coordinator'
+import { schedulePushUserTemplatesToCloudIfSteamReady } from '@metadoc/user-templates-steam-push'
 
 type Ok<T = unknown> = { ok: true; data?: T }
 type Fail = { ok: false; error: string }

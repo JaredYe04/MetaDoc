@@ -67,6 +67,7 @@ import {
 } from './index'
 import { acquirePoolWindow } from './window-pool'
 import { dirname } from './index'
+import { tryUnlockFirstDocSteamAchievements } from '@metadoc/steam-first-doc-achievements'
 import { imageUploadDir, cancelKnowledgeProgressTask } from './express-server'
 import {
   getRuntimeServerBaseUrl,
@@ -873,13 +874,47 @@ function bindFileHandlers(): void {
     }
   )
 
+  /** 渲染进程点击「跳过图片加载」时写入 requestId；convert 在每张图上传前检查 */
+  const pdfConvertSkipImagesRequestIds = new Set<string>()
+
+  ipcBridge.registerHandle(
+    'signal-pdf-convert-skip-images',
+    async (_event: IpcMainInvokeEvent, requestId: string): Promise<void> => {
+      if (typeof requestId === 'string' && requestId.length > 0) {
+        pdfConvertSkipImagesRequestIds.add(requestId)
+      }
+    }
+  )
+
   // 将PDF文件转换为Markdown
   ipcBridge.registerHandle(
     'convert-pdf-to-markdown',
     async (
       event: IpcMainInvokeEvent,
-      filePath: string
+      payload: string | { filePath: string; requestId?: string; skipImages?: boolean }
     ): Promise<{ success: boolean; markdown?: string; error?: string }> => {
+      let filePath: string
+      let requestId: string
+      let initialSkipImages = false
+      if (typeof payload === 'string') {
+        filePath = payload
+        requestId = `pdf-legacy-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      } else if (
+        payload &&
+        typeof payload === 'object' &&
+        typeof (payload as { filePath?: string }).filePath === 'string'
+      ) {
+        const p = payload as { filePath: string; requestId?: string; skipImages?: boolean }
+        filePath = p.filePath
+        requestId =
+          typeof p.requestId === 'string' && p.requestId.length > 0
+            ? p.requestId
+            : `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+        initialSkipImages = p.skipImages === true
+      } else {
+        return { success: false, error: '无效参数' }
+      }
+
       try {
         if (!fs.existsSync(filePath)) {
           return { success: false, error: '文件不存在' }
@@ -915,11 +950,19 @@ function bindFileHandlers(): void {
         // 上传图片并构建图片名称到URL的映射
         const imageUrlMap = new Map<string, string>()
 
-        // 导入 form-data 用于文件上传
-        const FormData = require('form-data')
+        const shouldSkipAllImages =
+          initialSkipImages || pdfConvertSkipImagesRequestIds.has(requestId)
 
-        for (const [imageName, imageBuffer] of images.entries()) {
-          try {
+        if (!shouldSkipAllImages) {
+          // 导入 form-data 用于文件上传
+          const FormData = require('form-data')
+
+          for (const [imageName, imageBuffer] of images.entries()) {
+            if (pdfConvertSkipImagesRequestIds.has(requestId)) {
+              logger.info('[convert-pdf-to-markdown] 用户跳过剩余图片上传', { requestId })
+              break
+            }
+            try {
             // 使用 form-data 创建上传请求
             const formData = new FormData()
             formData.append('file[]', imageBuffer, {
@@ -989,8 +1032,9 @@ function bindFileHandlers(): void {
               const fallbackUrl = `${getRuntimeServerBaseUrl()}/images/${imageName}`
               imageUrlMap.set(imageName, fallbackUrl)
             }
-          } catch (error) {
-            logger.error(`上传图片 ${imageName} 失败:`, error)
+            } catch (error) {
+              logger.error(`上传图片 ${imageName} 失败:`, error)
+            }
           }
         }
 
@@ -1034,6 +1078,8 @@ function bindFileHandlers(): void {
         logger.error('PDF转Markdown失败:', error)
         const errorMessage = error instanceof Error ? error.message : String(error)
         return { success: false, error: errorMessage }
+      } finally {
+        pdfConvertSkipImagesRequestIds.delete(requestId)
       }
     }
   )
@@ -4744,17 +4790,7 @@ const updateRecentDocs = async (data: UpdateRecentDocsData): Promise<void> => {
   await updateRecentOpen({ path: data.path, kind: 'file' })
   const items = parseRecentOpensJson(store.get(RECENT_OPENS_KEY) as string | null)
   if (items.filter((e) => e.kind === 'file').length === 1) {
-    const { tryUnlockSteamAchievement } = await import('./steam/steam-achievement-manager')
-    const { getGreenworksOrNull } = await import('./steam/steam-state')
-    const gw = getGreenworksOrNull()
-    if (gw) {
-      const lower = (data.path || '').toLowerCase()
-      if (/\.(md|markdown|mdown)$/.test(lower)) {
-        tryUnlockSteamAchievement(gw, 'ACH_FIRST_MD')
-      } else if (/\.(tex|latex)$/.test(lower)) {
-        tryUnlockSteamAchievement(gw, 'ACH_FIRST_TEX')
-      }
-    }
+    await tryUnlockFirstDocSteamAchievements(data.path)
   }
 }
 

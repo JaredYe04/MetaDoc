@@ -132,9 +132,12 @@ export const useNotificationStore = defineStore('notification', () => {
       }
       saveToStorage()
       // info / success 10 秒后自动移除；导出/知识库/OCR 等后台任务由业务侧结束后移除
-      const isBackgroundTask = ['export-task', 'knowledge-task', 'ocr-task'].includes(
-        metadata?.kind as string
-      )
+      const isBackgroundTask = [
+        'export-task',
+        'knowledge-task',
+        'ocr-task',
+        'pdf-convert-task'
+      ].includes(metadata?.kind as string)
       if (!isBackgroundTask && (type === 'info' || type === 'success')) {
         setTimeout(() => remove(notification.id), 10_000)
       }
@@ -206,7 +209,9 @@ export const useNotificationStore = defineStore('notification', () => {
   /** 仅移除非后台任务类通知（任务类须通过各功能「中断」或业务完成后移除） */
   function removeNonBackgroundTasks(): void {
     const isBackgroundTask = (n: NotificationItem) =>
-      ['export-task', 'knowledge-task', 'ocr-task'].includes(n.metadata?.kind as string)
+      ['export-task', 'knowledge-task', 'ocr-task', 'pdf-convert-task'].includes(
+        n.metadata?.kind as string
+      )
     const next = notifications.value.filter(isBackgroundTask)
     if (next.length !== notifications.value.length) {
       notifications.value = next

@@ -1,0 +1,10 @@
+# 合并到默认 `electron-builder.yml` 之后，用于 **Steam depot** 构建以恢复 greenworks 原生文件。
+# 普通发行：`npm run build:win`（勿传本文件）。
+# Steam：`npm run build:steam:win` 或 `electron-builder ... -c electron-builder.yml -c electron-builder.steam.yml`
+files:
+  - 'node_modules/greenworks/greenworks.js'
+  - 'node_modules/greenworks/package.json'
+  - 'node_modules/greenworks/lib/**/*'
+  - '!node_modules/greenworks/deps/**/*'
+asarUnpack:
+  - node_modules/greenworks/**

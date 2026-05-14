@@ -204,6 +204,7 @@ import {
   hasDocumentContent as checkDocumentContent,
   promoteClassicToWorkspaceLayoutIfNeeded
 } from '../stores/workspace'
+import { useNotificationStore } from '../stores/notification'
 import { findGroupContainingTab, type SplitEdge } from '../stores/workspace-layout'
 
 // 检测是否为 macOS（顶栏布局与 MainTabs 交通灯/窗口按钮一致）
@@ -271,6 +272,7 @@ function seedEmptyWorkspaceFoldersLocalStorage(parentDirNormalized: string) {
   }
 }
 const workspace = useWorkspace()
+const notificationStore = useNotificationStore()
 const tabSwitcher = useTabSwitcher()
 const { checkCanCloseTab, doRemoveTab } = useCloseTab()
 const { isFocusMode } = useFocusMode()
@@ -540,6 +542,66 @@ const extractFileName = (fullPath: string): string => {
   if (!fullPath) return ''
   const segments = fullPath.split(/[/\\]+/).filter(Boolean)
   return segments[segments.length - 1] ?? ''
+}
+
+/** PDF→MD 可能很慢；在通知堆叠区显示进度，完成后更新或移除 */
+async function convertPdfToMarkdownWithStackProgress(
+  pdfPath: string
+): Promise<{ ok: true; markdown: string } | { ok: false; error: string }> {
+  const pdfLabel = extractFileName(pdfPath) || pdfPath
+  const requestId = `pdf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  const notifId = notificationStore.notify({
+    title: t('main.pdfConvert.taskTitle'),
+    message: t('main.pdfConvert.running', { file: pdfLabel }),
+    type: 'info',
+    showToast: false,
+    duration: 86400000,
+    metadata: {
+      kind: 'pdf-convert-task',
+      phase: 'running',
+      canCancel: false,
+      requestId
+    }
+  })
+  eventBus.emit('show-notification-stack-task')
+
+  try {
+    const result = (await messageBridge.invoke('convert-pdf-to-markdown', {
+      filePath: pdfPath,
+      requestId
+    })) as {
+      success: boolean
+      markdown?: string
+      error?: string
+    }
+    if (!result.success || !result.markdown) {
+      const errMsg = result.error || t('main.pdfConvert.failedFallback')
+      notificationStore.updateNotification(notifId, {
+        type: 'error',
+        title: t('main.pdfConvert.taskTitle'),
+        message: `${pdfLabel} — ${t('main.pdfConvert.failedLabel')}: ${errMsg}`,
+        metadata: { phase: 'error', canCancel: false }
+      })
+      return { ok: false, error: errMsg }
+    }
+    notificationStore.updateNotification(notifId, {
+      type: 'success',
+      title: t('main.pdfConvert.doneTitle'),
+      message: t('main.pdfConvert.done', { file: pdfLabel }),
+      metadata: { phase: 'done', canCancel: false }
+    })
+    setTimeout(() => notificationStore.remove(notifId), 6000)
+    return { ok: true, markdown: result.markdown }
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e)
+    notificationStore.updateNotification(notifId, {
+      type: 'error',
+      title: t('main.pdfConvert.taskTitle'),
+      message: `${pdfLabel} — ${t('main.pdfConvert.failedLabel')}: ${errMsg}`,
+      metadata: { phase: 'error', canCancel: false }
+    })
+    return { ok: false, error: errMsg }
+  }
 }
 
 // ============================================================================
@@ -881,15 +943,15 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
         if (!messageBridge.getIpc()?.invoke) {
           throw new Error('IPC 渲染器不可用')
         }
-        const result = (await messageBridge.invoke('convert-pdf-to-markdown', resolvedPath)) as {
-          success: boolean
-          markdown?: string
-          error?: string
+        const conv = await convertPdfToMarkdownWithStackProgress(resolvedPath)
+        if (!conv.ok) {
+          logger.error('PDF转换失败:', conv.error)
+          if (resolvedPath && messageBridge.getIpc()) {
+            await messageBridge.invoke('release-file-claim', resolvedPath)
+          }
+          return
         }
-        if (!result.success || !result.markdown) {
-          throw new Error(result.error || 'PDF转换失败')
-        }
-        const loaded = await loadDocumentFromMarkdown(result.markdown, undefined)
+        const loaded = await loadDocumentFromMarkdown(conv.markdown, undefined)
         const snapshot = createSnapshotFromLoadedData(loaded)
         snapshot.path = ''
         snapshot.dirty = true
@@ -1326,16 +1388,21 @@ function initMainEventListeners() {
 
     try {
       // 先执行 PDF→Markdown 转换，再关闭预览 tab，避免依赖 workspace-open-document 的异步与 claim 导致内容未正确应用
-      const result = (await messageBridge.invoke('convert-pdf-to-markdown', pdfPath)) as {
-        success: boolean
-        markdown?: string
-        error?: string
-      }
-      if (!result.success || !result.markdown) {
-        throw new Error(result.error || 'PDF转换失败')
+      const conv = await convertPdfToMarkdownWithStackProgress(pdfPath)
+      if (!conv.ok) {
+        logger.error('PDF 预览转编辑器失败:', conv.error)
+        eventBus.emit('show-error', `PDF转换失败: ${conv.error}`)
+        if (tab.preview && pdfPath && messageBridge.getIpc()?.invoke) {
+          try {
+            await messageBridge.invoke('release-file-claim', pdfPath)
+          } catch (_) {
+            // ignore
+          }
+        }
+        return
       }
 
-      const loaded = await loadDocumentFromMarkdown(result.markdown, undefined)
+      const loaded = await loadDocumentFromMarkdown(conv.markdown, undefined)
       const snapshot = createSnapshotFromLoadedData(loaded)
       snapshot.path = ''
       snapshot.dirty = true

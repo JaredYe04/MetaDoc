@@ -1,5 +1,6 @@
 import messageBridge from '../bridge/message-bridge'
 import { refreshUserTemplatesFromMain } from '../stores/user-templates'
+import { isSteamEnabled } from '@common/build-env'
 
 export type SteamStatusPayload = {
   initialized: boolean
@@ -29,6 +30,9 @@ type SteamInvokeResult<T = unknown> =
   | { success: false; error: string }
 
 async function invokeSteam<T>(channel: string, ...args: unknown[]): Promise<SteamInvokeResult<T>> {
+  if (!isSteamEnabled()) {
+    return { success: false, error: 'steam_disabled' }
+  }
   try {
     return (await messageBridge.invoke(channel, ...args)) as SteamInvokeResult<T>
   } catch (e) {

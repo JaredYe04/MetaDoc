@@ -884,7 +884,7 @@
       </UISubMenu>
     </template>
 
-    <LeftMenuSteamTray v-if="props.mode !== 'demo'" :collapsed="isCollapse" />
+    <LeftMenuSteamTray v-if="props.mode !== 'demo' && isSteamEnabled()" :collapsed="isCollapse" />
   </UIMenu>
 
   <!-- 导出选项对话框 -->
@@ -1008,6 +1008,7 @@ import { generateTemplateTitleDescriptionPrompt } from '../utils/prompts'
 import { useFocusMode } from '../composables/useFocusMode'
 import FocusModeTabBarMenus from './FocusModeTabBarMenus.vue'
 import LeftMenuSteamTray from './LeftMenuSteamTray.vue'
+import { isSteamEnabled } from '@common/build-env'
 import { FOCUS_LEFT_MENU_API_KEY, type RecentOpenEntry } from './focus-mode-left-menu-api'
 
 const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })

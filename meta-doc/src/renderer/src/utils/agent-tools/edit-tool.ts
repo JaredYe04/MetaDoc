@@ -104,7 +104,11 @@ function engineLogsToHunks(logs: ApplyEditLogEntry[]): UnifiedDiffHunk[] {
       newCount: newLines.length,
       oldLines,
       newLines,
-      contextLines: []
+      contextLines: [],
+      displayLines: [
+        ...oldLines.map((text) => ({ type: 'remove' as const, text })),
+        ...newLines.map((text) => ({ type: 'add' as const, text }))
+      ]
     }
   })
 }

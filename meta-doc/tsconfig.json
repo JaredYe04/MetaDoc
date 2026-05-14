@@ -19,7 +19,12 @@
       "@/*": ["src/*"],
       "@common/*": ["src/common/*"],
       "@renderer/*": ["src/renderer/src/*"],
-      "@logos/*": ["../logos/*"]
+      "@logos/*": ["../logos/*"],
+      "@metadoc/steam-runtime": ["src/main/steam/steam-runtime.real.ts"],
+      "@metadoc/register-steam-ipc": ["src/main/steam/register-steam-ipc.ts"],
+      "@metadoc/steam-first-doc-achievements": ["src/main/steam/steam-first-doc-achievements.ts"],
+      "@metadoc/steam-app-lifecycle-hooks": ["src/main/steam/steam-app-lifecycle-hooks.real.ts"],
+      "@metadoc/user-templates-steam-push": ["src/main/steam/user-templates-steam-push.ts"]
     },
     "types": ["vite/client", "electron", "node"],
     "allowJs": true,

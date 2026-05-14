@@ -123,7 +123,8 @@ If `403`, verify:
 
 Set build-time env:
 
-- `VITE_STEAM_DISTRIBUTION=true`
+- `VITE_METADOC_STEAM=true` (compile Steam / Greenworks client + pack native; default off for non-Steam builds)
+- `VITE_STEAM_DISTRIBUTION=true` (Steam store distribution behavior in renderer; requires the flag above)
 - `VITE_METADOC_CLOUD_API_URL=https://<your-worker-host>`
 
 ## Notes

@@ -356,6 +356,8 @@ jobs:
       - name: 安装依赖
         if: matrix.enabled == 'true' && ((steps.nm_full_cache.outputs.enabled == 'true' && steps.node-modules.outputs.cache-hit != 'true') || (steps.nm_full_cache.outputs.enabled != 'true'))
         working-directory: meta-doc
+        env:
+          VITE_METADOC_STEAM: 'true'
         run: |
           node -e "
           const c = require('child_process');
@@ -396,10 +398,11 @@ jobs:
       - name: 构建项目
         if: matrix.enabled == 'true'
         working-directory: meta-doc
-        run: npm run build
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
+          VITE_METADOC_STEAM: 'true'
+        run: npm run build
 
       - name: 清理旧 Linux 包格式产物（dir 构建不需要）
         if: matrix.enabled == 'true' && matrix.platform == 'linux'
@@ -408,7 +411,7 @@ jobs:
       - name: 打包 Windows（dir / SteamPipe）
         if: matrix.enabled == 'true' && matrix.platform == 'win'
         working-directory: meta-doc
-        run: npx electron-builder --win dir --publish never
+        run: npx electron-builder --win dir --publish never -c electron-builder.yml -c electron-builder.steam.yml
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
@@ -417,7 +420,7 @@ jobs:
       - name: 打包 Linux x64（dir / SteamPipe）
         if: matrix.enabled == 'true' && matrix.platform == 'linux'
         working-directory: meta-doc
-        run: npx electron-builder --linux dir --x64 --publish never
+        run: npx electron-builder --linux dir --x64 --publish never -c electron-builder.yml -c electron-builder.steam.yml
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
@@ -426,7 +429,7 @@ jobs:
       - name: 打包 macOS ARM64（dir / SteamPipe）
         if: matrix.enabled == 'true' && matrix.platform == 'mac'
         working-directory: meta-doc
-        run: npx electron-builder --mac dir --arm64 --publish never
+        run: npx electron-builder --mac dir --arm64 --publish never -c electron-builder.yml -c electron-builder.steam.yml
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
@@ -435,7 +438,7 @@ jobs:
       - name: 打包 macOS x64（dir / SteamPipe）
         if: matrix.enabled == 'true' && matrix.platform == 'mac-amd64'
         working-directory: meta-doc
-        run: npx electron-builder --mac dir --x64 --publish never
+        run: npx electron-builder --mac dir --x64 --publish never -c electron-builder.yml -c electron-builder.steam.yml
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc

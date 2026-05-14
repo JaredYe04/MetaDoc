@@ -1,5 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
+const steamBuild = import.meta.env.VITE_METADOC_STEAM === 'true'
+
 const pages = {
   setting: () => import('../views/Setting.vue'),
   'ai-chat': () => import('../views/AIChat.vue'),
@@ -91,18 +93,22 @@ const routes = [
     component: () => import('../views/LlmStatisticsView.vue'),
     meta: { requiresLayout: true }
   },
-  {
-    path: '/workshop-market',
-    name: 'WorkshopMarket',
-    component: () => import('../views/WorkshopMarketView.vue'),
-    meta: { requiresLayout: true }
-  },
-  {
-    path: '/cloud-docs',
-    name: 'CloudDocuments',
-    component: () => import('../views/CloudDocumentsView.vue'),
-    meta: { requiresLayout: true }
-  },
+  ...(steamBuild
+    ? [
+        {
+          path: '/workshop-market',
+          name: 'WorkshopMarket',
+          component: () => import('../views/WorkshopMarketView.vue'),
+          meta: { requiresLayout: true }
+        },
+        {
+          path: '/cloud-docs',
+          name: 'CloudDocuments',
+          component: () => import('../views/CloudDocumentsView.vue'),
+          meta: { requiresLayout: true }
+        }
+      ]
+    : []),
   {
     path: '/user-feedback',
     name: 'UserFeedback',

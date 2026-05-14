@@ -23,6 +23,7 @@ import AgentReviewView from '../views/AgentReviewView.vue'
 import UserManual from '../views/UserManual.vue'
 import WorkshopMarketView from '../views/WorkshopMarketView.vue'
 import CloudDocumentsView from '../views/CloudDocumentsView.vue'
+import { isSteamEnabled } from '@common/build-env'
 
 function systemRouteKey(route: string): string {
   const q = route.indexOf('?')
@@ -32,6 +33,13 @@ function systemRouteKey(route: string): string {
   if (h >= 0) end = Math.min(end, h)
   return end < route.length ? route.slice(0, end) : route
 }
+
+const steamSystemTabEntries: Record<string, Component> = isSteamEnabled()
+  ? {
+      '/workshop-market': WorkshopMarketView,
+      '/cloud-docs': CloudDocumentsView
+    }
+  : {}
 
 export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   '/global-home': GlobalHome,
@@ -43,8 +51,7 @@ export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   '/user-manual': UserManual,
   '/user-feedback': UserFeedbackView,
   '/llm-statistics': LlmStatisticsView,
-  '/workshop-market': WorkshopMarketView,
-  '/cloud-docs': CloudDocumentsView
+  ...steamSystemTabEntries
 }
 
 export const TOOL_TAB_COMPONENTS: Record<string, Component> = {

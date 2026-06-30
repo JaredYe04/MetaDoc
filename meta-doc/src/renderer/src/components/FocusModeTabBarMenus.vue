@@ -152,6 +152,7 @@
 
       <!-- AI（含全页 Agent） -->
       <UISubMenu
+        v-if="api.isAiEnabled.value"
         :title="api.t('leftMenu.aiAssistant')"
         :tooltip="api.t('leftMenu.aiAssistant')"
         trigger="click"
@@ -170,41 +171,24 @@
           </template>
           {{ api.t('leftMenu.aiToolTooltip') }}
         </UISubMenuItem>
-        <UISubMenuItem :icon="MessageCircle" @click="onItem(() => api.emitMenu('ai-chat'))">
-          {{ api.t('leftMenu.chatWithAI') }}
+        <UISubMenuItem
+          v-for="item in api.pluginAiAssistantItems.value"
+          :key="item.id"
+          :icon="api.resolvePluginLeftMenuIcon(item.id)"
+          :icon-image="api.resolvePluginLeftMenuIconImage(item.id)"
+          @click="onItem(() => api.onPluginLeftMenuClick(item))"
+        >
+          {{ api.resolvePluginLeftMenuLabel(item) }}
         </UISubMenuItem>
         <UISubMenuItem
-          v-if="api.isMenuItemVisible('knowledge-base')"
+          v-if="api.isMenuItemVisible('knowledge-base') && api.pluginAiAssistantItems.value.length === 0"
           :icon-image="(themeState.currentTheme as any).KnowledgeIcon"
           @click="onItem(api.openKnowledgeBase)"
         >
           {{ api.t('leftMenu.knowledgeBase', '知识库') }}
         </UISubMenuItem>
-        <UISubMenuItem :icon="Pencil" @click="onItem(() => api.emitMenu('fomula-recognition'))">
-          {{ api.t('leftMenu.handwritingFormulaRecognition') }}
-        </UISubMenuItem>
         <UISubMenuItem
-          :icon="ImageIcon"
-          @click="onItem(() => api.emitMenu('smart-drawing-assistant'))"
-        >
-          {{ api.t('leftMenu.smartDrawingAssistant') }}
-        </UISubMenuItem>
-        <UISubMenuItem :icon="BarChart3" @click="onItem(() => api.emitMenu('data-analysis'))">
-          {{ api.t('leftMenu.dataAnalysis') }}
-        </UISubMenuItem>
-        <UISubMenuItem :icon="Eye" @click="onItem(() => api.emitMenu('ocr'))">
-          {{ api.t('leftMenu.ocr') }}
-        </UISubMenuItem>
-        <UISubMenuItem :icon="Paperclip" @click="onItem(() => api.emitMenu('attachment'))">
-          {{ api.t('leftMenu.attachment') }}
-        </UISubMenuItem>
-        <UISubMenuItem @click="onItem(() => api.emitMenu('aigc-detection'))">
-          <template #icon>
-            <img :src="(themeState.currentTheme as any).PenAiIcon" class="menu-title-icon" alt="" />
-          </template>
-          {{ api.t('leftMenu.aigcDetection') }}
-        </UISubMenuItem>
-        <UISubMenuItem
+          v-if="api.pluginAiAssistantItems.value.length === 0"
           :icon-image="(themeState.currentTheme as any).AgentIcon"
           @click="onItem(api.openAgent)"
         >

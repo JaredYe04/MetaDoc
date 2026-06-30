@@ -51,6 +51,19 @@ node e2e/run-electron.mjs --latex  # LaTeX 流程
 - 触发另存为后点击 LaTeX 工具栏「编译」
 - 等待编译结束，检查 PDF 预览区域，截图保存
 
+### OSS / llmEnabled 门控（`run-oss-gate.mjs`）
+
+```bash
+npm run test:e2e:oss        # 需已构建
+npm run test:e2e:oss:dev    # 缺构建时自动 electron-vite build
+```
+
+- 使用隔离 `userData` 目录，默认 `llmEnabled=false`
+- 断言 AI 运行时未加载、无 overlay/菜单贡献
+- 断言 `onStartup` 示例插件 `hello-world` 已激活
+- 在设置中开启 LLM → 断言插件贡献出现
+- 再次关闭 LLM → 断言贡献清零、无泄漏
+
 ## 参考
 
 - [Playwright - Electron](https://playwright.dev/docs/api/class-electron)

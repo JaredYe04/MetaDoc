@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     include: [
       'src/renderer/src/utils/**/*.test.ts',
+      'src/renderer/src/core/**/*.test.ts',
       'src/converter/**/*.test.ts',
       'src/main/utils/**/*.test.ts',
       'src/main/steam/**/*.test.ts'

@@ -40,62 +40,83 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { getSetting, settings } from '../utils/settings.js'
 import { themeState, mixColors } from '../utils/themes.js'
 import SettingBasicSection from './setting/SettingBasicSection.vue'
 import SettingLlmSection from './setting/SettingLlmSection.vue'
-import SettingKnowledgeBaseSection from './setting/SettingKnowledgeBaseSection.vue'
 import SettingThemeSection from './setting/SettingThemeSection.vue'
 import SettingShortcutsSection from './setting/SettingShortcutsSection.vue'
 import SettingLoggerSection from './setting/SettingLoggerSection.vue'
 import SettingImageSection from './setting/SettingImageSection.vue'
-// import SettingDebugSection from './setting/SettingDebugSection.vue';
 import SettingAboutSection from './setting/SettingAboutSection.vue'
+import SettingPluginsSection from './setting/SettingPluginsSection.vue'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import UIMenu from '@renderer/components/ui/UIMenu.vue'
 import UIMenuItem from '@renderer/components/ui/UIMenuItem.vue'
-import { isDevEnvironment } from '../utils/dev-env'
+import { pluginRegistry } from '../core/host-runtime'
+import { isAiRuntimeLoaded } from '../ai-runtime/loader'
+import eventBus from '../utils/event-bus'
 import '../assets/aero-btn.css'
 import '../assets/aero-div.css'
 import '../assets/modern-side-menu.css'
 
 const activeMenu = ref('basic')
-const isDev = ref(false)
+const pluginSettingsRevision = ref(0)
 
-const componentMap: Record<string, any> = {
+const baseComponentMap: Record<string, unknown> = {
   basic: SettingBasicSection,
   llm: SettingLlmSection,
-  knowledgeBase: SettingKnowledgeBaseSection,
   themes: SettingThemeSection,
   shortcuts: SettingShortcutsSection,
   images: SettingImageSection,
   logs: SettingLoggerSection,
-  // debug: SettingDebugSection,
+  plugins: SettingPluginsSection,
   about: SettingAboutSection
 }
 
+const baseMenuItems = [
+  { key: 'basic', label: 'setting.basic', order: 10 },
+  { key: 'llm', label: 'setting.llm', order: 20 },
+  { key: 'themes', label: 'setting.themes', order: 40 },
+  { key: 'shortcuts', label: 'setting.shortcuts.title', order: 50 },
+  { key: 'images', label: 'setting.image.title', order: 60 },
+  { key: 'logs', label: 'setting.logs', order: 70 },
+  { key: 'plugins', label: 'setting.plugins.title', order: 75 },
+  { key: 'about', label: 'setting.about.title', order: 90 }
+]
+
 const menuItems = computed(() => {
-  const items = [
-    { key: 'basic', label: 'setting.basic' },
-    { key: 'llm', label: 'setting.llm' },
-    { key: 'knowledgeBase', label: 'setting.knowledgeBase' },
-    { key: 'themes', label: 'setting.themes' },
-    { key: 'shortcuts', label: 'setting.shortcuts.title' },
-    { key: 'images', label: 'setting.image.title' },
-    { key: 'logs', label: 'setting.logs' },
-    { key: 'about', label: 'setting.about.title' }
-  ]
-
-  // // 仅在开发环境显示调试菜单
-  // if (isDev.value) {
-  //   items.push({ key: 'debug', label: 'setting.debug.title' });
-  // }
-
-  return items
+  pluginSettingsRevision.value
+  const merged = new Map(baseMenuItems.map((item) => [item.key, { ...item }]))
+  if (isAiRuntimeLoaded()) {
+    for (const section of pluginRegistry.settingsSections) {
+      merged.set(section.id, {
+        key: section.id,
+        label: section.label,
+        order: section.order ?? 35
+      })
+    }
+  }
+  return [...merged.values()].sort((a, b) => a.order - b.order)
 })
 
-const currentComponent = computed(() => componentMap[activeMenu.value] ?? SettingBasicSection)
+const componentMap = computed(() => {
+  pluginSettingsRevision.value
+  const map: Record<string, unknown> = { ...baseComponentMap }
+  for (const section of pluginRegistry.settingsSections) {
+    map[section.id] = section.component
+  }
+  return map
+})
+
+const currentComponent = computed(
+  () => componentMap.value[activeMenu.value] ?? SettingBasicSection
+)
+
+const onPluginSettingsRuntimeChange = () => {
+  pluginSettingsRevision.value++
+}
 
 // 计算选中状态的背景色和文字色（与 HeadMenu 保持一致）
 const activeBackgroundColor = computed(() =>
@@ -126,9 +147,14 @@ const fetchSettings = async () => {
 }
 
 onMounted(async () => {
-  fetchSettings()
-  // 检查是否为开发环境
-  isDev.value = await isDevEnvironment()
+  eventBus.on('ai-runtime-ready', onPluginSettingsRuntimeChange)
+  eventBus.on('ai-runtime-unloaded', onPluginSettingsRuntimeChange)
+  await fetchSettings()
+})
+
+onBeforeUnmount(() => {
+  eventBus.off('ai-runtime-ready', onPluginSettingsRuntimeChange)
+  eventBus.off('ai-runtime-unloaded', onPluginSettingsRuntimeChange)
 })
 </script>
 

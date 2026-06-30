@@ -125,30 +125,8 @@
       </CardContent>
     </Card>
 
-    <LlmSteamCloudPanel v-if="settings.llmEnabled && showSteamMinimalLlm" />
-
-    <Card v-if="settings.llmEnabled && showSteamDeveloperModeSwitch" class="mb-6">
-      <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium text-muted-foreground">{{
-          t('setting.llmSteamCloud.developerModeTitle')
-        }}</CardTitle>
-      </CardHeader>
-      <CardContent class="pt-0">
-        <div class="flex items-center justify-between gap-4">
-          <div class="min-w-0 space-y-0.5">
-            <Label class="text-sm font-normal">{{ t('setting.llmSteamCloud.developerModeLabel') }}</Label>
-            <p class="text-xs text-muted-foreground">{{ t('setting.llmSteamCloud.developerModeHint') }}</p>
-          </div>
-          <Switch
-            :checked="settings.steamDeveloperBypassByok === true"
-            @update:checked="onSteamDeveloperBypassChange"
-          />
-        </div>
-      </CardContent>
-    </Card>
-
     <!-- 配置管理区域：网格+卡片 -->
-    <div v-if="settings.llmEnabled && showLegacyLlmGrid" class="llm-config-grid-wrap">
+    <div v-if="settings.llmEnabled" class="llm-config-grid-wrap">
       <Card class="config-grid-card">
         <CardHeader class="pb-3 flex flex-row items-center justify-between">
           <CardTitle class="text-sm font-medium">{{ t('setting.llmConfigList') }}</CardTitle>
@@ -863,7 +841,7 @@
     </div>
 
     <!-- 手动LLM界面对话框 -->
-    <Dialog v-show="showLegacyLlmGrid" v-model:open="manualLLMDialogVisible">
+    <Dialog v-model:open="manualLLMDialogVisible">
       <DialogContent class="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>{{ t('setting.manualLLMInterface') }}</DialogTitle>
@@ -922,11 +900,7 @@ import { useI18n } from 'vue-i18n'
 import { settings, setSetting, getSetting } from '../../utils/settings.js'
 import eventBus from '../../utils/event-bus.js'
 import { getMetaDocLlmModels } from '../../utils/web-utils.ts'
-import { isSteamDistribution, isSteamEnabled, isSteamReviewLockEnabled } from '@common/build-env'
-import { getDevAiPipelineMode } from '../../utils/dev-ai-pipeline'
-import { getSteamUiTrayReady } from '../../utils/steam-ui-ready'
-import { steamOfficialCloudEligible } from '../../utils/steam-official-cloud-eligible'
-import LlmSteamCloudPanel from './LlmSteamCloudPanel.vue'
+import { isSteamDistribution, isSteamReviewLockEnabled } from '@common/build-env'
 import { createRendererLogger } from '../../utils/logger.ts'
 import { isDevEnvironment } from '../../utils/dev-env'
 import { ai_types, createAiTask, cancelAiTask } from '../../utils/ai_tasks.ts'
@@ -1048,55 +1022,7 @@ const SHOW_METADOC_LLM_PROVIDER = false
 const steamDistributionBuild = isSteamDistribution()
 const steamReviewLockEnabled = isSteamReviewLockEnabled()
 const forceOfficialSteamCloudForReview = steamDistributionBuild && steamReviewLockEnabled
-const showMetadocLlmProvider = computed(
-  () => SHOW_METADOC_LLM_PROVIDER || steamDistributionBuild
-)
-
-/** DEV 切换 AI 链路时强制重算 */
-const pipelineRefresh = ref(0)
-/** 与左下角 Steam 托盘一致：运行时已接入 Steam 且能拉取资料时，设置页走官方云卡片而非自建 Key 网格 */
-const steamUiTrayReady = ref(false)
-let steamReadyPollTimer: ReturnType<typeof setInterval> | null = null
-
-async function refreshSteamUiTrayReady() {
-  steamUiTrayReady.value = await getSteamUiTrayReady()
-  steamOfficialCloudEligible.value =
-    isSteamEnabled() && (steamDistributionBuild || steamUiTrayReady.value)
-}
-
-const showSteamMinimalLlm = computed(() => {
-  void pipelineRefresh.value
-  void steamUiTrayReady.value
-  void steamOfficialCloudEligible.value
-  void settings.steamDeveloperBypassByok
-  if (forceOfficialSteamCloudForReview) {
-    return true
-  }
-  if (settings.steamDeveloperBypassByok === true) {
-    return false
-  }
-  const devLegacy = import.meta.env.DEV && getDevAiPipelineMode() === 'legacy'
-  if (devLegacy) {
-    return false
-  }
-  if (steamOfficialCloudEligible.value) {
-    return true
-  }
-  return import.meta.env.DEV && getDevAiPipelineMode() === 'steam_cloud'
-})
-
-const showSteamDeveloperModeSwitch = computed(() => {
-  if (isDemo.value) {
-    return false
-  }
-  if (forceOfficialSteamCloudForReview) {
-    return false
-  }
-  void steamUiTrayReady.value
-  return steamDistributionBuild || steamUiTrayReady.value
-})
-
-const showLegacyLlmGrid = computed(() => !showSteamMinimalLlm.value)
+const showMetadocLlmProvider = computed(() => SHOW_METADOC_LLM_PROVIDER)
 
 const ollamaModels = ref<OllamaModel[]>([])
 const openaiModels = ref<OpenAIModel[]>([])
@@ -2057,6 +1983,7 @@ const handleLlmToggle = (enabled: boolean) => {
     settings.selectedLlm = ''
   }
   setSetting('llmEnabled', enabled)
+  eventBus.emit('ai-runtime-toggle')
 }
 
 const loadConfigs = () => {
@@ -2341,11 +2268,6 @@ onMounted(async () => {
     return
   }
 
-  if (forceOfficialSteamCloudForReview && settings.steamDeveloperBypassByok === true) {
-    settings.steamDeveloperBypassByok = false
-    await setSetting('steamDeveloperBypassByok', false)
-  }
-
   isDev.value = await isDevEnvironment()
   await loadLlmConfigs()
   loadConfigs()
@@ -2368,51 +2290,10 @@ onMounted(async () => {
   }
 
   eventBus.on('llm-config-updated', loadConfigs)
-  eventBus.on('metadoc-dev-ai-pipeline-changed', bumpPipelineUi)
-
-  void refreshSteamUiTrayReady()
-  let n = 0
-  steamReadyPollTimer = setInterval(() => {
-    void refreshSteamUiTrayReady()
-    n++
-    if (steamUiTrayReady.value || n >= 15) {
-      if (steamReadyPollTimer) {
-        clearInterval(steamReadyPollTimer)
-        steamReadyPollTimer = null
-      }
-    }
-  }, 2000)
 })
 
-function bumpPipelineUi() {
-  pipelineRefresh.value++
-}
-
-async function onSteamDeveloperBypassChange(v: boolean) {
-  if (v) {
-    try {
-      await messageBox.confirm(
-        t('setting.llmSteamCloud.developerModeConfirmBody'),
-        t('setting.llmSteamCloud.developerModeConfirmTitle'),
-        { type: 'warning' }
-      )
-    } catch {
-      return
-    }
-  }
-  settings.steamDeveloperBypassByok = v
-  await setSetting('steamDeveloperBypassByok', v)
-  pipelineRefresh.value++
-  eventBus.emit('metadoc-dev-ai-pipeline-changed')
-}
-
 onBeforeUnmount(() => {
-  if (steamReadyPollTimer) {
-    clearInterval(steamReadyPollTimer)
-    steamReadyPollTimer = null
-  }
   eventBus.off('llm-config-updated', loadConfigs)
-  eventBus.off('metadoc-dev-ai-pipeline-changed', bumpPipelineUi)
 })
 </script>
 

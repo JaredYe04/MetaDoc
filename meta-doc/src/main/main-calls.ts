@@ -963,75 +963,75 @@ function bindFileHandlers(): void {
               break
             }
             try {
-            // 使用 form-data 创建上传请求
-            const formData = new FormData()
-            formData.append('file[]', imageBuffer, {
-              filename: imageName,
-              contentType: imageName.endsWith('.png')
-                ? 'image/png'
-                : imageName.endsWith('.jpg') || imageName.endsWith('.jpeg')
-                  ? 'image/jpeg'
-                  : imageName.endsWith('.gif')
-                    ? 'image/gif'
-                    : imageName.endsWith('.svg')
-                      ? 'image/svg+xml'
-                      : 'application/octet-stream'
-            })
+              // 使用 form-data 创建上传请求
+              const formData = new FormData()
+              formData.append('file[]', imageBuffer, {
+                filename: imageName,
+                contentType: imageName.endsWith('.png')
+                  ? 'image/png'
+                  : imageName.endsWith('.jpg') || imageName.endsWith('.jpeg')
+                    ? 'image/jpeg'
+                    : imageName.endsWith('.gif')
+                      ? 'image/gif'
+                      : imageName.endsWith('.svg')
+                        ? 'image/svg+xml'
+                        : 'application/octet-stream'
+              })
 
-            // 通过 HTTP 接口上传图片
-            // 使用 keepName=1 参数保持原始文件名（避免时间戳前缀）
-            const uploadResult = await new Promise<{
-              success: boolean
-              fileName?: string
-              error?: string
-            }>((resolve) => {
-              const options = {
-                hostname: getRuntimeServerHost(),
-                port: getRuntimeServerPort(),
-                path: '/api/image/upload?keepName=1',
-                method: 'POST',
-                headers: formData.getHeaders()
-              }
+              // 通过 HTTP 接口上传图片
+              // 使用 keepName=1 参数保持原始文件名（避免时间戳前缀）
+              const uploadResult = await new Promise<{
+                success: boolean
+                fileName?: string
+                error?: string
+              }>((resolve) => {
+                const options = {
+                  hostname: getRuntimeServerHost(),
+                  port: getRuntimeServerPort(),
+                  path: '/api/image/upload?keepName=1',
+                  method: 'POST',
+                  headers: formData.getHeaders()
+                }
 
-              const req = http.request(options, (res) => {
-                let data = ''
-                res.on('data', (chunk) => {
-                  data += chunk
-                })
-                res.on('end', () => {
-                  try {
-                    const result = JSON.parse(data)
-                    if (result.code === 0 && result.data && result.data.succMap) {
-                      const uploadedFileName = Object.keys(result.data.succMap)[0]
-                      resolve({ success: true, fileName: uploadedFileName })
-                    } else {
-                      resolve({ success: false, error: result.msg || '上传失败' })
+                const req = http.request(options, (res) => {
+                  let data = ''
+                  res.on('data', (chunk) => {
+                    data += chunk
+                  })
+                  res.on('end', () => {
+                    try {
+                      const result = JSON.parse(data)
+                      if (result.code === 0 && result.data && result.data.succMap) {
+                        const uploadedFileName = Object.keys(result.data.succMap)[0]
+                        resolve({ success: true, fileName: uploadedFileName })
+                      } else {
+                        resolve({ success: false, error: result.msg || '上传失败' })
+                      }
+                    } catch (error) {
+                      resolve({ success: false, error: '解析响应失败' })
                     }
-                  } catch (error) {
-                    resolve({ success: false, error: '解析响应失败' })
-                  }
+                  })
                 })
+
+                req.on('error', (error) => {
+                  resolve({ success: false, error: error.message })
+                })
+
+                formData.pipe(req)
               })
 
-              req.on('error', (error) => {
-                resolve({ success: false, error: error.message })
-              })
-
-              formData.pipe(req)
-            })
-
-            if (uploadResult.success && uploadResult.fileName) {
-              // 构造图片URL
-              const imageUrl = `${getRuntimeServerBaseUrl()}/images/${uploadResult.fileName}`
-              // 使用原始图片名称作为 key，URL 作为 value
-              // 这样可以在后续替换 Markdown 时使用原始名称匹配
-              imageUrlMap.set(imageName, imageUrl)
-            } else {
-              logger.error(`上传图片 ${imageName} 失败:`, uploadResult.error)
-              // 即使上传失败，也尝试使用原始名称构造 URL（降级处理）
-              const fallbackUrl = `${getRuntimeServerBaseUrl()}/images/${imageName}`
-              imageUrlMap.set(imageName, fallbackUrl)
-            }
+              if (uploadResult.success && uploadResult.fileName) {
+                // 构造图片URL
+                const imageUrl = `${getRuntimeServerBaseUrl()}/images/${uploadResult.fileName}`
+                // 使用原始图片名称作为 key，URL 作为 value
+                // 这样可以在后续替换 Markdown 时使用原始名称匹配
+                imageUrlMap.set(imageName, imageUrl)
+              } else {
+                logger.error(`上传图片 ${imageName} 失败:`, uploadResult.error)
+                // 即使上传失败，也尝试使用原始名称构造 URL（降级处理）
+                const fallbackUrl = `${getRuntimeServerBaseUrl()}/images/${imageName}`
+                imageUrlMap.set(imageName, fallbackUrl)
+              }
             } catch (error) {
               logger.error(`上传图片 ${imageName} 失败:`, error)
             }

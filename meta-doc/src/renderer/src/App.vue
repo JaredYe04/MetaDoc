@@ -8,13 +8,6 @@
       }"
     >
       <FirstRunWizard v-if="firstRunWizardVisible" @completed="onFirstRunWizardCompleted" />
-      <SteamLocaleConflictDialog
-        v-if="steamLocaleConflict"
-        v-model:open="steamLocaleConflictOpen"
-        :steam-locale="steamLocaleConflict.steamLocale"
-        :app-locale="steamLocaleConflict.appLocale"
-        @resolved="onSteamLocaleConflictResolved"
-      />
       <!-- 布局仅在需要时显示 -->
       <Main v-if="requiresLayout" />
       <!-- 如果不需要布局，则直接渲染路由页面 -->
@@ -27,7 +20,6 @@
       <NotificationStack />
       <!-- 全局终端执行确认弹窗（不依赖 Agent 是否渲染 Display 组件） -->
       <TerminalApprovalDialog />
-      <WorkshopPublishDocumentDialog />
     </div>
   </TooltipProvider>
 </template>
@@ -52,7 +44,6 @@ import {
   initNonCriticalSettings,
   prepareFirstRunWizardOnStartup
 } from './utils/settings'
-import { refreshSteamOfficialCloudEligible } from './utils/steam-official-cloud-eligible'
 import { themeState, applyTheme } from './utils/themes'
 import { clearAiTasks } from './utils/ai_tasks'
 import { useI18n } from 'vue-i18n'
@@ -61,7 +52,6 @@ import { createRendererLogger } from './utils/logger'
 import { initMonacoEnvironment } from './utils/monaco-worker-config'
 import { initMonacoGlobalTheme } from './utils/monaco-global-theme'
 import { getRuntimeServerBaseUrl } from './config/runtime-server'
-import { aiCompletionService } from './utils/ai-completion-service'
 import { useWorkspace } from './stores/workspace'
 import { useAgentWorkspaceStore } from './stores/agent-workspace-store'
 import { useGlobalShortcuts } from './composables/useGlobalShortcuts'
@@ -70,8 +60,6 @@ import './assets/hide-native-scrollbar.css'
 import NotificationStack from './components/NotificationStack.vue'
 import TerminalApprovalDialog from './components/global/TerminalApprovalDialog.vue'
 import FirstRunWizard from './components/onboarding/FirstRunWizard.vue'
-import SteamLocaleConflictDialog from './components/onboarding/SteamLocaleConflictDialog.vue'
-import WorkshopPublishDocumentDialog from './components/workshop/WorkshopPublishDocumentDialog.vue'
 import messageBridge from './bridge/message-bridge'
 import { useNotificationStore } from './stores/notification'
 import { setNotificationStore } from './utils/notify'
@@ -91,15 +79,9 @@ const globalShortcuts = useGlobalShortcuts({ workspace, t })
 const requiresLayout = computed(() => route.meta.requiresLayout !== false)
 const initialLoad = ref(true)
 const firstRunWizardVisible = ref(false)
-const steamLocaleConflict = ref<{ steamLocale: string; appLocale: string } | null>(null)
-const steamLocaleConflictOpen = ref(false)
 
 function onFirstRunWizardCompleted() {
   firstRunWizardVisible.value = false
-}
-
-function onSteamLocaleConflictResolved() {
-  steamLocaleConflict.value = null
 }
 
 /**
@@ -109,20 +91,6 @@ function onSteamLocaleConflictResolved() {
 const cleanupGlobalListeners: (() => void)[] = []
 
 function initGlobalEventListeners() {
-  // AI补全延迟相关事件监听（全局，与编辑器适配器无关）
-  eventBus.on('ai-completion-delay', (minutes: unknown) => {
-    aiCompletionService.delay(typeof minutes === 'number' ? minutes : 5)
-  })
-
-  eventBus.on('ai-completion-cancel-delay', () => {
-    aiCompletionService.cancelDelay()
-  })
-
-  // AI补全取消事件（全局，与编辑器适配器无关）
-  eventBus.on('cancel-suggestion', () => {
-    aiCompletionService.cancelCurrentCompletion()
-  })
-
   // 监听语言切换事件（全局）：异步加载语言包并切换 locale
   eventBus.on('lang-changed', (lang: unknown) => {
     const langStr = typeof lang === 'string' ? lang : 'zh_CN'
@@ -145,9 +113,6 @@ function initGlobalEventListeners() {
 
   // 清理函数
   cleanupGlobalListeners.push(
-    () => eventBus.off('ai-completion-delay'),
-    () => eventBus.off('ai-completion-cancel-delay'),
-    () => eventBus.off('cancel-suggestion'),
     () => eventBus.off('lang-changed'),
     () => eventBus.off('sync-theme'),
     () => eventBus.off('refresh-template-formats'),
@@ -353,28 +318,11 @@ onMounted(async () => {
 
   // 先加载关键设置（主题相关等，需要在窗口显示前完成）
   await initCriticalSettings()
-  await refreshSteamOfficialCloudEligible()
 
   if (isMainWindow()) {
     const needWizard = await prepareFirstRunWizardOnStartup()
     if (needWizard) {
       firstRunWizardVisible.value = true
-    } else {
-      try {
-        const pr = await messageBridge.invoke('steam:startup-locale:get-pending')
-        if (
-          pr &&
-          typeof pr === 'object' &&
-          pr.pending &&
-          typeof pr.pending.steamLocale === 'string' &&
-          typeof pr.pending.appLocale === 'string'
-        ) {
-          steamLocaleConflict.value = pr.pending
-          steamLocaleConflictOpen.value = true
-        }
-      } catch (e) {
-        logger.debug('steam startup locale pending check skipped', e)
-      }
     }
   }
 

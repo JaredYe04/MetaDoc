@@ -2,23 +2,14 @@
   <div class="main-container">
     <div class="content-container">
       <!-- 菜单组件 -->
-      <SectionOptimizer
-        v-if="showSectionOptimizer"
-        :title="currentSectionTitle"
-        :position="sectionOptimizerPosition"
-        :path="currentTitlePath"
-        :tree="extractOutlineTreeFromLatex(currentTex, true)"
-        :adapter="sectionOptimizerAdapter"
-        :sectionInfo="currentSectionInfo"
-        language="latex"
-        @close="handleSectionOptimizerClose"
-        @accept="
-          async (payload) => {
-            await acceptGeneratedText(payload)
-          }
-        "
-        @prompt-contextmenu="openContextMenu"
-      />
+      <template v-for="acc in editorAccessories" :key="acc.id">
+        <component
+          :is="acc.component"
+          v-if="isAccessoryVisible(acc.id)"
+          v-bind="getAccessoryProps(acc.id)"
+          v-on="getAccessoryListeners(acc.id)"
+        />
+      </template>
       <!-- 保留TitleMenu以兼容旧代码 -->
       <TitleMenu
         v-if="showTitleMenu"
@@ -51,20 +42,6 @@
         class="context-menu"
         @close="contextMenuVisible = false"
       />
-      <GraphQuickDialog
-        v-model:open="graphQuickDialogOpen"
-        :selection-text="graphQuickSelection"
-        document-kind="tex"
-        :document-title="graphQuickDocumentTitle"
-        :source-tab-id="props.tabId"
-      />
-      <SelectionTranslateDialog
-        v-model:open="selectionTranslateOpen"
-        :source-text="selectionTranslateText"
-        document-kind="latex"
-        :source-tab-id="props.tabId || ''"
-        @apply-replace="onSelectionTranslateReplace"
-      />
       <ExportOptionsDialog
         v-model="showCompileOptionsDialog"
         :adapter="texPdfCompileAdapter"
@@ -73,13 +50,17 @@
         dialog-title-key="latexEditor.compiler.optionsDialogTitle"
         @confirm="onCompileOptionsConfirm"
       />
-      <AISuggestionGhost
-        :key="editorKey"
-        :editorId="editorId"
-        format="tex"
-        @accepted="onAcceptSuggestion"
-        @cancelled="onCancelSuggestion"
-      />
+      <template v-for="overlay in editorOverlays" :key="overlay.id">
+        <component
+          :is="overlay.component"
+          v-if="overlay.id === 'ai-suggestion-ghost'"
+          :key="editorKey"
+          :editorId="editorId"
+          format="tex"
+          @accepted="onAcceptSuggestion"
+          @cancelled="onCancelSuggestion"
+        />
+      </template>
 
       <div class="latex-layout">
         <div class="latex-main" ref="mainContainerRef">
@@ -310,7 +291,6 @@ import { extractOutlineTreeFromMarkdown } from '../utils/md-utils'
 import { extractOutlineTreeFromLatex } from '../utils/latex-utils'
 import { getOutlineAdapter } from '../utils/outline-adapters'
 import TitleMenu from '../components/TitleMenu.vue'
-import SectionOptimizer from '../components/SectionOptimizer.vue'
 import { LaTeXSectionAdapter } from '../components/section-optimizer/adapters/latex-adapter'
 import type { SectionInfo } from '../components/section-optimizer/types'
 import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
@@ -319,15 +299,21 @@ import AiLogoWhite from '../assets/ai-logo-white.svg'
 import { themeState } from '../utils/themes'
 import { getSetting, setSetting } from '../utils/settings'
 import { useI18n } from 'vue-i18n'
-import AISuggestionGhost from '../components/AISuggestionGhost.vue'
-import { aiCompletionService } from '../utils/ai-completion-service'
+import { useEditorOverlays } from '../composables/useEditorOverlays'
+import { useEditorAccessories } from '../composables/useEditorAccessories'
+import { findPluginContextMenuItem } from '../utils/plugin-contributions-ui'
+import {
+  cancelEditorCompletion,
+  handleEditorCompletionMouseClick,
+  removeEditorCompletionAdapter,
+  setEditorCompletionAdapter,
+  triggerEditorCompletion
+} from '../utils/editor-completion-bridge'
 import { MonacoEditorAdapter } from '../utils/editor-adapters'
 import '../assets/ai-suggestion.css'
 import ResizableContainer from '../components/base/ResizableContainer.vue'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
-import GraphQuickDialog from '../components/GraphQuickDialog.vue'
-import SelectionTranslateDialog from '../components/SelectionTranslateDialog.vue'
 import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
 import XtermConsoleLatex from '../components/XtermConsoleLatex.vue'
 import ExportOptionsDialog from '../components/ExportOptionsDialog.vue'
@@ -411,6 +397,8 @@ const props = defineProps({
 // Demo mode support
 const isDemo = computed(() => props.mode === 'demo')
 const isActive = computed(() => props.active)
+const { overlays: editorOverlays } = useEditorOverlays('tex')
+const { accessories: editorAccessories } = useEditorAccessories('tex')
 
 const workspace = useWorkspace()
 const documentRef = computed(() => workspace.ensureDocument(props.tabId))
@@ -565,6 +553,78 @@ const openSectionOptimizerFromContext = async () => {
 const handleSectionOptimizerClose = () => {
   showSectionOptimizer.value = false
   sectionOptimizerAdapter.value = null
+}
+
+function isAccessoryVisible(id: string): boolean {
+  switch (id) {
+    case 'section-optimizer':
+      return showSectionOptimizer.value
+    case 'graph-quick':
+    case 'selection-translate':
+      return true
+    default:
+      return false
+  }
+}
+
+function getAccessoryProps(id: string): Record<string, unknown> {
+  switch (id) {
+    case 'section-optimizer':
+      return {
+        title: currentSectionTitle.value,
+        position: sectionOptimizerPosition.value,
+        path: currentTitlePath.value,
+        tree: extractOutlineTreeFromLatex(currentTex.value, true),
+        adapter: sectionOptimizerAdapter.value,
+        sectionInfo: currentSectionInfo.value,
+        language: 'latex'
+      }
+    case 'graph-quick':
+      return {
+        open: graphQuickDialogOpen.value,
+        selectionText: graphQuickSelection.value,
+        documentKind: 'tex',
+        documentTitle: graphQuickDocumentTitle.value,
+        sourceTabId: props.tabId
+      }
+    case 'selection-translate':
+      return {
+        open: selectionTranslateOpen.value,
+        sourceText: selectionTranslateText.value,
+        documentKind: 'latex',
+        sourceTabId: props.tabId || ''
+      }
+    default:
+      return {}
+  }
+}
+
+function getAccessoryListeners(id: string): Record<string, (...args: unknown[]) => void> {
+  switch (id) {
+    case 'section-optimizer':
+      return {
+        close: handleSectionOptimizerClose,
+        accept: async (payload: unknown) => {
+          await acceptGeneratedText(payload)
+        },
+        'prompt-contextmenu': openContextMenu
+      }
+    case 'graph-quick':
+      return {
+        'update:open': (v: unknown) => {
+          graphQuickDialogOpen.value = v === true
+        }
+      }
+    case 'selection-translate':
+      return {
+        'update:open': (v: unknown) => {
+          selectionTranslateOpen.value = v === true
+        },
+        'apply-replace': onSelectionTranslateReplace
+      }
+    default:
+      return {}
+  }
 }
 const handleSearchReplaceClose = () => {
   searchReplaceDialogVisible.value = false
@@ -3495,19 +3555,20 @@ const handleMenuClick = async (item: string) => {
       graphQuickDialogOpen.value = true
       break
     }
-    case 'trigger-auto-completion':
-      // 手动触发AI补全
-      if (aiCompletionService.getAdapter()) {
-        aiCompletionService.triggerCompletion('manual')
-      } else {
-        // 如果适配器不存在，先创建
-        if (editorId.value) {
-          const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
-          aiCompletionService.setAdapter(adapter)
-          aiCompletionService.triggerCompletion('manual')
-        }
+    case 'trigger-auto-completion': {
+      if (editorId.value) {
+        const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
+        triggerEditorCompletion('manual', { setupAdapter: adapter })
       }
       break
+    }
+    default: {
+      const pluginItem = findPluginContextMenuItem(item)
+      if (pluginItem && props.tabId) {
+        await pluginItem.onClick({ tabId: props.tabId })
+      }
+      break
+    }
   }
   await refreshContextMenu()
   contextMenuVisible.value = false
@@ -4156,7 +4217,7 @@ const initEditor = () => {
 
   // 设置编辑器适配器（必须在内容变化监听之前设置）
   const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
-  aiCompletionService.setAdapter(adapter)
+  setEditorCompletionAdapter(adapter)
 
   //editor.value.onKeyDown((e)=>logger.log(e));
   // 增量监听
@@ -4212,16 +4273,13 @@ const initEditor = () => {
       }
 
       // 确保适配器已设置（双重保险）
-      if (!aiCompletionService.getAdapter()) {
-        const adapter = new MonacoEditorAdapter(editorId.value ?? '', () => isActive.value)
-        aiCompletionService.setAdapter(adapter)
+      if (editorId.value) {
+        const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
+        setEditorCompletionAdapter(adapter)
       }
 
-      // 用户继续打字时，立即取消当前补全
-      aiCompletionService.cancelCurrentCompletion()
-
-      // 触发AI补全（使用双层防抖，自动检测关键字符）
-      aiCompletionService.triggerCompletion('input')
+      cancelEditorCompletion()
+      triggerEditorCompletion('input')
     }
   )
   const debounceSync = debounce(() => {
@@ -4242,7 +4300,7 @@ const initEditor = () => {
   editor.value.onMouseDown((e: monaco.editor.IEditorMouseEvent) => {
     // 只处理左键点击（button === 0），右键点击（button === 2）不处理
     if (e.event.browserEvent.button === 0) {
-      aiCompletionService.handleMouseClick()
+      handleEditorCompletionMouseClick()
     }
   })
 
@@ -4255,7 +4313,7 @@ const initEditor = () => {
     if (e.shiftKey && e.keyCode === monaco.KeyCode.Tab) {
       e.preventDefault()
       e.stopPropagation()
-      aiCompletionService.triggerCompletion('manual')
+      triggerEditorCompletion('manual')
       return
     }
 
@@ -4279,12 +4337,12 @@ const initEditor = () => {
 
     if (key) {
       // 用户继续打字时，立即取消当前补全
-      aiCompletionService.cancelCurrentCompletion()
+      cancelEditorCompletion()
       // 触发补全（按键触发）
-      aiCompletionService.triggerCompletion('key', key)
+      triggerEditorCompletion('key', { key })
     } else {
       // 其他按键：用户继续打字，立即取消补全
-      aiCompletionService.cancelCurrentCompletion()
+      cancelEditorCompletion()
     }
   })
 
@@ -4519,7 +4577,7 @@ onUnmounted(() => {
   removeScrollListener()
 
   // 移除编辑器适配器
-  aiCompletionService.removeAdapter()
+  removeEditorCompletionAdapter()
 
   // 清理内容变化监听器
   if (contentChangeListener) {

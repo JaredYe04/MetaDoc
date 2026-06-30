@@ -1,13 +1,14 @@
 import { ref } from 'vue'
+import { isSteamEnabled } from '@common/build-env'
 
-/** 全局「发布文档模板」对话框是否打开 */
+/** 全局「发布文档模板」对话框是否打开（仅 Steam 构建；完整实现见 archived/steam/renderer/） */
 export const workshopPublishDocumentDialogOpen = ref(false)
 
 /**
- * 打开发布对话框。可选传入用户模板 id 以预填表单。
- * 与系统 Tab 解耦，由 App 根级挂载的 Dialog 消费。
+ * 打开发布对话框。开源版为 no-op；Steam 实现见 archived/steam/renderer/utils/workshop-publish-document-dialog.ts
  */
 export function openWorkshopPublishDocumentDialog(opts?: { userTemplateId?: string }): void {
+  if (!isSteamEnabled()) return
   workshopPublishDocumentDialogPresetUserTemplateId.value = opts?.userTemplateId
   workshopPublishDocumentDialogOpenNonce.value += 1
   workshopPublishDocumentDialogOpen.value = true

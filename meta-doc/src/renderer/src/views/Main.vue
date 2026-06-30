@@ -66,18 +66,16 @@
     <!-- 固定底部菜单 -->
     <!-- 固定的底部状态栏 -->
 
-    <AITaskQueue />
+    <component
+      v-for="overlay in aiShellOverlays"
+      :key="overlay.id"
+      :is="overlay.component"
+    />
     <LoggerConsolePanel />
     <TabSwitcherOverlay />
 
-    <!-- LLM API 错误全局对话框（仅弹一次，可关闭/不再提示/跳转手册） -->
-    <LlmApiErrorDialog
-      v-model:open="llmApiErrorDialogOpen"
-      :payload="llmApiErrorDialogPayload"
-      :dont-show-checked="llmApiErrorDialogDontShowChecked"
-      @dont-show-again="handleLlmApiErrorDialogDontShowAgain"
-    />
 
+    <!-- LLM API 错误由 AI 插件 shell overlay 提供（llm-api-error-dialog） -->
     <!-- 文件冲突对话框 -->
     <FileConflictDialog
       v-if="fileConflictData"
@@ -182,11 +180,11 @@ import ViewMenuContainer from '../components/ViewMenuContainer.vue'
 import ViewMenuContainerFocus from '../components/ViewMenuContainerFocus.vue'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import BottomMenu from '../components/BottomMenu.vue'
-import AITaskQueue from '../components/AITaskQueue.vue'
 import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
 import FileConflictDialog from '../components/FileConflictDialog.vue'
-import LlmApiErrorDialog from '../components/LlmApiErrorDialog.vue'
 import TabContentRenderer from '../components/TabContentRenderer.vue'
+import { pluginRegistry } from '../core/host-runtime'
+import { isAiRuntimeLoaded } from '../ai-runtime/loader'
 // ============================================================================
 // 导入工具和库
 // ============================================================================
@@ -272,6 +270,12 @@ function seedEmptyWorkspaceFoldersLocalStorage(parentDirNormalized: string) {
   }
 }
 const workspace = useWorkspace()
+const aiRuntimeReady = ref(isAiRuntimeLoaded())
+const aiShellOverlays = computed(() =>
+  aiRuntimeReady.value
+    ? pluginRegistry.shellOverlays.filter((o) => o.position === 'main')
+    : []
+)
 const notificationStore = useNotificationStore()
 const tabSwitcher = useTabSwitcher()
 const { checkCanCloseTab, doRemoveTab } = useCloseTab()
@@ -1902,6 +1906,12 @@ watch(activeTabId, (_, oldId) => {
 
 onMounted(async () => {
   initMainEventListeners()
+  eventBus.on('ai-runtime-ready', () => {
+    aiRuntimeReady.value = true
+  })
+  eventBus.on('ai-runtime-unloaded', () => {
+    aiRuntimeReady.value = false
+  })
   eventBus.emit('llm-api-updated')
   const token = localStorage.getItem('loginToken')
   if (token) {

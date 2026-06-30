@@ -1,6 +1,7 @@
 <template>
   <div class="agent-capabilities-manager" :style="containerStyle">
     <div
+      v-if="isSteamEnabled()"
       class="flex flex-wrap gap-2 mb-3 items-center text-xs border-b pb-3"
       :style="{ borderColor: themeState.currentTheme.borderColor }"
     >
@@ -543,6 +544,7 @@ import { Textarea } from '@renderer/components/ui/textarea'
 import { FormField } from '@renderer/components/ui/form'
 import { steamSyncPullAgentPack, steamSyncPushAgentPack } from '../../../services/steam-client'
 import { openWorkshopPublishDocumentDialog } from '../../../utils/workshop-publish-document-dialog'
+import { isSteamEnabled } from '@common/build-env'
 
 const { t } = useI18n()
 

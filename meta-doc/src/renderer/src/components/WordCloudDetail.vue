@@ -109,6 +109,7 @@ const props = defineProps({
 const emit = defineEmits(['accept', 'close'])
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks'
+import { settings } from '../utils/settings'
 import type { AIDialogMessage } from '@/types'
 const { t } = useI18n()
 
@@ -116,6 +117,12 @@ const handleClose = () => {
   emit('close')
 }
 const generate = async () => {
+  if (settings.llmEnabled !== true) {
+    generatedText.value = t('knowledgeBase.aiDisabledMessage')
+    generated.value = true
+    generating.value = false
+    return
+  }
   generating.value = true
 
   let contexts: string[] = []

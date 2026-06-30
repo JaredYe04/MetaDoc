@@ -129,25 +129,27 @@
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <span class="status-divider">|</span>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <span class="ai-task-menu" @click.prevent="eventBus.emit('toggle-ai-task-queue')">
-              <img
-                :src="themeState.currentTheme.AiLogo"
-                alt="AI"
-                :class="{ 'ai-logo-rotating': hasRunningCompletionTask }"
-              />
-              <span class="ai-task-label">{{ $t('bottomMenu.aiTaskQueueLabel') }}</span>
-              <span v-if="tasks.length > 0" class="ai-task-count">{{ tasks.length }}</span>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            <p>{{ $t('bottomMenu.aiTaskQueueTooltip') }}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <template v-if="isAiEnabled">
+        <span class="status-divider">|</span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <span class="ai-task-menu" @click.prevent="eventBus.emit('toggle-ai-task-queue')">
+                <img
+                  :src="themeState.currentTheme.AiLogo"
+                  alt="AI"
+                  :class="{ 'ai-logo-rotating': hasRunningCompletionTask }"
+                />
+                <span class="ai-task-label">{{ $t('bottomMenu.aiTaskQueueLabel') }}</span>
+                <span v-if="tasks.length > 0" class="ai-task-count">{{ tasks.length }}</span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{{ $t('bottomMenu.aiTaskQueueTooltip') }}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </template>
     </div>
   </div>
 </template>
@@ -164,6 +166,7 @@ import { useNotificationStore } from '../stores/notification'
 import { useWorkspace } from '../stores/workspace'
 import { useAiTasks } from '../utils/ai_tasks'
 import { getAppVersion } from '../utils/version'
+import { settings } from '../utils/settings'
 import WordCountDialog from './WordCountDialog.vue'
 import LlmStatisticsDialog from './LlmStatisticsDialog.vue'
 import VersionInfoPanel from './VersionInfoPanel.vue'
@@ -189,6 +192,7 @@ const {
 } = useGlobalProgress()
 
 const tasks = useAiTasks()
+const isAiEnabled = computed(() => settings.llmEnabled === true)
 
 const activeDocument = computed(() => workspace.activeDocument.value)
 const activeTab = computed(() => workspace.activeTab.value)

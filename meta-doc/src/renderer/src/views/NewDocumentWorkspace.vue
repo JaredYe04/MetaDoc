@@ -64,6 +64,7 @@
                       {{ t('newDocument.clearTemplateThumb') }}
                     </DropdownMenuItem>
                     <DropdownMenuItem
+                      v-if="isSteamEnabled()"
                       @click="openWorkshopPublishForTemplate(template.userTemplateId!)"
                     >
                       {{ t('newDocument.publishWorkshop') }}
@@ -157,6 +158,7 @@ import {
   setUserTemplateThumbnailFromFilePath
 } from '../stores/user-templates'
 import { openWorkshopPublishDocumentDialog } from '../utils/workshop-publish-document-dialog'
+import { isSteamEnabled } from '@common/build-env'
 
 /** 根据主色亮度返回在按钮上可读的文字色（深色主色用白字，浅色主色用深字） */
 function getContrastTextColor(hex: string | undefined) {

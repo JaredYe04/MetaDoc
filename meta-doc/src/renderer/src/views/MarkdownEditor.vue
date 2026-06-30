@@ -3,23 +3,14 @@
     <div class="content-container" ref="containerRef">
       <!-- 左边：Vditor Markdown 编辑器 -->
       <!-- 菜单组件 -->
-      <SectionOptimizer
-        v-if="showSectionOptimizer && sectionOptimizerAdapter"
-        :title="currentSectionTitle"
-        :position="sectionOptimizerPosition"
-        :path="currentTitlePath"
-        :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
-        :adapter="sectionOptimizerAdapter"
-        :sectionInfo="currentSectionInfo"
-        language="markdown"
-        @close="handleSectionOptimizerClose"
-        @accept="
-          async (payload: any) => {
-            await acceptGeneratedText(payload)
-          }
-        "
-        @prompt-contextmenu="openContextMenu"
-      />
+      <template v-for="acc in editorAccessories" :key="acc.id">
+        <component
+          :is="acc.component"
+          v-if="isAccessoryVisible(acc.id)"
+          v-bind="getAccessoryProps(acc.id)"
+          v-on="getAccessoryListeners(acc.id)"
+        />
+      </template>
       <!-- 保留TitleMenu以兼容旧代码 -->
       <TitleMenu
         v-if="showTitleMenu"
@@ -46,29 +37,18 @@
         @close="handleSearchReplaceClose"
       />
 
-      <GraphQuickDialog
-        v-model:open="graphQuickDialogOpen"
-        :selection-text="graphQuickSelection"
-        document-kind="md"
-        :document-title="graphQuickDocumentTitle"
-        :source-tab-id="props.tabId"
-      />
-      <SelectionTranslateDialog
-        v-model:open="selectionTranslateOpen"
-        :source-text="selectionTranslateText"
-        document-kind="markdown"
-        :source-tab-id="props.tabId || ''"
-        @apply-replace="onSelectionTranslateReplace"
-      />
-      <AISuggestionGhost
-        v-if="vditor"
-        format="md"
-        :completion-source-id="`vditor:${props.tabId}`"
-        :targetEl="vditorEl"
-        rootNodeClass="vditor-reset"
-        @accepted="onAcceptSuggestion"
-        @cancelled="onCancelSuggestion"
-      />
+      <template v-for="overlay in editorOverlays" :key="overlay.id">
+        <component
+          :is="overlay.component"
+          v-if="overlay.id === 'ai-suggestion-ghost' && vditor"
+          format="md"
+          :completion-source-id="`vditor:${props.tabId}`"
+          :targetEl="vditorEl"
+          rootNodeClass="vditor-reset"
+          @accepted="onAcceptSuggestion"
+          @cancelled="onCancelSuggestion"
+        />
+      </template>
 
       <!-- 主编辑器区域：加载时显示 skeleton 覆盖层，与 VditorPreview 一致，不阻塞其他区域 -->
       <div class="editor-area">
@@ -147,7 +127,6 @@ import {
 } from '../utils/md-utils'
 import { wholeArticleContextPrompt } from '../utils/prompts.ts'
 import TitleMenu from '../components/TitleMenu.vue'
-import SectionOptimizer from '../components/SectionOptimizer.vue'
 import { MarkdownSectionAdapter } from '../components/section-optimizer/adapters/markdown-adapter'
 import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
 import {
@@ -160,14 +139,20 @@ import { getSetting, setSetting, settings } from '../utils/settings'
 import { getLocalVditorCDN, vditorCDN } from '../utils/vditor-cdn'
 import { waitForService } from '../utils/service-status.ts'
 import { useI18n } from 'vue-i18n'
-import AISuggestionGhost from '../components/AISuggestionGhost.vue'
-import { aiCompletionService } from '../utils/ai-completion-service'
+import { useEditorOverlays } from '../composables/useEditorOverlays'
+import { useEditorAccessories } from '../composables/useEditorAccessories'
+import { findPluginContextMenuItem } from '../utils/plugin-contributions-ui'
+import {
+  cancelEditorCompletion,
+  handleEditorCompletionMouseClick,
+  removeEditorCompletionAdapter,
+  setEditorCompletionAdapter,
+  triggerEditorCompletion
+} from '../utils/editor-completion-bridge'
 import { VditorEditorAdapter } from '../utils/editor-adapters'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import { getMarkdownOutlineContextMenuItems } from '../components/contextMenus/MarkdownOutlineContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
-import GraphQuickDialog from '../components/GraphQuickDialog.vue'
-import SelectionTranslateDialog from '../components/SelectionTranslateDialog.vue'
 import { useWorkspace } from '../stores/workspace'
 import type { ArticleMetaData, DocumentOutlineNode, MaterialBasketItem } from '../../../types'
 import type { SectionInfo } from '../components/section-optimizer/types'
@@ -292,6 +277,8 @@ const props = withDefaults(
 
 const isActive = toRef(props, 'active')
 const { isFocusMode } = useFocusMode()
+const { overlays: editorOverlays } = useEditorOverlays('md')
+const { accessories: editorAccessories } = useEditorAccessories('md')
 
 let handleZoomShortcut: ((payload?: unknown) => void) | null = null
 
@@ -1762,22 +1749,23 @@ const handleMenuClick = async (item: string) => {
     case 'closeAutoCompletion':
       await setSetting('autoCompletion', false)
       break
-    case 'trigger-auto-completion':
-      // 手动触发AI补全
-      if (aiCompletionService.getAdapter()) {
-        aiCompletionService.triggerCompletion('manual')
-      } else {
-        // 如果适配器不存在，先创建
-        const adapter = new VditorEditorAdapter(
-          vditor.value,
-          props.editorDomId,
-          () => isActive.value,
-          `vditor:${props.tabId}`
-        )
-        aiCompletionService.setAdapter(adapter)
-        aiCompletionService.triggerCompletion('manual')
+    case 'trigger-auto-completion': {
+      const adapter = new VditorEditorAdapter(
+        vditor.value,
+        props.editorDomId,
+        () => isActive.value,
+        `vditor:${props.tabId}`
+      )
+      triggerEditorCompletion('manual', { setupAdapter: adapter })
+      break
+    }
+    default: {
+      const pluginItem = findPluginContextMenuItem(item)
+      if (pluginItem && props.tabId) {
+        await pluginItem.onClick({ tabId: props.tabId })
       }
       break
+    }
   }
   outlineContextSection.value = null
   await refreshContextMenu()
@@ -2398,6 +2386,78 @@ const openSectionOptimizerFromContext = async () => {
 const handleSectionOptimizerClose = () => {
   showSectionOptimizer.value = false
   sectionOptimizerAdapter.value = null
+}
+
+function isAccessoryVisible(id: string): boolean {
+  switch (id) {
+    case 'section-optimizer':
+      return showSectionOptimizer.value && !!sectionOptimizerAdapter.value
+    case 'graph-quick':
+    case 'selection-translate':
+      return true
+    default:
+      return false
+  }
+}
+
+function getAccessoryProps(id: string): Record<string, unknown> {
+  switch (id) {
+    case 'section-optimizer':
+      return {
+        title: currentSectionTitle.value,
+        position: sectionOptimizerPosition.value,
+        path: currentTitlePath.value,
+        tree: extractOutlineTreeFromMarkdown(currentMarkdown.value, true),
+        adapter: sectionOptimizerAdapter.value,
+        sectionInfo: currentSectionInfo.value,
+        language: 'markdown'
+      }
+    case 'graph-quick':
+      return {
+        open: graphQuickDialogOpen.value,
+        selectionText: graphQuickSelection.value,
+        documentKind: 'md',
+        documentTitle: graphQuickDocumentTitle.value,
+        sourceTabId: props.tabId
+      }
+    case 'selection-translate':
+      return {
+        open: selectionTranslateOpen.value,
+        sourceText: selectionTranslateText.value,
+        documentKind: 'markdown',
+        sourceTabId: props.tabId || ''
+      }
+    default:
+      return {}
+  }
+}
+
+function getAccessoryListeners(id: string): Record<string, (...args: unknown[]) => void> {
+  switch (id) {
+    case 'section-optimizer':
+      return {
+        close: handleSectionOptimizerClose,
+        accept: async (payload: unknown) => {
+          await acceptGeneratedText(payload)
+        },
+        'prompt-contextmenu': openContextMenu
+      }
+    case 'graph-quick':
+      return {
+        'update:open': (v: unknown) => {
+          graphQuickDialogOpen.value = v === true
+        }
+      }
+    case 'selection-translate':
+      return {
+        'update:open': (v: unknown) => {
+          selectionTranslateOpen.value = v === true
+        },
+        'apply-replace': onSelectionTranslateReplace
+      }
+    default:
+      return {}
+  }
 }
 
 // 切换Vditor编辑模式
@@ -3287,21 +3347,18 @@ async function runMarkdownVditorInit() {
         // 所以不需要再调用 syncOutlineFromMarkdown，避免重复计算
 
         // 确保适配器已设置（如果还没有设置）
-        if (!aiCompletionService.getAdapter() && vditor.value) {
+        if (vditor.value) {
           const adapter = new VditorEditorAdapter(
             vditor.value,
             'vditor-reset',
             () => isActive.value,
             `vditor:${props.tabId}`
           )
-          aiCompletionService.setAdapter(adapter)
+          setEditorCompletionAdapter(adapter)
         }
 
-        // 用户继续打字时，立即取消当前补全
-        aiCompletionService.cancelCurrentCompletion()
-
-        // 触发AI补全（使用双层防抖，自动检测关键字符）
-        aiCompletionService.triggerCompletion('input')
+        cancelEditorCompletion()
+        triggerEditorCompletion('input')
 
         // 移除 syncOutlineFromMarkdown 调用，因为 workspace.updateDocumentMarkdown 已经自动同步大纲
         // 只在需要重新绑定标题菜单时调用 bindTitleMenu（延迟执行，避免频繁调用）
@@ -3533,7 +3590,7 @@ async function runMarkdownVditorInit() {
             () => isActive.value,
             `vditor:${props.tabId}`
           )
-          aiCompletionService.setAdapter(adapter)
+          setEditorCompletionAdapter(adapter)
 
           // 监听键盘事件，检测Enter、Space等触发按键和手动触发（Ctrl+Space）
           const editorElement = vditor.value?.vditor?.element
@@ -3564,7 +3621,7 @@ async function runMarkdownVditorInit() {
                     target.closest('.vditor-sv'))
                 ) {
                   markEditorInteraction()
-                  aiCompletionService.handleMouseClick()
+                  handleEditorCompletionMouseClick()
                 }
               }
             }
@@ -3587,7 +3644,7 @@ async function runMarkdownVditorInit() {
                 e.preventDefault()
                 e.stopPropagation()
                 markEditorInteraction()
-                aiCompletionService.triggerCompletion('manual')
+                triggerEditorCompletion('manual')
                 return
               }
 
@@ -3606,12 +3663,12 @@ async function runMarkdownVditorInit() {
               if (key) {
                 // 用户继续打字时，立即取消当前补全
                 markEditorInteraction()
-                aiCompletionService.cancelCurrentCompletion()
+                cancelEditorCompletion()
                 // 触发补全（按键触发）
-                aiCompletionService.triggerCompletion('key', key)
+                triggerEditorCompletion('key', { key })
               } else {
                 // 其他按键：用户继续打字，立即取消补全
-                aiCompletionService.cancelCurrentCompletion()
+                cancelEditorCompletion()
               }
             }
 
@@ -3726,7 +3783,7 @@ onBeforeUnmount(() => {
   detachVditorToolbarTooltip = null
 
   // 移除编辑器适配器
-  aiCompletionService.removeAdapter()
+  removeEditorCompletionAdapter()
 
   const instance = vditor.value
   if (instance && (instance as any).element) {

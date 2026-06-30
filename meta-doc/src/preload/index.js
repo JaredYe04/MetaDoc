@@ -4,7 +4,8 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {
   getStartupProfile: () => ipcRenderer.invoke('get-startup-profile'),
-  startupProfileEnabled: process.env.ENABLE_STARTUP_PROFILE === '1'
+  startupProfileEnabled: process.env.ENABLE_STARTUP_PROFILE === '1',
+  e2eEnabled: process.argv.includes('--metadoc-e2e')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

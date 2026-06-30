@@ -1,7 +1,7 @@
 <template>
   <div class="outline-page" :class="{ 'outline-page--demo': isDemo }" :data-direction="direction">
     <!-- AI 工具栏与格式化标题：通过子组件 + inject 使用 selectedAiTool，避免 Outline 因 selectedAiTool 变化而 re-render 导致树图位置重置 -->
-    <OutlineAiToolbar v-if="!isDemo" />
+    <OutlineAiToolbar v-if="!isDemo && isAiEnabled" />
 
     <div class="container">
       <div
@@ -609,7 +609,7 @@
                   />
                 </div>
               </section>
-              <section class="new-material-ai-section">
+              <section v-if="isAiEnabled" class="new-material-ai-section">
                 <button
                   type="button"
                   class="new-material-ai-heading-btn"
@@ -718,7 +718,7 @@
       </Dialog>
 
       <!-- AI 配置对话框：标题随所选工具变化，如「生成子章节」「生成内容」 -->
-      <Dialog v-model:open="aiConfigDialogVisible">
+      <Dialog v-if="isAiEnabled" v-model:open="aiConfigDialogVisible">
         <DialogContent class="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle>{{ aiConfigDialogTitleForDisplay }}</DialogTitle>
@@ -830,7 +830,7 @@
                   />
                 </div>
               </section>
-              <section class="new-material-ai-section">
+              <section v-if="isAiEnabled" class="new-material-ai-section">
                 <button
                   type="button"
                   class="new-material-ai-heading-btn"
@@ -1076,6 +1076,7 @@ const props = defineProps<{
   tabId?: string
 }>()
 const isDemo = computed(() => props.mode === 'demo')
+const isAiEnabled = computed(() => settings.llmEnabled === true)
 
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -1159,7 +1160,7 @@ import {
 } from '../utils/prompts'
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask, clearAiTasks } from '../utils/ai_tasks.ts'
-import { getSetting, setSetting } from '../utils/settings.js'
+import { getSetting, setSetting, settings } from '../utils/settings.js'
 import { createRendererLogger } from '../utils/logger.ts'
 import {
   Dialog,
@@ -1880,6 +1881,12 @@ const selectedAiTool = ref<
 const wordCountInput = ref('')
 const selectedPresetPrompt = ref('')
 
+watch(isAiEnabled, (enabled) => {
+  if (enabled) return
+  selectedAiTool.value = null
+  aiConfigDialogVisible.value = false
+})
+
 // 切换 AI 工具：已选中则取消，否则选中；选中时折叠已展开的编辑节点面板
 function toggleAiTool(
   tool:
@@ -1888,6 +1895,10 @@ function toggleAiTool(
     | 'generateChildrenChildren'
     | 'generateChildrenContent'
 ) {
+  if (!isAiEnabled.value) {
+    selectedAiTool.value = null
+    return
+  }
   const wasSelected = selectedAiTool.value === tool
   selectedAiTool.value = wasSelected ? null : tool
   if (!wasSelected && selectedAiTool.value) {
@@ -1898,6 +1909,7 @@ function toggleAiTool(
 
 // 处理节点按钮点击：打开配置对话框并登记“确定”后要执行的 AI 动作
 const handleNodeButtonClick = (node: DocumentOutlineNode) => {
+  if (!isAiEnabled.value) return
   selectedNode.value = node
   if (selectedAiTool.value) {
     aiConfig.temperature = 1.0

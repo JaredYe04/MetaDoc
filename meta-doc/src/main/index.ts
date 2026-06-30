@@ -116,7 +116,8 @@ function shouldDisableGPU(): boolean {
   const isSteamRuntime =
     typeof __METADOC_STEAM__ !== 'undefined' &&
     __METADOC_STEAM__ &&
-    (Boolean(process.env.SteamAppId || process.env.SteamGameId) || Boolean(process.env.STEAM_APP_ID))
+    (Boolean(process.env.SteamAppId || process.env.SteamGameId) ||
+      Boolean(process.env.STEAM_APP_ID))
   if (isSteamRuntime && os.platform() === 'win32') {
     return false
   }

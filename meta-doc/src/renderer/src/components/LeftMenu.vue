@@ -175,7 +175,7 @@
 
       <!-- AI助手菜单 -->
       <UISubMenu
-        v-if="menuId === 'ai-assistant' && isMenuItemVisible('ai-assistant')"
+        v-if="menuId === 'ai-assistant' && isAiEnabled && isMenuItemVisible('ai-assistant')"
         :title="$t('leftMenu.aiAssistant')"
         :tooltip="$t('leftMenu.aiAssistant')"
         :icon-image="themeState.currentTheme.AiLogo"
@@ -195,42 +195,14 @@
           {{ $t('leftMenu.aiToolTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="MessageCircle" @click="emitMenu('ai-chat')">
-          {{ $t('leftMenu.chatWithAI') }}
-        </UISubMenuItem>
-
         <UISubMenuItem
-          :icon-image="(themeState.currentTheme as any).MathIcon"
-          @click="emitMenu('fomula-recognition')"
+          v-for="item in pluginAiAssistantItems"
+          :key="item.id"
+          :icon="resolvePluginLeftMenuIcon(item.id)"
+          :icon-image="resolvePluginLeftMenuIconImage(item.id)"
+          @click="onPluginLeftMenuClick(item)"
         >
-          {{ $t('leftMenu.handwritingFormulaRecognition') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="Image" @click="emitMenu('smart-drawing-assistant')">
-          {{ $t('leftMenu.smartDrawingAssistant') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="BarChart3" @click="emitMenu('data-analysis')">
-          {{ $t('leftMenu.dataAnalysis') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="Eye" @click="emitMenu('ocr')">
-          {{ $t('leftMenu.ocr') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="Paperclip" @click="emitMenu('attachment')">
-          {{ $t('leftMenu.attachment') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem @click="emitMenu('aigc-detection')">
-          <template #icon>
-            <img
-              :src="(themeState.currentTheme as any).PenAiIcon"
-              class="menu-title-icon"
-              alt="Pen AI"
-            />
-          </template>
-          {{ $t('leftMenu.aigcDetection') }}
+          {{ resolvePluginLeftMenuLabel(item) }}
         </UISubMenuItem>
       </UISubMenu>
 
@@ -281,7 +253,7 @@
 
       <!-- 知识库 -->
       <UIMenuItem
-        v-if="menuId === 'knowledge-base' && isMenuItemVisible('knowledge-base')"
+        v-if="menuId === 'knowledge-base' && isAiEnabled && isMenuItemVisible('knowledge-base')"
         :label="$t('leftMenu.knowledgeBase', '知识库')"
         :tooltip="$t('leftMenu.knowledgeBase', '知识库')"
         :icon-image="(themeState.currentTheme as any).KnowledgeIcon"
@@ -290,7 +262,7 @@
 
       <!-- Agent -->
       <UIMenuItem
-        v-if="menuId === 'agent' && isMenuItemVisible('agent')"
+        v-if="menuId === 'agent' && isAiEnabled && isMenuItemVisible('agent')"
         :label="$t('headMenu.agent', 'Agent')"
         :tooltip="$t('headMenu.agent', 'Agent')"
         :icon-image="(themeState.currentTheme as any).AgentIcon"
@@ -618,7 +590,7 @@
 
       <!-- AI助手菜单 -->
       <UISubMenu
-        v-if="menuId === 'ai-assistant' && isMenuItemVisible('ai-assistant')"
+        v-if="menuId === 'ai-assistant' && isAiEnabled && isMenuItemVisible('ai-assistant')"
         :title="$t('leftMenu.aiAssistant')"
         :tooltip="$t('leftMenu.aiAssistant')"
         :icon-image="themeState.currentTheme.AiLogo"
@@ -639,35 +611,14 @@
           {{ $t('leftMenu.aiToolTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem :icon="MessageCircle" @click="emitMenu('ai-chat')">
-          {{ $t('leftMenu.chatWithAI') }}
-        </UISubMenuItem>
-
         <UISubMenuItem
-          :icon-image="(themeState.currentTheme as any).MathIcon"
-          @click="emitMenu('fomula-recognition')"
+          v-for="item in pluginAiAssistantItems"
+          :key="item.id"
+          :icon="resolvePluginLeftMenuIcon(item.id)"
+          :icon-image="resolvePluginLeftMenuIconImage(item.id)"
+          @click="onPluginLeftMenuClick(item)"
         >
-          {{ $t('leftMenu.handwritingFormulaRecognition') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="Image" @click="emitMenu('smart-drawing-assistant')">
-          {{ $t('leftMenu.smartDrawingAssistant') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="BarChart3" @click="emitMenu('data-analysis')">
-          {{ $t('leftMenu.dataAnalysis') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="Eye" @click="emitMenu('ocr')">
-          {{ $t('leftMenu.ocr') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="Paperclip" @click="emitMenu('attachment')">
-          {{ $t('leftMenu.attachment') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="BarChart3" @click="emitMenu('aigc-detection')">
-          {{ $t('leftMenu.aigcDetection') }}
+          {{ resolvePluginLeftMenuLabel(item) }}
         </UISubMenuItem>
       </UISubMenu>
 
@@ -720,7 +671,7 @@
 
       <!-- 知识库 -->
       <UIMenuItem
-        v-if="menuId === 'knowledge-base' && isMenuItemVisible('knowledge-base')"
+        v-if="menuId === 'knowledge-base' && isAiEnabled && isMenuItemVisible('knowledge-base')"
         :label="$t('leftMenu.knowledgeBase', '知识库')"
         :tooltip="$t('leftMenu.knowledgeBase', '知识库')"
         :icon-image="(themeState.currentTheme as any).KnowledgeIcon"
@@ -730,7 +681,7 @@
 
       <!-- Agent -->
       <UIMenuItem
-        v-if="menuId === 'agent' && isMenuItemVisible('agent')"
+        v-if="menuId === 'agent' && isAiEnabled && isMenuItemVisible('agent')"
         :label="$t('headMenu.agent', 'Agent')"
         :tooltip="$t('headMenu.agent', 'Agent')"
         :icon-image="(themeState.currentTheme as any).AgentIcon"
@@ -884,7 +835,6 @@
       </UISubMenu>
     </template>
 
-    <LeftMenuSteamTray v-if="props.mode !== 'demo' && isSteamEnabled()" :collapsed="isCollapse" />
   </UIMenu>
 
   <!-- 导出选项对话框 -->
@@ -953,7 +903,7 @@
 </template>
 
 <script lang="ts" setup>
-import { getRecentOpens, getSetting } from '../utils/settings'
+import { getRecentOpens, getSetting, settings } from '../utils/settings'
 import { basename, extname } from '../utils/path-utils'
 import { formatRegistry } from '../utils/format-registry'
 import { computed, onMounted, onBeforeUnmount, ref, provide, watch } from 'vue'
@@ -1007,9 +957,14 @@ import { createAiTask, ai_types } from '../utils/ai_tasks'
 import { generateTemplateTitleDescriptionPrompt } from '../utils/prompts'
 import { useFocusMode } from '../composables/useFocusMode'
 import FocusModeTabBarMenus from './FocusModeTabBarMenus.vue'
-import LeftMenuSteamTray from './LeftMenuSteamTray.vue'
-import { isSteamEnabled } from '@common/build-env'
 import { FOCUS_LEFT_MENU_API_KEY, type RecentOpenEntry } from './focus-mode-left-menu-api'
+import { isAiRuntimeLoaded } from '../ai-runtime/loader'
+import {
+  findPluginLeftMenuItem,
+  getPluginLeftMenuItems
+} from '../utils/plugin-contributions-ui'
+import type { LeftMenuItemContribution } from '../host-api'
+import type { Component } from 'vue'
 
 const props = withDefaults(defineProps<{ mode?: 'normal' | 'demo' }>(), { mode: 'normal' })
 const { isFocusMode } = useFocusMode()
@@ -1036,6 +991,66 @@ import { useWorkspace } from '../stores/workspace'
 const logger = createRendererLogger('LeftMenu')
 const workspace = useWorkspace()
 const isDev = ref(false)
+const aiRuntimeReady = ref(isAiRuntimeLoaded())
+const pluginMenuRevision = ref(0)
+const isAiEnabled = computed(() => settings.llmEnabled === true)
+
+const pluginAiAssistantItems = computed(() => {
+  pluginMenuRevision.value
+  if (!aiRuntimeReady.value || !isAiEnabled.value) return []
+  return getPluginLeftMenuItems('ai-assistant')
+})
+
+function resolvePluginLeftMenuLabel(item: LeftMenuItemContribution): string {
+  const raw = typeof item.label === 'function' ? item.label() : item.label
+  return raw.includes('.') ? t(raw) : raw
+}
+
+function resolvePluginLeftMenuIcon(id: string): Component | undefined {
+  const map: Record<string, Component> = {
+    'ai-chat': MessageCircle,
+    'smart-drawing-assistant': Image,
+    'data-analysis': BarChart3,
+    'ocr': Eye,
+    'attachment': Paperclip,
+    'aigc-detection': BarChart3
+  }
+  return map[id]
+}
+
+function resolvePluginLeftMenuIconImage(id: string): string | undefined {
+  const theme = themeState.currentTheme as any
+  if (id === 'fomula-recognition') return theme.MathIcon
+  if (id === 'aigc-detection') return theme.PenAiIcon
+  return undefined
+}
+
+function onPluginLeftMenuClick(item: LeftMenuItemContribution): void {
+  if (props.mode === 'demo') return
+  void item.onClick()
+}
+
+function invokePluginLeftMenuItem(id: string): boolean {
+  const item = findPluginLeftMenuItem(id)
+  if (!item || !aiRuntimeReady.value || !isAiEnabled.value) return false
+  void item.onClick()
+  return true
+}
+
+const onAiRuntimeReady = () => {
+  aiRuntimeReady.value = true
+  pluginMenuRevision.value++
+}
+
+const onAiRuntimeUnloaded = () => {
+  aiRuntimeReady.value = false
+  pluginMenuRevision.value++
+}
+
+const onOpenKnowledgeBaseEvent = () => {
+  if (!isAiEnabled.value) return
+  openKnowledgeBaseTab()
+}
 
 // 菜单配置项定义
 const menuConfigItems = computed<MenuConfigItem[]>(() => {
@@ -1421,13 +1436,23 @@ const closeWorkspaceFoldersFromMenu = () => {
 }
 
 // 打开知识库
-const openKnowledgeBase = () => {
+const openKnowledgeBaseTab = () => {
   workspace.openSystemTab('/knowledge-base', t('leftMenu.knowledgeBase', '知识库'))
+}
+
+const openKnowledgeBase = () => {
+  if (!isAiEnabled.value) return
+  if (!invokePluginLeftMenuItem('knowledge-base')) {
+    openKnowledgeBaseTab()
+  }
 }
 
 // 打开 Agent（工作区级）
 const openAgent = () => {
-  workspace.openSystemTab('/agent', t('headMenu.agent', 'Agent'))
+  if (!isAiEnabled.value) return
+  if (!invokePluginLeftMenuItem('agent')) {
+    workspace.openSystemTab('/agent', t('headMenu.agent', 'Agent'))
+  }
 }
 
 // 切换工作目录菜单
@@ -1502,6 +1527,9 @@ onMounted(async () => {
   // 先加载菜单配置，避免 order 初始为 [] 时首屏/IPC 卡住导致只剩「视图」等异常
   await loadMenuConfig()
   eventBus.on('recent-opens-changed', onRecentOpensChanged)
+  eventBus.on('ai-runtime-ready', onAiRuntimeReady)
+  eventBus.on('ai-runtime-unloaded', onAiRuntimeUnloaded)
+  eventBus.on('open-knowledge-base', onOpenKnowledgeBaseEvent)
   await refreshRecentOpens()
   // 检查是否为开发环境
   isDev.value = await isDevEnvironment()
@@ -1511,6 +1539,9 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   eventBus.off('recent-opens-changed', onRecentOpensChanged)
+  eventBus.off('ai-runtime-ready', onAiRuntimeReady)
+  eventBus.off('ai-runtime-unloaded', onAiRuntimeUnloaded)
+  eventBus.off('open-knowledge-base', onOpenKnowledgeBaseEvent)
 })
 const refreshRecentOpens = async () => {
   recentOpens.value = (await getRecentOpens()) as RecentOpenEntry[]
@@ -1725,7 +1756,13 @@ provide(FOCUS_LEFT_MENU_API_KEY, {
   SHOW_LEFT_MENU_USER_PROFILE,
   isDev,
   toolbarMenuBackground: focusToolbarStripBackground,
-  toolbarMenuTextColor: focusToolbarStripTextColor
+  toolbarMenuTextColor: focusToolbarStripTextColor,
+  pluginAiAssistantItems,
+  isAiEnabled,
+  resolvePluginLeftMenuLabel,
+  resolvePluginLeftMenuIcon,
+  resolvePluginLeftMenuIconImage,
+  onPluginLeftMenuClick
 })
 </script>
 

@@ -8,25 +8,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const steamOn = process.env.VITE_METADOC_STEAM === 'true'
 
 const mainSteamAliases = {
-  '@metadoc/steam-runtime': resolve(
-    __dirname,
-    steamOn ? 'src/main/steam/steam-runtime.real.ts' : 'src/main/steam/steam-runtime.stub.ts'
-  ),
-  '@metadoc/register-steam-ipc': resolve(
-    __dirname,
-    steamOn ? 'src/main/steam/register-steam-ipc.ts' : 'src/main/steam/register-steam-ipc.stub.ts'
-  ),
+  '@metadoc/steam-runtime': resolve(__dirname, 'src/main/steam/steam-runtime.stub.ts'),
+  '@metadoc/register-steam-ipc': resolve(__dirname, 'src/main/steam/register-steam-ipc.stub.ts'),
   '@metadoc/steam-first-doc-achievements': resolve(
     __dirname,
-    steamOn ? 'src/main/steam/steam-first-doc-achievements.ts' : 'src/main/steam/steam-first-doc-achievements.stub.ts'
+    'src/main/steam/steam-first-doc-achievements.stub.ts'
   ),
   '@metadoc/steam-app-lifecycle-hooks': resolve(
     __dirname,
-    steamOn ? 'src/main/steam/steam-app-lifecycle-hooks.real.ts' : 'src/main/steam/steam-app-lifecycle-hooks.stub.ts'
+    'src/main/steam/steam-app-lifecycle-hooks.stub.ts'
   ),
   '@metadoc/user-templates-steam-push': resolve(
     __dirname,
-    steamOn ? 'src/main/steam/user-templates-steam-push.ts' : 'src/main/steam/user-templates-steam-push.stub.ts'
+    'src/main/steam/user-templates-steam-push.stub.ts'
   )
 }
 
@@ -62,6 +56,11 @@ function metaDocRendererManualChunks(id) {
   }
   if (x.includes('/node_modules/d3/') || x.includes('/node_modules/d3-')) return 'chunk-d3'
   if (x.includes('/node_modules/natural/')) return 'chunk-natural'
+  if (x.includes('/src/renderer/src/ai-runtime/')) return 'chunk-ai-runtime'
+  if (x.includes('/src/renderer/src/plugins/')) return 'chunk-plugins'
+  if (x.includes('/src/renderer/src/utils/agent-framework/')) return 'chunk-agent-framework'
+  if (x.includes('/src/renderer/src/utils/agent-tools/')) return 'chunk-agent-tools'
+  if (x.includes('/src/renderer/src/utils/llm-adapters/')) return 'chunk-llm-adapters'
   if (x.includes('/node_modules/tesseract.js/')) return 'chunk-tesseract'
   if (x.includes('/node_modules/@codemirror/') || x.includes('/node_modules/codemirror/')) {
     return 'chunk-codemirror'

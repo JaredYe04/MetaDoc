@@ -48,6 +48,21 @@
 - `REFACTOR_*` — 重构完成说明与总结
 - `UTILS_REFACTOR_GUIDE.md`、`TERMINAL_REFACTOR_PLAN.md`
 
+### [`open-source-refactor/`](./open-source-refactor/) — 开源拆分与插件体系
+
+面向 OSS 核心 vs Steam/云归档、Host API 与 AI 延迟加载的专项文档：
+
+- [README.md](./open-source-refactor/README.md) — 索引、目标与架构摘要
+- [01-MODULE-INVENTORY.md](./open-source-refactor/01-MODULE-INVENTORY.md) — Core / AI / Archived 模块分类
+- [02-CLEANUP-LOG.md](./open-source-refactor/02-CLEANUP-LOG.md) — 删除与迁移清单
+- [03-ARCHIVE-GUIDE.md](./open-source-refactor/03-ARCHIVE-GUIDE.md) — `archived/` 结构与 Steam 构建恢复
+- [04-HOST-API-SPEC.md](./open-source-refactor/04-HOST-API-SPEC.md) — `MetaDocHost` 接口（源码：`src/renderer/src/host-api/index.ts`）
+- [05-PLUGIN-MANIFEST.md](./open-source-refactor/05-PLUGIN-MANIFEST.md) — 插件清单与权限
+- [06-BUILTIN-PLUGIN-MATRIX.md](./open-source-refactor/06-BUILTIN-PLUGIN-MATRIX.md) — 功能 → 内置插件映射
+- [07-LAZY-LOADING.md](./open-source-refactor/07-LAZY-LOADING.md) — `llmEnabled` 与 AI 运行时
+- [08-COMMUNITY-PLUGIN-GUIDE.md](./open-source-refactor/08-COMMUNITY-PLUGIN-GUIDE.md) — 社区插件开发
+- [HANDOFF.md](./open-source-refactor/HANDOFF.md) — 已完成项与待办交接清单
+
 ### [`dev/`](./dev/) — 工程化与质量
 
 - `DEMO_MODE_COVERAGE_LINTING.md` — Demo 覆盖率策略
@@ -69,15 +84,9 @@
 
 - 发布流程、GitHub Actions、环境变量等
 
-### [`cloud/`](./cloud/) — Steam 官方云、Worker、n1n 与定价
+### Steam 官方云 / Worker（已归档）
 
-- [STEAM_CLOUD_GO_LIVE.md](./cloud/STEAM_CLOUD_GO_LIVE.md) — Cloudflare / Steamworks / n1n 上线步骤与 **`pricing-generated.ts` 说明**
-- [economics.md](./cloud/economics.md) — 经济公式与人类可读说明
-- [operations-pricing.md](./cloud/operations-pricing.md) — 改价运维流程
-- [steamworks-mtx-catalog.md](./cloud/steamworks-mtx-catalog.md) — Steamworks 商品与 YAML 对齐
-- [n1n-integration-notes.md](./cloud/n1n-integration-notes.md) — n1n 对接摘要
-- [acceptance-steam-ai-en.md](./cloud/acceptance-steam-ai-en.md) — 验收与送审英文骨架
-- `cloud/pricing/*.yaml` — 定价源文件（改后运行 `pnpm run validate:pricing`）
+Steam 官方云、MTX 定价与 Cloudflare Worker 文档已迁至仓库 [`archived/docs/cloud/`](../../archived/docs/cloud/) 与 [`archived/docs/RELEASE_AND_STEAM.md`](../../archived/docs/RELEASE_AND_STEAM.md)。开源默认构建不依赖上述内容；恢复说明见 [open-source-refactor/03-ARCHIVE-GUIDE.md](./open-source-refactor/03-ARCHIVE-GUIDE.md)。
 
 ### [`tests/`](./tests/) — 测试相关笔记与示例
 

@@ -33,7 +33,6 @@ import { createMainLogger } from './logger'
 import { updateServiceStatus } from './service-status'
 import { MainProgressHandle, registerHandle } from './utils/progress-handle'
 import type { BrowserWindow } from 'electron'
-import { LEGACY_CONFIG_FILES } from './utils/express-server-legacy'
 import { getRuntimeServerPort, getRuntimeServerBaseUrl } from './runtime-server-config'
 
 // ============ 接口定义 ============
@@ -98,8 +97,12 @@ function parseKnowledgeClientRequestId(req: Request): string | undefined {
 
 // 配置文件和向量数据库文件列表（不应出现在知识库列表中）
 // @deprecated 现在使用SQLite数据库，这些JSON文件已不再使用
-// 保留此常量仅用于过滤旧文件，实际定义在 express-server-legacy.ts 中
-const CONFIG_FILES = LEGACY_CONFIG_FILES
+const CONFIG_FILES = [
+  'knowledge_index.json',
+  'vector_index.json',
+  'vector_docs.json',
+  'vector_info.json'
+]
 
 const expressApp: Application = express()
 const logger = createMainLogger('ExpressServer')
@@ -900,7 +903,7 @@ function setupKnowledgeUploadDir(): void {
   fs.mkdirSync(knowledgeUploadDir, { recursive: true })
 
   // 不再使用 knowledge_index.json，所有数据存储在 SQLite 数据库中
-  // 旧实现已迁移到 express-server-legacy.ts
+  // 旧实现已迁移到 legacy module (removed)
 }
 
 /**
@@ -933,21 +936,21 @@ function humanSize(bytes: number): string {
 
 /**
  * 加载知识库索引文件（已废弃，现在从数据库读取）
- * @deprecated 已迁移到 express-server-legacy.ts，保留此函数仅为向后兼容
+ * @deprecated 已迁移到 legacy module (removed)，保留此函数仅为向后兼容
  */
 function loadKnowledgeIndex(): Record<string, KnowledgeItem> {
   // 不再使用 JSON 文件，所有数据从数据库读取
-  // 旧实现已迁移到 express-server-legacy.ts 的 loadLegacyKnowledgeIndex
+  // 旧实现已迁移到 legacy module (removed) 的 loadLegacyKnowledgeIndex
   return {}
 }
 
 /**
  * 保存知识库索引文件（已废弃，现在使用数据库存储）
- * @deprecated 已迁移到 express-server-legacy.ts，保留此函数仅为向后兼容
+ * @deprecated 已迁移到 legacy module (removed)，保留此函数仅为向后兼容
  */
 function saveKnowledgeIndex(index: Record<string, KnowledgeItem>): void {
   // 不再使用 JSON 文件，所有数据存储在数据库中
-  // 旧实现已迁移到 express-server-legacy.ts 的 saveLegacyKnowledgeIndex
+  // 旧实现已迁移到 legacy module (removed) 的 saveLegacyKnowledgeIndex
 }
 
 /**
@@ -1050,7 +1053,7 @@ function handleKnowledgeList(req: Request, res: Response): void {
  * 现在只更新数据库，不再使用 JSON 文件
  *
  * 注意：此函数保留用于向后兼容，但实际实现已迁移到数据库操作
- * 旧实现（JSON文件更新）已迁移到 express-server-legacy.ts 的 updateLegacyIndexVectorInfo
+ * 旧实现（JSON文件更新）已迁移到 legacy module (removed) 的 updateLegacyIndexVectorInfo
  */
 function updateIndexVectorInfo(
   fileName: string,
@@ -1066,7 +1069,7 @@ function updateIndexVectorInfo(
         vector_count: vectorInfo.vector_count
       })
     }
-    // 旧实现（更新JSON文件）已迁移到 express-server-legacy.ts 的 updateLegacyIndexVectorInfo
+    // 旧实现（更新JSON文件）已迁移到 legacy module (removed) 的 updateLegacyIndexVectorInfo
   } catch (error) {
     logger.error('更新向量信息失败', error)
   }

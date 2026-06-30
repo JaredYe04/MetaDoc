@@ -207,7 +207,7 @@ import {
 import { saveUserProfile } from '../../utils/user-profile'
 import { useUserManual } from '../../stores/userManual'
 import type { UserProfile } from '../../stores/userManual'
-import { METADOC_LOCALE_NATIVE_LABEL } from '@common/steam-game-language'
+import { METADOC_LOCALE_NATIVE_LABEL } from '@common/locale-native-labels'
 
 const STEP_COUNT = 7
 

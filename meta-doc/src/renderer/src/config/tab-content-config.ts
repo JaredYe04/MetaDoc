@@ -21,10 +21,6 @@ import UserFeedbackView from '../views/UserFeedbackView.vue'
 import AgentView from '../views/AgentView.vue'
 import AgentReviewView from '../views/AgentReviewView.vue'
 import UserManual from '../views/UserManual.vue'
-import WorkshopMarketView from '../views/WorkshopMarketView.vue'
-import CloudDocumentsView from '../views/CloudDocumentsView.vue'
-import { isSteamEnabled } from '@common/build-env'
-
 function systemRouteKey(route: string): string {
   const q = route.indexOf('?')
   const h = route.indexOf('#')
@@ -33,13 +29,6 @@ function systemRouteKey(route: string): string {
   if (h >= 0) end = Math.min(end, h)
   return end < route.length ? route.slice(0, end) : route
 }
-
-const steamSystemTabEntries: Record<string, Component> = isSteamEnabled()
-  ? {
-      '/workshop-market': WorkshopMarketView,
-      '/cloud-docs': CloudDocumentsView
-    }
-  : {}
 
 export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   '/global-home': GlobalHome,
@@ -50,8 +39,7 @@ export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   /** 以下路由由 openSystemTab 打开为 system Tab，需显式映射，避免依赖嵌套 router-view（Main 不在 App 的 router-view 树内） */
   '/user-manual': UserManual,
   '/user-feedback': UserFeedbackView,
-  '/llm-statistics': LlmStatisticsView,
-  ...steamSystemTabEntries
+  '/llm-statistics': LlmStatisticsView
 }
 
 export const TOOL_TAB_COMPONENTS: Record<string, Component> = {

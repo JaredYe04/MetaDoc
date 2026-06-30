@@ -63,3 +63,5 @@ __pycache__
 /meta-doc/docs/thesis
 /debug
 /meta-doc/cloudflare-worker/.wrangler
+/archived/cloudflare-worker/.wrangler
+archived/cloudflare-worker/.env.vars

@@ -19,13 +19,17 @@
         class="context-menu"
         @close="contextMenuVisible = false"
       />
-      <AISuggestionGhost
-        :key="editorKey"
-        :editorId="editorId"
-        format="txt"
-        @accepted="onAcceptSuggestion"
-        @cancelled="onCancelSuggestion"
-      />
+      <template v-for="overlay in editorOverlays" :key="overlay.id">
+        <component
+          :is="overlay.component"
+          v-if="overlay.id === 'ai-suggestion-ghost'"
+          :key="editorKey"
+          :editorId="editorId"
+          format="txt"
+          @accepted="onAcceptSuggestion"
+          @cancelled="onCancelSuggestion"
+        />
+      </template>
 
       <div class="plaintext-layout">
         <div class="plaintext-main" ref="mainContainerRef">
@@ -181,8 +185,14 @@ import SearchReplaceMenu from '../components/SearchReplaceMenu.vue'
 import { themeState, mixColors } from '../utils/themes'
 import { getSetting, setSetting } from '../utils/settings'
 import { useI18n } from 'vue-i18n'
-import AISuggestionGhost from '../components/AISuggestionGhost.vue'
-import { aiCompletionService } from '../utils/ai-completion-service'
+import { useEditorOverlays } from '../composables/useEditorOverlays'
+import {
+  cancelEditorCompletion,
+  handleEditorCompletionMouseClick,
+  removeEditorCompletionAdapter,
+  setEditorCompletionAdapter,
+  triggerEditorCompletion
+} from '../utils/editor-completion-bridge'
 import { MonacoEditorAdapter } from '../utils/editor-adapters'
 import '../assets/ai-suggestion.css'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
@@ -219,6 +229,7 @@ const props = defineProps({
 })
 
 const isActive = computed(() => props.active)
+const { overlays: editorOverlays } = useEditorOverlays('txt')
 
 const workspace = useWorkspace()
 const documentRef = computed(() => workspace.ensureDocument(props.tabId))
@@ -544,14 +555,9 @@ const handleMenuClick = async (item: string) => {
       await setSetting('autoCompletion', false)
       break
     case 'trigger-auto-completion':
-      if (aiCompletionService.getAdapter()) {
-        aiCompletionService.triggerCompletion('manual')
-      } else {
-        if (editorId.value) {
-          const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
-          aiCompletionService.setAdapter(adapter)
-          aiCompletionService.triggerCompletion('manual')
-        }
+      if (editorId.value) {
+        const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
+        triggerEditorCompletion('manual', { setupAdapter: adapter })
       }
       break
   }
@@ -624,7 +630,7 @@ const initEditor = async () => {
   textEditorAdapter.value = createMonacoAdapter(editorId.value)
 
   const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
-  aiCompletionService.setAdapter(adapter)
+  setEditorCompletionAdapter(adapter)
 
   let isUpdatingGhostText = false
 
@@ -658,13 +664,13 @@ const initEditor = async () => {
         return
       }
 
-      if (!aiCompletionService.getAdapter()) {
-        const adapter = new MonacoEditorAdapter(editorId.value ?? '', () => isActive.value)
-        aiCompletionService.setAdapter(adapter)
+      if (editorId.value) {
+        const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
+        setEditorCompletionAdapter(adapter)
       }
 
-      aiCompletionService.cancelCurrentCompletion()
-      aiCompletionService.triggerCompletion('input')
+      cancelEditorCompletion()
+      triggerEditorCompletion('input')
     }
   )
 
@@ -676,7 +682,7 @@ const initEditor = async () => {
 
   editor.value.onMouseDown((e: monaco.editor.IEditorMouseEvent) => {
     if (e.event.browserEvent.button === 0) {
-      aiCompletionService.handleMouseClick()
+      handleEditorCompletionMouseClick()
     }
   })
 
@@ -685,7 +691,7 @@ const initEditor = async () => {
     if (e.shiftKey && e.keyCode === monaco.KeyCode.Tab) {
       e.preventDefault()
       e.stopPropagation()
-      aiCompletionService.triggerCompletion('manual')
+      triggerEditorCompletion('manual')
       return
     }
 
@@ -705,10 +711,10 @@ const initEditor = async () => {
               : null
 
     if (key) {
-      aiCompletionService.cancelCurrentCompletion()
-      aiCompletionService.triggerCompletion('key', key)
+      cancelEditorCompletion()
+      triggerEditorCompletion('key', { key })
     } else {
-      aiCompletionService.cancelCurrentCompletion()
+      cancelEditorCompletion()
     }
   })
 
@@ -842,7 +848,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  aiCompletionService.removeAdapter()
+  removeEditorCompletionAdapter()
   eventBus.off('editor-goto-position', handleEditorGotoPosition)
   eventBus.off('editor-command', handleEditorCommand as (payload?: unknown) => void)
   if (handleZoomShortcut) {

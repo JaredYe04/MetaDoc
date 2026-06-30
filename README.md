@@ -183,10 +183,9 @@ npm run build:mac
 
 # Linux
 npm run build:linux
-
-# Android
-npm run build:android
 ```
+
+> **Note:** Android/Capacitor build scripts have been removed in the open-source layout.
 
 ### 其他命令
 
@@ -204,7 +203,25 @@ npm run audit
 npm run clean:vite
 ```
 
-## 📁 项目结构
+## 📁 项目结构（开源版）
+
+```
+MetaDoc/
+├── archived/                    # 闭源模块归档（Steam、Cloudflare Worker）
+├── meta-doc/                    # 主应用
+│   ├── docs/open-source-refactor/  # 开源重构计划与 Host API 文档
+│   └── src/renderer/src/
+│       ├── core/                # bootstrap、plugin-loader
+│       ├── host-api/            # 插件宿主接口
+│       ├── ai-runtime/          # 异步 AI 加载（llmEnabled）
+│       └── plugins/             # 内置 AI 插件
+├── website/
+└── logos/
+```
+
+详见 [`meta-doc/docs/open-source-refactor/README.md`](meta-doc/docs/open-source-refactor/README.md)。
+
+## 📁 项目结构（详细）
 
 ```
 MetaDoc/

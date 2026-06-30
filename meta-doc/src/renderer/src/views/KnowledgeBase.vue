@@ -1,7 +1,25 @@
 <template>
   <div class="kb-root">
     <!-- {{ t('knowledgeBase.disabledOverlay') }} -->
-    <div v-if="!knowledgeBaseEnabled" class="kb-disabled-overlay">
+    <div v-if="!isAiEnabled" class="kb-disabled-overlay">
+      <div class="kb-disabled-content">
+        <el-icon class="kb-disabled-icon" :size="64">
+          <Lock />
+        </el-icon>
+        <h2 class="kb-disabled-title">
+          {{ t('knowledgeBase.aiDisabledTitle', 'AI 功能已关闭') }}
+        </h2>
+        <p class="kb-disabled-message">
+          {{
+            t(
+              'knowledgeBase.aiDisabledMessage',
+              '当前已关闭 LLM 总控，知识库检索与 AI 功能暂不可用。请在设置中启用 LLM 后继续。'
+            )
+          }}
+        </p>
+      </div>
+    </div>
+    <div v-else-if="!knowledgeBaseEnabled" class="kb-disabled-overlay">
       <div class="kb-disabled-content">
         <el-icon class="kb-disabled-icon" :size="64">
           <Lock />
@@ -518,6 +536,7 @@ const isRebuilding = ref<boolean>(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const baseUrl = ref('')
 const knowledgeBaseEnabled = ref<boolean>(settings.enableKnowledgeBase ?? true)
+const isAiEnabled = computed(() => settings.llmEnabled === true)
 // Monaco Editor相关
 const previewEditorId = `kb-preview-editor-${Date.now()}`
 

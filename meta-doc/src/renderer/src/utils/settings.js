@@ -75,6 +75,7 @@ export const settings = reactive({
   themeConfigs: [], // 主题配置列表 [{ id, name, type, themeColor, isDefault }]
   selectedThemeId: null, // 当前选中的主题ID
   llmEnabled: false, // 是否启用 LLM
+  disabledPluginIds: [], // 用户禁用的插件 ID 列表
   selectedLlm: '', // 选择的大模型类型
   enableKnowledgeBase: true, // 是否启用知识库
   knowledgeBaseScoreThreshold: 0.5, //RAG置信度阈值
@@ -204,9 +205,19 @@ async function loadSetting(key) {
         }))
         await setSetting(key, serializable)
       } else {
-        // 对于对象类型，确保可以被序列化
-        await setSetting(key, settings[key])
+      const defaultValue = settings[key]
+      if (Array.isArray(defaultValue)) {
+        await setSetting(key, [...defaultValue])
+      } else if (
+        defaultValue &&
+        typeof defaultValue === 'object' &&
+        !Array.isArray(defaultValue)
+      ) {
+        await setSetting(key, JSON.parse(JSON.stringify(defaultValue)))
+      } else {
+        await setSetting(key, defaultValue)
       }
+    }
     } else {
       //如果有设置，则更新settings
       // 只有当默认值和存储的值都是对象（且不是数组）时，才进行合并

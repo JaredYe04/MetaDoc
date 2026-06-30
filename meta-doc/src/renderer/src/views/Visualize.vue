@@ -1,7 +1,7 @@
 <template>
   <div ref="rootRef" class="visualize-page">
     <WordCloudDetail
-      v-if="showTitleMenu"
+      v-if="showTitleMenu && isAiEnabled"
       :word="current_word"
       :frequency="current_frequency"
       :position="menuPosition"
@@ -103,7 +103,7 @@ import * as echarts from 'echarts'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import WordCloudDetail from '../components/WordCloudDetail.vue'
-import { getSetting } from '../utils/settings'
+import { getSetting, settings } from '../utils/settings'
 import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls'
 import { useScopedOrActiveDocument } from '../composables/useActiveDocument'
@@ -138,6 +138,7 @@ const menuPosition = ref({ top: 0, left: 0 })
 const current_word = ref('')
 const current_frequency = ref(0)
 const { t, locale } = useI18n()
+const isAiEnabled = computed(() => settings.llmEnabled === true)
 
 const visualizeChartTheme = computed<VisualizeChartThemeSlice>(() => ({
   type: themeState.currentTheme.type as VisualizeChartThemeSlice['type'],
@@ -641,6 +642,7 @@ const generateWordCloud = async () => {
       .text((d: any) => d.text)
 
     container.selectAll('.wordcloud-text').on('click', (event: MouseEvent, d: any) => {
+      if (!isAiEnabled.value) return
       current_word.value = d.text
       current_frequency.value = d.size
       showTitleMenu.value = false

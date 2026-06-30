@@ -5,11 +5,13 @@
 import { mainCalls } from '../main-calls'
 import { registerSteamIpc } from '@metadoc/register-steam-ipc'
 import { registerFileAssociationIpc } from './register-file-association-ipc'
+import { registerCommunityPluginsIpc } from './register-community-plugins-ipc'
 import { registerUserTemplatesIpc } from '../user-templates/user-templates-ipc'
 
 export function registerMainProcessIpc(): void {
   registerSteamIpc()
   registerUserTemplatesIpc()
   registerFileAssociationIpc()
+  registerCommunityPluginsIpc()
   mainCalls()
 }

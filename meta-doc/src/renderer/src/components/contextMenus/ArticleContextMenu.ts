@@ -1,4 +1,5 @@
 import { getSetting } from '../../utils/settings'
+import { getPluginContextMenuItems } from '../../utils/plugin-contributions-ui'
 import type { ContextMenuItem } from './types'
 
 export interface ArticleContextMenuOptions {
@@ -16,6 +17,7 @@ export async function getArticleContextMenuItems(
 ): Promise<ContextMenuItem[]> {
   const { isLatexEditor = false, isPlainTextEditor = false, hasTextSelection = false } = options
   const autoCompletion = await getSetting('autoCompletion')
+  const llmEnabled = (await getSetting('llmEnabled')) === true
 
   const autoCompletionToggle = autoCompletion
     ? { label: 'contextMenu.closeAutoCompletion', value: 'closeAutoCompletion' }
@@ -26,36 +28,38 @@ export async function getArticleContextMenuItems(
     { label: 'contextMenu.copy', value: 'copy' },
     { label: 'contextMenu.paste', value: 'paste' },
     { label: 'contextMenu.selectAll', value: 'selectAll' },
-    { type: 'divider' },
-    autoCompletionToggle,
-    { type: 'divider' },
-    {
-      label: 'contextMenu.triggerAutoCompletion',
-      value: 'trigger-auto-completion',
-      shortcut: getShortcutText()
-    }
+    ...(llmEnabled
+      ? ([
+          { type: 'divider' },
+          autoCompletionToggle,
+          { type: 'divider' },
+          {
+            label: 'contextMenu.triggerAutoCompletion',
+            value: 'trigger-auto-completion',
+            shortcut: getShortcutText()
+          }
+        ] satisfies ContextMenuItem[])
+      : [])
   ]
 
-  if (!isPlainTextEditor) {
-    items.push(
-      { type: 'divider' },
-      { label: 'contextMenu.aiAnalysis', value: 'ai-assistant' },
-      { label: 'contextMenu.sectionOptimizer', value: 'section-optimizer' },
-      { type: 'divider' }
-    )
+  if (!isPlainTextEditor && llmEnabled) {
+    items.push({ type: 'divider' }, { label: 'contextMenu.aiAnalysis', value: 'ai-assistant' })
+
+    const pluginItems = getPluginContextMenuItems({ hasTextSelection, isPlainTextEditor })
+    for (const pluginItem of pluginItems) {
+      items.push(pluginItem)
+    }
+
     if (hasTextSelection) {
       items.push(
-        {
-          label: 'contextMenu.translateSelection',
-          value: 'translate-selection'
-        },
+        { type: 'divider' },
         {
           label: 'contextMenu.generateIllustrationFromSelection',
           value: 'quick-graph-from-selection'
         }
       )
     } else {
-      items.push({ label: 'contextMenu.insertGraph', value: 'insert-graph' })
+      items.push({ type: 'divider' }, { label: 'contextMenu.insertGraph', value: 'insert-graph' })
     }
   }
 

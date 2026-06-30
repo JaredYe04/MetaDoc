@@ -1,5 +1,6 @@
-import type { ComputedRef, InjectionKey, Ref } from 'vue'
+import type { ComputedRef, InjectionKey, Ref, Component } from 'vue'
 import type { ExportFormat } from '../../../types'
+import type { LeftMenuItemContribution } from '../host-api'
 
 export type ExportOptionItem = { labelKey?: string; label?: string; format: string }
 
@@ -54,6 +55,13 @@ export interface FocusModeLeftMenuApi {
   /** 顶栏条背景/文字：与 MainTabs 整条标签栏容器（tabsContainerBackgroundColor）一致 */
   toolbarMenuBackground: ComputedRef<string>
   toolbarMenuTextColor: ComputedRef<string>
+  isAiEnabled: ComputedRef<boolean>
+
+  pluginAiAssistantItems: ComputedRef<LeftMenuItemContribution[]>
+  resolvePluginLeftMenuLabel: (item: LeftMenuItemContribution) => string
+  resolvePluginLeftMenuIcon: (id: string) => Component | undefined
+  resolvePluginLeftMenuIconImage: (id: string) => string | undefined
+  onPluginLeftMenuClick: (item: LeftMenuItemContribution) => void
 }
 
 export const FOCUS_LEFT_MENU_API_KEY: InjectionKey<FocusModeLeftMenuApi> =

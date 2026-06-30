@@ -1,4 +1,4 @@
-/** Steam 官方云 `/cloud/models` 列表：按预估 credits/1k tokens 排序（与下拉展示共用） */
+/** Model price sort helpers (used by chat UI; cloud-specific naming retained for compat). */
 
 export type SteamCloudModelRow = { id: string; credits_per_1k_tokens_est?: number }
 
@@ -24,7 +24,6 @@ export function writeStoredSteamCloudPriceSortOrder(order: 'asc' | 'desc'): void
   }
 }
 
-/** 升序：价格低→高；缺省价格视为无穷大，排在后面 */
 export function sortSteamCloudModelsByPrice(
   models: SteamCloudModelRow[],
   order: 'asc' | 'desc'

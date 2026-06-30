@@ -112,5 +112,23 @@ module.exports = {
     'no-undef': 'error', // 使用未定义变量 → ReferenceError（运行时崩溃）
     'no-empty': 'error', // 空代码块 → 可能遗漏逻辑或错误处理（逻辑缺陷）
     'no-dupe-else-if': 'error' // 重复条件 → 某些分支永远不会执行（不可达代码）
-  }
+  },
+  overrides: [
+    {
+      files: ['src/renderer/src/plugins/**/*.{ts,js}'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['**/stores/workspace', '@renderer/stores/workspace'],
+                message: 'Plugins must use MetaDocHost API instead of importing workspace store directly.'
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

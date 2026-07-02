@@ -958,7 +958,7 @@ import { generateTemplateTitleDescriptionPrompt } from '../utils/prompts'
 import { useFocusMode } from '../composables/useFocusMode'
 import FocusModeTabBarMenus from './FocusModeTabBarMenus.vue'
 import { FOCUS_LEFT_MENU_API_KEY, type RecentOpenEntry } from './focus-mode-left-menu-api'
-import { isAiRuntimeLoaded } from '../ai-runtime/loader'
+import { ensureAiCapabilityWithFeedback } from '../ai-runtime/ensure-for-entry'
 import {
   findPluginLeftMenuItem,
   getPluginLeftMenuItems
@@ -991,13 +991,12 @@ import { useWorkspace } from '../stores/workspace'
 const logger = createRendererLogger('LeftMenu')
 const workspace = useWorkspace()
 const isDev = ref(false)
-const aiRuntimeReady = ref(isAiRuntimeLoaded())
 const pluginMenuRevision = ref(0)
 const isAiEnabled = computed(() => settings.llmEnabled === true)
 
 const pluginAiAssistantItems = computed(() => {
   pluginMenuRevision.value
-  if (!aiRuntimeReady.value || !isAiEnabled.value) return []
+  if (!isAiEnabled.value) return []
   return getPluginLeftMenuItems('ai-assistant')
 })
 
@@ -1032,24 +1031,25 @@ function onPluginLeftMenuClick(item: LeftMenuItemContribution): void {
 
 function invokePluginLeftMenuItem(id: string): boolean {
   const item = findPluginLeftMenuItem(id)
-  if (!item || !aiRuntimeReady.value || !isAiEnabled.value) return false
+  if (!item || !isAiEnabled.value) return false
   void item.onClick()
   return true
 }
 
 const onAiRuntimeReady = () => {
-  aiRuntimeReady.value = true
+  pluginMenuRevision.value++
+}
+
+const onAiCapabilityRegistryChange = () => {
   pluginMenuRevision.value++
 }
 
 const onAiRuntimeUnloaded = () => {
-  aiRuntimeReady.value = false
   pluginMenuRevision.value++
 }
 
 const onOpenKnowledgeBaseEvent = () => {
-  if (!isAiEnabled.value) return
-  openKnowledgeBaseTab()
+  void openKnowledgeBase()
 }
 
 // 菜单配置项定义
@@ -1440,16 +1440,18 @@ const openKnowledgeBaseTab = () => {
   workspace.openSystemTab('/knowledge-base', t('leftMenu.knowledgeBase', '知识库'))
 }
 
-const openKnowledgeBase = () => {
+const openKnowledgeBase = async () => {
   if (!isAiEnabled.value) return
+  await ensureAiCapabilityWithFeedback('rag')
   if (!invokePluginLeftMenuItem('knowledge-base')) {
     openKnowledgeBaseTab()
   }
 }
 
 // 打开 Agent（工作区级）
-const openAgent = () => {
+const openAgent = async () => {
   if (!isAiEnabled.value) return
+  await ensureAiCapabilityWithFeedback('agent')
   if (!invokePluginLeftMenuItem('agent')) {
     workspace.openSystemTab('/agent', t('headMenu.agent', 'Agent'))
   }
@@ -1529,6 +1531,8 @@ onMounted(async () => {
   eventBus.on('recent-opens-changed', onRecentOpensChanged)
   eventBus.on('ai-runtime-ready', onAiRuntimeReady)
   eventBus.on('ai-runtime-unloaded', onAiRuntimeUnloaded)
+  eventBus.on('ai-capability-loaded', onAiCapabilityRegistryChange)
+  eventBus.on('ai-capability-unloaded', onAiCapabilityRegistryChange)
   eventBus.on('open-knowledge-base', onOpenKnowledgeBaseEvent)
   await refreshRecentOpens()
   // 检查是否为开发环境
@@ -1541,6 +1545,8 @@ onBeforeUnmount(() => {
   eventBus.off('recent-opens-changed', onRecentOpensChanged)
   eventBus.off('ai-runtime-ready', onAiRuntimeReady)
   eventBus.off('ai-runtime-unloaded', onAiRuntimeUnloaded)
+  eventBus.off('ai-capability-loaded', onAiCapabilityRegistryChange)
+  eventBus.off('ai-capability-unloaded', onAiCapabilityRegistryChange)
   eventBus.off('open-knowledge-base', onOpenKnowledgeBaseEvent)
 })
 const refreshRecentOpens = async () => {

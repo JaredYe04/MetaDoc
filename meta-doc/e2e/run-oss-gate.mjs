@@ -4,7 +4,8 @@
  * 验证：
  * 1. 默认 llmEnabled=false 时不加载 AI 运行时（无 overlay/配件贡献）
  * 2. onStartup 插件（hello-world）仍可在启动时激活
- * 3. 开启 LLM 后插件贡献出现；关闭后贡献清零
+ * 3. 开启 LLM 后仅加载 llm-core；关闭后贡献清零
+ * 4. 模拟打开 Agent 后 agent capability 加载
  *
  * 使用：node e2e/run-oss-gate.mjs [--dev]
  */
@@ -93,6 +94,17 @@ async function setLlmEnabled(window, enabled) {
   await window.waitForTimeout(2000)
 }
 
+async function ensureAgentCapability(window) {
+  await window.evaluate(async () => {
+    if (window.__metadocE2E?.ensureAgentCapability) {
+      await window.__metadocE2E.ensureAgentCapability()
+      return
+    }
+    throw new Error('__metadocE2E.ensureAgentCapability 未安装')
+  })
+  await window.waitForTimeout(2000)
+}
+
 ;(async () => {
   let electronApp
   const userDataDir = makeUserDataDir()
@@ -148,17 +160,37 @@ async function setLlmEnabled(window, enabled) {
       (s) =>
         s.llmEnabled === true &&
         s.aiRuntimeLoaded === true &&
-        s.contributionCounts.leftMenuItems > 0,
-      '开启 LLM 后 AI 运行时应加载',
+        Array.isArray(s.loadedCapabilities) &&
+        s.loadedCapabilities.includes('llm-core') &&
+        !s.loadedCapabilities.includes('agent'),
+      '开启 LLM 后应仅加载 llm-core',
       90000
     )
-    console.log('快照（LLM 开启）:', JSON.stringify(snapOn))
+    console.log('快照（LLM 开启，llm-core）:', JSON.stringify(snapOn))
 
-    if (snapOn.contributionCounts.leftMenuItems < 1) {
-      throw new Error('LLM 开启后应有 leftMenuItems 插件贡献')
+    if (snapOn.contributionCounts.leftMenuItems > 0) {
+      throw new Error('仅 llm-core 时不应有 leftMenuItems 插件贡献')
     }
-    if (snapOn.activePluginIds.length < 5) {
-      throw new Error(`LLM 开启后应激活多个内置插件，实际: ${snapOn.activePluginIds.length}`)
+    if (snapOn.contributionCounts.shellOverlays > 0) {
+      throw new Error('仅 llm-core 时不应有 shellOverlays 贡献')
+    }
+    if (snapOn.activePluginIds.includes('metadoc.builtin.agent')) {
+      throw new Error('仅 llm-core 时不应激活 agent 插件')
+    }
+
+    await ensureAgentCapability(window)
+    const snapAgent = await waitForSnapshot(
+      window,
+      (s) =>
+        s.loadedCapabilities?.includes('agent') &&
+        s.activePluginIds.includes('metadoc.builtin.agent'),
+      '加载 agent capability 后应激活 agent 插件',
+      90000
+    )
+    console.log('快照（agent capability）:', JSON.stringify(snapAgent))
+
+    if (snapAgent.contributionCounts.leftMenuItems < 1) {
+      throw new Error('agent capability 加载后应有 leftMenuItems 贡献')
     }
 
     await setLlmEnabled(window, false)

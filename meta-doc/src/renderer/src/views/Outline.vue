@@ -1089,6 +1089,7 @@ import {
 } from '@renderer/components/ui/number-field'
 import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue'
 import { tabs, useWorkspace, type DocumentView } from '../stores/workspace'
+import { useDocumentViewContext } from '../view-api'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
@@ -1214,18 +1215,15 @@ const logger = createRendererLogger('Outline', {
   windowTypeProvider: () => getWindowType()
 })
 const workspace = useWorkspace()
+const viewCtx = useDocumentViewContext(() => props.tabId)
 const {
   activateTab,
-  ensureDocument,
   removeTab,
-  updateDocumentOutline,
-  updateDocumentLastView,
-  updateDocumentMarkdown,
   updateDocumentMeta,
   withAutoOutlineSyncSuppressed
 } = workspace
 
-const effectiveTabId = computed(() => props.tabId ?? workspace.activeTabId.value)
+const effectiveTabId = viewCtx.effectiveTabId
 
 const cloneOutline = (outline?: DocumentOutlineNode): DocumentOutlineNode =>
   JSON.parse(JSON.stringify(outline ?? DEFAULT_OUTLINE_TREE))
@@ -1292,15 +1290,7 @@ const OUTLINE_MANUAL_DEMO_TREE: DocumentOutlineNode = {
   ]
 }
 
-const activeDocument = computed(() => {
-  if (!effectiveTabId.value) return null
-  try {
-    return ensureDocument(effectiveTabId.value)
-  } catch (error) {
-    logger.warn('获取当前文档失败', error)
-    return null
-  }
-})
+const activeDocument = viewCtx.activeDocument
 
 const treeData = ref<DocumentOutlineNode>(cloneOutline(activeDocument.value?.outline))
 // 传给 vue-tree 的 dataset：交互期间不更新引用，避免库内 deep watch 触发 updateDataset 导致视口还原
@@ -1539,11 +1529,11 @@ const commitOutline = async (outline?: DocumentOutlineNode) => {
   await withAutoOutlineSyncSuppressed(async () => {
     suppressDocumentSync = true
     try {
-      updateDocumentOutline(tabId, snapshot)
+      viewCtx.updateOutline(snapshot)
       // 只有在当前视图确实是outline时才更新lastView，避免切换Tab时自动跳转到outline
-      const currentView = workspace.ensureDocument(tabId).lastView
+      const currentView = viewCtx.lastView.value
       if (currentView === 'outline') {
-        updateDocumentLastView(tabId, 'outline')
+        viewCtx.updateLastView('outline')
       }
       // 使用适配器按不同格式同步正文文本
       const doc = activeDocument.value
@@ -1551,10 +1541,10 @@ const commitOutline = async (outline?: DocumentOutlineNode) => {
       const adapter = getOutlineAdapter(format as any)
       if (format === 'tex') {
         const nextTex = await adapter.toText(snapshot, doc?.tex ?? '')
-        workspace.updateDocumentTex(tabId, nextTex)
+        viewCtx.updateTex(nextTex)
       } else {
         const nextMd = await adapter.toText(snapshot, doc?.markdown ?? '')
-        updateDocumentMarkdown(tabId, nextMd)
+        viewCtx.updateMarkdown(nextMd)
       }
     } finally {
       suppressDocumentSync = false
@@ -1888,7 +1878,7 @@ watch(isAiEnabled, (enabled) => {
 })
 
 // 切换 AI 工具：已选中则取消，否则选中；选中时折叠已展开的编辑节点面板
-function toggleAiTool(
+async function toggleAiTool(
   tool:
     | 'generateChildren'
     | 'generateContent'
@@ -1899,6 +1889,8 @@ function toggleAiTool(
     selectedAiTool.value = null
     return
   }
+  const { ensureEditorAiCapability } = await import('../ai-runtime/ensure-for-entry')
+  await ensureEditorAiCapability()
   const wasSelected = selectedAiTool.value === tool
   selectedAiTool.value = wasSelected ? null : tool
   if (!wasSelected && selectedAiTool.value) {
@@ -2412,7 +2404,7 @@ const backupContent = ref<string>('')
 const singleGenerateType = ref<'content' | 'children'>('children') // 单任务生成类型：内容或子节点
 
 const generateChildChapter = async () => {
-  workspace.lockUI?.()
+  viewCtx.lockUI()
   generateChildChapterLoading.value = true
   generating.value = true
   rawstring.value = ''
@@ -2460,7 +2452,7 @@ const generateChildChapter = async () => {
   } finally {
     generateChildChapterLoading.value = false
     generating.value = false
-    workspace.unlockUI?.()
+    viewCtx.unlockUI()
   }
 }
 
@@ -3497,7 +3489,7 @@ const executeFormatTitle = async () => {
   }
 }
 const generateContent = async () => {
-  workspace.lockUI?.()
+  viewCtx.lockUI()
   const node = selectedNode.value
   generating.value = true
   if (node) {
@@ -3508,7 +3500,7 @@ const generateContent = async () => {
   if (!curNode) {
     generateContentLoading.value = false
     generating.value = false
-    workspace.unlockUI?.()
+    viewCtx.unlockUI()
     return
   }
   const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
@@ -3536,12 +3528,12 @@ const generateContent = async () => {
     pendingAccept.value = true
     generateContentLoading.value = false
     generating.value = false
-    workspace.unlockUI?.()
+    viewCtx.unlockUI()
   }
   eventBus.emit('show-success', t('outline.generateChapterSuccess'))
 }
 const generateChildrenContent = async () => {
-  workspace.lockUI?.()
+  viewCtx.lockUI()
   const prevSync = suppressDocumentSync
   suppressDocumentSync = true
   const node = selectedNode.value
@@ -3555,7 +3547,7 @@ const generateChildrenContent = async () => {
     generateChildrenContentLoading.value = false
     generating.value = false
     suppressDocumentSync = prevSync
-    workspace.unlockUI?.()
+    viewCtx.unlockUI()
     return
   }
 
@@ -3638,11 +3630,11 @@ const generateChildrenContent = async () => {
     generateChildrenContentLoading.value = false
     suppressDocumentSync = prevSync
     if (!pendingBatchAccept.value) commitOutline()
-    workspace.unlockUI?.()
+    viewCtx.unlockUI()
   }
 }
 const generateChildrenChildren = async () => {
-  workspace.lockUI?.()
+  viewCtx.lockUI()
   const prevSync = suppressDocumentSync
   suppressDocumentSync = true
   const node = selectedNode.value
@@ -3656,7 +3648,7 @@ const generateChildrenChildren = async () => {
     generateChildrenChildrenLoading.value = false
     generating.value = false
     suppressDocumentSync = prevSync
-    workspace.unlockUI?.()
+    viewCtx.unlockUI()
     return
   }
 
@@ -3734,7 +3726,7 @@ const generateChildrenChildren = async () => {
     generating.value = false
     suppressDocumentSync = prevSync
     if (!pendingBatchAccept.value) commitOutline()
-    workspace.unlockUI?.()
+    viewCtx.unlockUI()
   }
 }
 

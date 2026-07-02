@@ -9,7 +9,7 @@ export default createMetaDocPlugin(
     version: '1.0.0',
     entry: './shell-overlays',
     permissions: ['llm.completion', 'llm.chat'],
-    activationEvents: ['onLlmEnabled']
+    activationEvents: ['onCapability:agent']
   },
   ({ host }) => {
     host.ui.registerShellOverlay({

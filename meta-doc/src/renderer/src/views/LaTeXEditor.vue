@@ -351,7 +351,6 @@ import {
 import { useTypingMeter } from '../composables/useTypingMeter'
 import { prependAiChatDialog } from '../utils/ai-chat-storage'
 import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config'
-import { createAiTask, ai_types, cancelAiTask } from '../utils/ai_tasks'
 import { getPromptByKey } from '../utils/prompts'
 
 const { t } = useI18n()
@@ -509,6 +508,8 @@ const handleTitleMenuClose = () => {
 
 // 从右键菜单打开段落优化工具
 const openSectionOptimizerFromContext = async () => {
+  const { ensureEditorAiCapability } = await import('../ai-runtime/ensure-for-entry')
+  await ensureEditorAiCapability()
   if (!editor.value || !props.tabId || !editorId.value) return
 
   // 从Monaco全局获取编辑器实例
@@ -2486,6 +2487,7 @@ const compile = async (prefs?: TexPdfCompileExportOptions) => {
 
   // 取消之前的AI分析任务（如果存在）
   if (currentAiTaskHandle) {
+    const { cancelAiTask } = await import('../utils/ai_tasks')
     cancelAiTask(currentAiTaskHandle, false)
     currentAiTaskHandle = null
   }
@@ -3014,6 +3016,7 @@ const analyzeCompileError = async (compileResult: any) => {
       }
     ]
 
+    const { createAiTask, ai_types } = await import('../utils/ai_tasks')
     const { done, handle } = createAiTask(
       t('latexEditor.notification.analyzingError'),
       messages,
@@ -3459,6 +3462,10 @@ const handleEditorCommand = (payload: { command?: string; tabId?: string }) => {
 const handleMenuClick = async (item: string) => {
   switch (item) {
     case 'ai-assistant':
+      {
+        const { ensureEditorAiCapability } = await import('../ai-runtime/ensure-for-entry')
+        await ensureEditorAiCapability()
+      }
       let text = currentTex.value
       // LaTeX 文档不需要移除代码块，因为 LaTeX 本身就是代码格式
       // 获取文章标题：优先使用 meta.title，如果没有则从内容中提取
@@ -3508,6 +3515,7 @@ const handleMenuClick = async (item: string) => {
       }
       break
     case 'openAutoCompletion':
+      await import('../ai-runtime/ensure-for-entry').then((m) => m.ensureCompletionCapability())
       await setSetting('autoCompletion', true)
       break
     case 'closeAutoCompletion':
@@ -3556,6 +3564,7 @@ const handleMenuClick = async (item: string) => {
       break
     }
     case 'trigger-auto-completion': {
+      await import('../ai-runtime/ensure-for-entry').then((m) => m.ensureCompletionCapability())
       if (editorId.value) {
         const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
         triggerEditorCompletion('manual', { setupAdapter: adapter })

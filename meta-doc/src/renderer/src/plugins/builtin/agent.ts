@@ -9,13 +9,17 @@ export default createMetaDocPlugin(
     version: '1.0.0',
     entry: './agent',
     permissions: ['documents.read', 'documents.write', 'llm.chat', 'main.terminal'],
-    activationEvents: ['onLlmEnabled']
+    activationEvents: ['onCapability:agent']
   },
   ({ host }) => {
-    host.ui.registerDocumentView({
-      view: 'agent',
+    host.views.registerView({
+      id: 'agent',
       component: AgentView,
-      label: 'Agent'
+      label: () => 'headMenu.agent',
+      order: 60,
+      requiresLlm: true,
+      showInViewMenu: false,
+      renderMode: 'component'
     })
     host.ui.registerHomeSection({
       id: 'global-home-agent',

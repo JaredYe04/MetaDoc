@@ -1604,7 +1604,9 @@
       "ai_full_document_analysis": "ИИ-анализ всего документа",
       "toggle_outline": "Переключить структуру",
       "toggle_outline_show": "Показать структуру",
-      "toggle_outline_hide": "Скрыть структуру"
+      "toggle_outline_hide": "Скрыть структуру",
+      "switchToCodeEditor": "Switch to code editor",
+      "switchToVisualEditor": "Switch to visual editor"
     },
     "untitled_document": "Безымянный документ",
     "vditor_init_failed": "Ошибка инициализации Vditor:"
@@ -1775,7 +1777,9 @@
     "translateSelection": "Перевести выделенное",
     "undo": "Отменить",
     "addSelectionToAgent": "Добавить в диалог с Agent",
-    "generateIllustrationFromSelection": "Создать иллюстрацию из выделенного"
+    "generateIllustrationFromSelection": "Создать иллюстрацию из выделенного",
+    "editorMode": "Editor mode",
+    "editorModeCode": "Code editor"
   },
   "data-analysis-tool": {
     "analyze": "Анализ данных",
@@ -4769,7 +4773,9 @@
       "mtxPackCreditsLabel": "Кредиты (credits)",
       "mtxPollTimeout": "Время ожидания подтверждения от Steam истекло. Если вы уже оплатили, нажмите «Обновить баланс» позже; если оплата не завершена, повторите попытку.",
       "mtxSteamAuthFailed": "Steam не принял эту авторизацию (частая причина: IP-адрес заказа не совпадает с IP-адресом выхода браузера). Закройте страницу оплаты и повторите попытку; если используете VPN/прокси, убедитесь, что он совпадает с настройками браузера."
-    }
+    },
+    "editorModeCode": "Code Editor",
+    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
   },
   "settingBasicSection": {
     "failedSize": "Не удалось получить размер каталога",
@@ -5577,7 +5583,7 @@
     },
     "editorMode": {
       "title": "Default Markdown editor mode",
-      "subtitle": "This mode is used when you open Markdown documents.",
+      "subtitle": "Choose a default mode (WYSIWYG, IR, split view, or code editor) for new Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
     },
     "fileAssociation": {

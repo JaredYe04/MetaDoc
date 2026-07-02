@@ -75,28 +75,35 @@ my-metadoc-plugin/
 
 ### 注册文档视图
 
+推荐 `host.views.registerView`（详见 [09-VIEW-API.md](./09-VIEW-API.md)）：
+
 ```typescript
 import MyView from './MyView.vue'
 
+host.views.registerView({
+  id: 'my-extension',
+  component: MyView,
+  label: () => 'headMenu.myExtension',
+  order: 70,
+  showInViewMenu: true,
+  requiresLlm: false,
+  renderMode: 'component'
+})
+```
+
+兼容写法（仍可用）：
+
+```typescript
 host.ui.registerDocumentView({
   view: 'my-extension',
   component: MyView,
   label: 'My Extension'
 })
-
-host.ui.registerLeftMenuItem({
-  id: 'open-my-view',
-  label: () => 'My Extension',
-  onClick: () => {
-    const tabId = host.documents.getActiveTabId()
-    if (tabId) {
-      host.events.emit('switch-document-view', { tabId, view: 'my-extension' })
-    }
-  }
-})
 ```
 
-`view` 字符串须在 workspace 的 `DocumentView` 类型中扩展（当前为插件动态注册，store 侧为 string union 扩展）。
+`id` / `view` 为任意字符串，存入 `WorkspaceDocument.lastView`（`DocumentView` 类型已扩展为 `CoreDocumentView | string`）。
+
+视图内请使用 `useDocumentViewContext(tabId)` 读写文档，勿直接 import `stores/workspace`。
 
 ### 读取 / 修改文档
 

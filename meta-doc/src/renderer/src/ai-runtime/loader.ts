@@ -1,64 +1,57 @@
 import eventBus from '../utils/event-bus.js'
 import { getSetting } from '../utils/settings.js'
-import { attachLlmHost } from '../core/host-runtime'
-import { deactivateAllPlugins, loadBuiltinPlugins } from '../core/plugin-loader'
-import { loadCommunityPlugins } from '../core/community-plugin-loader'
-import { builtinPluginLoaders } from '../plugins/builtin-manifests'
+import {
+  ensureAiCapability,
+  isAiCapabilityLoaded,
+  isAiCapabilityLoading,
+  unloadAllAiCapabilities,
+  unloadAiCapability,
+  getLoadedAiCapabilities,
+  type AiCapabilityId
+} from './capabilities'
 
-let loaded = false
-let loading: Promise<void> | null = null
+export type { AiCapabilityId } from './capabilities'
+export {
+  ensureAiCapability,
+  getLoadedAiCapabilities,
+  isAiCapabilityLoaded,
+  isAiCapabilityLoading,
+  unloadAiCapability,
+  unloadAllAiCapabilities
+} from './capabilities'
 
+const ALL_CAPABILITIES: AiCapabilityId[] = [
+  'llm-core',
+  'completion',
+  'editor-ai',
+  'tool-windows',
+  'rag',
+  'agent'
+]
+
+/** Load every AI capability (debug / migration helper). */
 export async function loadAiRuntime(): Promise<void> {
-  if (loaded) return
-  if (loading) return loading
-
-  loading = (async () => {
-    const { createAiTask } = await import('../utils/ai_tasks')
-    const { AIService } = await import('../services/AIService')
-
-    attachLlmHost({
-      isAvailable: () => AIService.isLLMAvailable(),
-      createTask: createAiTask
-    })
-
-    const { initializeAgentTools } = await import('../utils/agent-tools')
-    await initializeAgentTools()
-
-    await loadBuiltinPlugins(builtinPluginLoaders)
-    await loadCommunityPlugins()
-
-    eventBus.emit('ai-runtime-ready')
-    loaded = true
-  })()
-
-  try {
-    await loading
-  } finally {
-    loading = null
+  for (const id of ALL_CAPABILITIES) {
+    await ensureAiCapability(id)
   }
 }
 
 export async function unloadAiRuntime(): Promise<void> {
-  if (!loaded) return
-  const { clearAiTasks } = await import('../utils/ai_tasks')
-  clearAiTasks()
-  await deactivateAllPlugins()
-  attachLlmHost(undefined)
-  loaded = false
-  eventBus.emit('ai-runtime-unloaded')
+  await unloadAllAiCapabilities()
 }
 
 export async function syncAiRuntimeWithSettings(): Promise<void> {
   const enabled = (await getSetting('llmEnabled')) === true
   if (enabled) {
-    await loadAiRuntime()
+    await ensureAiCapability('llm-core')
   } else {
-    await unloadAiRuntime()
+    await unloadAllAiCapabilities()
   }
 }
 
+/** True when minimal LLM stack (`llm-core`) is loaded. */
 export function isAiRuntimeLoaded(): boolean {
-  return loaded
+  return isAiCapabilityLoaded('llm-core')
 }
 
 export function registerAiRuntimeToggleListener(): void {

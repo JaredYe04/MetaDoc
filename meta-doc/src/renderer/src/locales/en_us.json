@@ -115,7 +115,7 @@
     },
     "editorMode": {
       "title": "Default Markdown editor mode",
-      "subtitle": "This mode is used when you open Markdown documents.",
+      "subtitle": "Choose a default mode (WYSIWYG, IR, split view, or code editor) for new Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
     }
   },
@@ -150,7 +150,9 @@
     "generateIllustrationFromSelection": "Generate illustration",
     "insertGraph": "Insert Graph",
     "triggerAutoCompletion": "AI Auto-completion",
-    "translateSelection": "Translate selection"
+    "translateSelection": "Translate selection",
+    "editorMode": "Editor mode",
+    "editorModeCode": "Code editor"
   },
   "headMenu": {
     "tooltip": "An intelligent word processor powered by AI Agents",
@@ -777,7 +779,9 @@
       "convert_latex_formulas_no_match": "No formula formats found to convert",
       "convert_latex_formulas_no_editor": "Editor not ready",
       "convert_latex_formulas_message:": "This operation will convert \\(...\\) inline formulas and \\[...\\] block formulas in the document to Vditor-compatible $...$ and $$...$$ formats.\\n\\nNote: This operation modifies the document content. It is recommended to save the document first.",
-      "fullscreen:": "Fullscreen"
+      "fullscreen:": "Fullscreen",
+      "switchToCodeEditor": "Switch to code editor",
+      "switchToVisualEditor": "Switch to visual editor"
     },
     "convert_to_latex": "Convert Document to LaTeX",
     "convert_to_latex_confirm": "The conversion will generate the text file, which is not synchronized with the existing Markdown file, and will continue?",
@@ -2236,7 +2240,9 @@
     "testResultFailed": "Test failed",
     "copyConfig": "Copy Configuration",
     "copyConfigSuccess": "Configuration Copied",
-    "readFileFailed": "Failed to read file"
+    "readFileFailed": "Failed to read file",
+    "editorModeCode": "Code Editor",
+    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
   },
   "visualize": {
     "articleOutline": "Article Outline",
@@ -4547,6 +4553,14 @@
     "xiaowu:": "Small Size 5",
     "xiaoyi:": "Small Size 1",
     "yihao:": "Size 1"
+  },
+  "viewMenu": {
+    "menuConfig": {
+      "title": "View Menu Configuration",
+      "description": "Drag to reorder view menu items or hide views you don't need (outline, visualize, etc.).",
+      "reset": "Reset",
+      "save": "Save"
+    }
   },
   "viewMenuContainer": {
     "collapse": "Collapse",

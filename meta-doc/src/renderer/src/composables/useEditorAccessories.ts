@@ -1,30 +1,33 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { EditorAccessoryRegistration } from '../host-api'
 import { getHost } from '../core/host-runtime'
-import { isAiRuntimeLoaded } from '../ai-runtime/loader'
 import eventBus from '../utils/event-bus'
 
 export function useEditorAccessories(format: string) {
-  const ready = ref(isAiRuntimeLoaded())
+  const revision = ref(0)
 
   function refresh() {
-    ready.value = isAiRuntimeLoaded()
+    revision.value++
   }
 
   const accessories = computed((): EditorAccessoryRegistration[] => {
-    if (!ready.value) return []
+    revision.value
     return getHost().editor.getAccessories(format)
   })
 
   onMounted(() => {
+    eventBus.on('ai-capability-loaded', refresh)
+    eventBus.on('ai-capability-unloaded', refresh)
     eventBus.on('ai-runtime-ready', refresh)
     eventBus.on('ai-runtime-unloaded', refresh)
   })
 
   onBeforeUnmount(() => {
+    eventBus.off('ai-capability-loaded', refresh)
+    eventBus.off('ai-capability-unloaded', refresh)
     eventBus.off('ai-runtime-ready', refresh)
     eventBus.off('ai-runtime-unloaded', refresh)
   })
 
-  return { accessories, aiRuntimeReady: ready }
+  return { accessories, aiRuntimeReady: computed(() => accessories.value.length > 0) }
 }

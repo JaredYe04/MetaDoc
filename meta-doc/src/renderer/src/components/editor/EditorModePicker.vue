@@ -13,14 +13,13 @@
         :style="editorModeCardBgStyle"
         @click="emit('update:modelValue', opt.value)"
       >
-        <div class="editor-mode-card-icon">{{ opt.icon }}</div>
+        <div class="editor-mode-card-icon">
+          <component :is="opt.icon" :size="40" :stroke-width="1.75" />
+        </div>
         <h3 class="editor-mode-card-title">{{ t(opt.titleKey) }}</h3>
         <p class="editor-mode-card-desc">{{ t(opt.descKey) }}</p>
       </div>
     </div>
-    <!-- <p v-if="showChangeLaterHint" class="editor-mode-change-later">
-      {{ t('editorModeFirstTime.changeLaterHint') }}
-    </p> -->
     <div v-if="showConfirm" class="editor-mode-panel-footer">
       <Button variant="default" size="lg" @click="emit('confirm')">
         {{ t('common.confirm') }}
@@ -32,13 +31,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { FileText, Zap, Columns2, Code2 } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { themeState } from '../../utils/themes'
+import type { MarkdownDefaultEditorModeChoice } from '../../utils/markdown-editor-mode'
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
-    modelValue: 'wysiwyg' | 'ir' | 'sv'
-    /** 首次向导内嵌：不显示大标题、不显示底部确定（由外层向导处理） */
+    modelValue: MarkdownDefaultEditorModeChoice
     embedded?: boolean
     showChangeLaterHint?: boolean
     showConfirm?: boolean
@@ -51,7 +51,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  'update:modelValue': [value: 'wysiwyg' | 'ir' | 'sv']
+  'update:modelValue': [value: MarkdownDefaultEditorModeChoice]
   confirm: []
 }>()
 
@@ -60,21 +60,27 @@ const { t } = useI18n()
 const editorModeOptions = [
   {
     value: 'wysiwyg' as const,
-    icon: '📝',
+    icon: FileText,
     titleKey: 'setting.editorModeWysiwyg',
     descKey: 'setting.editorModeWysiwygHint'
   },
   {
     value: 'ir' as const,
-    icon: '⚡',
+    icon: Zap,
     titleKey: 'setting.editorModeIr',
     descKey: 'setting.editorModeIrHint'
   },
   {
     value: 'sv' as const,
-    icon: '📋',
+    icon: Columns2,
     titleKey: 'setting.editorModeSv',
     descKey: 'setting.editorModeSvHint'
+  },
+  {
+    value: 'code' as const,
+    icon: Code2,
+    titleKey: 'setting.editorModeCode',
+    descKey: 'setting.editorModeCodeHint'
   }
 ]
 
@@ -109,14 +115,13 @@ const editorModeCardBgStyle = computed(() => ({
 }
 
 .editor-mode-cards {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 24px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
 }
 
 .editor-mode-card {
-  flex: 1;
   min-width: 160px;
   padding: 28px 24px;
   border-radius: 16px;
@@ -161,8 +166,8 @@ const editorModeCardBgStyle = computed(() => ({
 }
 
 .editor-mode-card-icon {
-  font-size: 48px;
   margin-bottom: 16px;
+  color: v-bind('themeState.currentTheme.textColor');
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
   transition: transform 0.3s ease;
 }
@@ -185,13 +190,6 @@ const editorModeCardBgStyle = computed(() => ({
   margin: 0;
   color: v-bind('themeState.currentTheme.textColor');
   opacity: 0.8;
-}
-
-.editor-mode-change-later {
-  font-size: 12px;
-  color: v-bind('themeState.currentTheme.textColor');
-  opacity: 0.7;
-  margin: 0 0 20px 0;
 }
 
 .editor-mode-panel-footer {

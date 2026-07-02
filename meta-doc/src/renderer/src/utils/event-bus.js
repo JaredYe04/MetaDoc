@@ -924,31 +924,49 @@ eventBus.on('export', async (payload) => {
 eventBus.on('setting', () => {
   messageBridge.send('setting')
 })
-eventBus.on('ai-chat', () => {
+eventBus.on('ai-chat', async () => {
+  const { ensureCapabilityForToolEvent } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForToolEvent('ai-chat')
   messageBridge.send('ai-chat')
 })
-eventBus.on('ai-graph', () => {
+eventBus.on('ai-graph', async () => {
+  const { ensureCapabilityForToolEvent } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForToolEvent('ai-graph')
   messageBridge.send('ai-graph')
 })
-eventBus.on('smart-drawing-assistant', () => {
+eventBus.on('smart-drawing-assistant', async () => {
+  const { ensureCapabilityForToolEvent } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForToolEvent('smart-drawing-assistant')
   messageBridge.send('smart-drawing-assistant')
 })
-eventBus.on('fomula-recognition', () => {
+eventBus.on('fomula-recognition', async () => {
+  const { ensureCapabilityForToolEvent } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForToolEvent('fomula-recognition')
   messageBridge.send('fomula-recognition')
 })
-eventBus.on('data-analysis', () => {
+eventBus.on('data-analysis', async () => {
+  const { ensureCapabilityForToolEvent } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForToolEvent('data-analysis')
   messageBridge.send('data-analysis')
 })
-eventBus.on('ocr', () => {
+eventBus.on('ocr', async () => {
+  const { ensureCapabilityForToolEvent } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForToolEvent('ocr')
   messageBridge.send('ocr')
 })
-eventBus.on('attachment', () => {
+eventBus.on('attachment', async () => {
+  const { ensureCapabilityForToolEvent } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForToolEvent('attachment')
   messageBridge.send('attachment')
 })
-eventBus.on('graph', () => {
+eventBus.on('graph', async () => {
+  const { ensureCapabilityForToolEvent } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForToolEvent('graph')
   messageBridge.send('graph')
 })
-eventBus.on('aigc-detection', () => {
+eventBus.on('aigc-detection', async () => {
+  const { ensureCapabilityForToolEvent } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForToolEvent('aigc-detection')
   const workspace = useWorkspace()
   workspace.openToolTab('aigcDetection')
 })

@@ -549,12 +549,14 @@ const handleMenuClick = async (item: string) => {
       }
       break
     case 'openAutoCompletion':
+      await import('../ai-runtime/ensure-for-entry').then((m) => m.ensureCompletionCapability())
       await setSetting('autoCompletion', true)
       break
     case 'closeAutoCompletion':
       await setSetting('autoCompletion', false)
       break
     case 'trigger-auto-completion':
+      await import('../ai-runtime/ensure-for-entry').then((m) => m.ensureCompletionCapability())
       if (editorId.value) {
         const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value)
         triggerEditorCompletion('manual', { setupAdapter: adapter })

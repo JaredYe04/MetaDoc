@@ -8,7 +8,7 @@ export default createMetaDocPlugin(
     version: '1.0.0',
     entry: './knowledge-rag',
     permissions: ['main.rag', 'llm.chat', 'settings.read'],
-    activationEvents: ['onLlmEnabled']
+    activationEvents: ['onCapability:rag']
   },
   ({ host }) => {
     host.ui.registerSettingsSection({

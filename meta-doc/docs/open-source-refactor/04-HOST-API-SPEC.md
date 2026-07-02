@@ -18,6 +18,7 @@ interface MetaDocHost {
   documents: DocumentHost
   outline: OutlineHost
   editor: EditorHost
+  views: ViewHost
   ui: UIHost
   events: EventHost
   settings: SettingsHost
@@ -82,6 +83,23 @@ interface EditorOverlayRegistration {
 
 ---
 
+## ViewHost
+
+文档标签内的**视图实现**注册（MVC 中的 V 层）。完整说明见 [09-VIEW-API.md](./09-VIEW-API.md)。
+
+| 方法 | 说明 |
+|------|------|
+| `registerView(reg)` | 注册 `DocumentViewRegistration`，返回 dispose |
+| `unregisterView(id)` | 按 ID 移除 |
+| `getView(id)` | 查询单条注册 |
+| `getAllViews()` | 按 `order` 排序的全部视图 |
+
+`ui.registerDocumentView` **已废弃为兼容入口**，内部转发至 `views.registerView`。
+
+视图组件应使用 `useDocumentViewContext(tabId)` 访问文档数据；参考实现：`Outline.vue`、`Visualize.vue`。
+
+---
+
 ## UIHost
 
 向壳层注册 UI 贡献点。注册项存入 `pluginRegistry`（`host-runtime.ts`），由 `Main.vue`、`WorkspaceDocumentViews.vue` 等消费。
@@ -90,7 +108,7 @@ interface EditorOverlayRegistration {
 |------|----------|
 | `registerContextMenuItem` | 选区 / 编辑器右键菜单 |
 | `registerLeftMenuItem` | 左侧菜单项 |
-| `registerDocumentView` | 标签内文档视图（与 editor / outline 并列） |
+| `registerDocumentView` | **兼容别名** → `views.registerView` |
 | `registerSettingsSection` | 设置页分区 |
 | `registerShellOverlay` | 全局浮层（任务队列、错误对话框等） |
 

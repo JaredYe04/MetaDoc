@@ -56,7 +56,11 @@
 
 
 
-- [x] `WorkspaceDocumentViews.vue` — 动态渲染 `pluginRegistry.documentViews`
+- [x] `WorkspaceDocumentViews.vue` — 遍历 `view-api` 注册表渲染全部文档视图
+
+- [x] **`View API`** — `view-api/` + `host.views`；`Outline.vue` / `Visualize.vue` 使用 `useDocumentViewContext`；见 [09-VIEW-API.md](./09-VIEW-API.md)
+
+- [x] **`ViewMenu.vue`** — 注册表驱动菜单；`llmEnabled` 门控校对；空白右键 + `viewMenuConfig` 配置对话框
 
 - [x] `Main.vue` — `ai-runtime-ready` 门控 + `pluginRegistry.shellOverlays`
 
@@ -188,9 +192,13 @@
 
 
 
-- [x] **`llmEnabled` OSS gate E2E** — `e2e/run-oss-gate.mjs`（`npm run test:e2e:oss`）
+- [x] **`llmEnabled` OSS gate E2E** — `e2e/run-oss-gate.mjs`（`npm run test:e2e:oss`）；断言 `llm-core` 与 agent 按需加载
 
-- [x] **开关往返** — E2E 覆盖开 → 关 → 开；断言贡献点清零
+- [x] **AI Capability 按需加载** — `ai-runtime/capabilities` + `ensureAiCapability`；`llmEnabled` 仅 `llm-core`；Tab/设置冷路径懒加载
+
+- [x] **`ai-runtime/capabilities/registry.test.ts`** — ensure/unload 顺序与幂等
+
+- [x] **开关往返** — E2E 覆盖开 → agent 按需 → 关；断言贡献点清零
 
 - [x] **`outline-ai` 修复** — `activate` 使用 `host.events`（修复 AI 运行时加载中断）
 
@@ -208,7 +216,7 @@
 
 2. 默认 `llmEnabled === false`，设置中可 opt-in
 
-3. Opt-in 后 Agent、校对、补全、知识库等可用
+3. Opt-in 后仅加载 `llm-core`；首次打开 Agent/校对/知识库等时对应 capability 加载
 
 4. `archived/` 不参与默认构建
 
@@ -229,6 +237,9 @@
 | 启动 | `src/renderer/src/main.js` |
 
 | Host API | `src/renderer/src/host-api/index.ts` |
+| View API | `src/renderer/src/view-api/index.ts` |
+| 视图参考实现 | `views/Outline.vue`, `views/Visualize.vue` |
+| ViewMenu 配置 | `components/ViewMenuConfigDialog.vue` |
 
 | AI 加载 | `src/renderer/src/ai-runtime/loader.ts` |
 

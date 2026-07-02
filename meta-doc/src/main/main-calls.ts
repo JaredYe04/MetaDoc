@@ -4075,6 +4075,14 @@ function bindKnowledgeHandlers(): void {
   )
 
   ipcBridge.registerHandle(
+    'rag:ensure-ready',
+    async (): Promise<{ ok: true }> => {
+      await ensureUtilsInitialized()
+      return { ok: true }
+    }
+  )
+
+  ipcBridge.registerHandle(
     'query-knowledge-base',
     async (event: IpcMainInvokeEvent, params: QueryKnowledgeBaseParams): Promise<string[]> => {
       await ensureUtilsInitialized()

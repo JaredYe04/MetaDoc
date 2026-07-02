@@ -28,7 +28,7 @@
       />
       <SearchReplaceMenu
         v-if="searchReplaceDialogVisible"
-        :adapter="textEditorAdapter"
+        :adapter="activeTextEditorAdapter"
         :position="SRMenuPosition"
         :panel-size="SRPanelSize"
         :doc-revision="searchReplaceDocRevision"
@@ -40,7 +40,7 @@
       <template v-for="overlay in editorOverlays" :key="overlay.id">
         <component
           :is="overlay.component"
-          v-if="overlay.id === 'ai-suggestion-ghost' && vditor"
+          v-if="overlay.id === 'ai-suggestion-ghost' && vditor && editorSurface === 'visual'"
           format="md"
           :completion-source-id="`vditor:${props.tabId}`"
           :targetEl="vditorEl"
@@ -48,10 +48,18 @@
           @accepted="onAcceptSuggestion"
           @cancelled="onCancelSuggestion"
         />
+        <component
+          :is="overlay.component"
+          v-if="overlay.id === 'ai-suggestion-ghost' && editorSurface === 'code' && monacoEditorId"
+          format="md"
+          :editorId="monacoEditorId"
+          @accepted="onAcceptSuggestion"
+          @cancelled="onCancelSuggestion"
+        />
       </template>
 
-      <!-- 主编辑器区域：加载时显示 skeleton 覆盖层，与 VditorPreview 一致，不阻塞其他区域 -->
-      <div class="editor-area">
+      <!-- Vditor 可视化编辑面 -->
+      <div class="editor-area" v-show="editorSurface === 'visual'">
         <Skeleton v-if="isVditorLoading" :rows="15" animated class="markdown-editor-skeleton" />
         <div
           :id="props.editorDomId"
@@ -73,6 +81,29 @@
           }"
         ></div>
       </div>
+
+      <!-- Monaco 代码编辑面（左编辑 + 右预览） -->
+      <MarkdownMonacoPane
+        v-show="editorSurface === 'code'"
+        ref="monacoPaneRef"
+        class="markdown-code-editor-area"
+        :tab-id="props.tabId"
+        :active="isActive && editorSurface === 'code'"
+        :markdown="currentMarkdown"
+        :doc-path="documentRef.path"
+        :llm-enabled="isAiEnabled"
+        @undo="handleUnifiedUndo"
+        @redo="handleUnifiedRedo"
+        @toolbar-action="onMonacoToolbarAction"
+        @search-replace="onMonacoSearchReplace"
+        @convert-latex="handleConvertLatexFormulas"
+        @ai-assistant="handleMenuClick('ai-assistant')"
+        @switch-to-visual="switchSurface('visual')"
+        @contextmenu="openContextMenu"
+        @content-change="onMonacoContentChange"
+        @ready="onMonacoReady"
+        @unready="onMonacoUnready"
+      />
 
       <!-- 右键菜单放在编辑器之后，避免被 .editor 叠在下面导致移入菜单时命中编辑器而误关 -->
       <ContextMenu
@@ -149,7 +180,7 @@ import {
   setEditorCompletionAdapter,
   triggerEditorCompletion
 } from '../utils/editor-completion-bridge'
-import { VditorEditorAdapter } from '../utils/editor-adapters'
+import { VditorEditorAdapter, MonacoEditorAdapter } from '../utils/editor-adapters'
 import { getArticleContextMenuItems } from '../components/contextMenus/ArticleContextMenu'
 import { getMarkdownOutlineContextMenuItems } from '../components/contextMenus/MarkdownOutlineContextMenu'
 import ContextMenu from '../components/ContextMenu.vue'
@@ -168,6 +199,23 @@ import {
   shouldDelegateMarkdownWorkspaceLink,
   parseMarkdownLinkHref
 } from '../utils/markdown-workspace-link'
+import MarkdownMonacoPane from '../components/markdown-editor/MarkdownMonacoPane.vue'
+import {
+  getMarkdownEditorSurface,
+  type MarkdownEditorSurface,
+  type VditorSubMode
+} from '../utils/markdown-editor-mode'
+import {
+  pushMarkdownHistorySnapshot,
+  markdownHistoryUndo,
+  markdownHistoryRedo,
+  resetMarkdownUnifiedHistory,
+  runWithMarkdownHistoryApply,
+  clearMarkdownUnifiedHistory
+} from '../composables/useMarkdownUnifiedHistory'
+import {
+  type MarkdownToolbarAction
+} from '../utils/markdown-toolbar-actions'
 
 const MARKDOWN_LAYOUT = {
   editorMinWidth: 700,
@@ -283,6 +331,29 @@ const { accessories: editorAccessories } = useEditorAccessories('md')
 let handleZoomShortcut: ((payload?: unknown) => void) | null = null
 
 const documentRef = computed(() => workspace.ensureDocument(props.tabId))
+
+const monacoPaneRef = ref<InstanceType<typeof MarkdownMonacoPane> | null>(null)
+const monacoTextAdapter = shallowRef<TextEditorAdapter | null>(null)
+const monacoEditorId = ref<string | null>(null)
+const currentVditorMode = ref<VditorSubMode>('ir')
+
+const editorSurface = computed<MarkdownEditorSurface>({
+  get: () => {
+    const docSurface = documentRef.value.markdownEditorSurface
+    if (docSurface === 'visual' || docSurface === 'code') return docSurface
+    const settingSurface = settings.markdownEditorSurface
+    return settingSurface === 'code' ? 'code' : 'visual'
+  },
+  set: (surface) => {
+    workspace.updateDocumentMarkdownEditorSurface(props.tabId, surface)
+  }
+})
+
+const isAiEnabled = computed(() => settings.llmEnabled === true)
+
+const debouncedPushMarkdownHistory = debounce((markdown: string) => {
+  pushMarkdownHistorySnapshot(props.tabId, markdown)
+}, 300)
 
 const graphQuickDocumentTitle = computed(() => documentRef.value.meta?.title?.trim() || '')
 
@@ -893,8 +964,12 @@ const vditor = ref<Vditor | null>(null) // Vditor 实例
 const articleContextMenuItems = ref<any[]>([]) //右键菜单项
 const textEditorAdapter = shallowRef<TextEditorAdapter | null>(null)
 
+const activeTextEditorAdapter = computed(() =>
+  editorSurface.value === 'code' ? monacoTextAdapter.value : textEditorAdapter.value
+)
+
 watch(
-  () => ({ active: isActive.value, adapter: textEditorAdapter.value, tabId: props.tabId }),
+  () => ({ active: isActive.value, adapter: activeTextEditorAdapter.value, tabId: props.tabId }),
   ({ active, adapter, tabId }) => {
     if (active && adapter) {
       registerOutlineSidebarSearchAdapter(tabId, adapter)
@@ -1058,6 +1133,8 @@ let pendingExternalUpdate: { value: string; clearHistory?: boolean } | undefined
 // 关键修复：保存时抑制 watch 的 setValue，避免不必要的回写导致闪烁
 // 保存时内容是从编辑器读取的，编辑器已经有最新内容，不需要回写
 let isSavingFromEditor = false
+let isEditorMounted = true
+let scheduleSetValueRetryTimer: ReturnType<typeof setTimeout> | null = null
 // 当 updateDocumentMarkdown 由 sync-active-editor 调用时，watch 必须跳过 scheduleSetValue。
 // 使用 ref 确保 watch 运行时（无论何时 flush）都能读到，避免 isSavingFromEditor 的时序竞态。
 const skipNextWatchFromSync = ref(false)
@@ -1068,6 +1145,8 @@ type SetValueOptions = {
   clearHistory?: boolean
   timeoutMs?: number
   preserveTheme?: boolean // 是否在设置值后保留主题（防止主题被重置）
+  /** 切换编辑面时强制写入 Vditor，忽略 lastAppliedContent 与交互挂起 */
+  force?: boolean
 }
 
 /** 与 Vditor 写入内容对齐：统一换行并去掉开头 BOM/零宽符，避免工作区仍带 BOM 时与 lastApplied 永久不等 */
@@ -1111,20 +1190,29 @@ const markEditorInteraction = () => {
 const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
   // 保存流程期间禁止任何 Vditor 写操作
   if (isSaveInProgress.value) return
+  if (!isEditorMounted) return
+  if (editorSurface.value === 'code') return
   const normalized = normalizeMarkdownLeadingArtifacts(value ?? '')
   if (!vditor.value) return
   // 检查 Vditor 实例是否已完全初始化（是否有 vditor 内部实例）
   if (!vditor.value.vditor || !vditor.value.vditor.ir) {
-    // 如果未完全初始化，延迟执行
-    setTimeout(() => {
+    // 如果未完全初始化，延迟执行（卸载后不再重试，避免关闭标签时死循环）
+    if (scheduleSetValueRetryTimer) clearTimeout(scheduleSetValueRetryTimer)
+    scheduleSetValueRetryTimer = setTimeout(() => {
+      scheduleSetValueRetryTimer = null
+      if (!isEditorMounted) return
       scheduleSetValue(normalized, options)
     }, 100)
     return
   }
-  if (normalizeMdForCompare(normalized) === normalizeMdForCompare(lastAppliedContent.value)) return
+  if (
+    !options.force &&
+    normalizeMdForCompare(normalized) === normalizeMdForCompare(lastAppliedContent.value)
+  )
+    return
 
   // 检查用户是否正在交互，如果是则缓存更新请求（避免打断用户输入）
-  if (isEditorInteracting.value) {
+  if (!options.force && isEditorInteracting.value) {
     pendingExternalUpdate = { value: normalized, clearHistory: options.clearHistory }
     return
   }
@@ -1426,11 +1514,50 @@ const openContextMenu = async (event: MouseEvent) => {
 
 // 插入文本到编辑器
 const insertText = (text: string) => {
-  textEditorAdapter.value?.insertText(text)
+  activeTextEditorAdapter.value?.insertText(text)
 }
 
-// 使用 document.execCommand 触发复制/剪切/粘贴（需焦点在当前模式的真实可编辑区）
-const executeEditorCommand = (command: string) => {
+const applyHistorySnapshot = (snapshot: string | null) => {
+  if (snapshot == null) return
+  runWithMarkdownHistoryApply(props.tabId, () => {
+    skipNextWatchFromSync.value = true
+    lastAppliedContent.value = normalizeMarkdownLeadingArtifacts(snapshot)
+    workspace.updateDocumentMarkdown(props.tabId, snapshot)
+    if (editorSurface.value === 'visual') {
+      scheduleSetValue(snapshot, { clearHistory: true, timeoutMs: 0 })
+    } else {
+      monacoPaneRef.value?.applyExternalMarkdown(snapshot)
+    }
+  })
+}
+
+const handleUnifiedUndo = () => {
+  const current =
+    editorSurface.value === 'code'
+      ? (monacoPaneRef.value?.flushToWorkspace() ?? currentMarkdown.value)
+      : (vditor.value?.getValue() ?? currentMarkdown.value)
+  const snapshot = markdownHistoryUndo(props.tabId, current)
+  applyHistorySnapshot(snapshot)
+}
+
+const handleUnifiedRedo = () => {
+  const snapshot = markdownHistoryRedo(props.tabId)
+  applyHistorySnapshot(snapshot)
+}
+
+// 使用 document.execCommand 或 Monaco adapter 触发复制/剪切/粘贴
+const executeEditorCommand = async (command: string) => {
+  if (editorSurface.value === 'code') {
+    const adapter = monacoTextAdapter.value
+    if (!adapter) return
+    monacoPaneRef.value?.focus()
+    if (command === 'paste' && adapter.paste) await adapter.paste()
+    else if (command === 'copy' && adapter.copy) await adapter.copy()
+    else if (command === 'cut' && adapter.cut) await adapter.cut()
+    else if (command === 'selectAll' && adapter.selectAll) adapter.selectAll()
+    return
+  }
+
   const inst = vditor.value
   if (!inst) return
 
@@ -1505,17 +1632,15 @@ const executeEditorCommand = (command: string) => {
 const handleEditorCommand = (payload: { command?: string; tabId?: string }) => {
   if (payload?.tabId !== props.tabId) return
   if (payload.command === 'paste' || payload.command === 'copy' || payload.command === 'cut') {
-    executeEditorCommand(payload.command)
+    void executeEditorCommand(payload.command)
     return
   }
-  if (payload.command === 'undo' || payload.command === 'redo') {
-    const inst = vditor.value
-    const iv = inst?.vditor
-    if (!inst || !iv?.undo) return
-    // 全局快捷键先 preventDefault 拦掉了按键，浏览器 undo 不会作用在 Vditor 的 diff 栈上，须走 vditor.undo
-    inst.focus()
-    if (payload.command === 'undo') iv.undo.undo(iv)
-    else iv.undo.redo(iv)
+  if (payload.command === 'undo') {
+    handleUnifiedUndo()
+    return
+  }
+  if (payload.command === 'redo') {
+    handleUnifiedRedo()
   }
 }
 
@@ -1654,40 +1779,77 @@ const handleMenuClick = async (item: string) => {
       break
     }
     case 'ai-assistant':
-      let text = currentMarkdown.value
-      const bypassCodeBlock = await getSetting('bypassCodeBlock')
-      if (bypassCodeBlock) {
-        text = text.replace(/```[\s\S]*?```/g, '')
+      if (!isAiEnabled.value) break
+      {
+        const { ensureEditorAiCapability } = await import('../ai-runtime/ensure-for-entry')
+        await ensureEditorAiCapability()
       }
-      // 获取文章标题：优先使用 meta.title，如果没有则从内容中提取
-      let articleTitle = documentRef.value.meta?.title?.trim() || ''
-      if (!articleTitle) {
-        const { extractTitleFromContent } = await import('../utils/title-extractor')
-        const extractedTitle = extractTitleFromContent(currentMarkdown.value, 'md')
-        articleTitle = extractedTitle || ''
+      if (editorSurface.value === 'code') {
+        const flushed = monacoPaneRef.value?.flushToWorkspace()
+        if (flushed != null) {
+          workspace.updateDocumentMarkdown(props.tabId, flushed)
+        }
+      } else if (vditor.value) {
+        workspace.updateDocumentMarkdown(props.tabId, vditor.value.getValue())
       }
-      // 如果没有标题，使用默认文本
-      const titleDisplay = articleTitle || t('article.untitled_document', '未命名文档')
+      queueMicrotask(async () => {
+        let text = currentMarkdown.value
+        const bypassCodeBlock = await getSetting('bypassCodeBlock')
+        if (bypassCodeBlock) {
+          text = text.replace(/```[\s\S]*?```/g, '')
+        }
+        let articleTitle = documentRef.value.meta?.title?.trim() || ''
+        if (!articleTitle) {
+          const { extractTitleFromContent } = await import('../utils/title-extractor')
+          const extractedTitle = extractTitleFromContent(currentMarkdown.value, 'md')
+          articleTitle = extractedTitle || ''
+        }
+        const titleDisplay = articleTitle || t('article.untitled_document', '未命名文档')
 
-      let messages: any[] = []
-      messages.push({
-        role: 'system',
-        content: wholeArticleContextPrompt(text)
+        const messages: any[] = [
+          {
+            role: 'system',
+            content: wholeArticleContextPrompt(text)
+          },
+          {
+            role: 'assistant',
+            content: t('article.ai_understood', { title: titleDisplay })
+          }
+        ]
+        const newDialog = {
+          title: t('article.ai_analyze_title', { title: titleDisplay }),
+          messages
+        }
+        addDialog(newDialog, true)
+
+        const persistToStorage = () => {
+          const storageDialog =
+            JSON.stringify(newDialog).length > 100_000
+              ? {
+                  ...newDialog,
+                  messages: newDialog.messages.map((msg, index) =>
+                    index === 0 && msg.role === 'system'
+                      ? {
+                          ...msg,
+                          content:
+                            msg.content.slice(0, 50_000) +
+                            '\n\n[... content truncated for storage ...]'
+                        }
+                      : msg
+                  )
+                }
+              : newDialog
+          prependAiChatDialog(storageDialog)
+        }
+        if (typeof requestIdleCallback !== 'undefined') {
+          requestIdleCallback(persistToStorage)
+        } else {
+          setTimeout(persistToStorage, 0)
+        }
+
+        eventBus.emit('ai-chat-dialogs-updated', { tabId: props.tabId })
+        eventBus.emit('ai-chat')
       })
-      messages.push({
-        role: 'assistant',
-        content: t('article.ai_understood', { title: titleDisplay })
-      })
-      const newDialog = {
-        title: t('article.ai_analyze_title', { title: titleDisplay }),
-        messages: messages
-      }
-      //logger.log(newDialog)
-      addDialog(newDialog, true)
-      prependAiChatDialog(newDialog)
-      // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
-      eventBus.emit('ai-chat-dialogs-updated', null)
-      eventBus.emit('ai-chat')
       break
     case 'section-optimizer':
       await openSectionOptimizerFromContext()
@@ -1741,15 +1903,38 @@ const handleMenuClick = async (item: string) => {
       executeEditorCommand('paste')
       break
     case 'selectAll':
-      textEditorAdapter.value?.selectAll()
+      if (editorSurface.value === 'code') {
+        await executeEditorCommand('selectAll')
+      } else {
+        activeTextEditorAdapter.value?.selectAll()
+      }
+      break
+    case 'editor-surface-code':
+      await switchSurface('code')
+      break
+    case 'editor-vditor-mode-wysiwyg':
+      await switchSurface('visual', 'wysiwyg')
+      break
+    case 'editor-vditor-mode-ir':
+      await switchSurface('visual', 'ir')
+      break
+    case 'editor-vditor-mode-sv':
+      await switchSurface('visual', 'sv')
       break
     case 'openAutoCompletion':
+      await import('../ai-runtime/ensure-for-entry').then((m) => m.ensureCompletionCapability())
       await setSetting('autoCompletion', true)
       break
     case 'closeAutoCompletion':
       await setSetting('autoCompletion', false)
       break
     case 'trigger-auto-completion': {
+      await import('../ai-runtime/ensure-for-entry').then((m) => m.ensureCompletionCapability())
+      if (editorSurface.value === 'code' && monacoEditorId.value) {
+        const adapter = new MonacoEditorAdapter(monacoEditorId.value, () => isActive.value)
+        triggerEditorCompletion('manual', { setupAdapter: adapter })
+        break
+      }
       const adapter = new VditorEditorAdapter(
         vditor.value,
         props.editorDomId,
@@ -1805,12 +1990,23 @@ eventBus.on('refresh', handleRefresh)
 const handleSyncActiveEditor = async (payload?: { tabId?: string }) => {
   const resolvedTabId = payload?.tabId ?? activeTabIdRef?.value
   if (resolvedTabId !== props.tabId) return
-  if (!vditor.value) return
 
-  // 关键修复：标记正在保存，抑制 watch 的 setValue，避免不必要的回写导致闪烁
-  // 保存时内容是从编辑器读取的，编辑器已经有最新内容，不需要回写
   isSavingFromEditor = true
   try {
+    if (editorSurface.value === 'code') {
+      const latest = monacoPaneRef.value?.flushToWorkspace()
+      if (latest == null) return
+      const normalizedLatest = normalizeMdForCompare(latest)
+      const normalizedCurrent = normalizeMdForCompare(currentMarkdown.value ?? '')
+      if (normalizedLatest !== normalizedCurrent) {
+        lastAppliedContent.value = latest
+        skipNextWatchFromSync.value = true
+        workspace.updateDocumentMarkdown(props.tabId, latest)
+      }
+      return
+    }
+
+    if (!vditor.value) return
     let latest: string
     try {
       latest = vditor.value.getValue()
@@ -2462,6 +2658,7 @@ function getAccessoryListeners(id: string): Record<string, (...args: unknown[]) 
 
 // 切换Vditor编辑模式
 const switchVditorMode = async (mode: 'wysiwyg' | 'ir' | 'sv') => {
+  currentVditorMode.value = mode
   if (!vditor.value) return
   try {
     // Vditor的setMode方法在工具栏按钮中，这里通过工具栏按钮触发
@@ -2494,6 +2691,107 @@ const switchVditorMode = async (mode: 'wysiwyg' | 'ir' | 'sv') => {
     logger.error('切换Vditor模式失败', error)
   }
 }
+
+const flushActiveEditorToWorkspace = () => {
+  if (editorSurface.value === 'code') {
+    const value = monacoPaneRef.value?.flushSyncToWorkspace?.() ?? monacoPaneRef.value?.flushToWorkspace()
+    if (value != null && normalizeMdForCompare(value) !== normalizeMdForCompare(currentMarkdown.value)) {
+      skipNextWatchFromSync.value = true
+      lastAppliedContent.value = value
+      workspace.updateDocumentMarkdown(props.tabId, value)
+    }
+    return
+  }
+  if (!vditor.value) return
+  try {
+    const latest = vditor.value.getValue()
+    if (normalizeMdForCompare(latest) !== normalizeMdForCompare(currentMarkdown.value)) {
+      skipNextWatchFromSync.value = true
+      lastAppliedContent.value = latest
+      workspace.updateDocumentMarkdown(props.tabId, latest)
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+const switchSurface = async (target: MarkdownEditorSurface, vditorSubMode?: VditorSubMode) => {
+  if (target === 'visual' && vditorSubMode && editorSurface.value === 'visual') {
+    currentVditorMode.value = vditorSubMode
+    await switchVditorMode(vditorSubMode)
+    return
+  }
+  if (editorSurface.value === target && (!vditorSubMode || currentVditorMode.value === vditorSubMode)) {
+    return
+  }
+
+  flushActiveEditorToWorkspace()
+
+  editorSurface.value = target
+  await setSetting('markdownEditorSurface', target)
+  settings.markdownEditorSurface = target
+
+  if (target === 'visual' && vditorSubMode) {
+    currentVditorMode.value = vditorSubMode
+    await setSetting('vditorMode', vditorSubMode)
+    settings.vditorMode = vditorSubMode
+  }
+
+  await nextTick()
+  const content = currentMarkdown.value ?? ''
+  if (target === 'code') {
+    await monacoPaneRef.value?.initEditor()
+    monacoPaneRef.value?.applyExternalMarkdown(content)
+    monacoPaneRef.value?.focus()
+  } else {
+    if (vditorSubMode) {
+      await switchVditorMode(vditorSubMode)
+    }
+    isEditorInteracting.value = false
+    pendingExternalUpdate = undefined
+    resetInteractionFlag.cancel()
+    scheduleSetValue(content, { clearHistory: false, timeoutMs: 0, force: true })
+    vditor.value?.focus()
+  }
+}
+
+const onMonacoReady = (payload: { editorId: string; adapter: TextEditorAdapter | null }) => {
+  monacoEditorId.value = payload.editorId
+  monacoTextAdapter.value = payload.adapter
+}
+
+const onMonacoUnready = () => {
+  monacoEditorId.value = null
+  monacoTextAdapter.value = null
+}
+
+const onMonacoContentChange = (markdown: string) => {
+  markEditorInteraction()
+  lastAppliedContent.value = markdown
+  workspace.updateDocumentMarkdown(props.tabId, markdown)
+  debouncedPushMarkdownHistory(markdown)
+}
+
+const onMonacoSearchReplace = () => {
+  searchReplaceDialogVisible.value = true
+}
+
+const onMonacoToolbarAction = (action: MarkdownToolbarAction) => {
+  monacoPaneRef.value?.runToolbarAction(action)
+}
+
+const syncVditorAiAssistantToolbarVisibility = () => {
+  const toolbarEl = vditor.value?.vditor?.toolbar?.element as HTMLElement | undefined
+  if (!toolbarEl) return
+  const btn = toolbarEl.querySelector('[data-type="ai-assistant"]') as HTMLElement | null
+  if (btn) {
+    btn.style.display = isAiEnabled.value ? '' : 'none'
+  }
+}
+
+watch(isAiEnabled, () => {
+  syncVditorAiAssistantToolbarVisibility()
+})
 
 // 更新大纲
 const bindTitleMenu = async () => {
@@ -2927,10 +3225,15 @@ const handleTab = (event: KeyboardEvent) => {
 const refreshContextMenu = async () => {
   const sel = getMarkdownEditorSelectionText().trim()
   const hasTextSelection = sel.length > 0
-  articleContextMenuItems.value = await getArticleContextMenuItems({ hasTextSelection })
+  articleContextMenuItems.value = await getArticleContextMenuItems({
+    hasTextSelection,
+    isMarkdownEditor: true,
+    markdownEditorSurface: editorSurface.value,
+    vditorMode: currentVditorMode.value
+  })
   if (hasTextSelection) {
     selectionTranslateText.value = sel
-    selectionTranslateRange.value = textEditorAdapter.value?.getSelectionRange?.() ?? null
+    selectionTranslateRange.value = activeTextEditorAdapter.value?.getSelectionRange?.() ?? null
   } else {
     selectionTranslateText.value = ''
     selectionTranslateRange.value = null
@@ -2939,7 +3242,7 @@ const refreshContextMenu = async () => {
 
 function onSelectionTranslateReplace(text: string) {
   const range = selectionTranslateRange.value
-  const adapter = textEditorAdapter.value
+  const adapter = activeTextEditorAdapter.value
   if (!range || !adapter || !text) return
   adapter.replaceRange(range, text)
 }
@@ -2954,9 +3257,11 @@ function onSelectionTranslateReplace(text: string) {
 let vditorInitPromise: Promise<void> | null = null
 
 async function runMarkdownVditorInit() {
+  if (!isEditorMounted) return
   if (vditor.value) return
   if (vditorInitPromise) {
     await vditorInitPromise
+    if (!isEditorMounted) return
     if (!vditor.value) {
       return runMarkdownVditorInit()
     }
@@ -2965,7 +3270,9 @@ async function runMarkdownVditorInit() {
   vditorInitPromise = (async () => {
     try {
       await waitForService('express')
+      if (!isEditorMounted) return
       await refreshContextMenu()
+      if (!isEditorMounted) return
     let cdn = ''
     if (isElectronEnv()) {
       cdn = getLocalVditorCDN()
@@ -3022,6 +3329,7 @@ async function runMarkdownVditorInit() {
       await setSetting('vditorMode', vditorMode)
     }
     settings.vditorMode = vditorMode
+    currentVditorMode.value = vditorMode
     const supportedLang = [
       'en_US',
       'es_ES',
@@ -3213,14 +3521,22 @@ async function runMarkdownVditorInit() {
         : undefined,
       toolbar: [
         {
-          name: 'undo',
+          name: 'md-undo',
           tip: t('article.toolbar.undo'),
-          tipPosition: 's'
+          tipPosition: 's',
+          icon: '<svg><use xlink:href="#vditor-icon-undo"></use></svg>',
+          click() {
+            handleUnifiedUndo()
+          }
         },
         {
-          name: 'redo',
+          name: 'md-redo',
           tip: t('article.toolbar.redo'),
-          tipPosition: 's'
+          tipPosition: 's',
+          icon: '<svg><use xlink:href="#vditor-icon-redo"></use></svg>',
+          click() {
+            handleUnifiedRedo()
+          }
         },
         {
           name: 'outline',
@@ -3288,6 +3604,15 @@ async function runMarkdownVditorInit() {
           tipPosition: 's',
           hotkey: '⌘⇧M'
         },
+        {
+          name: 'switch-to-code',
+          tip: t('article.toolbar.switchToCodeEditor'),
+          tipPosition: 's',
+          icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+          click() {
+            void switchSurface('code')
+          }
+        },
 
         {
           name: 'search-replace',
@@ -3309,16 +3634,20 @@ async function runMarkdownVditorInit() {
             handleConvertLatexFormulas()
           }
         },
-        {
-          name: 'ai-assistant',
-          tip: t('article.toolbar.ai_full_document_analysis'),
-          tipPosition: 's',
-          className: 'right',
-          icon: `<svg width="20" height="20" viewBox="0 0 100 100" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill-rule="evenodd" d="m76.91 56.516c-2.5586 3.8086-5.6523 7.582-9.2344 11.16-5.1484 5.1523-10.699 9.3008-16.168 12.305-7.5703 4.1562-15.02 6.125-21.129 5.7188-4.5664-0.30078-8.4453-1.8945-11.316-4.7656-3.7188-3.7188-5.3047-9.1836-4.6836-15.605 0.16406-1.7148 1.6953-2.9805 3.4102-2.8164 1.7148 0.16406 2.9805 1.6953 2.8086 3.4141-0.41797 4.3242 0.37891 8.082 2.8867 10.59 2.3516 2.3516 5.8164 3.1914 9.8125 2.9453 4.6016-0.28516 9.8516-2.0234 15.199-4.9609 4.9922-2.7461 10.059-6.5391 14.762-11.242 4.2305-4.2305 7.7266-8.7539 10.383-13.258-2.6562-4.5039-6.1523-9.0273-10.383-13.258-1.1016-1.1016-2.2188-2.1484-3.3516-3.1484-1.293-1.1367-1.4219-3.1172-0.28125-4.4102 1.1406-1.2891 3.1211-1.418 4.4102-0.27734 1.2344 1.0859 2.4492 2.2227 3.6406 3.4141 5.1484 5.1484 9.293 10.703 12.297 16.168l0.003906 0.003907c4.1602 7.5742 6.1289 15.02 5.7188 21.129-0.30078 4.5664-1.8945 8.4492-4.7617 11.312-3.7188 3.7227-9.1875 5.3047-15.609 4.6875-1.7148-0.16406-2.9727-1.6914-2.8125-3.4102 0.16797-1.7188 1.6953-2.9805 3.4141-2.8086 4.3242 0.41016 8.0859-0.37891 10.59-2.8867 2.3555-2.3516 3.1914-5.8203 2.9414-9.8125-0.19141-3.1523-1.0664-6.6055-2.5469-10.188zm-56.887-5.0078c-4.1602-7.5742-6.1289-15.02-5.7188-21.129 0.30078-4.5664 1.8906-8.4492 4.7578-11.316 3.7227-3.7188 9.1875-5.3008 15.609-4.6836 1.7188 0.16406 2.9766 1.6914 2.8164 3.4102-0.16797 1.7188-1.6953 2.9766-3.4141 2.8086-4.3242-0.41406-8.0859 0.375-10.594 2.8828-2.3516 2.3555-3.1875 5.8203-2.9414 9.8164 0.19531 3.1523 1.0703 6.6055 2.5469 10.184 2.5625-3.8047 5.6562-7.5781 9.2383-11.156 5.1484-5.1523 10.699-9.3008 16.168-12.305 7.5703-4.1562 15.02-6.125 21.129-5.7188 4.5664 0.30078 8.4453 1.8945 11.312 4.7617 3.7227 3.7227 5.3047 9.1875 4.6875 15.609-0.16797 1.7148-1.6953 2.9805-3.4102 2.8164-1.7148-0.16797-2.9805-1.6953-2.8125-3.4141 0.42187-4.3242-0.375-8.0859-2.8828-10.59-2.3516-2.3516-5.8203-3.1914-9.8164-2.9453-4.5977 0.28516-9.8477 2.0234-15.195 4.9609-4.9922 2.7461-10.062 6.5391-14.762 11.242-4.2344 4.2305-7.7305 8.7539-10.383 13.258 2.6523 4.5039 6.1523 9.0273 10.383 13.258 1.0977 1.1016 2.2148 2.1445 3.3516 3.1445 1.293 1.1406 1.4219 3.1172 0.28125 4.4141-1.1445 1.2891-3.1211 1.4141-4.4141 0.27734-1.2305-1.0859-2.4492-2.2266-3.6406-3.418-5.1445-5.1445-9.2891-10.699-12.293-16.164zm31.867-11.762s1.8672 4.1602 3.0273 5.3242c1.1641 1.1641 5.3398 3.043 5.3398 3.043 0.73047 0.33984 1.2031 1.0781 1.1992 1.8867 0.003907 0.8125-0.46875 1.5508-1.2031 1.8906 0 0-4.1562 1.8672-5.3281 3.0234-1.1641 1.168-3.0391 5.3438-3.0391 5.3438-0.33594 0.73047-1.0781 1.1992-1.8906 1.1992-0.80469 0.003907-1.543-0.46875-1.8828-1.1992 0 0-1.8789-4.1758-3.043-5.3398-1.1641-1.1602-5.3242-3.0273-5.3242-3.0273-0.73438-0.34375-1.207-1.082-1.207-1.8906 0.003907-0.80859 0.47266-1.5508 1.207-1.8906 0 0 4.1562-1.8672 5.3242-3.0273 1.168-1.1641 3.0391-5.3398 3.0391-5.3398 0.33984-0.73047 1.082-1.1992 1.8906-1.2031 0.80859 0 1.5469 0.47266 1.8906 1.207z"/></svg>`,
-          click() {
-            handleMenuClick('ai-assistant')
-          }
-        }
+        ...(isAiEnabled.value
+          ? [
+              {
+                name: 'ai-assistant',
+                tip: t('article.toolbar.ai_full_document_analysis'),
+                tipPosition: 's',
+                className: 'right',
+                icon: `<svg width="20" height="20" viewBox="0 0 100 100" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill-rule="evenodd" d="m76.91 56.516c-2.5586 3.8086-5.6523 7.582-9.2344 11.16-5.1484 5.1523-10.699 9.3008-16.168 12.305-7.5703 4.1562-15.02 6.125-21.129 5.7188-4.5664-0.30078-8.4453-1.8945-11.316-4.7656-3.7188-3.7188-5.3047-9.1836-4.6836-15.605 0.16406-1.7148 1.6953-2.9805 3.4102-2.8164 1.7148 0.16406 2.9805 1.6953 2.8086 3.4141-0.41797 4.3242 0.37891 8.082 2.8867 10.59 2.3516 2.3516 5.8164 3.1914 9.8125 2.9453 4.6016-0.28516 9.8516-2.0234 15.199-4.9609 4.9922-2.7461 10.059-6.5391 14.762-11.242 4.2305-4.2305 7.7266-8.7539 10.383-13.258-2.6562-4.5039-6.1523-9.0273-10.383-13.258-1.1016-1.1016-2.2188-2.1484-3.3516-3.1484-1.293-1.1367-1.4219-3.1172-0.28125-4.4102 1.1406-1.2891 3.1211-1.418 4.4102-0.27734 1.2344 1.0859 2.4492 2.2227 3.6406 3.4141 5.1484 5.1484 9.293 10.703 12.297 16.168l0.003906 0.003907c4.1602 7.5742 6.1289 15.02 5.7188 21.129-0.30078 4.5664-1.8945 8.4492-4.7617 11.312-3.7188 3.7227-9.1875 5.3047-15.609 4.6875-1.7148-0.16406-2.9727-1.6914-2.8125-3.4102 0.16797-1.7188 1.6953-2.9805 3.4141-2.8086 4.3242 0.41016 8.0859-0.37891 10.59-2.8867 2.3555-2.3516 3.1914-5.8203 2.9414-9.8125-0.19141-3.1523-1.0664-6.6055-2.5469-10.188zm-56.887-5.0078c-4.1602-7.5742-6.1289-15.02-5.7188-21.129 0.30078-4.5664 1.8906-8.4492 4.7578-11.316 3.7227-3.7188 9.1875-5.3008 15.609-4.6836 1.7188 0.16406 2.9766 1.6914 2.8164 3.4102-0.16797 1.7188-1.6953 2.9766-3.4141 2.8086-4.3242-0.41406-8.0859 0.375-10.594 2.8828-2.3516 2.3555-3.1875 5.8203-2.9414 9.8164 0.19531 3.1523 1.0703 6.6055 2.5469 10.184 2.5625-3.8047 5.6562-7.5781 9.2383-11.156 5.1484-5.1523 10.699-9.3008 16.168-12.305 7.5703-4.1562 15.02-6.125 21.129-5.7188 4.5664 0.30078 8.4453 1.8945 11.312 4.7617 3.7227 3.7227 5.3047 9.1875 4.6875 15.609-0.16797 1.7148-1.6953 2.9805-3.4102 2.8164-1.7148-0.16797-2.9805-1.6953-2.8125-3.4141 0.42187-4.3242-0.375-8.0859-2.8828-10.59-2.3516-2.3516-5.8203-3.1914-9.8164-2.9453-4.5977 0.28516-9.8477 2.0234-15.195 4.9609-4.9922 2.7461-10.062 6.5391-14.762 11.242-4.2344 4.2305-7.7305 8.7539-10.383 13.258 2.6523 4.5039 6.1523 9.0273 10.383 13.258 1.0977 1.1016 2.2148 2.1445 3.3516 3.1445 1.293 1.1406 1.4219 3.1172 0.28125 4.4141-1.1445 1.2891-3.1211 1.4141-4.4141 0.27734-1.2305-1.0859-2.4492-2.2266-3.6406-3.418-5.1445-5.1445-9.2891-10.699-12.293-16.164zm31.867-11.762s1.8672 4.1602 3.0273 5.3242c1.1641 1.1641 5.3398 3.043 5.3398 3.043 0.73047 0.33984 1.2031 1.0781 1.1992 1.8867 0.003907 0.8125-0.46875 1.5508-1.2031 1.8906 0 0-4.1562 1.8672-5.3281 3.0234-1.1641 1.168-3.0391 5.3438-3.0391 5.3438-0.33594 0.73047-1.0781 1.1992-1.8906 1.1992-0.80469 0.003907-1.543-0.46875-1.8828-1.1992 0 0-1.8789-4.1758-3.043-5.3398-1.1641-1.1602-5.3242-3.0273-5.3242-3.0273-0.73438-0.34375-1.207-1.082-1.207-1.8906 0.003907-0.80859 0.47266-1.5508 1.207-1.8906 0 0 4.1562-1.8672 5.3242-3.0273 1.168-1.1641 3.0391-5.3398 3.0391-5.3398 0.33984-0.73047 1.082-1.1992 1.8906-1.2031 0.80859 0 1.5469 0.47266 1.8906 1.207z"/></svg>`,
+                click() {
+                  handleMenuClick('ai-assistant')
+                }
+              }
+            ]
+          : [])
       ],
 
       cdn: cdn,
@@ -3343,6 +3672,7 @@ async function runMarkdownVditorInit() {
         // currentMarkdown.value = value;
         // 不修改视图，保持当前视图状态
         workspace.updateDocumentMarkdown(props.tabId, value)
+        debouncedPushMarkdownHistory(value)
         // 注意：workspace.updateDocumentMarkdown 内部已经自动同步大纲树，
         // 所以不需要再调用 syncOutlineFromMarkdown，避免重复计算
 
@@ -3424,6 +3754,7 @@ async function runMarkdownVditorInit() {
                 if (currentMode && currentMode !== lastMode) {
                   await setSetting('vditorMode', currentMode)
                   settings.vditorMode = currentMode
+                  currentVditorMode.value = currentMode
                   lastMode = currentMode
                   logger.debug('Vditor模式已切换并保存', { mode: currentMode })
                 }
@@ -3573,6 +3904,7 @@ async function runMarkdownVditorInit() {
               attachVditorInnerLayoutObservers(editorElement)
               detachVditorToolbarTooltip?.()
               detachVditorToolbarTooltip = attachVditorToolbarCursorTooltip(editorElement)
+              syncVditorAiAssistantToolbarVisibility()
               syncVditorPaddingAfterLayout()
             }
           }
@@ -3738,6 +4070,10 @@ onMounted(async () => {
     window.addEventListener('resize', updateSearchMenuPosition)
     document.addEventListener('contextmenu', onDocumentVditorOutlineContextMenuCapture, true)
   }
+  const initialSurface =
+    documentRef.value.markdownEditorSurface ?? (await getMarkdownEditorSurface())
+  workspace.updateDocumentMarkdownEditorSurface(props.tabId, initialSurface)
+  resetMarkdownUnifiedHistory(props.tabId, currentMarkdown.value ?? '')
   await nextTick()
   if (containerRef.value) {
     layoutObserver = new ResizeObserver((entries) => {
@@ -3758,6 +4094,10 @@ onMounted(async () => {
   } finally {
     isVditorLoading.value = false
   }
+  if (initialSurface === 'code') {
+    await nextTick()
+    await monacoPaneRef.value?.initEditor()
+  }
 })
 
 onActivated(async () => {
@@ -3775,6 +4115,17 @@ onActivated(async () => {
 
 // 清理资源
 onBeforeUnmount(() => {
+  isEditorMounted = false
+  vditorInitPromise = null
+  if (scheduleSetValueRetryTimer) {
+    clearTimeout(scheduleSetValueRetryTimer)
+    scheduleSetValueRetryTimer = null
+  }
+  debouncedPushMarkdownHistory.cancel()
+  resetInteractionFlag.cancel()
+  debouncedSyncVditorOutlineToFocusHost.cancel()
+  syncVditorPaddingAfterLayout.cancel()
+  clearMarkdownUnifiedHistory(props.tabId)
   unregisterOutlineSidebarSearchAdapter(props.tabId)
   flushOutlineSync()
   unbindVditorOutlineHostClickCapture()
@@ -3802,6 +4153,7 @@ onBeforeUnmount(() => {
     } catch (error) {
       logger.warn('销毁 Vditor 失败，将忽略', error)
     }
+    vditor.value = null
   }
   eventBus.off('refresh', handleRefresh)
   eventBus.off('sync-active-editor')
@@ -3885,6 +4237,22 @@ watch(
   (content) => {
     if (!isActive.value) return
     const incoming = content ?? ''
+    if (editorSurface.value === 'code') {
+      if (skipNextWatchFromSync.value) {
+        skipNextWatchFromSync.value = false
+        lastAppliedContent.value = normalizeMarkdownLeadingArtifacts(incoming)
+        return
+      }
+      if (isSavingFromEditor) {
+        lastAppliedContent.value = normalizeMarkdownLeadingArtifacts(incoming)
+        return
+      }
+      if (normalizeMdForCompare(incoming) !== normalizeMdForCompare(lastAppliedContent.value)) {
+        monacoPaneRef.value?.applyExternalMarkdown(incoming)
+        lastAppliedContent.value = normalizeMarkdownLeadingArtifacts(incoming)
+      }
+      return
+    }
     // 由 sync-active-editor 触发的 updateDocumentMarkdown 导致的变化：不写回 Vditor，编辑器已有该内容
     if (skipNextWatchFromSync.value) {
       skipNextWatchFromSync.value = false
@@ -4059,9 +4427,17 @@ watch(
 /* 上下两部分 */
 .content-container {
   display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   width: 100%;
   min-height: 0;
+}
+
+.markdown-code-editor-area {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
 }
 
 /* 左边的编辑器样式 */

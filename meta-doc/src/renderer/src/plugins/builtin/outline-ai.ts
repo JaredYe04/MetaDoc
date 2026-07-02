@@ -7,7 +7,7 @@ export default createMetaDocPlugin(
     version: '1.0.0',
     entry: './outline-ai',
     permissions: ['outline.read', 'outline.write', 'llm.chat'],
-    activationEvents: ['onLlmEnabled']
+    activationEvents: ['onCapability:editor-ai']
   },
   ({ host }) => {
     host.events.emit('outline-ai-plugin-ready')

@@ -9,6 +9,8 @@ export default defineConfig({
     include: [
       'src/renderer/src/utils/**/*.test.ts',
       'src/renderer/src/core/**/*.test.ts',
+      'src/renderer/src/view-api/**/*.test.ts',
+      'src/renderer/src/ai-runtime/**/*.test.ts',
       'src/converter/**/*.test.ts',
       'src/main/utils/**/*.test.ts',
       'src/main/steam/**/*.test.ts'

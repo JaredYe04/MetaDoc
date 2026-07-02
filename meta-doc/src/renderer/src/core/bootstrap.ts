@@ -16,6 +16,7 @@ import messageBridge from '../bridge/message-bridge'
 import { initUserTemplatesStore } from '../stores/user-templates'
 import AppIcon from '../components/common/AppIcon.vue'
 import { getHost } from './host-runtime'
+import { installViewSwitchListener } from '../view-api'
 import { loadStartupPlugins } from './startup-plugins'
 import './../assets/element-plus-theme-override.css'
 import './../assets/fonts/fonts.css'
@@ -33,6 +34,7 @@ export async function bootstrapCore(): Promise<void> {
 
   initializeFormats()
   getHost()
+  installViewSwitchListener()
   await loadStartupPlugins()
 
   const app = createApp(App)

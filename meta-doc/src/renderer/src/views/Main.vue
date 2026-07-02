@@ -184,7 +184,6 @@ import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
 import FileConflictDialog from '../components/FileConflictDialog.vue'
 import TabContentRenderer from '../components/TabContentRenderer.vue'
 import { pluginRegistry } from '../core/host-runtime'
-import { isAiRuntimeLoaded } from '../ai-runtime/loader'
 // ============================================================================
 // 导入工具和库
 // ============================================================================
@@ -270,12 +269,11 @@ function seedEmptyWorkspaceFoldersLocalStorage(parentDirNormalized: string) {
   }
 }
 const workspace = useWorkspace()
-const aiRuntimeReady = ref(isAiRuntimeLoaded())
-const aiShellOverlays = computed(() =>
-  aiRuntimeReady.value
-    ? pluginRegistry.shellOverlays.filter((o) => o.position === 'main')
-    : []
-)
+const shellOverlayRevision = ref(0)
+const aiShellOverlays = computed(() => {
+  shellOverlayRevision.value
+  return pluginRegistry.shellOverlays.filter((o) => o.position === 'main')
+})
 const notificationStore = useNotificationStore()
 const tabSwitcher = useTabSwitcher()
 const { checkCanCloseTab, doRemoveTab } = useCloseTab()
@@ -1906,11 +1904,14 @@ watch(activeTabId, (_, oldId) => {
 
 onMounted(async () => {
   initMainEventListeners()
-  eventBus.on('ai-runtime-ready', () => {
-    aiRuntimeReady.value = true
+  eventBus.on('ai-capability-loaded', () => {
+    shellOverlayRevision.value++
+  })
+  eventBus.on('ai-capability-unloaded', () => {
+    shellOverlayRevision.value++
   })
   eventBus.on('ai-runtime-unloaded', () => {
-    aiRuntimeReady.value = false
+    shellOverlayRevision.value++
   })
   eventBus.emit('llm-api-updated')
   const token = localStorage.getItem('loginToken')

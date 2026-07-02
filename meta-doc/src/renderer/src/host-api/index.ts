@@ -1,5 +1,7 @@
 import type { Component } from 'vue'
 import type { DocumentView } from '../stores/workspace'
+import type { ViewHost } from '../view-api'
+import type { DocumentViewRegistration } from '../view-api'
 
 export const HOST_API_VERSION = '1.0.0' as const
 
@@ -76,11 +78,14 @@ export interface LeftMenuItemContribution {
   onClick: () => void | Promise<void>
 }
 
+/** @deprecated Prefer host.views.registerView — see view-api */
 export interface DocumentViewContribution {
   view: DocumentView
   component: Component
   label?: string
 }
+
+export type { DocumentViewRegistration, ViewHost } from '../view-api'
 
 export interface SettingsSectionContribution {
   id: string
@@ -131,6 +136,7 @@ export interface MetaDocHost {
   documents: DocumentHost
   outline: OutlineHost
   editor: EditorHost
+  views: ViewHost
   ui: UIHost
   events: EventHost
   settings: SettingsHost

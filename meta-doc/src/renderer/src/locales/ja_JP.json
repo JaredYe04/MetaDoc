@@ -56,7 +56,9 @@
     "redo": "やり直し",
     "undo": "元に戻す",
     "addSelectionToAgent": "選択範囲をAgent会話に追加",
-    "generateIllustrationFromSelection": "選択範囲からイラストを生成"
+    "generateIllustrationFromSelection": "選択範囲からイラストを生成",
+    "editorMode": "Editor mode",
+    "editorModeCode": "Code editor"
   },
   "headMenu": {
     "tooltip": "AIエージェントベースのスマート文書編集ソフトウェア",
@@ -659,7 +661,9 @@
       "toggle_outline_show": "アウトラインを表示",
       "toggle_outline_hide": "アウトラインを隠す",
       "search_replace:": "検索と置換",
-      "toggle_outline:": "アウトラインの表示/非表示"
+      "toggle_outline:": "アウトラインの表示/非表示",
+      "switchToCodeEditor": "Switch to code editor",
+      "switchToVisualEditor": "Switch to visual editor"
     },
     "convert_to_latex": "ドキュメントをLaTeXに変換する",
     "convert_to_latex_confirm": "変換するとtexファイルが生成されますが、既存のMarkdownファイルとは同期されません。続行しますか？",
@@ -2074,7 +2078,9 @@
       "mtxPackCreditsLabel": "クレジット（credits）",
       "mtxPollTimeout": "Steamの確認待ちがタイムアウトしました。支払い済みの場合は、後ほど「残高を更新」をクリックしてください。支払いが完了していない場合は、再試行してください。",
       "mtxSteamAuthFailed": "Steamがこの承認を受け入れませんでした（一般的な原因：注文時のIPとブラウザの出口IPが一致していない）。支払いページを閉じてから再試行してください。VPN/プロキシを使用している場合は、ブラウザと一致するようにしてください。"
-    }
+    },
+    "editorModeCode": "Code Editor",
+    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -5959,7 +5965,7 @@
     },
     "editorMode": {
       "title": "Default Markdown editor mode",
-      "subtitle": "This mode is used when you open Markdown documents.",
+      "subtitle": "Choose a default mode (WYSIWYG, IR, split view, or code editor) for new Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
     },
     "fileAssociation": {

@@ -35,11 +35,13 @@
               :style="menuItemStyle"
               :class="{
                 'is-danger': child.danger,
-                'is-disabled': child.disabled
+                'is-disabled': child.disabled,
+                'is-checked': child.checked
               }"
               @mousedown.prevent="onMenuItemMouseDown(child)"
             >
               <span class="context-menu__label">{{ child.label ? $t(child.label) : '' }}</span>
+              <span v-if="child.checked" class="context-menu__check">✓</span>
             </div>
           </template>
         </div>
@@ -393,5 +395,15 @@ const onMenuItemMouseDown = (item: ContextMenuItem) => {
   opacity: 0.6;
   margin-left: 16px;
   white-space: nowrap;
+}
+
+.context-menu__check {
+  margin-left: 12px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.context-menu__item.is-checked .context-menu__label {
+  font-weight: 600;
 }
 </style>

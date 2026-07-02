@@ -76,8 +76,8 @@
         :hint="t('setting.defaultEditorModeHint')"
       >
         <Select
-          v-model="settings.vditorMode"
-          @update:model-value="saveSetting('vditorMode', settings.vditorMode)"
+          :model-value="defaultEditorModeChoice"
+          @update:model-value="onDefaultEditorModeChange"
         >
           <SelectTrigger class="w-[280px]">
             <SelectValue />
@@ -86,6 +86,7 @@
             <SelectItem value="wysiwyg">{{ t('setting.editorModeWysiwyg') }}</SelectItem>
             <SelectItem value="ir">{{ t('setting.editorModeIr') }}</SelectItem>
             <SelectItem value="sv">{{ t('setting.editorModeSv') }}</SelectItem>
+            <SelectItem value="code">{{ t('setting.editorModeCode') }}</SelectItem>
           </SelectContent>
         </Select>
         <div class="editor-mode-current-hint">{{ currentEditorModeHint }}</div>
@@ -494,6 +495,11 @@ import { notifySuccess, notifyError, notifyWarning } from '@renderer/utils/notif
 import { HelpCircle } from 'lucide-vue-next'
 import MicrophoneTest from '../../components/MicrophoneTest.vue'
 import { settings, setSetting } from '../../utils/settings.js'
+import {
+  applyDefaultEditorModeChoice,
+  getDefaultEditorModeChoiceSync,
+  type MarkdownDefaultEditorModeChoice
+} from '../../utils/markdown-editor-mode'
 import eventBus from '../../utils/event-bus'
 import Button from '@renderer/components/ui/button/Button.vue'
 import {
@@ -565,11 +571,20 @@ const saveAgentAutoPruneDays = async (v: unknown) => {
   await setSetting('referenceAgentAutoPruneDays', num)
 }
 
+const defaultEditorModeChoice = computed(() => getDefaultEditorModeChoiceSync())
+
+const onDefaultEditorModeChange = async (value: unknown) => {
+  const choice = value as MarkdownDefaultEditorModeChoice
+  if (!choice) return
+  await applyDefaultEditorModeChoice(choice)
+}
+
 const currentEditorModeHint = computed(() => {
-  const mode = settings.vditorMode
-  if (mode === 'wysiwyg') return t('setting.editorModeWysiwygHint')
-  if (mode === 'ir') return t('setting.editorModeIrHint')
-  if (mode === 'sv') return t('setting.editorModeSvHint')
+  const choice = defaultEditorModeChoice.value
+  if (choice === 'wysiwyg') return t('setting.editorModeWysiwygHint')
+  if (choice === 'ir') return t('setting.editorModeIrHint')
+  if (choice === 'sv') return t('setting.editorModeSvHint')
+  if (choice === 'code') return t('setting.editorModeCodeHint')
   return t('setting.editorModeIrHint')
 })
 

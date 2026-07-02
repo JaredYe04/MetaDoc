@@ -223,7 +223,9 @@
       "fullscreen:": "Éditeur en plein écran",
       "headings:": "Titres",
       "italic:": "Italique",
-      "quote:": "Citation"
+      "quote:": "Citation",
+      "switchToCodeEditor": "Switch to code editor",
+      "switchToVisualEditor": "Switch to visual editor"
     },
     "vditor_init_failed": "L'initialisation a échoué :",
     "convert_to_latex": "Convertir le document en LaTeX",
@@ -391,7 +393,9 @@
     "redo": "Refaire",
     "undo": "Annuler",
     "addSelectionToAgent": "Ajouter à la conversation de l'Agent",
-    "generateIllustrationFromSelection": "Générer une illustration"
+    "generateIllustrationFromSelection": "Générer une illustration",
+    "editorMode": "Editor mode",
+    "editorModeCode": "Code editor"
   },
   "formulaRecognition": {
     "brush_size": "Épaisseur du pinceau :",
@@ -2036,7 +2040,9 @@
       "mtxPackCreditsLabel": "Crédits",
       "mtxPollTimeout": "Délai d'attente dépassé pour la confirmation Steam. Si vous avez déjà payé, cliquez sur « Actualiser les crédits » plus tard ; sinon, réessayez.",
       "mtxSteamAuthFailed": "Steam n'a pas accepté cette autorisation (raison courante : l'adresse IP de commande ne correspond pas à celle du navigateur). Fermez la page de paiement et réessayez ; si vous utilisez un VPN/proxy, assurez-vous qu'il est cohérent avec celui du navigateur."
-    }
+    },
+    "editorModeCode": "Code Editor",
+    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
   },
   "titleMenu": {
     "contextMarks": {
@@ -5842,7 +5848,7 @@
     },
     "editorMode": {
       "title": "Default Markdown editor mode",
-      "subtitle": "This mode is used when you open Markdown documents.",
+      "subtitle": "Choose a default mode (WYSIWYG, IR, split view, or code editor) for new Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
     },
     "fileAssociation": {

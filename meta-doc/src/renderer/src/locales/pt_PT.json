@@ -1593,7 +1593,9 @@
       "ai_full_document_analysis": "Análise de IA do documento completo",
       "toggle_outline": "Alternar sumário",
       "toggle_outline_show": "Mostrar sumário",
-      "toggle_outline_hide": "Ocultar sumário"
+      "toggle_outline_hide": "Ocultar sumário",
+      "switchToCodeEditor": "Switch to code editor",
+      "switchToVisualEditor": "Switch to visual editor"
     },
     "untitled_document": "Documento sem título",
     "vditor_init_failed": "Falha na inicialização do Vditor:"
@@ -1764,7 +1766,9 @@
     "translateSelection": "Traduzir seleção",
     "undo": "Desfazer",
     "addSelectionToAgent": "Adicionar à conversa do Agent",
-    "generateIllustrationFromSelection": "Gerar ilustração a partir da seleção"
+    "generateIllustrationFromSelection": "Gerar ilustração a partir da seleção",
+    "editorMode": "Editor mode",
+    "editorModeCode": "Code editor"
   },
   "data-analysis-tool": {
     "analyze": "Análise de Dados",
@@ -4779,7 +4783,9 @@
       "storeStatusRefreshed": "Estado do inventário e da compra atualizado",
       "useNow": "Usar agora",
       "viewInventory": "Ver inventário"
-    }
+    },
+    "editorModeCode": "Code Editor",
+    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
   },
   "settingBasicSection": {
     "failedSize": "Falha ao obter o tamanho do diretório",
@@ -5586,7 +5592,7 @@
     },
     "editorMode": {
       "title": "Default Markdown editor mode",
-      "subtitle": "This mode is used when you open Markdown documents.",
+      "subtitle": "Choose a default mode (WYSIWYG, IR, split view, or code editor) for new Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
     },
     "fileAssociation": {

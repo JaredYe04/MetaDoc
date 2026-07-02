@@ -1593,7 +1593,9 @@
       "ai_full_document_analysis": "Análisis IA del documento completo",
       "toggle_outline": "Alternar esquema",
       "toggle_outline_show": "Mostrar esquema",
-      "toggle_outline_hide": "Ocultar esquema"
+      "toggle_outline_hide": "Ocultar esquema",
+      "switchToCodeEditor": "Switch to code editor",
+      "switchToVisualEditor": "Switch to visual editor"
     },
     "untitled_document": "Documento sin título",
     "vditor_init_failed": "Error de inicialización de Vditor:"
@@ -1751,7 +1753,9 @@
     "translateSelection": "Traducir selección",
     "undo": "Deshacer",
     "addSelectionToAgent": "Añadir a la conversación del Agent",
-    "generateIllustrationFromSelection": "Generar ilustración a partir de la selección"
+    "generateIllustrationFromSelection": "Generar ilustración a partir de la selección",
+    "editorMode": "Editor mode",
+    "editorModeCode": "Code editor"
   },
   "data-analysis-tool": {
     "analyze": "Análisis de datos",
@@ -4746,7 +4750,9 @@
       "mtxPackCreditsLabel": "Créditos (credits)",
       "mtxPollTimeout": "Tiempo de espera agotado para la confirmación de Steam. Si ya has pagado, haz clic en «Actualizar créditos» más tarde; si no has completado el pago, inténtalo de nuevo.",
       "mtxSteamAuthFailed": "Steam no ha aceptado esta autorización (motivo común: la IP del pedido no coincide con la IP de salida del navegador). Cierra la página de pago e inténtalo de nuevo; si usas VPN/proxy, asegúrate de que sea la misma que la del navegador."
-    }
+    },
+    "editorModeCode": "Code Editor",
+    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
   },
   "settingBasicSection": {
     "failedSize": "Error al obtener el tamaño del directorio",
@@ -5566,7 +5572,7 @@
     },
     "editorMode": {
       "title": "Default Markdown editor mode",
-      "subtitle": "This mode is used when you open Markdown documents.",
+      "subtitle": "Choose a default mode (WYSIWYG, IR, split view, or code editor) for new Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
     },
     "fileAssociation": {

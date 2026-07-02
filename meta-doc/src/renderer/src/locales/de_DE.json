@@ -214,7 +214,9 @@
       "convert_latex_formulas_no_editor": "Editor nicht bereit",
       "toggle_outline": "Gliederung umschalten",
       "toggle_outline_show": "Gliederung anzeigen",
-      "toggle_outline_hide": "Gliederung ausblenden"
+      "toggle_outline_hide": "Gliederung ausblenden",
+      "switchToCodeEditor": "Switch to code editor",
+      "switchToVisualEditor": "Switch to visual editor"
     },
     "vditor_init_failed": "Vditor-Initialisierung fehlgeschlagen:",
     "convert_to_latex": "Dokument in LaTeX konvertieren",
@@ -407,7 +409,9 @@
     "redo": "Wiederholen",
     "undo": "Rückgängig",
     "addSelectionToAgent": "Zum Agenten-Dialog hinzufügen",
-    "generateIllustrationFromSelection": "Auswahl als Illustration generieren"
+    "generateIllustrationFromSelection": "Auswahl als Illustration generieren",
+    "editorMode": "Editor mode",
+    "editorModeCode": "Code editor"
   },
   "formulaRecognition": {
     "brush_size": "Pinselstärke",
@@ -1998,7 +2002,9 @@
       "mtxPackCreditsLabel": "Guthaben (Credits)",
       "mtxPollTimeout": "Zeitüberschreitung beim Warten auf Steam-Bestätigung. Falls bereits bezahlt, klicken Sie bitte später auf \"Guthaben aktualisieren\". Falls die Zahlung nicht abgeschlossen wurde, versuchen Sie es erneut.",
       "mtxSteamAuthFailed": "Steam hat diese Autorisierung nicht akzeptiert (häufige Ursache: IP-Adresse der Bestellung stimmt nicht mit der IP des Browsers überein). Bitte schließen Sie die Zahlungsseite und versuchen Sie es erneut. Bei Nutzung von VPN/Proxy, stellen Sie bitte sicher, dass es mit dem Browser übereinstimmt."
-    }
+    },
+    "editorModeCode": "Code Editor",
+    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
   },
   "titleMenu": {
     "contextMarks": {
@@ -5939,7 +5945,7 @@
     },
     "editorMode": {
       "title": "Default Markdown editor mode",
-      "subtitle": "This mode is used when you open Markdown documents.",
+      "subtitle": "Choose a default mode (WYSIWYG, IR, split view, or code editor) for new Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
     },
     "fileAssociation": {

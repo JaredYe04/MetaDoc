@@ -45,7 +45,6 @@ import {
   prepareFirstRunWizardOnStartup
 } from './utils/settings'
 import { themeState, applyTheme } from './utils/themes'
-import { clearAiTasks } from './utils/ai_tasks'
 import { useI18n } from 'vue-i18n'
 import { setI18nLocale } from './i18n.js'
 import { createRendererLogger } from './utils/logger'
@@ -53,7 +52,6 @@ import { initMonacoEnvironment } from './utils/monaco-worker-config'
 import { initMonacoGlobalTheme } from './utils/monaco-global-theme'
 import { getRuntimeServerBaseUrl } from './config/runtime-server'
 import { useWorkspace } from './stores/workspace'
-import { useAgentWorkspaceStore } from './stores/agent-workspace-store'
 import { useGlobalShortcuts } from './composables/useGlobalShortcuts'
 import { useShadcnTheme } from './composables/useShadcnTheme'
 import './assets/hide-native-scrollbar.css'
@@ -238,7 +236,7 @@ onMounted(async () => {
   }
 
   window.addEventListener('beforeunload', () => {
-    clearAiTasks()
+    void import('./utils/ai_tasks').then((m) => m.clearAiTasks())
   })
   window.addEventListener('error', (e) => {
     // 提取详细的错误信息
@@ -349,6 +347,7 @@ onMounted(async () => {
       if (g <= 0 && a <= 0) return
       const mb = (await import('./bridge/message-bridge')).default
       if (!mb.getIpc()) return
+      const { useAgentWorkspaceStore } = await import('./stores/agent-workspace-store')
       const agentStore = useAgentWorkspaceStore()
       const roots = a > 0 && agentStore.workspaceRoot ? [agentStore.workspaceRoot] : []
       await mb.invoke('prune-reference-storage-by-age', {

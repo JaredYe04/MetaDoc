@@ -11,7 +11,7 @@ export default createMetaDocPlugin(
     version: '1.0.0',
     entry: './completion',
     permissions: ['documents.read', 'documents.write', 'llm.completion'],
-    activationEvents: ['onLlmEnabled']
+    activationEvents: ['onCapability:completion']
   },
   async ({ host }) => {
     registerPluginDisposer(PLUGIN_ID, host.editor.registerOverlay({

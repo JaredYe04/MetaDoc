@@ -89,7 +89,16 @@ export interface WorkspaceTab {
   workspacePlacement?: 'top' | 'workbench'
 }
 
-export type DocumentView = 'home' | 'outline' | 'editor' | 'visualize' | 'agent' | 'proofread'
+export type CoreDocumentView =
+  | 'home'
+  | 'outline'
+  | 'editor'
+  | 'visualize'
+  | 'agent'
+  | 'proofread'
+
+/** Core views plus community plugin view ids */
+export type DocumentView = CoreDocumentView | (string & {})
 
 /** 工具 Tab 迁移时需保留的 UI 状态（如当前选中的会话/对话索引） */
 export interface TabToolState {
@@ -119,6 +128,8 @@ export interface WorkspaceDocument {
   savedMeta: ArticleMetaData
   savedAiDialogs: AIDialog[]
   savedAgentSessions: AgentSession[]
+  /** 会话内 Markdown 编辑面：visual（Vditor）或 code（Monaco+预览），不写入磁盘 */
+  markdownEditorSurface?: 'visual' | 'code'
 }
 
 const UNTITLED_TITLE = '未命名文档'
@@ -1464,6 +1475,16 @@ function updateDocumentLastView(tabId: string, view: DocumentView): void {
   }
 }
 
+function updateDocumentMarkdownEditorSurface(
+  tabId: string,
+  surface: 'visual' | 'code'
+): void {
+  const doc = ensureDocument(tabId)
+  if (doc.markdownEditorSurface !== surface) {
+    doc.markdownEditorSurface = surface
+  }
+}
+
 /**
  * 更新文档 Agent 视图中当前选中的会话 ID（用于窗口迁移时保留）
  */
@@ -2304,6 +2325,7 @@ export function useWorkspace() {
     updateDocumentAgentSessions,
     updateDocumentDirty,
     updateDocumentLastView,
+    updateDocumentMarkdownEditorSurface,
     updateDocumentActiveAgentSessionId,
     getTabToolState,
     setTabToolState,

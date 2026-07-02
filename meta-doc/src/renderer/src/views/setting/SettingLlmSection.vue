@@ -1977,13 +1977,17 @@ const onEditDialogApiBlur = () => {
   void refreshEditDialogModels()
 }
 
-const handleLlmToggle = (enabled: boolean) => {
+const handleLlmToggle = async (enabled: boolean) => {
   settings.llmEnabled = enabled
   if (!enabled) {
     settings.selectedLlm = ''
+    await setSetting('llmEnabled', enabled)
+    eventBus.emit('ai-runtime-toggle')
+    return
   }
-  setSetting('llmEnabled', enabled)
-  eventBus.emit('ai-runtime-toggle')
+  await setSetting('llmEnabled', enabled)
+  const { ensureAiCapability } = await import('../../ai-runtime/loader')
+  await ensureAiCapability('llm-core')
 }
 
 const loadConfigs = () => {

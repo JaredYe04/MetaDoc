@@ -155,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { BellFilled, Document } from '@element-plus/icons-vue'
@@ -164,7 +164,8 @@ import messageBridge from '../bridge/message-bridge'
 import { themeState } from '../utils/themes'
 import { useNotificationStore } from '../stores/notification'
 import { useWorkspace } from '../stores/workspace'
-import { useAiTasks } from '../utils/ai_tasks'
+import { isAiCapabilityLoaded } from '../ai-runtime/loader'
+import type { AITaskInfo } from '../utils/ai_tasks'
 import { getAppVersion } from '../utils/version'
 import { settings } from '../utils/settings'
 import WordCountDialog from './WordCountDialog.vue'
@@ -191,8 +192,28 @@ const {
   showPercentage: progressShowPercentage
 } = useGlobalProgress()
 
-const tasks = useAiTasks()
+const tasks = ref<AITaskInfo[]>([])
 const isAiEnabled = computed(() => settings.llmEnabled === true)
+
+async function bindAiTasksIfNeeded(): Promise<void> {
+  if (!isAiCapabilityLoaded('agent')) return
+  const { useAiTasks } = await import('../utils/ai_tasks')
+  watch(
+    useAiTasks(),
+    (next) => {
+      tasks.value = next
+    },
+    { immediate: true, deep: true }
+  )
+}
+
+const onAiCapabilityLoaded = (id: unknown) => {
+  if (id === 'agent') void bindAiTasksIfNeeded()
+}
+
+const onAiRuntimeUnloaded = () => {
+  tasks.value = []
+}
 
 const activeDocument = computed(() => workspace.activeDocument.value)
 const activeTab = computed(() => workspace.activeTab.value)
@@ -332,6 +353,14 @@ async function onCurrentFileClick(): Promise<void> {
 // 组件挂载时加载版本信息
 onMounted(() => {
   loadVersion()
+  void bindAiTasksIfNeeded()
+  eventBus.on('ai-capability-loaded', onAiCapabilityLoaded)
+  eventBus.on('ai-runtime-unloaded', onAiRuntimeUnloaded)
+})
+
+onBeforeUnmount(() => {
+  eventBus.off('ai-capability-loaded', onAiCapabilityLoaded)
+  eventBus.off('ai-runtime-unloaded', onAiRuntimeUnloaded)
 })
 </script>
 <style scoped>

@@ -1775,6 +1775,129 @@ export async function local2fileProtocolForHtmlInHtml(html) {
 }
 
 /**
+ * Build Vditor preview / md2html options shared by full and incremental render paths.
+ * @param {Object} options
+ * @returns {Promise<{ cdn: string, previewOptions: object, themeKey: string }>}
+ */
+export async function buildMarkdownPreviewOptions(options = {}) {
+  const { linkBase = '', syncWithAppTheme = false } = options
+
+  const cdn = isElectronEnv() ? getLocalVditorCDN() : vditorCDN
+
+  let contentTheme
+  let codeTheme
+  if (syncWithAppTheme) {
+    const ts = themeState.currentTheme
+    const isDark = ts?.type === 'dark'
+    contentTheme = ts?.vditorTheme === 'dark' || isDark ? 'dark' : 'light'
+    codeTheme = ts?.codeTheme || (isDark ? 'github-dark' : 'github')
+  } else {
+    contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
+    codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
+  }
+  const lineNumber = (await getSetting('lineNumber')) ?? true
+  const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
+
+  const previewOptions = {
+    cdn,
+    mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
+    theme: {
+      current: contentTheme
+    },
+    markdown: {
+      linkBase
+    },
+    hljs: {
+      style: codeTheme,
+      lineNumber
+    },
+    math: {
+      inlineDigit: mathInlineDigit
+    }
+  }
+
+  const themeKey = `${contentTheme}|${codeTheme}|${linkBase}|${themeState.currentTheme.type}`
+
+  return { cdn, previewOptions, themeKey }
+}
+
+async function postProcessMarkdownPreview(container, options, cdn) {
+  const { renderCode = true, renderMath = true, applyMermaidTheme = false } = options
+
+  if (renderCode && typeof Vditor.codeRender === 'function') {
+    Vditor.codeRender(container)
+  }
+
+  if (renderMath && typeof Vditor.mathRender === 'function') {
+    Vditor.mathRender(container, { cdn })
+  }
+
+  if (applyMermaidTheme) {
+    applyMermaidThemeToContainer(container)
+    setTimeout(() => {
+      applyMermaidThemeToContainer(container)
+    }, 100)
+    setTimeout(() => {
+      applyMermaidThemeToContainer(container)
+    }, 500)
+  }
+}
+
+/**
+ * Incremental markdown preview: full render on first paint / theme change, then DOM patch.
+ * @param {HTMLElement} container
+ * @param {string} markdown
+ * @param {Object} options
+ * @param {{ hasRendered?: boolean, lastThemeKey?: string }} state
+ * @returns {Promise<void>}
+ */
+export async function renderMarkdownPreviewIncremental(container, markdown, options = {}, state = {}) {
+  const normalized = normalizeMarkdownLeadingArtifacts(typeof markdown === 'string' ? markdown : '')
+  const { cdn, previewOptions, themeKey } = await buildMarkdownPreviewOptions(options)
+  const forceFullRender = options.forceFullRender === true
+
+  if (!normalized.trim()) {
+    container.innerHTML = ''
+    state.hasRendered = false
+    state.lastThemeKey = ''
+    state.lastMd2Html = ''
+    return
+  }
+
+  const needsFullRender =
+    forceFullRender ||
+    !state.hasRendered ||
+    !container.childNodes.length ||
+    state.lastThemeKey !== themeKey
+
+  if (needsFullRender) {
+    const html = await Vditor.md2html(normalized, previewOptions)
+    container.innerHTML = html
+    state.lastMd2Html = html
+    await postProcessMarkdownPreview(container, options, cdn)
+    state.hasRendered = true
+    state.lastThemeKey = themeKey
+    return
+  }
+
+  const html = await Vditor.md2html(normalized, previewOptions)
+  if (html === state.lastMd2Html) return
+
+  const scrollParent = container.closest('.markdown-editor-preview') || container.parentElement
+  const scrollTop = scrollParent?.scrollTop ?? 0
+
+  // Use atomic innerHTML swap instead of DOM patch: postProcess (hljs/math) mutates
+  // the tree so incremental patching against fresh md2html output is unreliable.
+  container.innerHTML = html
+  state.lastMd2Html = html
+  await postProcessMarkdownPreview(container, options, cdn)
+
+  if (scrollParent) {
+    scrollParent.scrollTop = scrollTop
+  }
+}
+
+/**
  * 统一的 Markdown 预览渲染函数
  * @param {HTMLElement} container - 渲染容器的 DOM 元素
  * @param {string} markdown - 要渲染的 Markdown 文本
@@ -1797,72 +1920,18 @@ export async function renderMarkdownPreview(container, markdown, options = {}) {
 
   markdown = normalizeMarkdownLeadingArtifacts(typeof markdown === 'string' ? markdown : '')
 
-  // 获取 CDN
-  const cdn = isElectronEnv() ? getLocalVditorCDN() : vditorCDN
-
-  // 获取主题：用户手册等与主界面一致时用 syncWithAppTheme，避免沿用编辑器「内容区/代码」设置导致深浅色错位
-  let contentTheme
-  let codeTheme
-  if (syncWithAppTheme) {
-    const ts = themeState.currentTheme
-    const isDark = ts?.type === 'dark'
-    contentTheme = ts?.vditorTheme === 'dark' || isDark ? 'dark' : 'light'
-    // 仅跟随应用当前主题的 codeTheme，避免混入 Markdown 编辑器里的代码高亮设置
-    codeTheme = ts?.codeTheme || (isDark ? 'github-dark' : 'github')
-  } else {
-    contentTheme = resolveVditorContentThemeSettingValue(await getSetting('contentTheme'))
-    codeTheme = resolveVditorCodeThemeSettingValue(await getSetting('codeTheme'))
-  }
-  const lineNumber = (await getSetting('lineNumber')) ?? true
-  const mathInlineDigit = (await getSetting('mathInlineDigit')) ?? true
+  const { cdn, previewOptions } = await buildMarkdownPreviewOptions({
+    linkBase,
+    syncWithAppTheme
+  })
 
   // 清空容器
   container.innerHTML = ''
 
-  // 构建预览选项
-  const previewOptions = {
-    cdn,
-    mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
-    theme: {
-      current: contentTheme
-    },
-    markdown: {
-      linkBase: linkBase
-    },
-    hljs: {
-      style: codeTheme,
-      lineNumber: lineNumber
-    },
-    math: {
-      inlineDigit: mathInlineDigit
-    }
-  }
-
   // 调用 Vditor.preview
   await Vditor.preview(container, markdown, previewOptions)
 
-  // 可选：渲染代码块和数学公式
-  if (renderCode && typeof Vditor.codeRender === 'function') {
-    Vditor.codeRender(container)
-  }
-
-  if (renderMath && typeof Vditor.mathRender === 'function') {
-    Vditor.mathRender(container, { cdn })
-  }
-
-  // 仅在用户手册中统一适配 Mermaid 图表主题：根据当前主题统一节点背景色和字体颜色
-  // 延迟执行以确保 Mermaid 完全渲染完成
-  if (applyMermaidTheme) {
-    // 立即执行一次
-    applyMermaidThemeToContainer(container)
-    // 延迟执行以确保覆盖所有动态渲染的元素
-    setTimeout(() => {
-      applyMermaidThemeToContainer(container)
-    }, 100)
-    setTimeout(() => {
-      applyMermaidThemeToContainer(container)
-    }, 500)
-  }
+  await postProcessMarkdownPreview(container, { renderCode, renderMath, applyMermaidTheme }, cdn)
 }
 
 /**

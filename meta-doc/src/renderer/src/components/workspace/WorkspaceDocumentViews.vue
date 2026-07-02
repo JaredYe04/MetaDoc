@@ -2,12 +2,11 @@
 import { computed, ref, watch } from 'vue'
 import { useFocusMode } from '../../composables/useFocusMode'
 import { useWorkspace, type DocumentView } from '../../stores/workspace'
-import { pluginRegistry } from '../../core/host-runtime'
-import { isAiRuntimeLoaded } from '../../ai-runtime/loader'
-import Editor from '../../views/Editor.vue'
-import Home from '../../views/Home.vue'
-import Outline from '../../views/Outline.vue'
-import Visualize from '../../views/Visualize.vue'
+import { getRegisteredViewsForRender } from '../../view-api'
+import { settings } from '../../utils/settings'
+import { IMAGE_EXTENSIONS } from '../../utils/file-display-utils'
+import { extname } from '../../utils/path-utils'
+import type { ViewWhenContext } from '../../view-api'
 
 const props = withDefaults(
   defineProps<{
@@ -22,10 +21,43 @@ const { isFocusMode } = useFocusMode()
 
 const tab = computed(() => workspace.tabs.find((t) => t.id === props.tabId))
 
-const pluginDocumentViews = computed(() => {
-  if (!isAiRuntimeLoaded()) return []
-  return [...pluginRegistry.documentViews.values()]
+const activeDocument = computed(() => {
+  try {
+    return workspace.ensureDocument(props.tabId)
+  } catch {
+    return null
+  }
 })
+
+const viewWhenContext = computed((): ViewWhenContext => {
+  const t = tab.value
+  const doc = activeDocument.value
+  const format = doc?.format ?? t?.format ?? null
+  const path = (t?.path || doc?.path || '').toLowerCase()
+  const tabFormat = (t?.format || doc?.format || '').toLowerCase()
+  const isPdfPreviewTab =
+    !!t &&
+    t.kind === 'file' &&
+    t.preview === true &&
+    path.endsWith('.pdf') &&
+    tabFormat === 'pdf'
+  const rawPath = t?.path || doc?.path || ''
+  const ext = extname(rawPath).toLowerCase()
+  const isImageTab =
+    !!t && t.kind === 'file' && !!rawPath && IMAGE_EXTENSIONS.has(ext)
+
+  return {
+    tabId: props.tabId,
+    format,
+    hasActiveDocument: !!doc,
+    isPlainTextFormat: format === 'txt',
+    isPdfPreviewTab,
+    isImageTab,
+    llmEnabled: settings.llmEnabled === true
+  }
+})
+
+const registeredViews = computed(() => getRegisteredViewsForRender(viewWhenContext.value))
 
 const currentView = computed(() => {
   if (!tab.value || (tab.value.kind !== 'file' && tab.value.kind !== 'new')) {
@@ -46,11 +78,11 @@ const currentView = computed(() => {
   return v
 })
 
-const mountedViews = ref<Set<DocumentView>>(new Set())
+const mountedViews = ref<Set<string>>(new Set())
 
-const isViewVisible = (viewType: DocumentView): boolean => currentView.value === viewType
+const isViewVisible = (viewType: string): boolean => currentView.value === viewType
 
-const shouldRenderView = (viewType: DocumentView): boolean => {
+const shouldRenderView = (viewType: string): boolean => {
   return isViewVisible(viewType) || mountedViews.value.has(viewType)
 }
 
@@ -70,45 +102,30 @@ watch(
     class="document-content-area"
     :class="{ 'document-content-area--workspace-embedded': !useNestedEditor }"
   >
-    <Home
-      v-if="shouldRenderView('home')"
-      v-show="isViewVisible('home')"
-      :key="`home-${tabId}`"
-      :tab-id="tabId"
-    />
-    <template v-if="shouldRenderView('editor')">
-      <Editor
-        v-if="useNestedEditor"
-        v-show="isViewVisible('editor')"
-        :key="`editor-nested-${tabId}`"
-        :tab-id="tabId"
-      />
-      <div
-        v-else
-        v-show="isViewVisible('editor')"
-        :key="`editor-slot-wrap-${tabId}`"
-        class="document-content-area__editor-slot"
-      >
-        <slot name="editor" />
-      </div>
-    </template>
-    <Outline
-      v-if="shouldRenderView('outline')"
-      v-show="isViewVisible('outline')"
-      :key="`outline-${tabId}`"
-      :tab-id="tabId"
-    />
-    <Visualize
-      v-if="shouldRenderView('visualize')"
-      v-show="isViewVisible('visualize')"
-      :key="`visualize-${tabId}`"
-      :tab-id="tabId"
-    />
-    <template v-for="pv in pluginDocumentViews" :key="`${pv.view}-${tabId}`">
+    <template v-for="reg in registeredViews" :key="`${reg.id}-${tabId}`">
+      <template v-if="reg.renderMode === 'editor-slot' && shouldRenderView(reg.id)">
+        <template v-if="useNestedEditor">
+          <component
+            :is="reg.component"
+            v-show="isViewVisible(reg.id)"
+            :key="`editor-nested-${tabId}`"
+            :tab-id="tabId"
+          />
+        </template>
+        <div
+          v-else
+          v-show="isViewVisible(reg.id)"
+          :key="`editor-slot-wrap-${tabId}`"
+          class="document-content-area__editor-slot"
+        >
+          <slot name="editor" />
+        </div>
+      </template>
       <component
-        :is="pv.component"
-        v-if="shouldRenderView(pv.view)"
-        v-show="isViewVisible(pv.view)"
+        :is="reg.component"
+        v-else-if="shouldRenderView(reg.id)"
+        v-show="isViewVisible(reg.id)"
+        :key="`${reg.id}-${tabId}`"
         :tab-id="tabId"
       />
     </template>

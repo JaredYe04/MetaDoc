@@ -10,7 +10,7 @@ export default createMetaDocPlugin(
     version: '1.0.0',
     entry: './translate-selection',
     permissions: ['documents.read', 'documents.write', 'llm.chat'],
-    activationEvents: ['onLlmEnabled']
+    activationEvents: ['onCapability:editor-ai']
   },
   async ({ host }) => {
     const { default: SelectionTranslateDialog } = await import(

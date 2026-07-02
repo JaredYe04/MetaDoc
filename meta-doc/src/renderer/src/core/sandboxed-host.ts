@@ -107,6 +107,7 @@ export function createSandboxedHost(
     version: host.version,
     documents: buildDocumentHost(host.documents, granted),
     outline: buildOutlineHost(host.outline, granted),
+    views: host.views,
     editor: host.editor as EditorHost,
     ui: host.ui as UIHost,
     events: host.events as EventHost,

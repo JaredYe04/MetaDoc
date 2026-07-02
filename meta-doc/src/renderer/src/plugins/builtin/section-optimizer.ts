@@ -10,7 +10,7 @@ export default createMetaDocPlugin(
     version: '1.0.0',
     entry: './section-optimizer',
     permissions: ['documents.read', 'documents.write', 'llm.chat'],
-    activationEvents: ['onLlmEnabled']
+    activationEvents: ['onCapability:editor-ai']
   },
   async ({ host }) => {
     const { default: SectionOptimizer } = await import('../../components/SectionOptimizer.vue')

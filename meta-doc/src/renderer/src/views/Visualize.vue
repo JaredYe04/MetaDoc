@@ -106,7 +106,7 @@ import WordCloudDetail from '../components/WordCloudDetail.vue'
 import { getSetting, settings } from '../utils/settings'
 import messageBridge from '../bridge/message-bridge'
 import { webMainCalls } from '../utils/web-adapter/web-main-calls'
-import { useScopedOrActiveDocument } from '../composables/useActiveDocument'
+import { useDocumentViewContext } from '../view-api'
 import { useI18n } from 'vue-i18n'
 
 if (typeof window !== 'undefined' && !(window as any).electron?.ipcRenderer) {
@@ -144,7 +144,9 @@ const visualizeChartTheme = computed<VisualizeChartThemeSlice>(() => ({
   type: themeState.currentTheme.type as VisualizeChartThemeSlice['type'],
   textColor2: themeState.currentTheme.textColor2
 }))
-const { activeDocument, effectiveTabId } = useScopedOrActiveDocument(() => props.tabId)
+const { activeDocument, content: documentContent, effectiveTabId } = useDocumentViewContext(
+  () => props.tabId
+)
 
 // 主 Panel 样式
 const mainPanelStyle = computed(() => ({
@@ -161,15 +163,8 @@ const currentAdapter = computed<VisualizeAdapter | null>(() => {
   return createVisualizeAdapter(format)
 })
 
-// 获取原始文档内容
-const rawDocumentContent = computed(() => {
-  const doc = activeDocument.value
-  if (!doc) return ''
-  if (doc.format === 'tex') {
-    return doc.tex ?? ''
-  }
-  return doc.markdown ?? ''
-})
+// 原始文档正文（通过 View API 上下文）
+const rawDocumentContent = documentContent
 
 const documentTitle = computed(() => {
   const doc = activeDocument.value

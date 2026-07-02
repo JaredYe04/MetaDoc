@@ -125,6 +125,9 @@ const generate = async () => {
   }
   generating.value = true
 
+  const { ensureEditorAiCapability } = await import('../ai-runtime/ensure-for-entry')
+  await ensureEditorAiCapability()
+
   let contexts: string[] = []
   if (props.adapter && props.documentContent && props.word) {
     try {

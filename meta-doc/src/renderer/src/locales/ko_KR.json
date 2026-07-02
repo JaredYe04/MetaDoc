@@ -56,7 +56,9 @@
     "redo": "다시 실행",
     "undo": "실행 취소",
     "addSelectionToAgent": "Agent 대화에 추가",
-    "generateIllustrationFromSelection": "선택 영역으로 일러스트 생성"
+    "generateIllustrationFromSelection": "선택 영역으로 일러스트 생성",
+    "editorMode": "Editor mode",
+    "editorModeCode": "Code editor"
   },
   "headMenu": {
     "tooltip": "AI 에이전트 기반의 지능형 문서 처리 소프트웨어",
@@ -664,7 +666,9 @@
       "convert_latex_formulas_no_editor": "편집기가 준비되지 않았습니다",
       "toggle_outline": "개요 보기/숨기기 전환",
       "toggle_outline_show": "개요 표시",
-      "toggle_outline_hide": "개요 숨기기"
+      "toggle_outline_hide": "개요 숨기기",
+      "switchToCodeEditor": "Switch to code editor",
+      "switchToVisualEditor": "Switch to visual editor"
     },
     "convert_to_latex": "문서를 LaTeX로 변환",
     "convert_to_latex_confirm": "변환 시 기존 Markdown 파일과 동기화되지 않는 tex 파일이 생성됩니다. 계속하시겠습니까?",
@@ -2075,7 +2079,9 @@
       "mtxPackCreditsLabel": "크레딧(credits)",
       "mtxPollTimeout": "Steam 확인 대기 시간이 초과되었습니다. 결제를 완료했다면 잠시 후 '크레딧 새로고침'을 클릭하세요. 결제를 완료하지 않았다면 다시 시도하세요.",
       "mtxSteamAuthFailed": "Steam이 이번 승인을 수락하지 않았습니다(일반적인 원인: 주문 IP와 브라우저 출구 IP가 일치하지 않음). 결제 페이지를 닫고 다시 시도하세요. VPN/프록시를 사용 중이라면 브라우저와 동일하게 유지하세요."
-    }
+    },
+    "editorModeCode": "Code Editor",
+    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -5844,7 +5850,7 @@
     },
     "editorMode": {
       "title": "Default Markdown editor mode",
-      "subtitle": "This mode is used when you open Markdown documents.",
+      "subtitle": "Choose a default mode (WYSIWYG, IR, split view, or code editor) for new Markdown documents.",
       "settingsHint": "You can change this anytime under Settings → Basic → Default editor mode."
     },
     "fileAssociation": {

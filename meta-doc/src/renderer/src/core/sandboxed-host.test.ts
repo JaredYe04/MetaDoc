@@ -24,6 +24,12 @@ function makeHost(): MetaDocHost {
       registerAccessory: vi.fn(() => () => {}),
       getAccessories: vi.fn(() => [])
     },
+    views: {
+      registerView: vi.fn(() => () => {}),
+      unregisterView: vi.fn(),
+      getView: vi.fn(),
+      getAllViews: vi.fn(() => [])
+    },
     ui: {
       registerContextMenuItem: vi.fn(() => () => {}),
       registerLeftMenuItem: vi.fn(() => () => {}),

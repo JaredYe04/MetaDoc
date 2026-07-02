@@ -7,7 +7,7 @@ export default createMetaDocPlugin(
     version: '1.0.0',
     entry: './ai-chat',
     permissions: ['documents.read', 'llm.chat'],
-    activationEvents: ['onLlmEnabled']
+    activationEvents: ['onCapability:editor-ai']
   },
   ({ host }) => {
     host.ui.registerLeftMenuItem({

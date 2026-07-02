@@ -10,7 +10,7 @@ export default createMetaDocPlugin(
     version: '1.0.0',
     entry: './tool-windows',
     permissions: ['llm.chat'],
-    activationEvents: ['onLlmEnabled']
+    activationEvents: ['onCapability:tool-windows']
   },
   async ({ host }) => {
     const { default: GraphQuickDialog } = await import('../../components/GraphQuickDialog.vue')

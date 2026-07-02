@@ -27,16 +27,22 @@
 
 ## 按 UI 贡献类型
 
-### 文档视图（`registerDocumentView`）
+### 文档视图（`views.registerView` / 兼容 `registerDocumentView`）
 
-| view 键 | 插件 | 组件 |
-|---------|------|------|
-| `agent` | agent | `AgentView.vue` |
-| `proofread` | proofread | `ProofreadView.vue` |
+| view 键 | 插件 | 组件 | 加载时机 |
+|---------|------|------|----------|
+| `home` | core-views | `Home.vue` | `onStartup` |
+| `editor` | core-views | slot（`WorkspaceTabPane`） | `onStartup` |
+| `outline` | core-views | `Outline.vue` | `onStartup` |
+| `visualize` | core-views | `Visualize.vue` | `onStartup` |
+| `agent` | agent | `AgentView.vue` | `onLlmEnabled` |
+| `proofread` | proofread | `ProofreadView.vue` | `onLlmEnabled` |
 
-渲染：`WorkspaceDocumentViews.vue` 在 `isAiRuntimeLoaded()` 为真时遍历 `pluginRegistry.documentViews`。
+渲染：`WorkspaceDocumentViews.vue` 遍历 `view-api` 注册表（`getRegisteredViewsForRender`）。
 
-切换视图：`host.events.emit('switch-document-view', { tabId, view })`。
+ViewMenu：[`ViewMenu.vue`](../../src/renderer/src/components/ViewMenu.vue) 动态读取注册表 + `viewMenuConfig`；校对等 `requiresLlm` 视图受 `llmEnabled` 门控。
+
+切换视图：`host.events.emit('switch-document-view', { tabId, view })`（`installViewSwitchListener` 在 bootstrap 安装）。
 
 ### 编辑器叠加层（`registerOverlay`）
 

@@ -40,26 +40,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { getSetting, settings } from '../utils/settings.js'
 import { themeState, mixColors } from '../utils/themes.js'
 import SettingBasicSection from './setting/SettingBasicSection.vue'
-import SettingLlmSection from './setting/SettingLlmSection.vue'
 import SettingThemeSection from './setting/SettingThemeSection.vue'
 import SettingShortcutsSection from './setting/SettingShortcutsSection.vue'
 import SettingLoggerSection from './setting/SettingLoggerSection.vue'
 import SettingImageSection from './setting/SettingImageSection.vue'
 import SettingAboutSection from './setting/SettingAboutSection.vue'
-import SettingPluginsSection from './setting/SettingPluginsSection.vue'
 import { ScrollArea, ScrollBar } from '@renderer/components/ui/scroll-area'
 import UIMenu from '@renderer/components/ui/UIMenu.vue'
 import UIMenuItem from '@renderer/components/ui/UIMenuItem.vue'
 import { pluginRegistry } from '../core/host-runtime'
-import { isAiRuntimeLoaded } from '../ai-runtime/loader'
+import { ensureAiCapability, isAiRuntimeLoaded } from '../ai-runtime/loader'
 import eventBus from '../utils/event-bus'
 import '../assets/aero-btn.css'
 import '../assets/aero-div.css'
 import '../assets/modern-side-menu.css'
+
+const SettingLlmSection = defineAsyncComponent(() =>
+  ensureAiCapability('llm-core').then(() => import('./setting/SettingLlmSection.vue'))
+)
+const SettingPluginsSection = defineAsyncComponent(() => import('./setting/SettingPluginsSection.vue'))
 
 const activeMenu = ref('basic')
 const pluginSettingsRevision = ref(0)
@@ -125,6 +128,9 @@ const activeBackgroundColor = computed(() =>
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
 const handleMenuSelect = (index: string) => {
+  if (index === 'llm') {
+    void ensureAiCapability('llm-core')
+  }
   activeMenu.value = index
 }
 
@@ -149,12 +155,16 @@ const fetchSettings = async () => {
 onMounted(async () => {
   eventBus.on('ai-runtime-ready', onPluginSettingsRuntimeChange)
   eventBus.on('ai-runtime-unloaded', onPluginSettingsRuntimeChange)
+  eventBus.on('ai-capability-loaded', onPluginSettingsRuntimeChange)
+  eventBus.on('ai-capability-unloaded', onPluginSettingsRuntimeChange)
   await fetchSettings()
 })
 
 onBeforeUnmount(() => {
   eventBus.off('ai-runtime-ready', onPluginSettingsRuntimeChange)
   eventBus.off('ai-runtime-unloaded', onPluginSettingsRuntimeChange)
+  eventBus.off('ai-capability-loaded', onPluginSettingsRuntimeChange)
+  eventBus.off('ai-capability-unloaded', onPluginSettingsRuntimeChange)
 })
 </script>
 

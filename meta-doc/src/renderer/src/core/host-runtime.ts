@@ -2,6 +2,7 @@ import type {
   ContextMenuItemContribution,
   DocumentHost,
   DocumentSnapshot,
+  DocumentViewContribution,
   EditorHost,
   EditorOverlayRegistration,
   EditorAccessoryRegistration,
@@ -14,6 +15,13 @@ import type {
   UIHost
 } from '../host-api'
 import { HOST_API_VERSION } from '../host-api'
+import {
+  createViewHost,
+  getAllViews,
+  legacyContributionToRegistration,
+  registerView,
+  viewRegistryMap
+} from '../view-api'
 import eventBus from '../utils/event-bus.js'
 import { getSetting, setSetting } from '../utils/settings.js'
 import { useWorkspace } from '../stores/workspace'
@@ -22,7 +30,8 @@ const editorOverlays: EditorOverlayRegistration[] = []
 const editorAccessories: EditorAccessoryRegistration[] = []
 const contextMenuItems: ContextMenuItemContribution[] = []
 const leftMenuItems: LeftMenuItemContribution[] = []
-const documentViews = new Map<string, import('../host-api').DocumentViewContribution>()
+/** @deprecated Use viewRegistryMap from view-api — kept for backward-compatible imports */
+const documentViews = viewRegistryMap as unknown as Map<string, DocumentViewContribution>
 const settingsSections: import('../host-api').SettingsSectionContribution[] = []
 const shellOverlays: import('../host-api').ShellOverlayContribution[] = []
 const homeSections: import('../host-api').HomeSectionContribution[] = []
@@ -147,8 +156,7 @@ function buildUIHost(): UIHost {
       }
     },
     registerDocumentView(view) {
-      documentViews.set(view.view, view)
-      return () => documentViews.delete(view.view)
+      return registerView(legacyContributionToRegistration(view))
     },
     registerSettingsSection(section) {
       settingsSections.push(section)
@@ -205,6 +213,7 @@ export function getHost(): MetaDocHost {
       documents: buildDocumentHost(),
       outline: buildOutlineHost(),
       editor: buildEditorHost(),
+      views: createViewHost(),
       ui: buildUIHost(),
       events: buildEventHost(),
       settings: buildSettingsHost(),
@@ -226,7 +235,11 @@ export function clearPluginContributions(): void {
   editorAccessories.length = 0
   contextMenuItems.length = 0
   leftMenuItems.length = 0
-  documentViews.clear()
+  for (const reg of getAllViews()) {
+    if (reg.requiresLlm) {
+      viewRegistryMap.delete(reg.id)
+    }
+  }
   settingsSections.length = 0
   shellOverlays.length = 0
   homeSections.length = 0

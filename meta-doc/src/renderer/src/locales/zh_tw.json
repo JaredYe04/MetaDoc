@@ -1592,7 +1592,9 @@
       "ai_full_document_analysis": "AI全文分析",
       "toggle_outline": "切換大綱",
       "toggle_outline_show": "顯示大綱",
-      "toggle_outline_hide": "隱藏大綱"
+      "toggle_outline_hide": "隱藏大綱",
+      "switchToCodeEditor": "切換到程式碼編輯器",
+      "switchToVisualEditor": "切換到視覺化編輯器"
     },
     "untitled_document": "未命名文件",
     "vditor_init_failed": "Vditor 初始化失敗："
@@ -1763,7 +1765,9 @@
     "translateSelection": "翻譯選取內容",
     "undo": "復原",
     "addSelectionToAgent": "添加到 Agent 對話",
-    "generateIllustrationFromSelection": "生成插圖"
+    "generateIllustrationFromSelection": "生成插圖",
+    "editorMode": "編輯器模式",
+    "editorModeCode": "程式碼編輯器"
   },
   "data-analysis-tool": {
     "analyze": "資料分析",
@@ -4787,7 +4791,9 @@
       "mtxPackCreditsLabel": "額度（credits）",
       "mtxPollTimeout": "等待 Steam 確認逾時。若已付款，請稍後點選「重新整理額度」；若未完成支付，請重試。",
       "mtxSteamAuthFailed": "Steam 未接受本次授權（常見原因：下單 IP 與瀏覽器出口 IP 不一致）。請關閉支付頁面後重試；若使用 VPN/代理，請保持與瀏覽器一致。"
-    }
+    },
+    "editorModeCode": "程式碼編輯器",
+    "editorModeCodeHint": "左側 Monaco 原始碼編輯，右側即時 Markdown 預覽，適合熟悉語法的用戶。"
   },
   "settingBasicSection": {
     "failedSize": "取得目錄大小失敗",
@@ -5596,7 +5602,7 @@
     },
     "editorMode": {
       "title": "預設 Markdown 編輯模式",
-      "subtitle": "選擇一種預設模式，開啟 Markdown 時將直接使用。",
+      "subtitle": "選擇一種預設模式（所見即所得、即時渲染、分屏預覽或程式碼編輯器），開啟 Markdown 時將直接使用。",
       "settingsHint": "之後可在「設定 → 基礎 → 預設編輯器模式」中隨時修改。"
     },
     "fileAssociation": {

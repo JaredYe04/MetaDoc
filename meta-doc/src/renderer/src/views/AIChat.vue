@@ -955,8 +955,39 @@ const updateTitle = async (seedText?: string) => {
   updateCurrentDialog(index)
 }
 
-const handleExternalDialogsUpdate = () => {
-  initCurrentDialog()
+const handleExternalDialogsUpdate = (payload?: { tabId?: string } | null) => {
+  const docTabId =
+    payload && typeof payload === 'object' && payload.tabId ? payload.tabId : null
+  const doc = docTabId
+    ? workspace.ensureDocument(docTabId)
+    : workspace.activeDocument.value
+  const workspaceDialog = doc?.aiDialogs?.[0]
+
+  if (workspaceDialog) {
+    const cloned = cloneDeep(workspaceDialog)
+    if (dialogs.value.length > 0 && dialogs.value[0].title === cloned.title) {
+      dialogs.value[0] = cloned
+    } else {
+      dialogs.value.unshift(cloned)
+    }
+    activeDialogIndex.value = 0
+    loadDialog(0)
+    queueMicrotask(() => persistDialogsToStorage())
+    return
+  }
+
+  const stored = readAiChatDialogs()
+  if (!stored.length) {
+    initCurrentDialog()
+    return
+  }
+  const now = Date.now()
+  dialogs.value = stored.map((dialog) => {
+    if (!dialog.createdAt) dialog.createdAt = now
+    if (!dialog.updatedAt) dialog.updatedAt = now
+    return dialog
+  })
+  loadDialog(0)
 }
 
 // 窗口迁移后恢复当前选中的对话索引

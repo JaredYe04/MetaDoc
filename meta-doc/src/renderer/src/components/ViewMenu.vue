@@ -7,72 +7,40 @@
         { 'is-locked': isLocked, 'is-collapsed': isCollapsed }
       ]"
       :style="menuStyle"
+      @contextmenu.prevent="handleBlankContextMenu"
     >
-      <!-- Home -->
       <ViewMenuItem
-        index="home"
-        :label="$t('headMenu.home')"
-        :icon-image="themeState.currentTheme.HomeIcon"
-        :is-active="activeMenuIndex === 'home'"
-        :is-collapsed="isCollapsed"
-        :is-disabled="isLocked"
-        @select="handleSelect"
-      />
-
-      <!-- Editor：图片 tab 不显示（仅主页） -->
-      <ViewMenuItem
-        v-if="!isImageTab"
-        index="editor"
-        :label="$t('headMenu.editor')"
-        :icon-image="themeState.currentTheme.EditorIcon"
-        :is-active="activeMenuIndex === 'editor'"
-        :is-collapsed="isCollapsed"
-        :is-disabled="isLocked"
-        @select="handleSelect"
-      />
-
-      <!-- 大纲树：纯文本格式不显示；PDF/图片 tab 只显示主页（和编辑器） -->
-      <ViewMenuItem
-        v-if="!isPlainTextFormat && !isPdfPreviewTab && !isImageTab"
-        index="outline"
-        :label="$t('headMenu.outline')"
-        :icon-image="themeState.currentTheme.OutlineIcon"
-        :is-active="activeMenuIndex === 'outline'"
-        :is-collapsed="isCollapsed"
-        :is-disabled="isLocked"
-        @select="handleSelect"
-      />
-
-      <!-- 可视化：纯文本格式不显示；PDF/图片 tab 只显示主页（和编辑器） -->
-      <ViewMenuItem
-        v-if="!isPlainTextFormat && !isPdfPreviewTab && !isImageTab"
-        index="visualize"
-        :label="$t('headMenu.visualize')"
-        :icon-image="themeState.currentTheme.VisualIcon"
-        :is-active="activeMenuIndex === 'visualize'"
-        :is-collapsed="isCollapsed"
-        :is-disabled="isLocked"
-        @select="handleSelect"
-      />
-
-      <!-- 文章校对：纯文本格式不显示，需要活动文档；PDF/图片 tab 只显示主页（和编辑器） -->
-      <ViewMenuItem
-        v-if="activeDocument && !isPlainTextFormat && !isPdfPreviewTab && !isImageTab"
-        index="proofread"
-        :label="$t('headMenu.proofread')"
-        :icon-image="themeState.currentTheme.ProofreadIcon"
-        :is-active="activeMenuIndex === 'proofread'"
+        v-for="item in visibleViewMenuItems"
+        :key="item.id"
+        :index="item.id"
+        :label="resolveViewLabel(item.label)"
+        :icon-image="item.iconImage"
+        :is-active="activeMenuIndex === item.id"
         :is-collapsed="isCollapsed"
         :is-disabled="isLocked"
         @select="handleSelect"
       />
     </div>
 
-    <!-- 折叠按钮 -->
     <div class="collapse-button" @click="toggleCollapse">
       <ArrowLeft v-if="!isCollapsed" class="w-4 h-4" />
       <ArrowRight v-else class="w-4 h-4" />
     </div>
+
+    <ContextMenu
+      v-if="contextMenuVisible"
+      :x="contextMenuPosition.x"
+      :y="contextMenuPosition.y"
+      :items="blankContextMenuItems"
+      @trigger="handleContextMenuCommand"
+      @close="contextMenuVisible = false"
+    />
+
+    <ViewMenuConfigDialog
+      v-model="showViewMenuConfigDialog"
+      :items="viewMenuConfigDialogItems"
+      @save="onViewMenuConfigSaved"
+    />
   </div>
 </template>
 
@@ -87,8 +55,17 @@ import { isLayoutSplit } from '../stores/workspace-layout'
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import ViewMenuItem from './ViewMenuItem.vue'
-import { IMAGE_EXTENSIONS } from '../utils/file-display-utils'
-import { extname } from '../utils/path-utils'
+import ViewMenuConfigDialog from './ViewMenuConfigDialog.vue'
+import ContextMenu from './ContextMenu.vue'
+import type { ContextMenuItem } from './contextMenus/types'
+import { getSetting, settings } from '../utils/settings'
+import {
+  buildViewWhenContext,
+  getViewMenuConfigDialogItems,
+  getViewMenuItems,
+  type ViewMenuConfigEntry
+} from '../view-api'
+import { isAiRuntimeLoaded } from '../ai-runtime/loader'
 
 const props = withDefaults(
   defineProps<{ mode?: 'normal' | 'demo'; contextTabId?: string | null }>(),
@@ -98,6 +75,12 @@ const props = withDefaults(
 const { t } = useI18n()
 const workspace = useWorkspace()
 const { editorChromeLayout } = useEditorChromeLayout()
+
+const viewMenuConfigState = ref<ViewMenuConfigEntry[] | null>(null)
+const viewMenuConfigRevision = ref(0)
+const showViewMenuConfigDialog = ref(false)
+const contextMenuVisible = ref(false)
+const contextMenuPosition = ref({ x: 0, y: 0 })
 
 const scopedDocument = computed(() => {
   if (!props.contextTabId) return null
@@ -114,36 +97,80 @@ const activeDocument = computed(() =>
 
 const contextTab = computed(() =>
   props.contextTabId
-    ? (workspace.tabs.find((t) => t.id === props.contextTabId) ?? null)
+    ? (workspace.tabs.find((tab) => tab.id === props.contextTabId) ?? null)
     : workspace.activeTab.value
 )
+
 const isLocked = computed(() => props.mode === 'demo' || workspace.uiLocked?.value === true)
 
-// 判断是否为纯文本格式
-const isPlainTextFormat = computed(() => {
-  return activeDocument.value?.format === 'txt'
+const viewWhenContext = computed(() =>
+  buildViewWhenContext({
+    tabId: props.contextTabId ?? workspace.activeTabId.value ?? null,
+    tab: contextTab.value,
+    document: activeDocument.value,
+    llmEnabled: settings.llmEnabled === true
+  })
+)
+
+const isImageTab = computed(() => viewWhenContext.value.isImageTab)
+
+function resolveViewLabel(label: string): string {
+  if (label.includes('.')) return t(label)
+  return label
+}
+
+const visibleViewMenuItems = computed(() => {
+  viewMenuConfigRevision.value
+  isAiRuntimeLoaded()
+  return getViewMenuItems(viewWhenContext.value, viewMenuConfigState.value)
 })
 
-// 判断是否为 PDF 预览 tab（仅此类 tab 只显示主页和编辑器）
-const isPdfPreviewTab = computed(() => {
-  const tab = contextTab.value
-  if (!tab || tab.kind !== 'file') return false
-  const path = (tab.path || activeDocument.value?.path || '').toLowerCase()
-  const format = (tab.format || activeDocument.value?.format || '').toLowerCase()
-  return tab.preview === true && path.endsWith('.pdf') && format === 'pdf'
+const viewMenuConfigDialogItems = computed(() => {
+  viewMenuConfigRevision.value
+  return getViewMenuConfigDialogItems(viewMenuConfigState.value).map((item) => ({
+    id: item.id,
+    label: resolveViewLabel(item.label),
+    iconImage: item.iconImage,
+    visible: item.visible,
+    isCore: item.isCore
+  }))
 })
 
-// 判断是否为图片 tab（仅显示主页，不显示编辑器）
-const isImageTab = computed(() => {
-  const tab = contextTab.value
-  if (!tab || tab.kind !== 'file') return false
-  const path = tab.path || activeDocument.value?.path || ''
-  if (!path) return false
-  const ext = extname(path).toLowerCase()
-  return IMAGE_EXTENSIONS.has(ext)
-})
+const blankContextMenuItems = computed<ContextMenuItem[]>(() => [
+  {
+    label: 'viewMenu.menuConfig.title',
+    value: 'open-view-menu-config'
+  }
+])
 
-// 折叠状态 - 默认折叠
+async function loadViewMenuConfig(): Promise<void> {
+  try {
+    const config = await getSetting('viewMenuConfig')
+    viewMenuConfigState.value = Array.isArray(config) ? (config as ViewMenuConfigEntry[]) : null
+  } catch {
+    viewMenuConfigState.value = null
+  }
+  viewMenuConfigRevision.value++
+}
+
+function onViewMenuConfigSaved(items: ViewMenuConfigEntry[]): void {
+  viewMenuConfigState.value = items.map(({ id, visible }) => ({ id, visible }))
+  viewMenuConfigRevision.value++
+}
+
+function handleBlankContextMenu(event: MouseEvent): void {
+  if (isLocked.value || props.mode === 'demo') return
+  contextMenuPosition.value = { x: event.clientX, y: event.clientY }
+  contextMenuVisible.value = true
+}
+
+function handleContextMenuCommand(value: string): void {
+  contextMenuVisible.value = false
+  if (value === 'open-view-menu-config') {
+    showViewMenuConfigDialog.value = true
+  }
+}
+
 const isCollapsed = ref(false)
 
 function shouldAutoCollapseForWorkbench(): boolean {
@@ -171,7 +198,6 @@ watch(
   }
 )
 
-// 已处于 workspace 时再拖出分屏：layout 模式未变，需根据布局树出现 split 再折一次
 watch(
   () => isLayoutSplit(workspace.workspaceLayoutRoot.value),
   (hasSplit, hadSplit) => {
@@ -183,7 +209,6 @@ watch(
   }
 )
 
-// 切换折叠状态
 const toggleCollapse = () => {
   if (isLocked.value) return
   if (props.mode === 'demo') return
@@ -191,13 +216,11 @@ const toggleCollapse = () => {
   eventBus.emit('view-menu-collapse-changed', isCollapsed.value)
 }
 
-// 监听折叠状态变化，通知父组件
 watch(isCollapsed, (newVal) => {
   if (props.mode === 'demo') return
   eventBus.emit('view-menu-collapse-changed', newVal)
 })
 
-// 监听来自Main.vue的折叠状态同步
 const handleViewMenuCollapseSync = (payload: unknown) => {
   const collapsed = payload as boolean
   if (isCollapsed.value !== collapsed) {
@@ -206,8 +229,22 @@ const handleViewMenuCollapseSync = (payload: unknown) => {
 }
 eventBus.on('view-menu-collapse-sync', handleViewMenuCollapseSync)
 
-// 挂载时：设置已读与顶栏一致；异步载入 editorChromeLayout 后仍依赖 watch
+const onAiRuntimeReady = () => {
+  viewMenuConfigRevision.value++
+}
+const onAiRuntimeUnloaded = () => {
+  viewMenuConfigRevision.value++
+}
+const onAiCapabilityChange = () => {
+  viewMenuConfigRevision.value++
+}
+eventBus.on('ai-runtime-ready', onAiRuntimeReady)
+eventBus.on('ai-runtime-unloaded', onAiRuntimeUnloaded)
+eventBus.on('ai-capability-loaded', onAiCapabilityChange)
+eventBus.on('ai-capability-unloaded', onAiCapabilityChange)
+
 onMounted(() => {
+  void loadViewMenuConfig()
   if (props.mode === 'demo') return
   if (shouldAutoCollapseForWorkbench()) {
     isCollapsed.value = true
@@ -215,23 +252,17 @@ onMounted(() => {
   eventBus.emit('view-menu-collapse-request')
 })
 
-// 当前活动的文档视图
-// 直接使用 doc.lastView，这个值已经在创建/打开文档时根据内容正确设置了
 const activeMenuIndex = computed(() => {
   if (!activeDocument.value) return 'editor'
-  // 图片 tab 仅支持主页
   if (isImageTab.value) return 'home'
-  // lastView 已经在创建文档时根据内容正确设置：空文档 -> 'editor'，有内容 -> 'home'
   return activeDocument.value.lastView || 'editor'
 })
 
-// 计算选中状态的背景色（使用辅助背景色）
 const activeBackgroundColor = computed(() =>
   mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
 )
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
-// 菜单样式
 const menuStyle = computed(() => ({
   '--menu-bg': themeState.currentTheme.background,
   '--menu-text': themeState.currentTheme.SideTextColor,
@@ -241,41 +272,34 @@ const menuStyle = computed(() => ({
   color: themeState.currentTheme.SideTextColor
 }))
 
-const handleSelect = (key: string): void => {
+const handleSelect = async (key: string): Promise<void> => {
   if (isLocked.value) return
   if (props.mode === 'demo') return
 
-  // 如果点击的是"主页"，且当前文档是新文档且尚未选择格式，切换到 GlobalHome 标签页
+  const { ensureCapabilityForDocumentView } = await import('../ai-runtime/ensure-for-entry')
+  await ensureCapabilityForDocumentView(key)
+
   if (key === 'home') {
     const tab = contextTab.value
-    const doc = activeDocument.value
-
-    // 检查是否是新文档且尚未选择格式
     if (tab?.kind === 'new') {
-      // 切换到 GlobalHome 标签页（如果不存在则创建）
       workspace.openSystemTab('/global-home', t('headMenu.home', '主页'))
       return
     }
   }
 
-  // 切换文档视图，不改变路由（分屏内为 contextTabId 对应文档）
   const targetTabId = props.contextTabId || workspace.activeTabId.value
   const tab = contextTab.value
   if (targetTabId && (tab?.kind === 'file' || tab?.kind === 'new')) {
-    // 检查是否是PDF格式的tab（无论是预览模式还是正式打开）
     const path = (tab.path || activeDocument.value?.path || '').toLowerCase()
     const isPdfTab =
       path.endsWith('.pdf') &&
       (tab.format || activeDocument.value?.format || '').toLowerCase() === 'pdf'
 
-    // 如果是PDF tab且切换到非Home视图，需要转换为MD
     if (isPdfTab && key !== 'home') {
-      // PDF tab（临时或正式）：转为 PDF→MD 的正式新文件 tab
       eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: targetTabId })
       return
     }
 
-    // 其他预览tab的处理
     if (tab.preview && key !== 'home') {
       workspace.pinTab(targetTabId)
     }
@@ -283,20 +307,18 @@ const handleSelect = (key: string): void => {
   }
 }
 
-// 监听活动文档变化，更新菜单选中状态
 watch(
   () => activeDocument.value?.lastView,
-  (newView) => {
-    if (newView) {
-      // 菜单会自动更新，因为activeMenuIndex是computed
-    }
-  },
+  () => {},
   { immediate: true }
 )
 
-// 组件卸载前清除事件监听
 onBeforeUnmount((): void => {
   eventBus.off('view-menu-collapse-sync', handleViewMenuCollapseSync)
+  eventBus.off('ai-runtime-ready', onAiRuntimeReady)
+  eventBus.off('ai-runtime-unloaded', onAiRuntimeUnloaded)
+  eventBus.off('ai-capability-loaded', onAiCapabilityChange)
+  eventBus.off('ai-capability-unloaded', onAiCapabilityChange)
 })
 </script>
 
@@ -312,12 +334,11 @@ onBeforeUnmount((): void => {
   width: 64px;
 }
 
-/* 组件特定的菜单样式 */
 .view-side-menu.sub-view-menu {
   width: 120px;
   height: 100%;
   padding: 8px 4px;
-  padding-bottom: 48px; /* 为折叠按钮留出空间 */
+  padding-bottom: 48px;
   border-right: none;
   user-select: none;
   -webkit-user-select: none;
@@ -334,13 +355,11 @@ onBeforeUnmount((): void => {
   padding-bottom: 48px;
 }
 
-/* 锁定状态样式 */
 .view-side-menu.is-locked {
   cursor: not-allowed;
   opacity: 0.85;
 }
 
-/* 折叠按钮 */
 .collapse-button {
   position: absolute;
   bottom: 8px;

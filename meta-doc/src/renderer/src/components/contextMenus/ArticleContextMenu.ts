@@ -1,21 +1,65 @@
 import { getSetting } from '../../utils/settings'
 import { getPluginContextMenuItems } from '../../utils/plugin-contributions-ui'
 import type { ContextMenuItem } from './types'
+import type { MarkdownEditorSurface, VditorSubMode } from '../../utils/markdown-editor-mode'
 
 export interface ArticleContextMenuOptions {
   isLatexEditor?: boolean
   isPlainTextEditor?: boolean
   hasTextSelection?: boolean
+  isMarkdownEditor?: boolean
+  markdownEditorSurface?: MarkdownEditorSurface
+  vditorMode?: VditorSubMode
 }
 
 function getShortcutText() {
   return 'Shift+Tab'
 }
 
+function buildMarkdownEditorModeSubmenu(
+  surface: MarkdownEditorSurface,
+  vditorMode: VditorSubMode
+): ContextMenuItem {
+  return {
+    type: 'submenu',
+    label: 'contextMenu.editorMode',
+    children: [
+      {
+        label: 'setting.editorModeWysiwyg',
+        value: 'editor-vditor-mode-wysiwyg',
+        checked: surface === 'visual' && vditorMode === 'wysiwyg'
+      },
+      {
+        label: 'setting.editorModeIr',
+        value: 'editor-vditor-mode-ir',
+        checked: surface === 'visual' && vditorMode === 'ir'
+      },
+      {
+        label: 'setting.editorModeSv',
+        value: 'editor-vditor-mode-sv',
+        checked: surface === 'visual' && vditorMode === 'sv'
+      },
+      { type: 'divider' },
+      {
+        label: 'contextMenu.editorModeCode',
+        value: 'editor-surface-code',
+        checked: surface === 'code'
+      }
+    ]
+  }
+}
+
 export async function getArticleContextMenuItems(
   options: ArticleContextMenuOptions = {}
 ): Promise<ContextMenuItem[]> {
-  const { isLatexEditor = false, isPlainTextEditor = false, hasTextSelection = false } = options
+  const {
+    isLatexEditor = false,
+    isPlainTextEditor = false,
+    hasTextSelection = false,
+    isMarkdownEditor = false,
+    markdownEditorSurface = 'visual',
+    vditorMode = 'ir'
+  } = options
   const autoCompletion = await getSetting('autoCompletion')
   const llmEnabled = (await getSetting('llmEnabled')) === true
 
@@ -27,20 +71,25 @@ export async function getArticleContextMenuItems(
     { label: 'contextMenu.cut', value: 'cut' },
     { label: 'contextMenu.copy', value: 'copy' },
     { label: 'contextMenu.paste', value: 'paste' },
-    { label: 'contextMenu.selectAll', value: 'selectAll' },
-    ...(llmEnabled
-      ? ([
-          { type: 'divider' },
-          autoCompletionToggle,
-          { type: 'divider' },
-          {
-            label: 'contextMenu.triggerAutoCompletion',
-            value: 'trigger-auto-completion',
-            shortcut: getShortcutText()
-          }
-        ] satisfies ContextMenuItem[])
-      : [])
+    { label: 'contextMenu.selectAll', value: 'selectAll' }
   ]
+
+  if (isMarkdownEditor) {
+    items.push({ type: 'divider' }, buildMarkdownEditorModeSubmenu(markdownEditorSurface, vditorMode))
+  }
+
+  if (llmEnabled) {
+    items.push(
+      { type: 'divider' },
+      autoCompletionToggle,
+      { type: 'divider' },
+      {
+        label: 'contextMenu.triggerAutoCompletion',
+        value: 'trigger-auto-completion',
+        shortcut: getShortcutText()
+      }
+    )
+  }
 
   if (!isPlainTextEditor && llmEnabled) {
     items.push({ type: 'divider' }, { label: 'contextMenu.aiAnalysis', value: 'ai-assistant' })

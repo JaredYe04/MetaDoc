@@ -201,6 +201,11 @@ import eventBus from '../../utils/event-bus.js'
 import { setFocusModePersisted } from '../../composables/useFocusMode'
 import { setSetting, settings, getSetting } from '../../utils/settings.js'
 import {
+  applyDefaultEditorModeChoice,
+  getDefaultEditorModeChoice,
+  type MarkdownDefaultEditorModeChoice
+} from '../../utils/markdown-editor-mode'
+import {
   steamOfficialCloudEligible,
   refreshSteamOfficialCloudEligible
 } from '../../utils/steam-official-cloud-eligible'
@@ -258,7 +263,7 @@ const selectedLocale = ref<string>('zh_CN')
 const layoutFocus = ref(false)
 const finalPhase = ref<'profile' | 'editor'>('profile')
 const pendingProfile = ref<UserProfile | null>(null)
-const vditorModeChoice = ref<'wysiwyg' | 'ir' | 'sv'>('ir')
+const vditorModeChoice = ref<MarkdownDefaultEditorModeChoice>('ir')
 const profileStepsRef = ref<InstanceType<typeof UserProfileWizardSteps> | null>(null)
 const llmOnboardingSaved = ref(false)
 
@@ -378,10 +383,11 @@ async function completeWizard() {
     await setUserProfile(profile)
   }
   const mode = vditorModeChoice.value
-  await setSetting('vditorMode', mode)
+  await applyDefaultEditorModeChoice(mode)
   await setSetting('editorModePromptShown', true)
   await setSetting('firstRunWizardCompleted', true)
-  settings.vditorMode = mode
+  settings.vditorMode = mode === 'code' ? settings.vditorMode : mode
+  settings.markdownEditorSurface = mode === 'code' ? 'code' : 'visual'
   settings.editorModePromptShown = true
   settings.firstRunWizardCompleted = true
   try {
@@ -417,8 +423,9 @@ onMounted(() => {
     const match = languageOptions.find((o) => o.id === normalized)
     if (match) selectedLocale.value = match.id
   }
-  const m = settings.vditorMode
-  if (m === 'wysiwyg' || m === 'ir' || m === 'sv') vditorModeChoice.value = m
+  void getDefaultEditorModeChoice().then((choice) => {
+    vditorModeChoice.value = choice
+  })
   void getSetting('focusMode').then((fm) => {
     if (typeof fm === 'boolean') layoutFocus.value = fm
   })

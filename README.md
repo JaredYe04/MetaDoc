@@ -1,7 +1,7 @@
 # MetaDoc
 
 <div align="center">
-
+<a id="简体中文"></a>
 <img src="./meta-doc/src/renderer/src/assets/logo.svg" width="128" alt="MetaDoc Logo"/>
 
 # MetaDoc
@@ -38,8 +38,6 @@
 </div>
 
 ---
-
-<a id="简体中文"></a>
 
 # ✨ 简介
 

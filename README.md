@@ -12,8 +12,8 @@
 
 <p>
 
-![Version](https://img.shields.io/github/v/release/JaredYe04/MetaDoc)
-![License](https://img.shields.io/github/license/JaredYe04/MetaDoc)
+![Version](https://img.shields.io/github/v/tag/JaredYe04/MetaDoc?label=version)
+![License](https://img.shields.io/badge/License-GPL--2.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![Electron](https://img.shields.io/badge/Electron-31+-47848F)
 ![Vue](https://img.shields.io/badge/Vue-3-42b883)

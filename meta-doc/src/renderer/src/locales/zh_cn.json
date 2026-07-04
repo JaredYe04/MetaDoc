@@ -1570,6 +1570,12 @@
       "undo": "撤销",
       "redo": "重做",
       "headings": "标题",
+      "heading1": "一级标题",
+      "heading2": "二级标题",
+      "heading3": "三级标题",
+      "heading4": "四级标题",
+      "heading5": "五级标题",
+      "heading6": "六级标题",
       "bold": "加粗",
       "italic": "斜体",
       "strike": "删除线",
@@ -1767,7 +1773,7 @@
     "translateSelection": "翻译选中内容",
     "undo": "撤销",
     "editorMode": "编辑器模式",
-    "editorModeCode": "代码编辑器"
+    "editorModeCode": "分屏预览"
   },
   "data-analysis-tool": {
     "analyze": "数据分析",
@@ -5108,8 +5114,8 @@
     "unlimited": "无限制",
     "unsavedChanges": "未保存修改",
     "unsavedChangesConfirm": "当前配置有未保存的更改，是否先保存？",
-    "editorModeCode": "代码编辑器",
-    "editorModeCodeHint": "左侧 Monaco 源码编辑，右侧实时 Markdown 预览，适合熟悉语法的用户。"
+    "editorModeCode": "分屏预览",
+    "editorModeCodeHint": "左侧大纲与 Monaco 源码编辑，右侧实时 Markdown 预览，适合大屏下的 Markdown 编辑。"
   },
   "settingBasicSection": {
     "failedSize": "获取目录大小失败",

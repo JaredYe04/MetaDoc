@@ -395,7 +395,7 @@
     "addSelectionToAgent": "Ajouter à la conversation de l'Agent",
     "generateIllustrationFromSelection": "Générer une illustration",
     "editorMode": "Editor mode",
-    "editorModeCode": "Code editor"
+    "editorModeCode": "Split Preview"
   },
   "formulaRecognition": {
     "brush_size": "Épaisseur du pinceau :",
@@ -2041,8 +2041,8 @@
       "mtxPollTimeout": "Délai d'attente dépassé pour la confirmation Steam. Si vous avez déjà payé, cliquez sur « Actualiser les crédits » plus tard ; sinon, réessayez.",
       "mtxSteamAuthFailed": "Steam n'a pas accepté cette autorisation (raison courante : l'adresse IP de commande ne correspond pas à celle du navigateur). Fermez la page de paiement et réessayez ; si vous utilisez un VPN/proxy, assurez-vous qu'il est cohérent avec celui du navigateur."
     },
-    "editorModeCode": "Code Editor",
-    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
+    "editorModeCode": "Split Preview",
+    "editorModeCodeHint": "Outline and Monaco source editing on the left, live Markdown preview on the right — ideal for large-screen editing."
   },
   "titleMenu": {
     "contextMarks": {

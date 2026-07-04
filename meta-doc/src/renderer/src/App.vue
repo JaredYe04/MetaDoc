@@ -2,6 +2,7 @@
 <template>
   <TooltipProvider>
     <div
+      class="app-root"
       :style="{
         backgroundColor: themeState.currentTheme.background,
         color: themeState.currentTheme.textColor
@@ -62,6 +63,7 @@ import messageBridge from './bridge/message-bridge'
 import { useNotificationStore } from './stores/notification'
 import { setNotificationStore } from './utils/notify'
 import { initNotificationLegacyAdapter } from './utils/notifications-legacy'
+import { scheduleStartupPointerEventRepair } from './utils/restore-body-pointer-events'
 
 const route = useRoute()
 const { locale, t } = useI18n()
@@ -205,6 +207,8 @@ async function loadTemplateFormats() {
 }
 
 onMounted(async () => {
+  scheduleStartupPointerEventRepair()
+
   // 初始化 shadcn-vue 主题桥接（同步 themes.js 到 CSS 变量）
   useShadcnTheme()
 
@@ -874,5 +878,18 @@ a {
 /* 确保 Dialog Portal 不会残留 */
 [data-radix-portal]:has(.dialog-overlay[data-state='closed']) {
   display: none !important;
+}
+
+/*
+ * body 被模态层设为 pointer-events:none 时，须保证应用根与子树可接收点击。
+ * 顶栏 drag 区仍可拖窗；其余 UI 不应「看得见点不动」。
+ */
+#app,
+.app-root,
+.common-layout,
+.common-layout .main-shell,
+.common-layout .view-menu-main-wrap,
+.common-layout .content-main {
+  pointer-events: auto !important;
 }
 </style>

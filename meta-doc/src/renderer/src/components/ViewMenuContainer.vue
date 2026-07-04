@@ -1,5 +1,11 @@
 <template>
-  <div class="view-menu-container-wrapper">
+  <div
+    class="view-menu-container-wrapper"
+    :class="{
+      'view-menu-container-focus': focusLayout,
+      'is-sidebar-on-left': effectiveSidebarOnLeft
+    }"
+  >
     <ResizableContainer
       ref="viewSidebarResizableRef"
       v-if="hasVisibleMenus"
@@ -11,7 +17,7 @@
       :divider-size="5"
       :show-sidebar="hasVisibleMenus"
       :sidebar-position="'start'"
-      :sidebar-on-left="false"
+      :sidebar-on-left="effectiveSidebarOnLeft"
       :collapsible="true"
       :show-collapse-button="true"
       :auto-collapse-width="0"
@@ -25,7 +31,7 @@
         <div class="view-menu-container-sidebar">
           <!-- Tab 切换 -->
           <div v-if="hasMultipleTabs" class="sidebar-tabs">
-            <Tooltip v-if="showAgentInSidebar">
+            <Tooltip v-if="showAgentInSidebar && !focusLayout">
               <TooltipTrigger as-child>
                 <div
                   class="sidebar-tab"
@@ -65,7 +71,7 @@
                 <p>{{ $t('viewMenuContainer.workspace') }}</p>
               </TooltipContent>
             </Tooltip>
-            <Tooltip v-if="showLatexOutlineTab">
+            <Tooltip v-if="showDocumentOutlineTab">
               <TooltipTrigger as-child>
                 <div
                   class="sidebar-tab"
@@ -79,7 +85,7 @@
                 <p>{{ $t('viewMenuContainer.documentOutline', '文档大纲') }}</p>
               </TooltipContent>
             </Tooltip>
-            <Tooltip v-if="showWorkspaceGrep">
+            <Tooltip v-if="showWorkspaceGrep && !focusLayout">
               <TooltipTrigger as-child>
                 <div
                   class="sidebar-tab"
@@ -127,20 +133,40 @@
 
           <!-- Tab 内容 -->
           <div class="sidebar-content">
-            <AgentViewCompact v-if="activeTab === 'agent' && showAgentInSidebar" />
+            <AgentViewCompact v-if="activeTab === 'agent' && showAgentInSidebar && !focusLayout" />
             <!-- 工作区：用 v-show 保持挂载，避免切到其他 Tab 时 ref 丢失导致菜单/快捷键无法调用 -->
-            <div v-show="activeTab === 'workspace'" class="sidebar-workspace-panel">
-              <WorkspaceExplorer v-if="showWorkspaceExplorer" ref="workspaceExplorerRef" />
+            <div v-show="activeTab === 'workspace'" class="sidebar-workspace-panel" :class="{ 'sidebar-workspace-panel--focus': focusLayout }">
+              <WorkspaceExplorer
+                v-if="showWorkspaceExplorer"
+                ref="workspaceExplorerRef"
+                :layout-variant="focusLayout ? 'focus' : undefined"
+              />
             </div>
-            <div v-show="activeTab === 'grep'" class="sidebar-grep-panel">
+            <div v-show="activeTab === 'grep' && !focusLayout" class="sidebar-grep-panel">
               <WorkspaceGrepPanel v-if="showWorkspaceGrep" ref="workspaceGrepPanelRef" />
             </div>
             <div
-              v-show="activeTab === 'outline' && showLatexOutlineTab"
+              v-show="activeTab === 'outline' && showDocumentOutlineTab"
               class="sidebar-outline-panel"
             >
               <DocumentOutlineSearchPanel />
-              <FocusLatexOutlinePanel class="focus-latex-outline-host" />
+              <template v-if="focusLayout">
+                <div
+                  v-show="outlineHostKind === 'md-vditor'"
+                  id="metadoc-vditor-outline-host"
+                  class="focus-vditor-outline-host"
+                />
+                <MarkdownOutlinePanel
+                  v-if="outlineHostKind === 'md-monaco'"
+                  :tab-id="activeDocument?.tabId"
+                  class="focus-markdown-outline-host"
+                />
+                <FocusLatexOutlinePanel
+                  v-if="outlineHostKind === 'tex'"
+                  class="focus-latex-outline-host"
+                />
+              </template>
+              <FocusLatexOutlinePanel v-else class="focus-latex-outline-host" />
             </div>
             <MetaInfoPanel
               v-if="showMetaInfoTab && activeDocument"
@@ -178,7 +204,7 @@ import AgentViewCompact from './agent/AgentViewCompact.vue'
 import AgentWorkspaceManageDialogs from './agent/AgentWorkspaceManageDialogs.vue'
 import eventBus from '../utils/event-bus'
 import messageBridge from '../bridge/message-bridge'
-import { getSetting, setSetting } from '../utils/settings'
+import { getSetting, setSetting, settings } from '../utils/settings'
 import { useWorkspace } from '../stores/workspace'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils'
 import { extractOutlineTreeFromLatex } from '../utils/latex-utils'
@@ -186,6 +212,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui
 import { ListTree } from 'lucide-vue-next'
 import DocumentOutlineSearchPanel from './DocumentOutlineSearchPanel.vue'
 import FocusLatexOutlinePanel from './FocusLatexOutlinePanel.vue'
+import MarkdownOutlinePanel from './MarkdownOutlinePanel.vue'
 import { VIEW_MENU_DOCUMENT_TAB_ID } from './view-menu-context'
 
 const props = withDefaults(
@@ -194,14 +221,25 @@ const props = withDefaults(
     contextTabId?: string | null
     /** Resizable 持久化键，每窗格实例须唯一 */
     storageKey?: string
+    /** 专注模式布局：隐藏 Agent/Grep，侧栏大纲支持 MD/TeX */
+    focusLayout?: boolean
+    /** 专注模式下侧栏在左 */
+    sidebarOnLeft?: boolean
   }>(),
-  { contextTabId: null, storageKey: undefined }
+  { contextTabId: null, storageKey: undefined, focusLayout: false, sidebarOnLeft: false }
 )
 
 const { t } = useI18n()
 const workspace = useWorkspace()
 
-const resizableStorageKey = computed(() => props.storageKey ?? 'view-menu-sidebar')
+const resizableStorageKey = computed(() => {
+  if (props.focusLayout) return 'view-menu-sidebar-focus'
+  return props.storageKey ?? 'view-menu-sidebar'
+})
+
+const effectiveSidebarOnLeft = computed(() =>
+  props.focusLayout ? (props.sidebarOnLeft ?? true) : false
+)
 
 const scopedDocumentTabId = computed(() => props.contextTabId ?? null)
 provide(VIEW_MENU_DOCUMENT_TAB_ID, scopedDocumentTabId)
@@ -284,13 +322,34 @@ const showLatexOutlineTab = computed(() => {
   return pathLooksTex(doc.path) && !pathLooksMd(doc.path)
 })
 
+/** 专注模式下：Markdown / LaTeX 均显示文档大纲 */
+const showFocusOutlineTab = computed(() => {
+  const doc = activeDocument.value
+  if (!doc) return false
+  if (isMdLikeFormat(doc.format) || isTexLikeFormat(doc.format)) return true
+  return pathLooksMd(doc.path) || pathLooksTex(doc.path)
+})
+
+const showDocumentOutlineTab = computed(() =>
+  props.focusLayout ? showFocusOutlineTab.value : showLatexOutlineTab.value
+)
+
+const outlineHostKind = computed<'md-vditor' | 'md-monaco' | 'tex'>(() => {
+  const doc = activeDocument.value
+  if (!doc) return 'md-vditor'
+  if (isTexLikeFormat(doc.format) || pathLooksTex(doc.path)) return 'tex'
+  const surface = doc.markdownEditorSurface ?? settings.markdownEditorSurface
+  if (surface === 'code') return 'md-monaco'
+  return 'md-vditor'
+})
+
 // 计算是否显示 Tab 切换（只要有内容就显示，不管是一个还是两个）
 const hasMultipleTabs = computed(() => {
   return (
-    showAgentInSidebar.value ||
+    (!props.focusLayout && showAgentInSidebar.value) ||
     showWorkspaceExplorer.value ||
-    showLatexOutlineTab.value ||
-    showWorkspaceGrep.value ||
+    showDocumentOutlineTab.value ||
+    (!props.focusLayout && showWorkspaceGrep.value) ||
     showMetaInfoTab.value
   )
 })
@@ -298,10 +357,10 @@ const hasMultipleTabs = computed(() => {
 // 计算是否有可见的菜单
 const hasVisibleMenus = computed(() => {
   return (
-    showAgentInSidebar.value ||
+    (!props.focusLayout && showAgentInSidebar.value) ||
     showWorkspaceExplorer.value ||
-    showLatexOutlineTab.value ||
-    showWorkspaceGrep.value ||
+    showDocumentOutlineTab.value ||
+    (!props.focusLayout && showWorkspaceGrep.value) ||
     showMetaInfoTab.value
   )
 })
@@ -366,15 +425,16 @@ watch(
   [
     showMetaInfoTab,
     showWorkspaceExplorer,
-    showLatexOutlineTab,
+    showDocumentOutlineTab,
     showWorkspaceGrep,
-    showAgentInSidebar
+    showAgentInSidebar,
+    () => props.focusLayout
   ],
-  ([showMeta, showWorkspace, showLatexOutline, showGrep, showAgent]) => {
+  ([showMeta, showWorkspace, showOutline, showGrep, showAgent]) => {
     if (activeTab.value === 'meta' && !showMeta) {
       if (showWorkspace) {
         activeTab.value = 'workspace'
-      } else if (showLatexOutline) {
+      } else if (showOutline) {
         activeTab.value = 'outline'
       } else if (showAgent) {
         activeTab.value = 'agent'
@@ -384,14 +444,14 @@ watch(
     } else if (activeTab.value === 'workspace' && !showWorkspace) {
       if (showGrep) {
         activeTab.value = 'grep'
-      } else if (showLatexOutline) {
+      } else if (showOutline) {
         activeTab.value = 'outline'
       } else if (showMeta) {
         activeTab.value = 'meta'
       } else if (showAgent) {
         activeTab.value = 'agent'
       }
-    } else if (activeTab.value === 'outline' && !showLatexOutline) {
+    } else if (activeTab.value === 'outline' && !showOutline) {
       if (showWorkspace) {
         activeTab.value = 'workspace'
       } else if (showGrep) {
@@ -404,7 +464,7 @@ watch(
     } else if (activeTab.value === 'grep' && !showGrep) {
       if (showWorkspace) {
         activeTab.value = 'workspace'
-      } else if (showLatexOutline) {
+      } else if (showOutline) {
         activeTab.value = 'outline'
       } else if (showMeta) {
         activeTab.value = 'meta'
@@ -416,13 +476,48 @@ watch(
         activeTab.value = 'workspace'
       } else if (showGrep) {
         activeTab.value = 'grep'
-      } else if (showLatexOutline) {
+      } else if (showOutline) {
         activeTab.value = 'outline'
       } else if (showMeta) {
         activeTab.value = 'meta'
       }
     }
   }
+)
+
+watch(
+  () => props.focusLayout,
+  (focus) => {
+    if (!focus) return
+    if (activeTab.value === 'agent' || activeTab.value === 'grep') {
+      if (showWorkspaceExplorer.value) activeTab.value = 'workspace'
+      else if (showDocumentOutlineTab.value) activeTab.value = 'outline'
+      else if (showMetaInfoTab.value) activeTab.value = 'meta'
+    }
+  }
+)
+
+watch(
+  activeTab,
+  (tab, prev) => {
+    if (prev === 'outline' && tab !== 'outline') {
+      eventBus.emit('restore-vditor-outline-sidebar-host')
+    }
+  },
+  { flush: 'pre' }
+)
+
+watch(
+  activeTab,
+  async (tab) => {
+    if (tab !== 'outline' || !showDocumentOutlineTab.value || outlineHostKind.value !== 'md-vditor') {
+      return
+    }
+    await nextTick()
+    await nextTick()
+    eventBus.emit('sync-vditor-outline-sidebar-host')
+  },
+  { flush: 'post' }
 )
 
 // 处理折叠
@@ -485,7 +580,7 @@ const handleFocusWorkspaceSidebar = (event?: unknown) => {
 /** 从工作区树等切换到 LaTeX 文档时，非专注侧栏切到「文档大纲」并展开 */
 const handleFocusDocumentOutlineSidebar = () => {
   const run = (): boolean => {
-    if (!showLatexOutlineTab.value) return false
+    if (!showDocumentOutlineTab.value) return false
     activeTab.value = 'outline'
     void (async () => {
       await nextTick()
@@ -804,6 +899,22 @@ onBeforeUnmount(() => {
   height: 14px;
   color: v-bind('iconTextColor');
   flex-shrink: 0;
+}
+
+.view-menu-container-wrapper.is-sidebar-on-left .view-menu-container-sidebar {
+  border-left: none;
+}
+
+.sidebar-workspace-panel--focus {
+  flex: 1;
+  min-height: 0;
+}
+
+.focus-vditor-outline-host,
+.focus-markdown-outline-host {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .focus-latex-outline-host {

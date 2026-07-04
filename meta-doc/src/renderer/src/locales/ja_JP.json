@@ -58,7 +58,7 @@
     "addSelectionToAgent": "選択範囲をAgent会話に追加",
     "generateIllustrationFromSelection": "選択範囲からイラストを生成",
     "editorMode": "Editor mode",
-    "editorModeCode": "Code editor"
+    "editorModeCode": "Split Preview"
   },
   "headMenu": {
     "tooltip": "AIエージェントベースのスマート文書編集ソフトウェア",
@@ -2079,8 +2079,8 @@
       "mtxPollTimeout": "Steamの確認待ちがタイムアウトしました。支払い済みの場合は、後ほど「残高を更新」をクリックしてください。支払いが完了していない場合は、再試行してください。",
       "mtxSteamAuthFailed": "Steamがこの承認を受け入れませんでした（一般的な原因：注文時のIPとブラウザの出口IPが一致していない）。支払いページを閉じてから再試行してください。VPN/プロキシを使用している場合は、ブラウザと一致するようにしてください。"
     },
-    "editorModeCode": "Code Editor",
-    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
+    "editorModeCode": "Split Preview",
+    "editorModeCodeHint": "Outline and Monaco source editing on the left, live Markdown preview on the right — ideal for large-screen editing."
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",

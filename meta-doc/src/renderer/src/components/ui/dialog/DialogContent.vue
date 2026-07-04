@@ -11,6 +11,7 @@ import { X } from 'lucide-vue-next'
 import { cn } from '@renderer/lib/utils'
 import { inject, watch, onUnmounted, computed } from 'vue'
 import { DIALOG_OPEN_REF_KEY } from './dialogInjection'
+import { removeClosedDialogOverlays, restoreBodyPointerEvents } from '@renderer/utils/restore-body-pointer-events'
 
 // 防止事件监听器自动继承到 DialogPortal（DialogPortal 渲染 fragment，无法继承）
 defineOptions({
@@ -45,7 +46,7 @@ if (dialogOpenRef) {
     (open) => {
       if (!open) {
         setTimeout(() => {
-          removeClosedDialogOverlays()
+          removeClosedDialogOverlaysLocal()
           restoreBodyPointerEvents()
         }, 250)
       }
@@ -54,24 +55,14 @@ if (dialogOpenRef) {
   )
 }
 
-function removeClosedDialogOverlays() {
-  const overlays = document.querySelectorAll('.dialog-overlay[data-state="closed"]')
-  overlays.forEach((el) => {
-    el.remove()
-  })
-}
-
-/** 恢复 body 的 pointer-events，修复 reka-ui DismissableLayer 关闭时未恢复导致整页无法点击的问题 */
-function restoreBodyPointerEvents() {
-  if (typeof document !== 'undefined' && document.body) {
-    document.body.style.pointerEvents = ''
-  }
+function removeClosedDialogOverlaysLocal() {
+  removeClosedDialogOverlays()
 }
 
 // 组件卸载时清理可能残留的遮罩并恢复 body
 onUnmounted(() => {
   setTimeout(() => {
-    removeClosedDialogOverlays()
+    removeClosedDialogOverlaysLocal()
     restoreBodyPointerEvents()
   }, 250)
 })

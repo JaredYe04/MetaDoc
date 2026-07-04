@@ -23,6 +23,7 @@ import './../assets/fonts/fonts.css'
 import './../assets/interactive-text.css'
 import './../assets/wordcloud-text.css'
 import './../assets/editor-search.css'
+import { scheduleStartupPointerEventRepair } from '../utils/restore-body-pointer-events'
 
 export async function bootstrapCore(): Promise<void> {
   if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
@@ -75,6 +76,11 @@ export async function bootstrapCore(): Promise<void> {
   }
 
   app.use(i18n).mount('#app')
+
+  const skeletonRoot = document.getElementById('metadoc-skeleton-root')
+  skeletonRoot?.remove()
+
+  scheduleStartupPointerEventRepair()
 
   const { initInputContextMenuHandler } = await import('../utils/input-context-menu-handler')
   const { initSelectionContextMenuHandler } = await import(

@@ -92,13 +92,14 @@
         :markdown="currentMarkdown"
         :doc-path="documentRef.path"
         :llm-enabled="isAiEnabled"
+        :current-mode="currentEditorModeChoice"
         @undo="handleUnifiedUndo"
         @redo="handleUnifiedRedo"
         @toolbar-action="onMonacoToolbarAction"
         @search-replace="onMonacoSearchReplace"
         @convert-latex="handleConvertLatexFormulas"
         @ai-assistant="handleMenuClick('ai-assistant')"
-        @switch-to-visual="switchSurface('visual')"
+        @mode-change="onEditorModeSelect"
         @contextmenu="openContextMenu"
         @content-change="onMonacoContentChange"
         @ready="onMonacoReady"
@@ -115,6 +116,20 @@
         class="context-menu"
         @close="onContextMenuClose"
       />
+      <Teleport to="body">
+        <div
+          v-if="vditorEditorModeMenuOpen"
+          ref="vditorEditorModeMenuRef"
+          class="vditor-editor-mode-menu-anchor fixed z-[100070]"
+          :style="vditorEditorModeMenuStyle"
+        >
+          <MarkdownEditorModeMenu
+            variant="vditor"
+            :current-choice="currentEditorModeChoice"
+            @select="onEditorModeSelect"
+          />
+        </div>
+      </Teleport>
     </div>
   </div>
 </template>
@@ -200,10 +215,13 @@ import {
   parseMarkdownLinkHref
 } from '../utils/markdown-workspace-link'
 import MarkdownMonacoPane from '../components/markdown-editor/MarkdownMonacoPane.vue'
+import MarkdownEditorModeMenu from '../components/markdown-editor/MarkdownEditorModeMenu.vue'
 import {
   getMarkdownEditorSurface,
+  switchEditorMode as applyEditorModeChoice,
   type MarkdownEditorSurface,
-  type VditorSubMode
+  type VditorSubMode,
+  type MarkdownDefaultEditorModeChoice
 } from '../utils/markdown-editor-mode'
 import {
   pushMarkdownHistorySnapshot,
@@ -336,6 +354,13 @@ const monacoPaneRef = ref<InstanceType<typeof MarkdownMonacoPane> | null>(null)
 const monacoTextAdapter = shallowRef<TextEditorAdapter | null>(null)
 const monacoEditorId = ref<string | null>(null)
 const currentVditorMode = ref<VditorSubMode>('ir')
+const currentEditorModeChoice = computed<MarkdownDefaultEditorModeChoice>(() => {
+  if (editorSurface.value === 'code') return 'code'
+  return currentVditorMode.value
+})
+const vditorEditorModeMenuOpen = ref(false)
+const vditorEditorModeMenuRef = ref<HTMLElement | null>(null)
+const vditorEditorModeMenuStyle = ref<{ top: string; left: string }>({ top: '0px', left: '0px' })
 
 const editorSurface = computed<MarkdownEditorSurface>({
   get: () => {
@@ -577,11 +602,10 @@ function bindVditorOutlineHostClickCapture() {
     if (idx < 0) return
 
     const mode = inst.currentMode as string
-    const modeKey = mode as 'ir' | 'wysiwyg' | 'sv'
+    const modeKey = mode as 'ir' | 'wysiwyg'
     const contentEl =
-      mode === 'sv'
-        ? ((inst.sv?.element ?? inst.ir?.element) as HTMLElement | undefined)
-        : (inst[modeKey as 'ir' | 'wysiwyg']?.element as HTMLElement | undefined)
+      (inst[modeKey as 'ir' | 'wysiwyg']?.element as HTMLElement | undefined) ||
+      (inst.ir?.element as HTMLElement | undefined)
     if (!contentEl) return
 
     const scrollOpts: ScrollIntoViewOptions = { block: 'nearest', behavior: 'instant' }
@@ -602,8 +626,7 @@ function bindVditorOutlineHostClickCapture() {
     e.preventDefault()
     e.stopImmediatePropagation()
 
-    if (mode !== 'sv') {
-      const blocks = collectVditorOutlineHeadingBlocks(contentEl)
+    const blocks = collectVditorOutlineHeadingBlocks(contentEl)
       if (idx < blocks.length) {
         blocks[idx].scrollIntoView(scrollOpts)
         return
@@ -611,7 +634,6 @@ function bindVditorOutlineHostClickCapture() {
       if (scrollToNthHeadingTagInContent(contentEl, idx)) {
         return
       }
-    }
 
     if (idx < ranges.length) {
       const adapter = textEditorAdapter.value
@@ -969,10 +991,17 @@ const activeTextEditorAdapter = computed(() =>
 )
 
 watch(
-  () => ({ active: isActive.value, adapter: activeTextEditorAdapter.value, tabId: props.tabId }),
-  ({ active, adapter, tabId }) => {
+  () => ({
+    active: isActive.value,
+    adapter: activeTextEditorAdapter.value,
+    tabId: props.tabId,
+    monacoId: monacoEditorId.value
+  }),
+  ({ active, adapter, tabId, monacoId }) => {
     if (active && adapter) {
-      registerOutlineSidebarSearchAdapter(tabId, adapter)
+      registerOutlineSidebarSearchAdapter(tabId, adapter, {
+        monacoEditorId: monacoId
+      })
     } else {
       unregisterOutlineSidebarSearchAdapter(tabId)
     }
@@ -1135,6 +1164,9 @@ let pendingExternalUpdate: { value: string; clearHistory?: boolean } | undefined
 let isSavingFromEditor = false
 let isEditorMounted = true
 let scheduleSetValueRetryTimer: ReturnType<typeof setTimeout> | null = null
+let scheduleSetValueRetryCount = 0
+const MAX_SCHEDULE_SET_VALUE_RETRIES = 50
+let isSwitchingSurface = false
 // 当 updateDocumentMarkdown 由 sync-active-editor 调用时，watch 必须跳过 scheduleSetValue。
 // 使用 ref 确保 watch 运行时（无论何时 flush）都能读到，避免 isSavingFromEditor 的时序竞态。
 const skipNextWatchFromSync = ref(false)
@@ -1152,6 +1184,14 @@ type SetValueOptions = {
 /** 与 Vditor 写入内容对齐：统一换行并去掉开头 BOM/零宽符，避免工作区仍带 BOM 时与 lastApplied 永久不等 */
 const normalizeMdForCompare = (s: string) =>
   normalizeMarkdownLeadingArtifacts((s ?? '').replace(/\r\n/g, '\n'))
+
+const isVditorEditorReady = (): boolean => {
+  const iv = vditor.value?.vditor as
+    | { element?: HTMLElement; ir?: unknown; wysiwyg?: unknown; sv?: unknown }
+    | undefined
+  if (!iv?.element) return false
+  return !!(iv.ir || iv.wysiwyg || iv.sv)
+}
 
 const flushPendingExternalUpdate = () => {
   const pending = pendingExternalUpdate
@@ -1194,9 +1234,13 @@ const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
   if (editorSurface.value === 'code') return
   const normalized = normalizeMarkdownLeadingArtifacts(value ?? '')
   if (!vditor.value) return
-  // 检查 Vditor 实例是否已完全初始化（是否有 vditor 内部实例）
-  if (!vditor.value.vditor || !vditor.value.vditor.ir) {
-    // 如果未完全初始化，延迟执行（卸载后不再重试，避免关闭标签时死循环）
+  if (!isVditorEditorReady()) {
+    if (scheduleSetValueRetryCount >= MAX_SCHEDULE_SET_VALUE_RETRIES) {
+      scheduleSetValueRetryCount = 0
+      logger.warn('scheduleSetValue: Vditor not ready after max retries')
+      return
+    }
+    scheduleSetValueRetryCount++
     if (scheduleSetValueRetryTimer) clearTimeout(scheduleSetValueRetryTimer)
     scheduleSetValueRetryTimer = setTimeout(() => {
       scheduleSetValueRetryTimer = null
@@ -1205,6 +1249,7 @@ const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
     }, 100)
     return
   }
+  scheduleSetValueRetryCount = 0
   if (
     !options.force &&
     normalizeMdForCompare(normalized) === normalizeMdForCompare(lastAppliedContent.value)
@@ -1219,7 +1264,7 @@ const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
 
   const run = async () => {
     // 再次检查（因为 run 是异步执行的，可能在执行时用户已经开始输入）
-    if (isEditorInteracting.value) {
+    if (!options.force && isEditorInteracting.value) {
       pendingExternalUpdate = { value: normalized, clearHistory: options.clearHistory }
       return
     }
@@ -1909,18 +1954,6 @@ const handleMenuClick = async (item: string) => {
         activeTextEditorAdapter.value?.selectAll()
       }
       break
-    case 'editor-surface-code':
-      await switchSurface('code')
-      break
-    case 'editor-vditor-mode-wysiwyg':
-      await switchSurface('visual', 'wysiwyg')
-      break
-    case 'editor-vditor-mode-ir':
-      await switchSurface('visual', 'ir')
-      break
-    case 'editor-vditor-mode-sv':
-      await switchSurface('visual', 'sv')
-      break
     case 'openAutoCompletion':
       await import('../ai-runtime/ensure-for-entry').then((m) => m.ensureCompletionCapability())
       await setSetting('autoCompletion', true)
@@ -2111,9 +2144,13 @@ const handleSyncWithHtml = () => {
 }
 eventBus.on('vditor-sync-with-html', handleSyncWithHtml)
 
+let handleFocusMarkdownOutlineSectionOptimizer: ((payload?: unknown) => void) | null = null
+let handleFocusMarkdownOutlineGraphQuick: ((payload?: unknown) => void) | null = null
+
 /** 普通模式侧栏「文档大纲」Tab 挂载 host 后同步 Vditor 大纲 */
 const handleSyncVditorOutlineSidebarHost = () => {
   if (!isActive.value) return
+  if (editorSurface.value === 'code') return
   ensureVditorOutlineRenderedForHost()
   void nextTick(() => {
     void nextTick(() => {
@@ -2657,34 +2694,16 @@ function getAccessoryListeners(id: string): Record<string, (...args: unknown[]) 
 }
 
 // 切换Vditor编辑模式
-const switchVditorMode = async (mode: 'wysiwyg' | 'ir' | 'sv') => {
+const switchVditorMode = async (mode: VditorSubMode) => {
   currentVditorMode.value = mode
   if (!vditor.value) return
   try {
-    // Vditor的setMode方法在工具栏按钮中，这里通过工具栏按钮触发
     const vditorInstance = vditor.value.vditor
     if (vditorInstance && (vditorInstance as any).setMode) {
       ;(vditorInstance as any).setMode(mode)
-    } else {
-      // 如果setMode不存在，尝试通过工具栏按钮触发
-      const toolbarElement = vditorInstance?.element?.querySelector('.vditor-toolbar')
-      const modeButton = toolbarElement?.querySelector(`[data-name="mode"]`) as HTMLElement
-      if (modeButton) {
-        // 点击模式按钮会循环切换模式，需要多次点击直到切换到目标模式
-        const currentMode = vditor.value.getCurrentMode?.() || 'ir'
-        const modes: ('wysiwyg' | 'ir' | 'sv')[] = ['wysiwyg', 'ir', 'sv']
-        const currentIndex = modes.indexOf(currentMode as any)
-        const targetIndex = modes.indexOf(mode)
-        if (currentIndex !== targetIndex) {
-          const clicks = (targetIndex - currentIndex + modes.length) % modes.length
-          for (let i = 0; i < clicks; i++) {
-            modeButton.click()
-            await new Promise((resolve) => setTimeout(resolve, 100))
-          }
-        }
-      }
     }
     await setSetting('vditorMode', mode)
+    settings.vditorMode = mode
     await nextTick()
     bindTitleMenu()
   } catch (error) {
@@ -2715,7 +2734,34 @@ const flushActiveEditorToWorkspace = () => {
   }
 }
 
+const onEditorModeSelect = async (choice: MarkdownDefaultEditorModeChoice) => {
+  closeVditorEditorModeMenu()
+  await applyEditorModeChoice(choice, { switchSurface })
+}
+
+const openVditorEditorModeMenu = (anchor: HTMLElement) => {
+  const rect = anchor.getBoundingClientRect()
+  vditorEditorModeMenuStyle.value = {
+    top: `${rect.bottom + 4}px`,
+    left: `${rect.left}px`
+  }
+  vditorEditorModeMenuOpen.value = true
+}
+
+const closeVditorEditorModeMenu = () => {
+  vditorEditorModeMenuOpen.value = false
+}
+
+const onVditorEditorModeMenuOutsideClick = (event: MouseEvent) => {
+  if (!vditorEditorModeMenuOpen.value) return
+  const target = event.target as Node | null
+  if (vditorEditorModeMenuRef.value?.contains(target)) return
+  if ((target as HTMLElement | null)?.closest?.('[data-name="meta-editor-mode"]')) return
+  closeVditorEditorModeMenu()
+}
+
 const switchSurface = async (target: MarkdownEditorSurface, vditorSubMode?: VditorSubMode) => {
+  if (isSwitchingSurface) return
   if (target === 'visual' && vditorSubMode && editorSurface.value === 'visual') {
     currentVditorMode.value = vditorSubMode
     await switchVditorMode(vditorSubMode)
@@ -2725,33 +2771,54 @@ const switchSurface = async (target: MarkdownEditorSurface, vditorSubMode?: Vdit
     return
   }
 
-  flushActiveEditorToWorkspace()
+  isSwitchingSurface = true
+  try {
+    flushActiveEditorToWorkspace()
 
-  editorSurface.value = target
-  await setSetting('markdownEditorSurface', target)
-  settings.markdownEditorSurface = target
+    editorSurface.value = target
+    workspace.updateDocumentMarkdownEditorSurface(props.tabId, target)
+    await setSetting('markdownEditorSurface', target)
+    settings.markdownEditorSurface = target
 
-  if (target === 'visual' && vditorSubMode) {
-    currentVditorMode.value = vditorSubMode
-    await setSetting('vditorMode', vditorSubMode)
-    settings.vditorMode = vditorSubMode
-  }
-
-  await nextTick()
-  const content = currentMarkdown.value ?? ''
-  if (target === 'code') {
-    await monacoPaneRef.value?.initEditor()
-    monacoPaneRef.value?.applyExternalMarkdown(content)
-    monacoPaneRef.value?.focus()
-  } else {
-    if (vditorSubMode) {
-      await switchVditorMode(vditorSubMode)
+    if (target === 'visual' && vditorSubMode) {
+      currentVditorMode.value = vditorSubMode
+      await setSetting('vditorMode', vditorSubMode)
+      settings.vditorMode = vditorSubMode
     }
-    isEditorInteracting.value = false
-    pendingExternalUpdate = undefined
-    resetInteractionFlag.cancel()
-    scheduleSetValue(content, { clearHistory: false, timeoutMs: 0, force: true })
-    vditor.value?.focus()
+
+    await nextTick()
+    await nextTick()
+    const content = currentMarkdown.value ?? ''
+    if (target === 'code') {
+      isEditorInteracting.value = false
+      resetInteractionFlag.cancel()
+      await monacoPaneRef.value?.initEditor()
+      monacoPaneRef.value?.applyExternalMarkdown(content)
+      monacoPaneRef.value?.focus()
+    } else {
+      if (!vditor.value) {
+        isVditorLoading.value = true
+        try {
+          await runMarkdownVditorInit()
+        } catch (e) {
+          logger.error(e)
+          eventBus.emit('show-error', t('article.vditor_init_failed') + e)
+        } finally {
+          isVditorLoading.value = false
+        }
+      }
+      if (vditorSubMode) {
+        await switchVditorMode(vditorSubMode)
+      }
+      isEditorInteracting.value = false
+      pendingExternalUpdate = undefined
+      resetInteractionFlag.cancel()
+      scheduleSetValue(content, { clearHistory: false, timeoutMs: 0, force: true })
+      await nextTick()
+      vditor.value?.focus()
+    }
+  } finally {
+    isSwitchingSurface = false
   }
 }
 
@@ -2808,9 +2875,10 @@ const bindTitleMenu = async () => {
   if (!editorRoot) return
 
   // 根据当前模式选择不同的选择器
-  let currentMode: 'wysiwyg' | 'ir' | 'sv' = 'ir'
+  let currentMode: VditorSubMode = 'ir'
   try {
-    currentMode = (vditor.value?.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv') || 'ir'
+    currentMode = (vditor.value?.getCurrentMode?.() as VditorSubMode) || 'ir'
+    if (currentMode !== 'wysiwyg') currentMode = 'ir'
   } catch (error) {
     logger.warn('获取 Vditor 模式失败，使用默认模式 ir:', error)
     currentMode = 'ir'
@@ -2850,11 +2918,6 @@ const bindTitleMenu = async () => {
         })
       }
     }
-  } else if (currentMode === 'sv') {
-    // SV模式：使用.vditor-sv__node
-    sections = Array.from(editorRoot.querySelectorAll('.vditor-sv__node')).filter((node) =>
-      ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes((node as Element).tagName)
-    )
   }
 
   // 处理大纲树和标题绑定
@@ -3025,7 +3088,7 @@ const outlineMouseDownEvent = (event: MouseEvent, section: HTMLElement) => {
   const editorRoot = getEditorRoot()
   if (!editorRoot || !vditor.value) return
 
-  const currentMode = (vditor.value.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv') || 'ir'
+  const currentMode = (vditor.value.getCurrentMode?.() as VditorSubMode) || 'ir'
 
   const path = section.getAttribute('path')
   if (!path) return
@@ -3038,9 +3101,6 @@ const outlineMouseDownEvent = (event: MouseEvent, section: HTMLElement) => {
     editorContent =
       editorRoot.querySelector('.vditor-wysiwyg .vditor-reset') ||
       editorRoot.querySelector('.vditor-wysiwyg')
-  } else if (currentMode === 'sv') {
-    editorContent =
-      editorRoot.querySelector('.vditor-sv.vditor-reset') || editorRoot.querySelector('.vditor-sv')
   }
 
   if (!editorContent) {
@@ -3103,17 +3163,14 @@ const outlineMouseDownEvent = (event: MouseEvent, section: HTMLElement) => {
           return !isInOutline && !isInPreview && el.getAttribute('path') === path
         }) || null
     }
-  } else if (currentMode === 'sv') {
-    const titles = editorContent.getElementsByClassName('vditor-sv__node')
-    title = Array.from(titles).find((t) => t.getAttribute('path') === path) || null
   }
 
   if (title) {
     // 聚焦到这个元素（在编辑器内容区域内）
     title.scrollIntoView({ behavior: 'instant', block: 'start', inline: 'nearest' })
 
-    // 如果是IR或SV模式，尝试将光标定位到标题
-    if (currentMode === 'ir' || currentMode === 'sv') {
+    // 如果是IR模式，尝试将光标定位到标题
+    if (currentMode === 'ir') {
       const range = document.createRange()
       const sel = window.getSelection()
       if (sel && title.firstChild) {
@@ -3227,9 +3284,7 @@ const refreshContextMenu = async () => {
   const hasTextSelection = sel.length > 0
   articleContextMenuItems.value = await getArticleContextMenuItems({
     hasTextSelection,
-    isMarkdownEditor: true,
-    markdownEditorSurface: editorSurface.value,
-    vditorMode: currentVditorMode.value
+    isMarkdownEditor: true
   })
   if (hasTextSelection) {
     selectionTranslateText.value = sel
@@ -3323,8 +3378,8 @@ async function runMarkdownVditorInit() {
       }
     }
 
-    let vditorMode = (await getSetting('vditorMode')) as 'wysiwyg' | 'ir' | 'sv'
-    if (!vditorMode || !['wysiwyg', 'ir', 'sv'].includes(vditorMode)) {
+    let vditorMode = (await getSetting('vditorMode')) as VditorSubMode
+    if (!vditorMode || !['wysiwyg', 'ir'].includes(vditorMode)) {
       vditorMode = 'ir'
       await setSetting('vditorMode', vditorMode)
     }
@@ -3394,7 +3449,7 @@ async function runMarkdownVditorInit() {
 
     vditor.value = new Vditor(vditorMountEl, {
       lang: supportedLang.includes(t('lang') as string) ? (t('lang') as any) : 'en_US',
-      mode: vditorMode as 'wysiwyg' | 'ir' | 'sv',
+      mode: vditorMode as VditorSubMode,
       toolbarConfig: { pin: true },
       theme: themeState.currentTheme.vditorTheme as any,
       preview: {
@@ -3599,18 +3654,14 @@ async function runMarkdownVditorInit() {
           tipPosition: 's'
         },
         {
-          name: 'edit-mode',
+          name: 'meta-editor-mode',
           tip: t('article.toolbar.mode'),
           tipPosition: 's',
-          hotkey: '⌘⇧M'
-        },
-        {
-          name: 'switch-to-code',
-          tip: t('article.toolbar.switchToCodeEditor'),
-          tipPosition: 's',
-          icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
-          click() {
-            void switchSurface('code')
+          hotkey: '⌘⇧M',
+          icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>',
+          click(event: Event) {
+            const el = (event?.currentTarget ?? event?.target) as HTMLElement | null
+            if (el) openVditorEditorModeMenu(el)
           }
         },
 
@@ -3737,88 +3788,10 @@ async function runMarkdownVditorInit() {
           bindTitleMenu()
           setupVditorMarkdownWorkspaceLinkHandler()
 
-          // 监听模式切换事件
           if (vditor.value?.vditor?.element) {
             const editorElement = vditor.value.vditor.element
-            // 保存上一次的模式，用于检测变化
-            let lastMode = (vditor.value?.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv') || 'ir'
-
-            const handleModeChange = async () => {
-              // 延迟一下，确保模式已经切换完成
-              await new Promise((resolve) => setTimeout(resolve, 100))
-              await nextTick()
-
-              // 获取当前模式并保存到设置
-              if (vditor.value) {
-                const currentMode = vditor.value.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv'
-                if (currentMode && currentMode !== lastMode) {
-                  await setSetting('vditorMode', currentMode)
-                  settings.vditorMode = currentMode
-                  currentVditorMode.value = currentMode
-                  lastMode = currentMode
-                  logger.debug('Vditor模式已切换并保存', { mode: currentMode })
-                }
-              }
-              bindTitleMenu()
-              attachVditorInnerLayoutObservers(editorElement)
-              syncVditorPaddingAfterLayout()
-            }
-
-            // 监听Vditor内部的模式切换
-            const vditorInstance = vditor.value.vditor
-            if (vditorInstance) {
-              // 通过监听工具栏按钮点击来检测模式切换
-              const toolbarElement = editorElement.querySelector('.vditor-toolbar')
-              if (toolbarElement) {
-                // 监听模式切换按钮（Vditor内部使用的是 'edit-mode' 作为按钮名称）
-                const modeButton = toolbarElement.querySelector('[data-name="edit-mode"]')
-                if (modeButton) {
-                  modeButton.addEventListener('click', handleModeChange)
-                }
-
-                // 也监听可能的其他模式切换方式
-                const modeButtons = toolbarElement.querySelectorAll(
-                  '[data-name="mode"], [data-name="edit-mode"]'
-                )
-                modeButtons.forEach((btn) => {
-                  // 避免重复添加监听器
-                  if (!(btn as any)._modeChangeHandler) {
-                    ;(btn as any)._modeChangeHandler = handleModeChange
-                    btn.addEventListener('click', handleModeChange)
-                  }
-                })
-
-                // 使用MutationObserver监听编辑器内容区域的变化，检测模式切换
-                const editorContent = editorElement.querySelector('.vditor-content')
-                if (editorContent) {
-                  const modeObserver = new MutationObserver(async () => {
-                    if (vditor.value) {
-                      const currentMode = vditor.value.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv'
-                      if (currentMode && currentMode !== lastMode) {
-                        await setSetting('vditorMode', currentMode)
-                        settings.vditorMode = currentMode
-                        lastMode = currentMode
-                        logger.debug('通过MutationObserver检测到模式切换并保存', {
-                          mode: currentMode
-                        })
-                        bindTitleMenu()
-                        attachVditorInnerLayoutObservers(editorElement)
-                        syncVditorPaddingAfterLayout()
-                      }
-                    }
-                  })
-
-                  modeObserver.observe(editorContent, {
-                    childList: true,
-                    subtree: true,
-                    attributes: true,
-                    attributeFilter: ['class']
-                  })
-
-                  // 保存observer以便后续清理
-                  ;(vditor.value as any)._modeObserver = modeObserver
-                }
-
+            const toolbarElement = editorElement.querySelector('.vditor-toolbar')
+            if (toolbarElement) {
                 // 监听大纲按钮的点击事件
                 const outlineButton = toolbarElement.querySelector('[data-name="outline"]')
                 if (outlineButton) {
@@ -3850,9 +3823,9 @@ async function runMarkdownVditorInit() {
                     syncVditorPaddingAfterLayout()
                   })
                 }
-              }
+            }
 
-              // 使用MutationObserver监听大纲DOM的变化
+            // 使用MutationObserver监听大纲DOM的变化
               const outlineContainer = editorElement.querySelector('.vditor-outline')
               if (outlineContainer) {
                 const outlineObserver = new MutationObserver(async () => {
@@ -3907,7 +3880,6 @@ async function runMarkdownVditorInit() {
               syncVditorAiAssistantToolbarVisibility()
               syncVditorPaddingAfterLayout()
             }
-          }
         } catch (e) {
           logger.error(e)
         } finally {
@@ -4069,7 +4041,42 @@ onMounted(async () => {
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', updateSearchMenuPosition)
     document.addEventListener('contextmenu', onDocumentVditorOutlineContextMenuCapture, true)
+    document.addEventListener('mousedown', onVditorEditorModeMenuOutsideClick, true)
   }
+  handleFocusMarkdownOutlineSectionOptimizer = (payload?: unknown) => {
+    const p = payload as {
+      tabId?: string
+      sectionInfo?: SectionInfo | null
+      clientX?: number
+      clientY?: number
+    }
+    if (p?.tabId !== props.tabId) return
+    sectionOptimizerAdapter.value = new MarkdownSectionAdapter(props.tabId)
+    currentSectionTitle.value = p.sectionInfo?.title ?? ''
+    currentTitlePath.value = p.sectionInfo?.path ?? ''
+    currentSectionInfo.value = p.sectionInfo ?? null
+    sectionOptimizerPosition.value = {
+      top: p.clientY ?? window.innerHeight / 2,
+      left: p.clientX ?? window.innerWidth / 2
+    }
+    showSectionOptimizer.value = true
+  }
+  handleFocusMarkdownOutlineGraphQuick = (payload?: unknown) => {
+    const p = payload as { tabId?: string; selection?: string }
+    if (p?.tabId !== props.tabId) return
+    const sel = p.selection?.trim() ?? ''
+    if (!sel) {
+      eventBus.emit(
+        'show-warning',
+        t('graph.selectTextForIllustration', '请先选中要生成插图的文本')
+      )
+      return
+    }
+    graphQuickSelection.value = sel
+    graphQuickDialogOpen.value = true
+  }
+  eventBus.on('focus-markdown-outline-section-optimizer', handleFocusMarkdownOutlineSectionOptimizer)
+  eventBus.on('focus-markdown-outline-graph-quick', handleFocusMarkdownOutlineGraphQuick)
   const initialSurface =
     documentRef.value.markdownEditorSurface ?? (await getMarkdownEditorSurface())
   workspace.updateDocumentMarkdownEditorSurface(props.tabId, initialSurface)
@@ -4087,20 +4094,21 @@ onMounted(async () => {
   }
   isVditorLoading.value = true
   try {
-    await runMarkdownVditorInit()
+    if (initialSurface !== 'code') {
+      await runMarkdownVditorInit()
+    }
   } catch (e) {
     logger.error(e)
     eventBus.emit('show-error', t('article.vditor_init_failed') + e)
   } finally {
     isVditorLoading.value = false
   }
-  if (initialSurface === 'code') {
-    await nextTick()
-    await monacoPaneRef.value?.initEditor()
-  }
 })
 
 onActivated(async () => {
+  if (editorSurface.value === 'code') {
+    return
+  }
   if (vditor.value) return
   isVditorLoading.value = true
   try {
@@ -4180,6 +4188,15 @@ onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', updateSearchMenuPosition)
     document.removeEventListener('contextmenu', onDocumentVditorOutlineContextMenuCapture, true)
+    document.removeEventListener('mousedown', onVditorEditorModeMenuOutsideClick, true)
+  }
+  if (handleFocusMarkdownOutlineSectionOptimizer) {
+    eventBus.off('focus-markdown-outline-section-optimizer', handleFocusMarkdownOutlineSectionOptimizer)
+    handleFocusMarkdownOutlineSectionOptimizer = null
+  }
+  if (handleFocusMarkdownOutlineGraphQuick) {
+    eventBus.off('focus-markdown-outline-graph-quick', handleFocusMarkdownOutlineGraphQuick)
+    handleFocusMarkdownOutlineGraphQuick = null
   }
 })
 

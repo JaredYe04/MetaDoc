@@ -7,7 +7,6 @@ import { convertNumberToChinese, removeTitleIndex } from './regex-utils'
 import { getLocalVditorCDN, vditorCDN } from './vditor-cdn'
 import { getRuntimeServerBaseUrlSync } from '../config/runtime-server'
 import { createRendererLogger } from './logger.ts'
-import { preRenderAllCharts } from './chart-pre-renderer.js'
 import {
   themeState,
   resolveVditorContentThemeSettingValue,
@@ -1844,11 +1843,11 @@ async function postProcessMarkdownPreview(container, options, cdn) {
 }
 
 /**
- * Incremental markdown preview: full render on first paint / theme change, then DOM patch.
+ * Monaco 分屏实时预览：统一走 Vditor.preview（与可视化模式一致，图表由 Vditor 原生渲染）。
  * @param {HTMLElement} container
  * @param {string} markdown
  * @param {Object} options
- * @param {{ hasRendered?: boolean, lastThemeKey?: string }} state
+ * @param {{ hasRendered?: boolean, lastThemeKey?: string, lastMarkdown?: string }} state
  * @returns {Promise<void>}
  */
 export async function renderMarkdownPreviewIncremental(container, markdown, options = {}, state = {}) {
@@ -1860,37 +1859,29 @@ export async function renderMarkdownPreviewIncremental(container, markdown, opti
     container.innerHTML = ''
     state.hasRendered = false
     state.lastThemeKey = ''
-    state.lastMd2Html = ''
+    state.lastMarkdown = ''
     return
   }
 
-  const needsFullRender =
-    forceFullRender ||
-    !state.hasRendered ||
-    !container.childNodes.length ||
-    state.lastThemeKey !== themeKey
-
-  if (needsFullRender) {
-    const html = await Vditor.md2html(normalized, previewOptions)
-    container.innerHTML = html
-    state.lastMd2Html = html
-    await postProcessMarkdownPreview(container, options, cdn)
-    state.hasRendered = true
-    state.lastThemeKey = themeKey
+  if (
+    !forceFullRender &&
+    state.hasRendered &&
+    state.lastThemeKey === themeKey &&
+    state.lastMarkdown === normalized &&
+    container.childNodes.length
+  ) {
     return
   }
-
-  const html = await Vditor.md2html(normalized, previewOptions)
-  if (html === state.lastMd2Html) return
 
   const scrollParent = container.closest('.markdown-editor-preview') || container.parentElement
   const scrollTop = scrollParent?.scrollTop ?? 0
 
-  // Use atomic innerHTML swap instead of DOM patch: postProcess (hljs/math) mutates
-  // the tree so incremental patching against fresh md2html output is unreliable.
-  container.innerHTML = html
-  state.lastMd2Html = html
+  await Vditor.preview(container, normalized, previewOptions)
   await postProcessMarkdownPreview(container, options, cdn)
+
+  state.hasRendered = true
+  state.lastThemeKey = themeKey
+  state.lastMarkdown = normalized
 
   if (scrollParent) {
     scrollParent.scrollTop = scrollTop

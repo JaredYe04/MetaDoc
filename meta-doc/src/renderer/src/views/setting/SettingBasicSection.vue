@@ -85,7 +85,6 @@
           <SelectContent class="min-w-[280px]">
             <SelectItem value="wysiwyg">{{ t('setting.editorModeWysiwyg') }}</SelectItem>
             <SelectItem value="ir">{{ t('setting.editorModeIr') }}</SelectItem>
-            <SelectItem value="sv">{{ t('setting.editorModeSv') }}</SelectItem>
             <SelectItem value="code">{{ t('setting.editorModeCode') }}</SelectItem>
           </SelectContent>
         </Select>
@@ -583,7 +582,6 @@ const currentEditorModeHint = computed(() => {
   const choice = defaultEditorModeChoice.value
   if (choice === 'wysiwyg') return t('setting.editorModeWysiwygHint')
   if (choice === 'ir') return t('setting.editorModeIrHint')
-  if (choice === 'sv') return t('setting.editorModeSvHint')
   if (choice === 'code') return t('setting.editorModeCodeHint')
   return t('setting.editorModeIrHint')
 })

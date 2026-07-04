@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { getSetting, setSetting } from '../utils/settings.js'
+import { repairModalPointerEvents } from '../utils/restore-body-pointer-events'
 
 const FOCUS_MODE_SETTING_KEY = 'focusMode'
 
@@ -20,10 +21,15 @@ function readFocusModeFromUrl(): boolean | null {
 const urlFocusMode = readFocusModeFromUrl()
 const isFocusMode = ref(urlFocusMode !== null ? urlFocusMode : false)
 
+if (urlFocusMode === true) {
+  repairModalPointerEvents(500)
+}
+
 if (urlFocusMode === null) {
   void getSetting(FOCUS_MODE_SETTING_KEY).then((v) => {
     if (typeof v === 'boolean') {
       isFocusMode.value = v
+      if (v) repairModalPointerEvents(500)
     }
   })
 }
@@ -32,6 +38,8 @@ export function setFocusModePersisted(value: boolean) {
   const was = isFocusMode.value
   isFocusMode.value = value
   void setSetting(FOCUS_MODE_SETTING_KEY, value)
+  repairModalPointerEvents()
+  repairModalPointerEvents(250)
   if (value === true && was === false) {
     void import('../services/steam-client').then((m) =>
       m.tryUnlockSteamAchievementByApi('ACH_FOCUS_MODE_ONCE')
@@ -53,6 +61,8 @@ export function useFocusMode() {
   }
   const exitFocusMode = () => {
     isFocusMode.value = false
+    repairModalPointerEvents()
+    repairModalPointerEvents(250)
   }
 
   return { isFocusMode, toggleFocusMode, enterFocusMode, exitFocusMode, setFocusModePersisted }

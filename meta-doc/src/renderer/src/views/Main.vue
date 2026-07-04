@@ -26,7 +26,7 @@
       </el-aside>
       <!-- 不用 el-main：避免 Element Plus 默认 flex 与 min-height 导致专注模式下主内容区高度为 0 白屏 -->
       <div class="view-menu-main-wrap">
-        <component :is="viewMenuShell" v-bind="viewMenuShellProps">
+        <ViewMenuContainer :focus-layout="isFocusMode" :sidebar-on-left="isFocusMode">
           <div class="content-area-wrapper">
             <!-- 不用 el-container：EP 默认 flex-direction:row，与主内容区「整列铺满」冲突，易出现 content-main 左右大块留白 -->
             <div class="content-area">
@@ -56,7 +56,7 @@
               </div>
             </div>
           </div>
-        </component>
+        </ViewMenuContainer>
       </div>
     </el-container>
     <!-- BottomMenu放在最下侧，专注模式下隐藏 -->
@@ -177,7 +177,6 @@ import ViewMenu from '../components/ViewMenu.vue'
 import MainTabs from '../components/MainTabs.vue'
 import LogoTab from '../components/LogoTab.vue'
 import ViewMenuContainer from '../components/ViewMenuContainer.vue'
-import ViewMenuContainerFocus from '../components/ViewMenuContainerFocus.vue'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import BottomMenu from '../components/BottomMenu.vue'
 import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
@@ -333,15 +332,6 @@ function onContentMainExternalDrop(e: DragEvent): void {
       : { path, workspacePlacement: placement }
   )
 }
-
-const viewMenuShell = computed(() =>
-  isFocusMode.value ? ViewMenuContainerFocus : ViewMenuContainer
-)
-
-/** 仅专注壳使用侧栏在左；普通壳不接收该 prop，避免与专注侧栏能力混淆 */
-const viewMenuShellProps = computed(() =>
-  isFocusMode.value ? { sidebarOnLeft: true } : ({} as Record<string, never>)
-)
 
 // ============================================================================
 // 计算属性和状态
@@ -2345,6 +2335,16 @@ onBeforeUnmount(() => {
 /* 专注模式：底部栏隐藏时主区域占满剩余高度 */
 .common-layout.is-focus-mode .main-shell {
   height: calc(100vh - 34px);
+  /*
+   * 与顶栏 .top-header-floating 一致：body 被模态层设为 pointer-events:none 时，
+   * 主内容区须显式恢复命中，否则专注模式下编辑器/侧栏「看得见点不动」。
+   */
+  pointer-events: auto !important;
+}
+
+.common-layout.is-focus-mode .view-menu-main-wrap,
+.common-layout.is-focus-mode .content-main {
+  pointer-events: auto !important;
 }
 
 .common-layout.is-focus-mode .content-main {

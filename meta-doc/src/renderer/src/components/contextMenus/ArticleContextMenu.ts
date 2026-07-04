@@ -1,52 +1,16 @@
 import { getSetting } from '../../utils/settings'
 import { getPluginContextMenuItems } from '../../utils/plugin-contributions-ui'
 import type { ContextMenuItem } from './types'
-import type { MarkdownEditorSurface, VditorSubMode } from '../../utils/markdown-editor-mode'
 
 export interface ArticleContextMenuOptions {
   isLatexEditor?: boolean
   isPlainTextEditor?: boolean
   hasTextSelection?: boolean
   isMarkdownEditor?: boolean
-  markdownEditorSurface?: MarkdownEditorSurface
-  vditorMode?: VditorSubMode
 }
 
 function getShortcutText() {
   return 'Shift+Tab'
-}
-
-function buildMarkdownEditorModeSubmenu(
-  surface: MarkdownEditorSurface,
-  vditorMode: VditorSubMode
-): ContextMenuItem {
-  return {
-    type: 'submenu',
-    label: 'contextMenu.editorMode',
-    children: [
-      {
-        label: 'setting.editorModeWysiwyg',
-        value: 'editor-vditor-mode-wysiwyg',
-        checked: surface === 'visual' && vditorMode === 'wysiwyg'
-      },
-      {
-        label: 'setting.editorModeIr',
-        value: 'editor-vditor-mode-ir',
-        checked: surface === 'visual' && vditorMode === 'ir'
-      },
-      {
-        label: 'setting.editorModeSv',
-        value: 'editor-vditor-mode-sv',
-        checked: surface === 'visual' && vditorMode === 'sv'
-      },
-      { type: 'divider' },
-      {
-        label: 'contextMenu.editorModeCode',
-        value: 'editor-surface-code',
-        checked: surface === 'code'
-      }
-    ]
-  }
 }
 
 export async function getArticleContextMenuItems(
@@ -55,10 +19,7 @@ export async function getArticleContextMenuItems(
   const {
     isLatexEditor = false,
     isPlainTextEditor = false,
-    hasTextSelection = false,
-    isMarkdownEditor = false,
-    markdownEditorSurface = 'visual',
-    vditorMode = 'ir'
+    hasTextSelection = false
   } = options
   const autoCompletion = await getSetting('autoCompletion')
   const llmEnabled = (await getSetting('llmEnabled')) === true
@@ -73,10 +34,6 @@ export async function getArticleContextMenuItems(
     { label: 'contextMenu.paste', value: 'paste' },
     { label: 'contextMenu.selectAll', value: 'selectAll' }
   ]
-
-  if (isMarkdownEditor) {
-    items.push({ type: 'divider' }, buildMarkdownEditorModeSubmenu(markdownEditorSurface, vditorMode))
-  }
 
   if (llmEnabled) {
     items.push(

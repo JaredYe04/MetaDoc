@@ -1768,7 +1768,7 @@
     "addSelectionToAgent": "Adicionar à conversa do Agent",
     "generateIllustrationFromSelection": "Gerar ilustração a partir da seleção",
     "editorMode": "Editor mode",
-    "editorModeCode": "Code editor"
+    "editorModeCode": "Split Preview"
   },
   "data-analysis-tool": {
     "analyze": "Análise de Dados",
@@ -4784,8 +4784,8 @@
       "useNow": "Usar agora",
       "viewInventory": "Ver inventário"
     },
-    "editorModeCode": "Code Editor",
-    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
+    "editorModeCode": "Split Preview",
+    "editorModeCodeHint": "Outline and Monaco source editing on the left, live Markdown preview on the right — ideal for large-screen editing."
   },
   "settingBasicSection": {
     "failedSize": "Falha ao obter o tamanho do diretório",

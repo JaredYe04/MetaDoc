@@ -1755,7 +1755,7 @@
     "addSelectionToAgent": "Añadir a la conversación del Agent",
     "generateIllustrationFromSelection": "Generar ilustración a partir de la selección",
     "editorMode": "Editor mode",
-    "editorModeCode": "Code editor"
+    "editorModeCode": "Split Preview"
   },
   "data-analysis-tool": {
     "analyze": "Análisis de datos",
@@ -4751,8 +4751,8 @@
       "mtxPollTimeout": "Tiempo de espera agotado para la confirmación de Steam. Si ya has pagado, haz clic en «Actualizar créditos» más tarde; si no has completado el pago, inténtalo de nuevo.",
       "mtxSteamAuthFailed": "Steam no ha aceptado esta autorización (motivo común: la IP del pedido no coincide con la IP de salida del navegador). Cierra la página de pago e inténtalo de nuevo; si usas VPN/proxy, asegúrate de que sea la misma que la del navegador."
     },
-    "editorModeCode": "Code Editor",
-    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
+    "editorModeCode": "Split Preview",
+    "editorModeCodeHint": "Outline and Monaco source editing on the left, live Markdown preview on the right — ideal for large-screen editing."
   },
   "settingBasicSection": {
     "failedSize": "Error al obtener el tamaño del directorio",

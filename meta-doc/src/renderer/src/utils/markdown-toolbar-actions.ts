@@ -16,6 +16,12 @@ export type MarkdownToolbarAction =
   | 'table'
   | 'codeBlock'
   | 'quote'
+  | 'headingSample1'
+  | 'headingSample2'
+  | 'headingSample3'
+  | 'headingSample4'
+  | 'headingSample5'
+  | 'headingSample6'
 
 function getEditorInstance(editorId: string | null): monaco.editor.IStandaloneCodeEditor | null {
   if (!editorId) return null
@@ -117,9 +123,35 @@ function insertHeading(
   editor.focus()
 }
 
+function insertHeadingSample(
+  editor: monaco.editor.IStandaloneCodeEditor,
+  level: number,
+  sampleText: string
+): void {
+  editor.focus()
+  const selection = getInsertSelection(editor)
+  const model = editor.getModel()
+  if (!selection || !model) return
+  const line = selection.startLineNumber
+  const lineContent = model.getLineContent(line)
+  const headingLine = `${'#'.repeat(level)} ${sampleText}`
+  const insertText = lineContent.trim() === '' ? headingLine : `\n${headingLine}\n`
+  const targetLine = lineContent.trim() === '' ? line : line + 1
+  editor.executeEdits('markdown-toolbar', [
+    {
+      range: selection,
+      text: insertText,
+      forceMoveMarkers: true
+    }
+  ])
+  editor.setPosition({ lineNumber: targetLine, column: headingLine.length + 1 })
+  editor.focus()
+}
+
 export function runMarkdownToolbarActionOnEditor(
   editor: monaco.editor.IStandaloneCodeEditor | null | undefined,
-  action: MarkdownToolbarAction
+  action: MarkdownToolbarAction,
+  sampleText?: string
 ): void {
   if (!editor) return
 
@@ -172,12 +204,31 @@ export function runMarkdownToolbarActionOnEditor(
     case 'quote':
       insertAtCursor(editor, '> ')
       break
+    case 'headingSample1':
+      insertHeadingSample(editor, 1, sampleText || 'Heading 1')
+      break
+    case 'headingSample2':
+      insertHeadingSample(editor, 2, sampleText || 'Heading 2')
+      break
+    case 'headingSample3':
+      insertHeadingSample(editor, 3, sampleText || 'Heading 3')
+      break
+    case 'headingSample4':
+      insertHeadingSample(editor, 4, sampleText || 'Heading 4')
+      break
+    case 'headingSample5':
+      insertHeadingSample(editor, 5, sampleText || 'Heading 5')
+      break
+    case 'headingSample6':
+      insertHeadingSample(editor, 6, sampleText || 'Heading 6')
+      break
   }
 }
 
 export function runMarkdownToolbarAction(
   editorId: string | null,
-  action: MarkdownToolbarAction
+  action: MarkdownToolbarAction,
+  sampleText?: string
 ): void {
-  runMarkdownToolbarActionOnEditor(getEditorInstance(editorId), action)
+  runMarkdownToolbarActionOnEditor(getEditorInstance(editorId), action, sampleText)
 }

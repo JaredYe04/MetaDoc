@@ -1779,7 +1779,7 @@
     "addSelectionToAgent": "Добавить в диалог с Agent",
     "generateIllustrationFromSelection": "Создать иллюстрацию из выделенного",
     "editorMode": "Editor mode",
-    "editorModeCode": "Code editor"
+    "editorModeCode": "Split Preview"
   },
   "data-analysis-tool": {
     "analyze": "Анализ данных",
@@ -4774,8 +4774,8 @@
       "mtxPollTimeout": "Время ожидания подтверждения от Steam истекло. Если вы уже оплатили, нажмите «Обновить баланс» позже; если оплата не завершена, повторите попытку.",
       "mtxSteamAuthFailed": "Steam не принял эту авторизацию (частая причина: IP-адрес заказа не совпадает с IP-адресом выхода браузера). Закройте страницу оплаты и повторите попытку; если используете VPN/прокси, убедитесь, что он совпадает с настройками браузера."
     },
-    "editorModeCode": "Code Editor",
-    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
+    "editorModeCode": "Split Preview",
+    "editorModeCodeHint": "Outline and Monaco source editing on the left, live Markdown preview on the right — ideal for large-screen editing."
   },
   "settingBasicSection": {
     "failedSize": "Не удалось получить размер каталога",

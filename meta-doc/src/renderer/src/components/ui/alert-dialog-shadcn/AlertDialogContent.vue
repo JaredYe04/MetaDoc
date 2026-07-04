@@ -7,6 +7,8 @@ import {
   useForwardPropsEmits
 } from 'reka-ui'
 import { cn } from '@renderer/lib/utils'
+import { onUnmounted } from 'vue'
+import { repairModalPointerEvents } from '@renderer/utils/restore-body-pointer-events'
 
 const props = defineProps({
   forceMount: { type: Boolean, required: false },
@@ -27,6 +29,10 @@ const emits = defineEmits([
 const delegatedProps = reactiveOmit(props, 'class')
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
+
+onUnmounted(() => {
+  repairModalPointerEvents(250)
+})
 </script>
 
 <template>

@@ -1,6 +1,8 @@
 <template>
   <div class="markdown-editor-preview">
-    <div ref="containerRef" class="markdown-editor-preview__container vditor-reset"></div>
+    <el-scrollbar ref="scrollbarRef" class="markdown-editor-preview__scrollbar">
+      <div ref="containerRef" class="markdown-editor-preview__container vditor-reset"></div>
+    </el-scrollbar>
     <div v-if="isInitialRendering" class="markdown-editor-preview__loading">
       <Skeleton :rows="12" animated />
     </div>
@@ -11,6 +13,7 @@
 import { ref, watch, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { debounce } from 'lodash'
+import { ElScrollbar } from 'element-plus'
 import { themeState } from '../../utils/themes'
 import {
   renderMarkdownPreviewIncremental,
@@ -20,6 +23,11 @@ import {
 import { useWorkspace } from '../../stores/workspace'
 import eventBus from '../../utils/event-bus'
 import { Skeleton } from '@renderer/components/ui/skeleton'
+import { clearPreviewTextSelection } from '../../utils/monaco-preview-sync'
+
+const emit = defineEmits<{
+  rendered: []
+}>()
 
 const props = withDefaults(
   defineProps<{
@@ -34,6 +42,7 @@ const props = withDefaults(
 const { t } = useI18n()
 const workspace = useWorkspace()
 
+const scrollbarRef = ref<InstanceType<typeof ElScrollbar> | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 const isInitialRendering = ref(false)
 let linkClickHandler: ((e: MouseEvent) => void) | null = null
@@ -42,7 +51,11 @@ let renderSeq = 0
 const previewState = {
   hasRendered: false,
   lastThemeKey: '',
-  lastMd2Html: ''
+  lastMarkdown: ''
+}
+
+function getScrollWrapElement(): HTMLElement | null {
+  return scrollbarRef.value?.wrapRef ?? null
 }
 
 const setupLinkClickHandler = (container: HTMLElement | null) => {
@@ -72,7 +85,7 @@ const renderPreviewNow = async (forceFullRender = false) => {
     if (containerRef.value) containerRef.value.innerHTML = ''
     previewState.hasRendered = false
     previewState.lastThemeKey = ''
-    previewState.lastMd2Html = ''
+    previewState.lastMarkdown = ''
     isInitialRendering.value = false
     return
   }
@@ -115,11 +128,14 @@ const renderPreviewNow = async (forceFullRender = false) => {
   } catch (error) {
     if (containerRef.value && seq === renderSeq) {
       previewState.hasRendered = false
-      previewState.lastMd2Html = ''
+      previewState.lastMarkdown = ''
       containerRef.value.innerHTML = `<p style="color: red; padding: 20px;">${t('vditorPreview.renderFailed')}: ${error instanceof Error ? error.message : String(error)}</p>`
     }
   } finally {
-    if (seq === renderSeq) isInitialRendering.value = false
+    if (seq === renderSeq) {
+      isInitialRendering.value = false
+      emit('rendered')
+    }
   }
 }
 
@@ -134,7 +150,7 @@ watch(
 watch(
   () => [props.docPath, themeState.currentTheme?.type, themeState.currentTheme?.codeTheme],
   () => {
-    previewState.lastMd2Html = ''
+    previewState.lastMarkdown = ''
     renderPreviewNow(true)
   }
 )
@@ -145,14 +161,34 @@ onBeforeUnmount(() => {
     containerRef.value.removeEventListener('click', linkClickHandler)
   }
 })
+
+defineExpose({
+  getScrollElement: () => getScrollWrapElement(),
+  getContentElement: () => containerRef.value,
+  clearSyncHighlight: () => {
+    if (containerRef.value) clearPreviewTextSelection(containerRef.value)
+  },
+  clearPreviewTextSelection: () => {
+    if (containerRef.value) clearPreviewTextSelection(containerRef.value)
+  }
+})
 </script>
 
 <style scoped>
 .markdown-editor-preview {
   position: relative;
   height: 100%;
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden;
   background: v-bind('themeState.currentTheme.editorPanelBackgroundColor');
+}
+
+.markdown-editor-preview__scrollbar {
+  height: 100%;
+}
+
+.markdown-editor-preview__scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 
 .markdown-editor-preview__container {

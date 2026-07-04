@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { PopoverContent, PopoverPortal, useForwardProps, type PopoverContentProps } from 'reka-ui'
-import { computed, type HTMLAttributes } from 'vue'
+import { computed, onUnmounted, type HTMLAttributes } from 'vue'
 import { cn } from '@renderer/lib/utils'
+import { repairModalPointerEvents } from '@renderer/utils/restore-body-pointer-events'
 
 const props = withDefaults(
   defineProps<
@@ -22,6 +23,10 @@ const delegatedProps = computed(() => {
 })
 
 const forwardedProps = useForwardProps(delegatedProps)
+
+onUnmounted(() => {
+  repairModalPointerEvents(250)
+})
 </script>
 
 <template>

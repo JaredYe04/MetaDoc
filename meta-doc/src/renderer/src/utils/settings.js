@@ -152,8 +152,8 @@ export const settings = reactive({
   particleEffect: false, // 是否启用粒子效果
   outlineLayoutDirection: 'vertical', // 大纲树布局方向：'vertical' 或 'horizontal'
   llmTemperature: 1.3, // LLM 全局温度配置
-  vditorMode: 'ir', // Vditor编辑模式：'wysiwyg'、'ir'、'sv'，默认'ir'
-  markdownEditorSurface: 'visual', // Markdown 编辑面：'visual'（Vditor）或 'code'（Monaco+预览）
+  vditorMode: 'ir', // Vditor编辑模式：'wysiwyg'、'ir'，默认'ir'
+  markdownEditorSurface: 'visual', // Markdown 编辑面：'visual'（Vditor）或 'code'（Monaco 分屏预览）
   editorModePromptShown: false, // 是否已显示过“首次选择编辑器模式”弹窗
   /** 首次使用全屏向导是否已完成（新版 Onboarding） */
   firstRunWizardCompleted: false,
@@ -264,6 +264,8 @@ export async function initSettings() {
   await initCriticalSettings()
   // 然后异步加载非关键设置
   initNonCriticalSettings()
+  const { migrateLegacyEditorMode } = await import('./markdown-editor-mode')
+  await migrateLegacyEditorMode()
 }
 
 /**

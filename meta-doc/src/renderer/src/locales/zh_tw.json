@@ -1767,7 +1767,7 @@
     "addSelectionToAgent": "添加到 Agent 對話",
     "generateIllustrationFromSelection": "生成插圖",
     "editorMode": "編輯器模式",
-    "editorModeCode": "程式碼編輯器"
+    "editorModeCode": "分屏預覽"
   },
   "data-analysis-tool": {
     "analyze": "資料分析",
@@ -4792,8 +4792,8 @@
       "mtxPollTimeout": "等待 Steam 確認逾時。若已付款，請稍後點選「重新整理額度」；若未完成支付，請重試。",
       "mtxSteamAuthFailed": "Steam 未接受本次授權（常見原因：下單 IP 與瀏覽器出口 IP 不一致）。請關閉支付頁面後重試；若使用 VPN/代理，請保持與瀏覽器一致。"
     },
-    "editorModeCode": "程式碼編輯器",
-    "editorModeCodeHint": "左側 Monaco 原始碼編輯，右側即時 Markdown 預覽，適合熟悉語法的用戶。"
+    "editorModeCode": "分屏預覽",
+    "editorModeCodeHint": "左側大綱與 Monaco 原始碼編輯，右側即時 Markdown 預覽，適合大螢幕下的 Markdown 編輯。"
   },
   "settingBasicSection": {
     "failedSize": "取得目錄大小失敗",

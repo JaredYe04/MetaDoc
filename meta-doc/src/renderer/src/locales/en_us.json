@@ -152,7 +152,7 @@
     "triggerAutoCompletion": "AI Auto-completion",
     "translateSelection": "Translate selection",
     "editorMode": "Editor mode",
-    "editorModeCode": "Code editor"
+    "editorModeCode": "Split Preview"
   },
   "headMenu": {
     "tooltip": "An intelligent word processor powered by AI Agents",
@@ -755,6 +755,12 @@
       "undo": "Undo",
       "redo": "Redo",
       "headings": "Headings",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "heading4": "Heading 4",
+      "heading5": "Heading 5",
+      "heading6": "Heading 6",
       "bold": "Bold",
       "italic": "Italic",
       "strike": "Strikethrough",
@@ -2241,8 +2247,8 @@
     "copyConfig": "Copy Configuration",
     "copyConfigSuccess": "Configuration Copied",
     "readFileFailed": "Failed to read file",
-    "editorModeCode": "Code Editor",
-    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
+    "editorModeCode": "Split Preview",
+    "editorModeCodeHint": "Outline and Monaco source editing on the left, live Markdown preview on the right — ideal for large-screen editing."
   },
   "visualize": {
     "articleOutline": "Article Outline",

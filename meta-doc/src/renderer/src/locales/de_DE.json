@@ -411,7 +411,7 @@
     "addSelectionToAgent": "Zum Agenten-Dialog hinzufügen",
     "generateIllustrationFromSelection": "Auswahl als Illustration generieren",
     "editorMode": "Editor mode",
-    "editorModeCode": "Code editor"
+    "editorModeCode": "Split Preview"
   },
   "formulaRecognition": {
     "brush_size": "Pinselstärke",
@@ -2003,8 +2003,8 @@
       "mtxPollTimeout": "Zeitüberschreitung beim Warten auf Steam-Bestätigung. Falls bereits bezahlt, klicken Sie bitte später auf \"Guthaben aktualisieren\". Falls die Zahlung nicht abgeschlossen wurde, versuchen Sie es erneut.",
       "mtxSteamAuthFailed": "Steam hat diese Autorisierung nicht akzeptiert (häufige Ursache: IP-Adresse der Bestellung stimmt nicht mit der IP des Browsers überein). Bitte schließen Sie die Zahlungsseite und versuchen Sie es erneut. Bei Nutzung von VPN/Proxy, stellen Sie bitte sicher, dass es mit dem Browser übereinstimmt."
     },
-    "editorModeCode": "Code Editor",
-    "editorModeCodeHint": "Monaco source editing on the left with live Markdown preview on the right."
+    "editorModeCode": "Split Preview",
+    "editorModeCodeHint": "Outline and Monaco source editing on the left, live Markdown preview on the right — ideal for large-screen editing."
   },
   "titleMenu": {
     "contextMarks": {

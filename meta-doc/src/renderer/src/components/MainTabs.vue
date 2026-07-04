@@ -621,6 +621,7 @@ import GlobalToast from './global/GlobalToast.vue'
 import LogoTab from './LogoTab.vue'
 import LogoIcon from './LogoIcon.vue'
 import { useFocusMode } from '../composables/useFocusMode'
+import { repairModalPointerEvents } from '../utils/restore-body-pointer-events'
 import { useEditorChromeLayout } from '../composables/useEditorChromeLayout'
 import {
   collectTabIdsInLayout,
@@ -2602,6 +2603,9 @@ const onFocusDocPickerScrollOrResize = () => updateFocusDocPickerGeometry()
 
 watch(isFocusMode, () => {
   focusDocPickerOpen.value = false
+  openDocsPopoverOpen.value = false
+  repairModalPointerEvents()
+  repairModalPointerEvents(250)
   nextTick(() => checkTabOverflow())
 })
 

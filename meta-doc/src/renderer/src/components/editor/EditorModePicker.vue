@@ -31,7 +31,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { FileText, Zap, Columns2, Code2 } from 'lucide-vue-next'
+import { FileText, Zap, Columns2 } from 'lucide-vue-next'
 import { Button } from '@renderer/components/ui/button'
 import { themeState } from '../../utils/themes'
 import type { MarkdownDefaultEditorModeChoice } from '../../utils/markdown-editor-mode'
@@ -71,14 +71,8 @@ const editorModeOptions = [
     descKey: 'setting.editorModeIrHint'
   },
   {
-    value: 'sv' as const,
-    icon: Columns2,
-    titleKey: 'setting.editorModeSv',
-    descKey: 'setting.editorModeSvHint'
-  },
-  {
     value: 'code' as const,
-    icon: Code2,
+    icon: Columns2,
     titleKey: 'setting.editorModeCode',
     descKey: 'setting.editorModeCodeHint'
   }

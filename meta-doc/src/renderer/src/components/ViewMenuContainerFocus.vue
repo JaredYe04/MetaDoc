@@ -99,9 +99,14 @@
             <div v-show="activeTab === 'outline' && showOutlineTab" class="sidebar-outline-panel">
               <DocumentOutlineSearchPanel />
               <div
-                v-show="outlineHostKind === 'md'"
+                v-show="outlineHostKind === 'md-vditor'"
                 id="metadoc-vditor-outline-host"
                 class="focus-vditor-outline-host"
+              />
+              <MarkdownOutlinePanel
+                v-if="outlineHostKind === 'md-monaco'"
+                :tab-id="activeDocument?.tabId"
+                class="focus-markdown-outline-host"
               />
               <FocusLatexOutlinePanel
                 v-if="outlineHostKind === 'tex'"
@@ -142,10 +147,11 @@ import WorkspaceExplorer from './WorkspaceExplorer.vue'
 import MetaInfoPanel from './MetaInfoPanel.vue'
 import DocumentOutlineSearchPanel from './DocumentOutlineSearchPanel.vue'
 import FocusLatexOutlinePanel from './FocusLatexOutlinePanel.vue'
+import MarkdownOutlinePanel from './MarkdownOutlinePanel.vue'
 import AgentWorkspaceManageDialogs from './agent/AgentWorkspaceManageDialogs.vue'
 import eventBus from '../utils/event-bus'
 import messageBridge from '../bridge/message-bridge'
-import { getSetting, setSetting } from '../utils/settings'
+import { getSetting, setSetting, settings } from '../utils/settings'
 import { useWorkspace } from '../stores/workspace'
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils'
 import { extractOutlineTreeFromLatex } from '../utils/latex-utils'
@@ -214,11 +220,13 @@ const showOutlineTab = computed(() => {
   return pathLooksMd(doc.path) || pathLooksTex(doc.path)
 })
 
-const outlineHostKind = computed<'md' | 'tex'>(() => {
+const outlineHostKind = computed<'md-vditor' | 'md-monaco' | 'tex'>(() => {
   const doc = activeDocument.value
-  if (!doc) return 'md'
+  if (!doc) return 'md-vditor'
   if (isTexLikeFormat(doc.format) || pathLooksTex(doc.path)) return 'tex'
-  return 'md'
+  const surface = doc.markdownEditorSurface ?? settings.markdownEditorSurface
+  if (surface === 'code') return 'md-monaco'
+  return 'md-vditor'
 })
 
 const hasMultipleTabs = computed(() => {
@@ -308,7 +316,7 @@ watch(
 watch(
   activeTab,
   async (tab) => {
-    if (tab !== 'outline' || !showOutlineTab.value || outlineHostKind.value !== 'md') return
+    if (tab !== 'outline' || !showOutlineTab.value || outlineHostKind.value !== 'md-vditor') return
     await nextTick()
     await nextTick()
     eventBus.emit('sync-vditor-outline-sidebar-host')

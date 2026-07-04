@@ -60,7 +60,11 @@
         <TooltipTrigger as-child>
           <PopoverTrigger as-child>
             <button type="button" class="toolbar-icon" :aria-label="t('article.toolbar.mode')">
-              <Columns2 class="w-4 h-4" />
+              <img
+                :src="(themeState.currentTheme as { ModeIcon?: string }).ModeIcon"
+                class="toolbar-icon-img"
+                alt=""
+              />
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
@@ -150,7 +154,6 @@ import {
   Search,
   Sigma,
   Sparkles,
-  Columns2,
   ListTree
 } from 'lucide-vue-next'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
@@ -244,6 +247,14 @@ const onModeSelect = (choice: MarkdownDefaultEditorModeChoice) => {
 
 .toolbar-icon:hover {
   background: rgba(0, 0, 0, 0.05);
+}
+
+.toolbar-icon-img {
+  width: 16px;
+  height: 16px;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .toolbar-icon--active {

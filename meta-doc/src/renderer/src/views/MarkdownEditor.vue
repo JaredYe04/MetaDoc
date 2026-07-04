@@ -3437,6 +3437,8 @@ async function runMarkdownVditorInit() {
     // 获取数学公式图标（根据当前主题）
     const mathIconUrl = (themeState.currentTheme as any).MathIcon
     const mathIconSvg = await getSvgIconContent(mathIconUrl)
+    const modeIconUrl = (themeState.currentTheme as any).ModeIcon
+    const modeIconSvg = await getSvgIconContent(modeIconUrl)
 
     await nextTick()
     const vditorMountEl = document.getElementById(props.editorDomId)
@@ -3658,7 +3660,7 @@ async function runMarkdownVditorInit() {
           tip: t('article.toolbar.mode'),
           tipPosition: 's',
           hotkey: '⌘⇧M',
-          icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>',
+          icon: modeIconSvg,
           click(event: Event) {
             const el = (event?.currentTarget ?? event?.target) as HTMLElement | null
             if (el) openVditorEditorModeMenu(el)

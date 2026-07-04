@@ -13,6 +13,8 @@ import OutlineIconBlack from '../assets/icons/outline-black.svg'
 import OutlineIconWhite from '../assets/icons/outline-white.svg'
 import VisualIconBlack from '../assets/icons/visual-black.svg'
 import VisualIconWhite from '../assets/icons/visual-white.svg'
+import ModeIconBlack from '../assets/icons/mode-black.svg'
+import ModeIconWhite from '../assets/icons/mode-white.svg'
 import AgentIconBlack from '../assets/icons/agent-black.svg'
 import AgentIconWhite from '../assets/icons/agent-white.svg'
 import ProofreadIconBlack from '../assets/icons/proofread-black.svg'
@@ -350,6 +352,7 @@ const generateThemeIcons = (isDarkMode) => {
     EditorIcon: selectIconByTheme(isDarkMode, { light: EditorIconBlack, dark: EditorIconWhite }),
     OutlineIcon: selectIconByTheme(isDarkMode, { light: OutlineIconBlack, dark: OutlineIconWhite }),
     VisualIcon: selectIconByTheme(isDarkMode, { light: VisualIconBlack, dark: VisualIconWhite }),
+    ModeIcon: selectIconByTheme(isDarkMode, { light: ModeIconBlack, dark: ModeIconWhite }),
     AgentIcon: selectIconByTheme(isDarkMode, { light: AgentIconBlack, dark: AgentIconWhite }),
     ProofreadIcon: selectIconByTheme(isDarkMode, {
       light: ProofreadIconBlack,

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="./logos/logo.png" width="128" alt="MetaDoc Logo"/>
+<img src="./meta-doc/src/renderer/src/assets/logo.svg" width="128" alt="MetaDoc Logo"/>
 
 # MetaDoc
 

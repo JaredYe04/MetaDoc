@@ -808,22 +808,33 @@ Made with ❤️ by **ByteLight**
 </div>
 
 ---
+<div align="center">
+<a id="简体中文"></a>
+
+<img src="./meta-doc/src/renderer/src/assets/logo.svg" width="128" alt="MetaDoc Logo"/>
+
+# MetaDoc
+
+### 轻量 Markdown / LaTeX 编辑器，AI 随心可选
+
+*面向开发者、科研工作者、学生与技术写作者的快速、可扩展、跨平台写作环境。*
+
+<p>
+
+![Version](https://img.shields.io/github/v/tag/JaredYe04/MetaDoc?label=version)
+![License](https://img.shields.io/badge/License-GPL--2.0-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
+![Electron](https://img.shields.io/badge/Electron-31+-47848F)
+![Vue](https://img.shields.io/badge/Vue-3-42b883)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6)
+
+</p>
 
 <div align="center">
 
 **[English](#english)** | **[简体中文](#简体中文)**
 
 </div>
-
----
-
-<a id="简体中文"></a>
-
-<div align="center">
-
-### 轻量 Markdown / LaTeX 编辑器，AI 随心可选
-
-*面向开发者、科研工作者、学生与技术写作者的快速、可扩展、跨平台写作环境。*
 
 <p>
 

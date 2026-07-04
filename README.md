@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Version](https://img.shields.io/badge/version-0.12.1-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![License](https://img.shields.io/badge/license-GPL--2.0-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android-lightgrey.svg)
 
 **基于LLM Agent的智能文字处理软件**
@@ -325,7 +325,11 @@ LLM API Key 在应用 **设置 → LLM** 中配置，勿写入 `.env`。
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
+本项目采用 [GNU General Public License v2.0 (GPLv2)](LICENSE) 发布。
+
+- 你可以自由使用、修改和分发本软件（需遵循 GPLv2 条款）
+- 基于本项目的衍生作品须同样以 GPLv2 开源
+- 第三方依赖的许可证见应用内「设置 → 关于 → 开源协议」
 
 ## 👥 作者
 

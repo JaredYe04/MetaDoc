@@ -1490,6 +1490,8 @@
     "about": {
       "feedback": "Report an issue",
       "officialQQGroup": "Official QQ Group",
+      "projectLicense": "License",
+      "projectLicenseValue": "GNU General Public License v2.0 (GPLv2)",
       "title": "About",
       "appName": "MetaDoc",
       "version": "Version",

@@ -4286,6 +4286,8 @@
       "buildEnvironmentDev": "开发环境",
       "buildEnvironmentRelease": "正式环境",
       "officialQQGroup": "官方 QQ 群",
+      "projectLicense": "软件许可",
+      "projectLicenseValue": "GNU General Public License v2.0 (GPLv2)",
       "feedback": "反馈问题",
       "updateSettings": "更新设置",
       "openSourceLicenses": "开源协议",

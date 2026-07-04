@@ -22,6 +22,10 @@
           <span class="qq-label">{{ $t('setting.about.officialQQGroup') }}:</span>
           <span class="qq-value">1079841705</span>
         </div>
+        <div class="project-license">
+          <span class="license-label">{{ $t('setting.about.projectLicense') }}:</span>
+          <span class="license-value">{{ $t('setting.about.projectLicenseValue') }}</span>
+        </div>
         <div class="feedback-entry">
           <Button variant="outline" @click="openFeedbackTab">
             {{ $t('setting.about.feedback') }}
@@ -594,7 +598,8 @@ onUnmounted(() => {
 .version-info,
 .release-date,
 .build-environment,
-.qq-group {
+.qq-group,
+.project-license {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -606,14 +611,16 @@ onUnmounted(() => {
 .version-label,
 .date-label,
 .env-label,
-.qq-label {
+.qq-label,
+.license-label {
   font-weight: 500;
 }
 
 .version-value,
 .date-value,
 .env-value,
-.qq-value {
+.qq-value,
+.license-value {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   color: hsl(var(--foreground));
 }

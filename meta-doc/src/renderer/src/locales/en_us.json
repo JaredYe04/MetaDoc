@@ -4224,6 +4224,8 @@
     "submitting": "Submitting…",
     "submitSuccess": "Feedback submitted. Thank you for your feedback!",
     "submitFailed": "Submit failed",
+    "githubIssuesHint": "Please submit bugs, feature requests, or security reports via GitHub Issues in the open-source build.",
+    "openGithubIssues": "Create GitHub Issue",
     "footerHint": "You can also provide feedback via:",
     "emailHint": "Email:",
     "qqGroupHint": "QQ Group:",

@@ -275,17 +275,15 @@ MetaDoc/
 
 ## 🔧 配置说明
 
-### 环境变量
+### .env 文件示例
 
-创建 `.env` 文件（开发环境）或 `resources/.env`（生产环境）：
+见 [`meta-doc/.env.example`](meta-doc/.env.example)；完整说明见 [ENV_CONFIG.md](meta-doc/docs/releases/ENV_CONFIG.md) 与 [BUILTIN_API_KEYS.md](meta-doc/docs/releases/BUILTIN_API_KEYS.md)。
 
-```env
-# LLM API配置
-OPENAI_API_KEY=your_api_key
-GOOGLE_API_KEY=your_api_key
-
-# 其他配置...
+```bash
+cp meta-doc/.env.example meta-doc/.env
 ```
+
+LLM API Key 在应用 **设置 → LLM** 中配置，勿写入 `.env`。
 
 ### 数据库配置
 

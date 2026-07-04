@@ -6,6 +6,13 @@ out
 cloudflare-worker/.dev.vars
 cloudflare-worker/.env.vars
 
+# 本地环境（.env.example / .env.steam.example 可提交）
+.env
+.env.local
+resources/.env
+.env.steam
+.env.steam.local
+
 # Steam 本地调试 AppID（勿提交真实发行 ID）
 steam_appid.txt
 

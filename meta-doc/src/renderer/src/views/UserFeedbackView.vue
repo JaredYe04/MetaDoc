@@ -4,6 +4,29 @@
       <h2 class="view-title">{{ $t('userFeedback.title') }}</h2>
     </div>
 
+    <div v-if="!isDemo" class="feedback-issues-redirect">
+      <p class="issues-hint">{{ $t('userFeedback.githubIssuesHint') }}</p>
+      <div class="feedback-footer">
+        <div class="footer-hint">{{ $t('userFeedback.footerHint') }}</div>
+        <div class="footer-contact">
+          {{ $t('userFeedback.emailHint') }}
+          <span class="footer-copy" @click="copyToClipboard('1010268129@outlook.com')"
+            >1010268129@outlook.com</span
+          >
+        </div>
+        <div class="footer-contact">
+          {{ $t('userFeedback.qqGroupHint') }}
+          <span class="footer-copy" @click="copyToClipboard('1079841705')">1079841705</span>
+        </div>
+      </div>
+      <div class="feedback-submit-bar">
+        <Button type="primary" @click="openGithubIssuesNew">
+          {{ $t('userFeedback.openGithubIssues') }}
+        </Button>
+      </div>
+    </div>
+
+    <template v-else>
     <div class="feedback-form-scroll">
       <Form class="feedback-form space-y-4">
         <FormField :label="$t('userFeedback.feedbackType')" name="type" required>
@@ -112,6 +135,7 @@
     </div>
 
     <ImagePreviewDialog v-model="showImagePreview" :image-url="previewImageUrl" />
+    </template>
   </div>
 </template>
 
@@ -141,6 +165,7 @@ import { getAppVersion } from '../utils/version'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import ImagePreviewDialog from '../components/common/ImagePreviewDialog.vue'
 import messageBridge from '../bridge/message-bridge'
+import { openGithubIssuesNew } from '../utils/github-issues-url'
 
 // 与 Gist 能力一致：单文件 raw 可至约 10 MB，最多 5 个附件
 const SINGLE_FILE_MAX_BYTES = 10 * 1024 * 1024 // 10 MB
@@ -534,41 +559,15 @@ Demo mode is useful for documentation and tutorials.
 }
 
 onMounted(async () => {
-  // Demo mode: skip real IPC setup
-  if (isDemo.value) {
-    setupMonacoWorker()
-    if (!editorContainer.value) return
-    const isDark = themeState.currentTheme.type === 'dark'
-    editor = monaco.editor.create(editorContainer.value, {
-      value: '',
-      language: 'markdown',
-      theme: isDark ? 'vs-dark' : 'vs',
-      automaticLayout: true,
-      minimap: { enabled: true },
-      scrollBeyondLastLine: false,
-      fontSize: 14,
-      lineNumbers: 'on',
-      wordWrap: 'on',
-      readOnly: false
-    })
-    bodyFromEditor.value = editor.getValue()
-    editor.onDidChangeModelContent(() => {
-      bodyFromEditor.value = editor?.getModel()?.getValue() ?? ''
-    })
-    loadDemoData()
+  if (!isDemo.value) {
     return
   }
 
-  feedbackAttachmentUploadedHandler = (_e: any, index: number) => {
-    uploadedAttachmentIndices.value = [...uploadedAttachmentIndices.value, index]
-  }
-  messageBridge.on('feedback-attachment-uploaded', feedbackAttachmentUploadedHandler)
   setupMonacoWorker()
   if (!editorContainer.value) return
-  const template = await buildBodyTemplate()
   const isDark = themeState.currentTheme.type === 'dark'
   editor = monaco.editor.create(editorContainer.value, {
-    value: template,
+    value: '',
     language: 'markdown',
     theme: isDark ? 'vs-dark' : 'vs',
     automaticLayout: true,
@@ -583,7 +582,7 @@ onMounted(async () => {
   editor.onDidChangeModelContent(() => {
     bodyFromEditor.value = editor?.getModel()?.getValue() ?? ''
   })
-  await injectSystemInfoFromMain()
+  loadDemoData()
 })
 
 watch(
@@ -680,6 +679,16 @@ onBeforeUnmount(() => {
   border-top: 1px solid rgba(128, 128, 128, 0.2);
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+.feedback-issues-redirect {
+  padding: 8px 4px 16px;
+}
+
+.issues-hint {
+  margin-bottom: 16px;
+  line-height: 1.6;
+  font-size: 14px;
 }
 
 .footer-hint {

@@ -178,6 +178,31 @@ src/renderer/src/plugins/examples/hello-world.ts
 
 ---
 
+## 2026-07-04 — 开源环境变量与隐私清理
+
+### Git 历史
+
+- 使用 `git filter-repo` 移除全历史中的 `meta-doc/.env`、`meta-doc/resources/.env`、`archived/steam/third-party/steam-inventory/upload-config.local.json`
+
+### 新增（可提交）
+
+| 路径 | 说明 |
+|------|------|
+| `meta-doc/.env.example` | 开源默认 env（SimpleTex、SiliconFlow、更新检查） |
+| `meta-doc/.env.steam.example` | Steam / 官方云构建参考 |
+| `archived/env/legacy-spring-server.env.example` | 废弃 Spring Boot 后端 |
+| `archived/steam/third-party/steam-inventory/upload-config.local.json.example` | ImgBB 上传配置模板 |
+| `meta-doc/docs/releases/BUILTIN_API_KEYS.md` | 内置免费 API Key 说明 |
+| `archived/docs/LEGACY_SPRING_SERVER.md` | 废弃后端说明 |
+
+### 行为变更
+
+- 应用内 / 官网反馈改为引导 [GitHub Issues](https://github.com/JaredYe04/MetaDoc/issues/new)；移除 `GITHUB_FEEDBACK_*` 依赖
+- `SERVER_URL` 不再读环境变量，固定 localhost（Legacy Spring 已归档）
+- `.gitignore` 补全 `meta-doc/.env`、`resources/.env` 等
+
+---
+
 ## 维护说明
 
 - 每次大批量归档或删除后，在本文件追加一节（日期 + 摘要）。

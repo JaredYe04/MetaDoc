@@ -2,51 +2,67 @@
 
 ## 概述
 
-MetaDoc 项目需要配置两类环境变量：
+MetaDoc 环境变量分为三层：
 
-1. **应用程序更新检查**（`.env` 文件）- 用于应用程序运行时检查更新
-2. **GitHub Actions 发布**（GitHub Secrets）- 用于 GitHub Actions 自动发布
+| 层级 | 文件 | 是否提交 Git |
+|------|------|-------------|
+| 开源默认 | [`meta-doc/.env.example`](../../.env.example) | ✅ 是 |
+| 本地开发 | `meta-doc/.env` | ❌ gitignore |
+| 归档参考 | [`.env.steam.example`](../../.env.steam.example)、[`archived/env/`](../../../archived/env/) | ✅ example 可提交 |
 
-## 1. 应用程序更新检查配置（.env 文件）
+另见：[内置 API Key 说明](./BUILTIN_API_KEYS.md)
+
+**用户反馈**：开源版已禁用 `GITHUB_FEEDBACK_*` 与应用内提交，请使用 [GitHub Issues](https://github.com/JaredYe04/MetaDoc/issues/new)。
+
+## 1. 应用程序配置（`.env` 文件）
 
 ### 配置文件位置
 
-- **开发环境**：项目根目录的 `.env` 文件
-- **打包后**：`resources/.env` 文件（会被打包到应用程序中）
+- **模板**：[`meta-doc/.env.example`](../../.env.example)（复制为 `.env`）
+- **开发环境**：`meta-doc/.env`（**勿提交**）
+- **打包后**：`meta-doc/resources/.env`（由 `copy-env.js` 生成，**勿提交**）
 
-### 必需的环境变量
+### 开源版 `.env.example` 包含
 
 ```env
-# GitHub 仓库信息（必需）
-UPDATE_GITHUB_OWNER=your-github-username
+SIMPLETEX_APP_ID=...
+SIMPLETEX_APP_SECRET=...
+SILICONFLOW_API_KEY=...
+TESSDATA_PREFIX=resources/tesseract
+FORMULA_CONVERTER_TYPE=mathml2omml
+FORMULA_VERBOSE_LOGGING=false
+UPDATE_GITHUB_OWNER=your-github-org
 UPDATE_GITHUB_REPO=MetaDoc-Releases
 ```
 
-### 可选的环境变量
+SimpleTex / SiliconFlow 为共享免费额度，详见 [BUILTIN_API_KEYS.md](./BUILTIN_API_KEYS.md)。
+
+### 更新检查（必需）
 
 ```env
-# 更新检查间隔（可选，默认 24 小时）
-UPDATE_CHECK_INTERVAL=86400000
+UPDATE_GITHUB_OWNER=your-github-username
+UPDATE_GITHUB_REPO=MetaDoc-Releases
+UPDATE_CHECK_INTERVAL=86400000   # 可选，默认 24h
 ```
 
-**重要提示**：`UPDATE_GITHUB_TOKEN` **不应**写在 `.env` 文件中，因为 `.env` 文件会被打包到应用程序中，用户可以看到。如果 Releases 仓库是私有的，应该考虑使用公开仓库，或者使用其他安全的更新机制。
+**重要**：`UPDATE_GITHUB_TOKEN` **不应**写在 `.env` 中（会随安装包暴露）。
 
-### 用途说明
+### 已废弃 / 已归档（勿写入主 `.env`）
 
-这些环境变量用于配置 `update-service.ts`，让应用程序能够：
-
-- 从指定的 GitHub 仓库（`MetaDoc-Releases`）检查更新
-- 根据用户选择的更新渠道（dev/release）获取相应版本的更新信息
-- **推荐使用公开仓库**，这样不需要 Token，也不存在安全问题
+| 变量 | 说明 |
+|------|------|
+| `GITHUB_FEEDBACK_*` | 已废弃，反馈走 GitHub Issues |
+| `VITE_SERVER_URL` / `SERVER_URL` | 见 [`archived/env/legacy-spring-server.env.example`](../../../archived/env/legacy-spring-server.env.example) |
+| `VITE_METADOC_*` / `VITE_STEAM_*` | 见 [`meta-doc/.env.steam.example`](../../.env.steam.example) |
 
 ### 配置步骤
 
-1. 在项目根目录创建或编辑 `.env` 文件
-2. 添加上述环境变量
-3. 运行 `npm run build` 时，`.env` 文件会被自动复制到 `resources/.env`
-4. 打包后的应用程序会从 `resources/.env` 读取这些配置
+```bash
+cp meta-doc/.env.example meta-doc/.env
+# 编辑 meta-doc/.env 后运行 dev / build
+```
 
-## 2. GitHub Actions 发布配置（GitHub Secrets）
+## 2. GitHub Actions 发布（GitHub Secrets）
 
 ### 配置位置
 

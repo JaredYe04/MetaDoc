@@ -1,6 +1,6 @@
 // 从环境变量读取服务器地址，如果没有配置则使用默认值
-// 优先使用 VITE_SERVER_URL（Vite 环境变量），如果没有则使用默认值
-export const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8080' //Spring Boot后端服务器的地址，从环境变量读取
+// Legacy Spring Boot 后端基址（已废弃，见 archived/env/legacy-spring-server.env.example）
+export const SERVER_URL = 'http://localhost:8080'
 
 export const outline_tree_example = {
   path: 'dummy', //编号规则：根节点无编号，为dummy，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推

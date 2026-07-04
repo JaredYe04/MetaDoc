@@ -1,3 +1,7 @@
+/**
+ * Legacy Spring Boot 客户端工具（登录、图片上传等）。
+ * 后端已废弃，见 archived/docs/LEGACY_SPRING_SERVER.md；SERVER_URL 固定为 localhost。
+ */
 import axios from 'axios'
 import { SERVER_URL } from './consts'
 import { avatar, loggedIn, user, resetUserState } from '../stores/user'

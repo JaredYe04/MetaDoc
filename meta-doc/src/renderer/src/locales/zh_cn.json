@@ -5249,6 +5249,8 @@
       "noIpc": "当前环境无法提交反馈"
     },
     "feedbackType": "反馈类型",
+    "githubIssuesHint": "开源版请通过 GitHub Issues 提交 Bug、功能建议或安全问题。",
+    "openGithubIssues": "在 GitHub 上新建 Issue",
     "footerHint": "您也可以通过以下方式反馈：",
     "qqGroupHint": "加入 QQ 群：",
     "selectType": "请选择类型",

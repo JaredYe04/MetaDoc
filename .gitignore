@@ -6,6 +6,16 @@ node_modules/
 .test-release/
 .test-workflow/
 
+# meta-doc 本地环境（仅 .env.example 可提交）
+meta-doc/.env
+meta-doc/.env.local
+meta-doc/resources/.env
+meta-doc/.env.steam
+meta-doc/.env.steam.local
+archived/env/*.local
+archived/**/upload-config.local.json
+archived/cloudflare-worker/.dev.vars
+
 # ==========================================
 # 2. AI 模型与大体积资源 (AI Models & Data)
 # ==========================================
